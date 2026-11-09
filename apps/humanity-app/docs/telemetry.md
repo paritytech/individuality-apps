@@ -17,6 +17,7 @@ The code is in `packages/humanity-shared/src/telemetry/`:
 | :-- | :-- |
 | `sentry.ts` | `initTelemetry(surface)`, called first thing by both executables. No DSN, no client: a build without `VITE_SENTRY_DSN`, `vite dev` without one, and every test send nothing. |
 | `flow.ts` | `runFlow(name, fn, { attributes, outcome })`: the transaction. `flow.stage(name)` / `flow.step(name, fn)`: its children. `childSpan` is how the seams below attach. |
+| `host-session.ts` | Reads the Pocket host's `__trinityHostTelemetry` bootstrap and tags every event and transaction with `host.session_id` (and `open.source`), the id the host's own `host.*` events carry. No host, no tag. |
 | `sentry-sink.ts` | The LogTape sink. Records below `error` are breadcrumbs; `error` and `fatal` records are the events, grouped by category and message **template**. |
 | `app-context.ts` | `setIdentityContext`, `setCardContext`, `setDebugContext`: the card's standing as last shown (and, only with `VITE_SENTRY_SEND_IDENTITY=true`, whose card it is), on every event. Written by `use-humanity-card.ts` and the debug override when the state changes. |
 | `redact.ts` | Keeps usernames and account addresses out of reports unless the deployer opts in: blanks identity-keyed log properties and scrubs SS58 addresses and `name.NN` usernames from every text before sending. |
@@ -54,11 +55,14 @@ Tags on everything: `surface` (`app` / `worker`), `product` (the DotNS label
 the build acts for), `release`
 (`humanity-app@<version>+<sha>` for the app, `humanity-worker@<version>+<sha>`
 for the worker; slashes are invalid in Sentry releases), `environment` (`previewnet` /
-`paseo-next-v2` / `dev`).
+`paseo-next-v2` / `dev`). Inside the Pocket host also `host.session_id` and
+`open.source` (`pocket_card`, `deeplink` or `other`): search the first to see
+the host's side and this product's side of one launch together.
 
 | User story | Flow | Where | Stages | `flow.outcome` (not-ok in bold) |
 | :-- | :-- | :-- | :-- | :-- |
 | I open the app and see my card | `card.load` | `card-load.ts`: opened in `main.tsx` dated from the script start (`performance.timeOrigin`), narrated by `use-humanity-user-id.ts`, `use-game-account.ts` and `use-humanity-card.ts`, ended by the commit that draws the live card; one per launch, always sampled; refetches report nothing (`game.account`, `card.cached`: a stored snapshot was on screen during the wait) | `boot` (script start → React mount), `identity` (host user id), `game-account` (host derivation), `read` (`chain.connect`, `finalized.pin`, every `chain.read`, host ring-key calls; the first read aborted by the query re-keying stays inside it), `render` (read landed → card committed) | card state kind; **`account-unavailable`** (host holds no identity, or the name has no account), **thrown** |
+| My tap on the Pocket card to the card shown | `pocket.open` | `card-load.ts`, beside `card.load` and only when the host sent `openedAtEpochMs` (a plausible time, under five minutes old) and the page is not a reload or back/forward: dated from the tap, ended with `card.load` and its outcome; always sampled; no stages or children of its own (the host's side is its `host.*` events, the rest is `card.load`, both on `host.session_id`) | none | the card state kind as `card.load`; **`abandoned`** (the page was hidden before the card showed: a person who stopped waiting; `card.load` runs on) |
 | I finish Membership | `membership.promotion` | `use-auto-register-personhood.ts` → `register-personhood.ts`, automatic and the debug panel's manual run (`source`) | `candidate`, `eligibility`, `list-key`, `register-key`, `sign`, `submit`, `broadcast` | `registered` (+ `tx.confirmed`), `not-ready`, `not-personhood-product`; **`unsupported-host`**, **`refused`**, **`failed`**, **`no-candidate`**, **`threw`** |
 | I claim my username | `username.claim` | `upgrade-lite-username.ts` (`method`, `username.choice`) | `setup`, `accounts`, `preflight`, `sign`, `verify`, `submit` | `included`; **`unknown`**, **error code**: `invalid-username`, `pending`, `account-missing`, `signing`, `timeout`, `finalized-error` |
 | My username is mine in dotNS too | `username.dotns` | `claim-dotns-name.ts` (`source`; `dotns.lite` and `dotns.label` only with the identity opt-in), from the card's automatic path (`use-dotns-name-claim.ts`) and the debug panel's manual run | `accounts`, `setup`, `preflight`, `proof`, `revision`, `submit` | `included` (+ `tx.hash`), `already-registered`; **`unknown`**, **`failed`** (error code: `invalid-label`, `host-missing`, `not-lite-owner`, `account-already-registered`, `ring-not-synced`, `proof`, `signing`, `timeout`, `finalized-error`), **`threw`** |
@@ -102,7 +106,9 @@ the id in Sentry to see the event with its contexts.
   `surface` (`app` / `worker`), `product`, `product.subname`, plus the
   device and connection as the app reads them on the device (`device.ts`:
   `device.os`, `device.engine`, `device.model`, `net.type`, …); the SDK sends
-  no User-Agent header.
+  no User-Agent header. Inside the Pocket host also `host.session_id` (a
+  random id per page the host opens, not a person) and `open.source`
+  (`host-session.ts`).
 - Tags on an issue: `log.category` and one `log.<key>` per property of the
   log call (`log.error`, `log.detail`, `log.txHash`, …), the message and its
   template under the `log` context.
@@ -118,8 +124,9 @@ the id in Sentry to see the event with its contexts.
 - Transaction hashes, as span attributes (`tx.hash`) and log tags
   (`log.txHash`): they are what finds a failed submission on chain, and a
   hash leads to the account that signed it.
-- Sampling: every error. `card.load` is always sent: one per launch, and
-  it is the duration we need every sample of. Every other flow at
+- Sampling: every error. `card.load` and `pocket.open` are always sent:
+  one per launch, and they are the durations we need every sample of. Every
+  other flow at
   `VITE_SENTRY_TRACES_SAMPLE_RATE` (default 0.1, one flow in ten); the
   Sentry quota is per event, and flows far outnumber errors.
 - Never: cookies, headers, query strings, request bodies, the SDK's user

@@ -7,7 +7,7 @@
  * first terminal event. Asserted on the envelopes a real client sends.
  */
 import { flush, init } from "@sentry/browser";
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { cardLoad, resetCardLoadForTests } from "@features/card/telemetry/card-load.ts";
 import { tracedRead } from "@humanity/shared/chain/chain-read.ts";
@@ -131,5 +131,82 @@ describe("cardLoad", () => {
     const [tx] = transactions();
     expect(tx?.contexts.trace.status).toBe("internal_error");
     expect(tx?.contexts.trace.data).toMatchObject({ "flow.outcome": "account-unavailable" });
+  });
+});
+
+describe("pocket.open", () => {
+  const ID = "123e4567-e89b-42d3-a456-426614174000";
+
+  /** The host's bootstrap, the open `ago` ms before now, and a page that can be hidden. */
+  function hostPage(ago: number, navigation = "navigate", source = "pocket_card") {
+    vi.stubGlobal("__trinityHostTelemetry", {
+      hostSessionId: ID,
+      openedAtEpochMs: Date.now() - ago,
+      openSource: source,
+    });
+    const listeners: Array<() => void> = [];
+    const doc = {
+      visibilityState: "visible",
+      addEventListener: (_type: string, listener: () => void) => void listeners.push(listener),
+      removeEventListener: (_type: string, listener: () => void) =>
+        void listeners.splice(listeners.indexOf(listener), 1),
+    };
+    vi.stubGlobal("document", doc);
+    vi.spyOn(performance, "getEntriesByType").mockImplementation(((type: string) =>
+      type === "navigation" ? [{ type: navigation }] : []) as unknown as typeof performance.getEntriesByType);
+    return () => {
+      doc.visibilityState = "hidden";
+      for (const listener of [...listeners]) listener();
+    };
+  }
+
+  const byName = (name: string) => transactions().find((tx) => tx.transaction === name);
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("runs from the tap to the card shown, ending with card.load and leaving its children there", async () => {
+    hostPage(800);
+    const before = Date.now() / 1000;
+    cardLoad.begin();
+    cardLoad.stage("read");
+    await tracedRead("Score.Participants", () => Promise.resolve(null));
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+
+    const open = byName("pocket.open");
+    const load = byName("card.load");
+    expect(open?.start_timestamp).toBeCloseTo(before - 0.8, 1);
+    expect(open?.contexts.trace.status).toBe("ok");
+    expect(open?.contexts.trace.data).toMatchObject({ "flow.outcome": "member", "open.source": "pocket_card" });
+    expect(open?.spans ?? []).toEqual([]);
+    expect(load?.start_timestamp).toBeCloseTo(performance.timeOrigin / 1000, 1);
+    expect((load?.spans ?? []).map((span) => span.description)).toContain("Score.Participants");
+  });
+
+  it("is abandoned when the page is hidden before the card shows, while card.load runs on", async () => {
+    const hide = hostPage(300);
+    cardLoad.begin();
+    cardLoad.stage("read");
+    hide();
+    await tracedRead("Score.Participants", () => Promise.resolve(null));
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+
+    const open = byName("pocket.open");
+    expect(open?.contexts.trace.status).toBe("cancelled");
+    expect(open?.contexts.trace.data).toMatchObject({ "flow.outcome": "abandoned" });
+    expect(byName("card.load")?.contexts.trace.data).toMatchObject({ "flow.outcome": "member" });
+    expect((byName("card.load")?.spans ?? []).map((span) => span.description)).toContain("Score.Participants");
+  });
+
+  it("tells no story for a reload, whose bootstrap still carries the first open's time", async () => {
+    hostPage(800, "reload");
+    cardLoad.begin();
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+    expect(transactions().map((tx) => tx.transaction)).toEqual(["card.load"]);
   });
 });
