@@ -137,16 +137,21 @@ describe("cardLoad", () => {
 describe("pocket.open", () => {
   const ID = "123e4567-e89b-42d3-a456-426614174000";
 
-  /** The host's bootstrap, the open `ago` ms before now, and a page that can be hidden. */
-  function hostPage(ago: number, navigation = "navigate", source = "pocket_card") {
+  function hostPage(
+    ago: number,
+    navigation = "navigate",
+    source = "pocket_card",
+    visibility = "visible",
+    withOpenedAt = true,
+  ) {
     vi.stubGlobal("__trinityHostTelemetry", {
       hostSessionId: ID,
-      openedAtEpochMs: Date.now() - ago,
+      ...(withOpenedAt ? { openedAtEpochMs: Date.now() - ago } : {}),
       openSource: source,
     });
     const listeners: Array<() => void> = [];
     const doc = {
-      visibilityState: "visible",
+      visibilityState: visibility,
       addEventListener: (_type: string, listener: () => void) => void listeners.push(listener),
       removeEventListener: (_type: string, listener: () => void) =>
         void listeners.splice(listeners.indexOf(listener), 1),
@@ -154,10 +159,11 @@ describe("pocket.open", () => {
     vi.stubGlobal("document", doc);
     vi.spyOn(performance, "getEntriesByType").mockImplementation(((type: string) =>
       type === "navigation" ? [{ type: navigation }] : []) as unknown as typeof performance.getEntriesByType);
-    return () => {
-      doc.visibilityState = "hidden";
+    const change = (state: string) => () => {
+      doc.visibilityState = state;
       for (const listener of [...listeners]) listener();
     };
+    return { hide: change("hidden"), show: change("visible") };
   }
 
   const byName = (name: string) => transactions().find((tx) => tx.transaction === name);
@@ -187,7 +193,7 @@ describe("pocket.open", () => {
   });
 
   it("is abandoned when the page is hidden before the card shows, while card.load runs on", async () => {
-    const hide = hostPage(300);
+    const { hide } = hostPage(300);
     cardLoad.begin();
     cardLoad.stage("read");
     hide();
@@ -200,6 +206,38 @@ describe("pocket.open", () => {
     expect(open?.contexts.trace.data).toMatchObject({ "flow.outcome": "abandoned" });
     expect(byName("card.load")?.contexts.trace.data).toMatchObject({ "flow.outcome": "member" });
     expect((byName("card.load")?.spans ?? []).map((span) => span.description)).toContain("Score.Participants");
+  });
+
+  it("is not abandoned by a page created hidden: it waits until shown, and the card then ends it ok", async () => {
+    const { show } = hostPage(300, "navigate", "pocket_card", "hidden");
+    cardLoad.begin();
+    cardLoad.stage("read");
+    show();
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+
+    const open = byName("pocket.open");
+    expect(open?.contexts.trace.status).toBe("ok");
+    expect(open?.contexts.trace.data).toMatchObject({ "flow.outcome": "member" });
+  });
+
+  it("is abandoned when a page that was shown goes hidden again", async () => {
+    const { hide, show } = hostPage(300, "navigate", "pocket_card", "hidden");
+    cardLoad.begin();
+    show();
+    hide();
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+
+    expect(byName("pocket.open")?.contexts.trace.data).toMatchObject({ "flow.outcome": "abandoned" });
+  });
+
+  it("sends only card.load when the bootstrap carries no openedAtEpochMs", async () => {
+    hostPage(300, "navigate", "pocket_card", "visible", false);
+    cardLoad.begin();
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+    expect(transactions().map((tx) => tx.transaction)).toEqual(["card.load"]);
   });
 
   it("tells no story for a reload, whose bootstrap still carries the first open's time", async () => {

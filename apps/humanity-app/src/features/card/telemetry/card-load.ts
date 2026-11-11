@@ -26,8 +26,10 @@
  * second transaction, `pocket.open`, runs from the tap to the same end and
  * outcome. It has no stages of its own: the host's side is the host's events
  * and the rest is `card.load`, both joined on `host.session_id`. A page that
- * goes hidden before the card is shown ends it `abandoned` (a person who
- * stopped waiting; the host keeps the WebView alive, so `card.load` may
+ * goes hidden after it was visible, before the card is shown, ends it
+ * `abandoned` (a person who stopped waiting; a page created hidden, a WebView
+ * not yet attached, has not been left and is not abandoned until it has been
+ * shown; the host keeps the WebView alive, so `card.load` may
  * finish later and that time is not a wait), and a reload or back/forward
  * navigation tells no story: the host's bootstrap runs again with the first
  * open's time.
@@ -58,13 +60,17 @@ function openFromTap(): OpenFlow | null {
     detached: true,
     ...(openSource == null ? {} : { attributes: { "open.source": openSource } }),
   });
-  const abandon = (): void => {
-    if (!tap.finished && document.visibilityState !== "hidden") return;
-    document.removeEventListener("visibilitychange", abandon);
+  let seenVisible = document.visibilityState === "visible";
+  const onVisibility = (): void => {
+    if (!tap.finished && document.visibilityState === "visible") {
+      seenVisible = true;
+      return;
+    }
+    if (!tap.finished && !seenVisible) return;
+    document.removeEventListener("visibilitychange", onVisibility);
     tap.finish({ kind: "abandoned", ok: false });
   };
-  document.addEventListener("visibilitychange", abandon);
-  abandon();
+  document.addEventListener("visibilitychange", onVisibility);
   return tap;
 }
 
