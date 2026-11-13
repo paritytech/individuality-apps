@@ -240,8 +240,22 @@ describe("pocket.open", () => {
     expect(transactions().map((tx) => tx.transaction)).toEqual(["card.load"]);
   });
 
-  it("tells no story for a reload, whose bootstrap still carries the first open's time", async () => {
-    hostPage(800, "reload");
+  it.each(["reload", "back_forward"])(
+    "tells no story for a %s navigation, whose bootstrap still carries the first open's time",
+    async (navigation) => {
+      hostPage(800, navigation);
+      cardLoad.begin();
+      cardLoad.finish({ kind: "member", ok: true });
+      await flush();
+      expect(transactions().map((tx) => tx.transaction)).toEqual(["card.load"]);
+    },
+  );
+
+  it.each([
+    ["five minutes old", 5 * 60 * 1000],
+    ["in the future", -60_000],
+  ])("sends only card.load when the open time is %s", async (_label, ago) => {
+    hostPage(ago);
     cardLoad.begin();
     cardLoad.finish({ kind: "member", ok: true });
     await flush();

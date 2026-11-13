@@ -6,13 +6,14 @@
  * sends, so Sentry can join `card.load` and `pocket.open` to the host's own
  * `host.*` events on `host.session_id`; with no usable bootstrap (a browser,
  * `vite dev`) nothing is added. Asserted on the transaction a real client
- * hands its transport.
+ * hands its transport, after the same redaction the app's client runs.
  */
-import { BrowserClient, defaultStackParser, getCurrentScope } from "@sentry/browser";
+import { BrowserClient, captureException, defaultStackParser, getCurrentScope } from "@sentry/browser";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { openFlow } from "@humanity/shared/telemetry/flow.ts";
 import { readHostBootstrap, setHostSession } from "@humanity/shared/telemetry/host-session.ts";
+import { redactEvent } from "@humanity/shared/telemetry/redact.ts";
 
 const ID = "123e4567-e89b-42d3-a456-426614174000";
 const NOW = 1_793_880_000_000;
@@ -28,7 +29,7 @@ afterEach(() => {
 });
 
 describe("setHostSession", () => {
-  it("tags the transactions the client sends with the host session and what opened the page", async () => {
+  it("tags the transactions and error events the client sends with the host session and what opened the page", async () => {
     vi.stubGlobal("__trinityHostTelemetry", { hostSessionId: ID, openSource: "deeplink" });
     const sent: Array<{ type?: string; tags?: Record<string, string> }> = [];
     const client = new BrowserClient({
@@ -37,6 +38,9 @@ describe("setHostSession", () => {
       traceLifecycle: "static",
       stackParser: defaultStackParser,
       integrations: [],
+      // As `initTelemetry`: the session id is not a person, so redaction keeps it.
+      beforeSend: redactEvent,
+      beforeSendTransaction: redactEvent,
       transport: () => ({
         send: (envelope) => {
           for (const item of envelope[1] as unknown[]) {
@@ -53,10 +57,13 @@ describe("setHostSession", () => {
     setHostSession(scope);
 
     openFlow("card.load").finish({ kind: "member", ok: true });
+    captureException(new Error("card read failed"));
     await client.flush();
 
     const tx = sent.find((payload) => payload.type === "transaction");
     expect(tx?.tags).toMatchObject({ "host.session_id": ID, "open.source": "deeplink" });
+    const error = sent.find((payload) => payload.type === undefined && "exception" in payload);
+    expect(error?.tags).toMatchObject({ "host.session_id": ID, "open.source": "deeplink" });
   });
 
   it("adds nothing outside a host", () => {
