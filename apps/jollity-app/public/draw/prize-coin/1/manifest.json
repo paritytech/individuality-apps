@@ -1,0 +1,67 @@
+{
+  "key": "1|CASH|LUCKY YOU|true|none|guilloche|1|0.18|false|words|30|70|512|0.12|0.03|0|0.25|false|0.1|1.2|struck|geometry|0.41|0.2",
+  "N": 256,
+  "letters": "letters.bin.gz",
+  "sides": {
+    "front": {
+      "normal": "front-normal.webp",
+      "orm": "front-orm.webp",
+      "letters": {
+        "attributes": {
+          "position": {
+            "itemSize": 3,
+            "normalized": true,
+            "type": "Int16Array",
+            "offset": 0,
+            "bytes": 60480
+          },
+          "uv": {
+            "itemSize": 2,
+            "normalized": false,
+            "type": "Float32Array",
+            "offset": 60480,
+            "bytes": 80640
+          },
+          "normal": {
+            "itemSize": 3,
+            "normalized": true,
+            "type": "Int16Array",
+            "offset": 141120,
+            "bytes": 60480
+          }
+        },
+        "index": null
+      }
+    },
+    "back": {
+      "normal": "back-normal.webp",
+      "orm": "back-orm.webp",
+      "letters": {
+        "attributes": {
+          "position": {
+            "itemSize": 3,
+            "normalized": true,
+            "type": "Int16Array",
+            "offset": 201600,
+            "bytes": 87336
+          },
+          "uv": {
+            "itemSize": 2,
+            "normalized": false,
+            "type": "Float32Array",
+            "offset": 288936,
+            "bytes": 116448
+          },
+          "normal": {
+            "itemSize": 3,
+            "normalized": true,
+            "type": "Int16Array",
+            "offset": 405384,
+            "bytes": 87336
+          }
+        },
+        "index": null
+      }
+    }
+  }
+}

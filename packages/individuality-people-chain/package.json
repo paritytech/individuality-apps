@@ -1,0 +1,34 @@
+{
+  "name": "@individuality/people-chain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The base of the shared packages: the People chain client types, what a transaction is signed with and comes back as, settling one at the best block, the pallet's error name of a failed dispatch, and the words of a host's failure. It depends on no product's package.",
+  "license": "GPL-3.0-or-later",
+  "author": "Parity Technologies <admin@parity.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paritytech/individuality-apps-community.git",
+    "directory": "packages/individuality-people-chain"
+  },
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@parity/product-sdk-descriptors": "0.14.0",
+    "@polkadot-api/signers-common": "^0.4.0",
+    "polkadot-api": "^3.2.1"
+  },
+  "devDependencies": {
+    "@parity/product-sdk-descriptors": "0.14.0",
+    "@polkadot-api/signers-common": "^0.4.0",
+    "polkadot-api": "^3.2.1"
+  }
+}

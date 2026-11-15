@@ -1,0 +1,16 @@
+# Humanity's build output and local state. jollity's root .gitignore covers
+# node_modules, coverage, *.tsbuildinfo, .truapi-host/ and .polkadot/.
+dist
+# A device dev loop's build (`vite build --watch --outDir dist-dev`), kept
+# apart from dist so a plain build cannot swap the bundle an emulator is
+# being served for one built for another network.
+dist-dev
+.vite
+.eslintcache
+# Local chopsticks fork database: multi-megabyte chain state, rebuilt on demand
+.chopsticks/
+.pre-push-verified
+# bulletin-deploy writes the uploaded CAR next to dist
+*.car
+# jollity's root ignores .env*; the example is committed
+!.env.example

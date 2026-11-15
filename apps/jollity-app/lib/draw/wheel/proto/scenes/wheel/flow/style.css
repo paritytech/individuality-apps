@@ -1,0 +1,74 @@
+/*
+ * Copyright 2026 Parity Technologies (UK) Ltd.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/* every rule here is scoped under #app */
+/* THE WHOLE DRAW — the wheel's page, and on top of
+   it only what the flow changes. #app carries .scene-wheel AND .scene-flow,
+   and this sheet loads after the wheel's, so a rule here of the same weight
+   wins. */
+/* the endings say how it came out: the result line would say it twice */
+#app.scene-flow #wheel-say {
+  display: none;
+}
+/* the slider runs the whole draw, the ending included, so it stays — and
+   stays a target — zoomed in on the wedge, and over the prize or the fall */
+#app.scene-flow #phase,
+#app.scene-flow.is-zoomed #phase {
+  opacity: var(--reset-opacity);
+  pointer-events: auto;
+}
+/* …but not while the coin is up: the draw is still to come, and the zoom's
+   rule above would otherwise make it a target under the coin */
+#app.scene-flow.is-intro #phase {
+  pointer-events: none;
+}
+/* the win: no slider and nobody playing over the prize — out over 300 ms as
+   the prize comes up, back with the wheel in 100 ms (the transition is the
+   state's being entered: the class going on fades them out, coming off in) */
+#app.scene-flow #phase,
+#app.scene-flow #friends {
+  transition: opacity 0.1s;
+}
+#app.scene-flow.flow-prize-up #phase,
+#app.scene-flow.flow-prize-up #friends {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+/* BACK TO THE WHEEL — words, not a button's look: the prize's kicker ("Prize
+   Draw") type, where the slider was, a second after the confetti bursts;
+   pressed, they go with the rest of the win */
+#app .flow-pill {
+  position: absolute;
+  z-index: 5; /* over the prize's layers */
+  left: 50%;
+  bottom: calc((var(--reset-bottom) + 8px) * var(--scale, 1));
+  transform: translate(-50%, calc(6px * var(--scale, 1)));
+  padding: calc(10px * var(--scale, 1));
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font: 500 calc(13px * var(--scale, 1)) / 1 var(--font);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+#app .flow-pill.is-shown {
+  opacity: 0.55;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+#app .flow-pill.is-shown:hover,
+#app .flow-pill.is-shown:focus-visible {
+  opacity: 1;
+}
+/* the prize or the fall has the stage: the people playing step back */
+#app.scene-flow.is-falling #friends {
+  opacity: 0.35;
+}

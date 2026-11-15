@@ -1,0 +1,5 @@
+# The worker executable's build output, a sibling of the app's dist so
+# `emptyOutDir` on either build cannot wipe the other's tree.
+dist
+dist-dev
+.eslintcache

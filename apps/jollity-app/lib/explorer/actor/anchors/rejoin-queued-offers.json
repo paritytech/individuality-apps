@@ -1,0 +1,133 @@
+{
+  "name": "rejoin-queued-offers",
+  "from": "answerer",
+  "keys": [
+    "description:statement-offer",
+    "complete:set-remote-description:statement-offer:resolved",
+    "complete:send-answer:statement:resolved",
+    "connection-observed:connected",
+    "channel-observed:open",
+    "description:lane-offer",
+    "complete:set-remote-description:lane-offer:resolved",
+    "complete:send-answer:lane:resolved",
+    "stats:advance",
+    "peer-heard",
+    "peer-session-changed",
+    "description:statement-offer"
+  ],
+  "doc": "a rejoin with offers queued (#1385's shape): the peer reloaded, its first new offer is being applied, and another offer can still arrive",
+  "sourceSha": "7933e0a8efd0",
+  "key": "{\"actor\":{\"away\":\"here\",\"budgets\":{\"failCount\":0,\"glareRebuilds\":0,\"negotiationImmediate\":0,\"negotiationUnseen\":0,\"noVideoRebuilds\":0,\"stallHeals\":0,\"unseenHeals\":0},\"cameraLive\":true,\"connectingSince\":0,\"disconnectedAt\":\"never\",\"downAt\":\"never\",\"everConnected\":true,\"firstHeardAt\":0,\"framesReadSequence\":-1,\"framesSeen\":0,\"hidden\":false,\"initiator\":false,\"laneOpen\":false,\"lastAttemptAt\":0,\"lastRecvDescAt\":0,\"lastSignalAt\":0,\"link\":\"connecting\",\"offerSentAt\":\"never\",\"openCommands\":{\"replace-connection\":-1,\"set-remote-description\":0},\"rejoinAnswer\":false,\"remoteOffer\":\"statement\",\"roundGeneration\":0,\"scope\":{\"game\":42,\"peer\":\"a\",\"roomEpoch\":1},\"stallSamples\":0,\"standby\":false,\"upAt\":\"never\",\"yieldedAt\":\"never\"},\"facts\":{\"away\":null,\"browserConnectionState\":\"new\",\"canRestartIce\":true,\"disconnectedAt\":\"zero\",\"downAt\":\"zero\",\"everConnected\":true,\"firstHeardAt\":0,\"framesSeen\":0,\"hasChannel\":false,\"haveLocalOffer\":false,\"laneOpen\":false,\"lastRecvDescAt\":0,\"lastSignalAt\":0,\"localDescription\":false,\"offerSentAt\":\"never\",\"remoteDescription\":false,\"sawVideoThisRound\":true,\"upAt\":\"zero\",\"yieldedAt\":\"never\"},\"faultsLeft\":0,\"mesh\":{\"cameraLive\":true,\"codecGuard\":false,\"laneAnswering\":false,\"laneInbound\":\"offer\",\"laneMedia\":false,\"leave\":false,\"localOfferWire\":null,\"localType\":null,\"negotiationNeeded\":false,\"refusedEpoch\":null,\"signaling\":\"stable\",\"statementAnswering\":false,\"statementInbound\":\"offer\",\"superseded\":false,\"tickedAt\":\"earlier\"},\"meshConnectionEpoch\":0,\"pending\":[{\"commandEpoch\":0,\"connectionEpoch\":0,\"description\":\"offer\",\"kind\":\"set-remote-description\",\"lane\":false}],\"queue\":[]}",
+  "world": {
+    "actor": {
+      "scope": {
+        "game": 42,
+        "roomEpoch": 1,
+        "peer": "a"
+      },
+      "roundGeneration": 0,
+      "connectionEpoch": 2,
+      "commandEpoch": 6,
+      "openCommands": {
+        "replace-connection": 5,
+        "set-remote-description": 6
+      },
+      "link": "connecting",
+      "away": "here",
+      "hidden": false,
+      "standby": false,
+      "initiator": false,
+      "cameraLive": true,
+      "laneOpen": false,
+      "remoteOffer": "statement",
+      "rejoinAnswer": false,
+      "lastSignalAt": 100000,
+      "lastAttemptAt": 100000,
+      "upAt": null,
+      "connectingSince": 100000,
+      "disconnectedAt": null,
+      "lastRecvDescAt": 100000,
+      "offerSentAt": null,
+      "yieldedAt": null,
+      "downAt": null,
+      "everConnected": true,
+      "firstHeardAt": 100000,
+      "framesSeen": 0,
+      "stallSamples": 0,
+      "framesReadSequence": 0,
+      "budgets": {
+        "failCount": 0,
+        "stallHeals": 0,
+        "unseenHeals": 0,
+        "noVideoRebuilds": 0,
+        "negotiationImmediate": 0,
+        "negotiationUnseen": 0,
+        "glareRebuilds": 0
+      },
+      "deadlines": {
+        "graceBy": null,
+        "awayBy": null,
+        "chaseUntil": null,
+        "freshUntil": 145000,
+        "unansweredBy": null,
+        "strandedBy": null,
+        "channelBy": null,
+        "nextAttemptAt": 103000,
+        "connectBy": 118000,
+        "quietUntil": 115000
+      }
+    },
+    "meshConnectionEpoch": 2,
+    "now": 100000,
+    "facts": {
+      "browserConnectionState": "new",
+      "haveLocalOffer": false,
+      "localDescription": false,
+      "remoteDescription": false,
+      "hasChannel": false,
+      "laneOpen": false,
+      "everConnected": true,
+      "away": null,
+      "framesSeen": 0,
+      "sawVideoThisRound": true,
+      "canRestartIce": true,
+      "lastSignalAt": 100000,
+      "firstHeardAt": 100000,
+      "lastRecvDescAt": 100000,
+      "offerSentAt": null,
+      "yieldedAt": null,
+      "upAt": 0,
+      "downAt": 0,
+      "disconnectedAt": 0
+    },
+    "pending": [
+      {
+        "kind": "set-remote-description",
+        "commandEpoch": 6,
+        "connectionEpoch": 2,
+        "lane": false,
+        "description": "offer"
+      }
+    ],
+    "nextReadSequence": 1,
+    "faultsLeft": 0,
+    "queue": [],
+    "mesh": {
+      "signaling": "stable",
+      "localType": null,
+      "localOfferWire": null,
+      "statementInbound": "offer",
+      "laneInbound": "offer",
+      "statementAnswering": false,
+      "laneAnswering": false,
+      "refusedEpoch": null,
+      "laneMedia": false,
+      "negotiationNeeded": false,
+      "codecGuard": false,
+      "superseded": false,
+      "cameraLive": true,
+      "tickedAt": null,
+      "leave": false
+    }
+  }
+}

@@ -1,0 +1,198 @@
+/*
+ * Copyright 2026 Parity Technologies (UK) Ltd.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/* Dev-only debug panel (features/debug/DebugPanel.tsx). Summoned by gesture
+   only — there is no toggle to style. It docks to the bottom of the viewport
+   as a sheet: the summon gesture lives in the top third of the screen, so the
+   panel must never cover the place the operator taps. */
+
+.debug-panel {
+  position: fixed; z-index: 130;
+  left: 0; right: 0; bottom: 0;
+  max-height: 70vh;
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 14px calc(14px + env(safe-area-inset-right))
+    calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+  border-radius: 14px 14px 0 0;
+  background: color-mix(in srgb, var(--surface-container) 92%, black);
+  border-top: 1px solid var(--stroke-secondary);
+  box-shadow: 0 -12px 34px var(--ds-shadow-medium);
+  color: var(--fg-primary);
+  font: 400 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Shown only while a debug scenario or prize override is active and the panel
+   is dismissed: the one visible trace that the app's state is simulated. */
+.debug-sim-badge {
+  position: fixed; z-index: 120;
+  left: calc(14px + env(safe-area-inset-left));
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  padding: 7px 11px; border-radius: 999px;
+  background: var(--surface-container); border: 1px solid var(--warning);
+  box-shadow: 0 6px 18px var(--ds-shadow-soft);
+  color: var(--warning); font: 700 10px var(--font-head); letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.debug-section { display: flex; flex-direction: column; gap: 6px; }
+.debug-flows { display: flex; flex-wrap: wrap; gap: 6px; }
+.debug-chip {
+  padding: 5px 7px; border: 1px solid var(--stroke-secondary); border-radius: 999px;
+  background: var(--surface-container); color: var(--fg-secondary);
+  font: 700 10px var(--font-head); letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer;
+}
+.debug-chip:hover { color: var(--fg-primary); }
+.debug-chip[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--surface-container) 72%, var(--warning));
+  color: var(--fg-primary);
+}
+.debug-chip[data-pending] {
+  border-style: dashed; border-color: var(--warning);
+  background: color-mix(in srgb, var(--surface-container) 88%, var(--warning));
+}
+.debug-warn { margin: 0; color: var(--warning); font-size: 11px; }
+.debug-title {
+  margin: 0; color: var(--fg-secondary);
+  font: 700 10px var(--font-head); letter-spacing: 0.12em; text-transform: uppercase;
+}
+
+/* Collapsible categories (features/debug/DebugSections.tsx). The summary
+   doubles as the heading; the hint lists what is folded inside. */
+.debug-category { border-top: 1px solid var(--stroke-secondary); padding-top: 8px; }
+.debug-category-title {
+  display: flex; align-items: baseline; gap: 8px; cursor: pointer; list-style: none;
+  color: var(--fg-primary);
+  font: 700 10px var(--font-head); letter-spacing: 0.12em; text-transform: uppercase;
+}
+.debug-category-title::-webkit-details-marker { display: none; }
+.debug-category-title::before { content: "▸"; color: var(--fg-secondary); }
+.debug-category[open] > .debug-category-title::before { content: "▾"; }
+.debug-category-hint {
+  color: var(--fg-secondary); font-weight: 400; letter-spacing: 0; text-transform: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.debug-category-body { display: flex; flex-direction: column; gap: 14px; padding-top: 10px; }
+.debug-category[data-static] > .debug-category-title { pointer-events: none; }
+.debug-category[data-static] > .debug-category-title::before { content: ""; }
+.debug-expand { text-decoration: none; }
+
+/* Full page (features/debug/DebugPage.tsx): the same body with room to
+   breathe — tables wrap instead of scrolling sideways. `body` never scrolls
+   in this app (foundation.css), so the page is its own scroll container. */
+.debug-page {
+  box-sizing: border-box; height: 100dvh; overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  max-width: 860px; margin: 0 auto; padding: 18px 18px 48px;
+  display: flex; flex-direction: column; gap: 18px;
+  color: var(--fg-primary);
+  font: 400 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.debug-page > * { flex: none; }
+.debug-page-header { display: flex; align-items: center; gap: 14px; }
+.debug-page-header > .debug-chip { text-decoration: none; }
+.debug-page-title {
+  margin: 0; color: var(--fg-primary);
+  font: 700 16px var(--font-head); letter-spacing: 0.04em;
+}
+.debug-page .debug-row { grid-template-columns: 240px 1fr; }
+.debug-page .debug-table { white-space: normal; }
+.debug-page .debug-table th, .debug-page .debug-table td { padding-right: 16px; overflow-wrap: anywhere; }
+.debug-page .debug-logs { max-height: 480px; }
+/* Phone width: a 6-column table or a 240px label column cannot fit, and
+   wrapping them breaks every word letter by letter. Rows stack label over
+   value, and each table row becomes a card of label/value lines headed by
+   its first cell. */
+@media (max-width: 600px) {
+  .debug-row, .debug-page .debug-row { grid-template-columns: 1fr; gap: 0; }
+  .debug-row + .debug-row { margin-top: 4px; }
+  .debug-table, .debug-page .debug-table { white-space: normal; width: 100%; }
+  .debug-table thead { display: none; }
+  .debug-table tbody, .debug-table tr { display: block; }
+  .debug-table tbody tr { padding: 6px 0; }
+  .debug-table tbody th[scope="row"] { display: block; padding: 0 0 2px; color: var(--fg-primary); }
+  .debug-table td, .debug-page .debug-table td {
+    display: grid; grid-template-columns: minmax(0, 40%) minmax(0, 1fr); gap: 8px; padding: 0;
+    overflow-wrap: anywhere;
+  }
+  .debug-table td::before { content: attr(data-label); color: var(--fg-secondary); }
+}
+.debug-rows { margin: 0; display: flex; flex-direction: column; gap: 3px; }
+.debug-row {
+  display: grid; grid-template-columns: 40% 1fr; gap: 8px; align-items: baseline;
+}
+.debug-row dt { color: var(--fg-secondary); }
+.debug-row dd { margin: 0; overflow-wrap: anywhere; }
+.debug-empty { margin: 0; color: var(--fg-secondary); }
+.debug-table-wrap { overflow-x: auto; }
+.debug-table { border-collapse: collapse; white-space: nowrap; font: inherit; }
+.debug-table th, .debug-table td {
+  padding: 2px 10px 2px 0; text-align: left; font-weight: 400; vertical-align: top;
+}
+.debug-table th { color: var(--fg-secondary); }
+.debug-table tbody tr { border-top: 1px solid var(--stroke-secondary); }
+
+/* Mutation triggers (features/debug/DebugMutations.tsx). Each is a bordered
+   block rather than another flat row: everything else in the panel is inert,
+   these sign and submit, and a mis-click costs a real transaction. */
+.debug-mutation {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px; border-radius: 8px;
+  border: 1px solid var(--stroke-secondary);
+  background: color-mix(in srgb, var(--surface-container) 88%, black);
+}
+.debug-mutation > h3 {
+  margin: 0; color: var(--fg-primary);
+  font: 700 10px var(--font-head); letter-spacing: 0.08em;
+}
+.debug-mutation > .debug-chip { align-self: flex-start; }
+/* Long dispatch errors and 32-byte hashes must wrap, not widen the panel. */
+.debug-mutation .debug-warn,
+.debug-mutation .debug-note { overflow-wrap: anywhere; }
+.debug-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.debug-field {
+  display: grid; grid-template-columns: 40% 1fr; gap: 8px; align-items: center;
+}
+.debug-field > span { color: var(--fg-secondary); }
+.debug-field > input {
+  min-width: 0; padding: 4px 6px; border-radius: 6px;
+  border: 1px solid var(--stroke-secondary);
+  background: var(--surface-container); color: var(--fg-primary);
+  font: inherit;
+}
+.debug-field > input:focus-visible { outline: 1px solid var(--warning); }
+
+.debug-note {
+  margin: 0; color: var(--fg-secondary); font-size: 11px; overflow-wrap: anywhere;
+}
+
+/* Log tail (features/debug/DebugLogs.tsx). Scrolls within its own box so a
+   burst of records cannot push the state sections out of reach. */
+.debug-logs {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 4px;
+  max-height: 168px; overflow-y: auto; overscroll-behavior: contain;
+}
+.debug-log {
+  display: flex; flex-direction: column; gap: 1px;
+  padding-left: 6px; border-left: 2px solid var(--stroke-secondary);
+}
+.debug-log-meta { color: var(--fg-secondary); font-size: 10px; }
+.debug-log-message { overflow-wrap: anywhere; }
+/* Severity on the rule, not the text: the message stays readable and the
+   colour still scans down the left edge. */
+.debug-log[data-level="warning"] { border-left-color: var(--warning); }
+.debug-log[data-level="error"],
+.debug-log[data-level="fatal"] { border-left-color: var(--error); }
+.debug-log[data-level="fatal"] .debug-log-message { color: var(--error); }
+.debug-log[data-level="debug"] .debug-log-message,
+.debug-log[data-level="trace"] .debug-log-message { color: var(--fg-secondary); }
+
+/* Whole-panel snapshot button (features/debug/DebugCopyState.tsx). Right-
+   aligned and unlabelled by a heading: it acts on the panel as a whole, so it
+   reads as a panel affordance rather than another section. */
+.debug-copy { display: flex; justify-content: flex-end; gap: 6px; }

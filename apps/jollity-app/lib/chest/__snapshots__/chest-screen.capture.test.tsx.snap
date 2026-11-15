@@ -1,0 +1,481 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the chest screen, captured > Continue is offered the moment the vessel opens 1`] = `
+{
+  "logs": [
+    "info [chest] the vessel opened {"by":"all in","collected":3,"shown":3}",
+  ],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   500 — the vessel lands",
+    "  1000 — the read answers: three, settled",
+    "  1000 chestShown {"chest.outcome":"collectables","chest.count":"3"}",
+    "  1000 dom: vessel pieces=3 · buttons [Continue (hidden)]",
+    "  2000 — 3 pieces have flown in",
+    "  2000 vessel opens",
+    "  2000 dom: vessel pieces=3 open · buttons [Continue]",
+    "  3000 — Continue pressed",
+    "  3000 markSeen 7 chest",
+    "  3000 album srcs=3",
+    "  3000 dom: vessel pieces=3 open · album · buttons [Continue]",
+    "  4000 — the album close is done",
+    "  4000 payoffHandedOff",
+    "  4000 openHumanity",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > a chest already in the Pocket says so 1`] = `
+{
+  "logs": [],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   100 — the read answers: three claimed",
+    "   100 chestShown {"chest.outcome":"none","chest.reason":"pocketed"}",
+    "   100 vessel gone",
+    "   100 dom: h1 "The chest" · p "Everything you earned this game is already in your Pocket." · buttons [Continue]",
+    "  2000 — Continue pressed",
+    "  2000 markSeen 7 chest",
+    "  2000 payoffHandedOff",
+    "  2000 openHumanity",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > a chest before the settle collects what lands, opens after the wait, and takes the settle's claims into the open chest 1`] = `
+{
+  "logs": [
+    "info [chest] the vessel opened {"by":"the wait","collected":6,"shown":6}",
+  ],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   500 — the read answers: four, before the settle",
+    "   500 chestShown {"chest.outcome":"collectables","chest.count":"4","chest.settling":"true"}",
+    "   500 watchChest game=7 shown=4",
+    "   500 dom: vessel pieces=4 · buttons [Continue (hidden)]",
+    "  1500 — the vessel lands",
+    "  2500 — 4 pieces have flown in",
+    "  6000 — 2 more claims land",
+    "  6000 dom: vessel pieces=6 · buttons [Continue (hidden)]",
+    "  7000 — 6 pieces have flown in",
+    " 11500 vessel opens",
+    " 11500 dom: vessel pieces=6 open · buttons [Continue]",
+    " 14000 — the game settles",
+    " 14000 chestView game=7 player=- afterSettle=true",
+    " 14100 — the read answers: the settle's read: eight",
+    " 14100 dom: vessel pieces=8 open · buttons [Continue]",
+    " 15000 — 8 pieces have flown in",
+    " 17000 — Continue pressed",
+    " 17000 markSeen 7 chest",
+    " 17000 album srcs=8",
+    " 17000 dom: vessel pieces=8 open · album · buttons [Continue]",
+    " 18000 — the album close is done",
+    " 18000 payoffHandedOff",
+    " 18000 openHumanity",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > a chest left before its game settled is not seen 1`] = `
+{
+  "logs": [
+    "info [chest] the vessel opened {"by":"the wait","collected":4,"shown":4}",
+  ],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   500 — the read answers: four, before the settle",
+    "   500 chestShown {"chest.outcome":"collectables","chest.count":"4","chest.settling":"true"}",
+    "   500 watchChest game=7 shown=4",
+    "   500 dom: vessel pieces=4 · buttons [Continue (hidden)]",
+    "  1000 — the vessel lands",
+    "  2000 — 4 pieces have flown in",
+    " 11000 vessel opens",
+    " 11000 dom: vessel pieces=4 open · buttons [Continue]",
+    " 14000 — Continue pressed",
+    " 14000 album srcs=4",
+    " 14000 dom: vessel pieces=4 open · album · buttons [Continue]",
+    " 15000 — the album close is done",
+    " 15000 payoffHandedOff",
+    " 15000 openHumanity",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > a chest too old to prove says so 1`] = `
+{
+  "logs": [],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   100 — the read answers: two unprovable",
+    "   100 chestShown {"chest.outcome":"none","chest.reason":"pruned"}",
+    "   100 vessel gone",
+    "   100 dom: h1 "The chest" · p "You earned collectables in this game, but it is too old to show them any more. Play a new game to fill your chest." · buttons [Continue]",
+    "  2000 — Continue pressed",
+    "  2000 markSeen 7 chest",
+    "  2000 payoffHandedOff",
+    "  2000 openHumanity",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > a collection picked in the hologram is saved and dealt 1`] = `
+{
+  "logs": [
+    "info [chest] the vessel opened {"by":"all in","collected":3,"shown":3}",
+  ],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   500 — the vessel lands",
+    "  1000 — the read answers: three, settled",
+    "  1000 chestShown {"chest.outcome":"collectables","chest.count":"3"}",
+    "  1000 dom: vessel pieces=3 · buttons [Continue (hidden)]",
+    "  1500 — 3 pieces have flown in",
+    "  1500 vessel opens",
+    "  1500 dom: vessel pieces=3 open · buttons [Continue]",
+    "  5000 — the first pin tapped",
+    "  5000 dom: vessel pieces=3 open inspected=0 · picker "American Football" choices=3 · buttons [Continue]",
+    "  6000 — another collection picked",
+    "  6000 saveChestPick 0x00000000 28",
+    "  6000 dom: vessel pieces=3 open · buttons [Continue]",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > a failed read keeps the vessel collecting, and reads again until the chest is there 1`] = `
+{
+  "logs": [
+    "info [chest] the vessel opened {"by":"all in","collected":5,"shown":5}",
+  ],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   500 — the vessel lands",
+    "  1000 — the read answers: it failed after its retries",
+    " 10500 payoffStalled chest.slow",
+    " 10500 dom: [chest-slow] · vessel pieces=0 · h2 "Taking longer than usual" · p "Your rewards will be in the chat when they're ready." · buttons [Continue]",
+    " 31000 chestView game=7 player=- afterSettle=false",
+    " 31500 — the read answers: five, on the reread",
+    " 31500 chestReadRecovered 31500",
+    " 31500 chestShown {"chest.outcome":"collectables","chest.count":"5"}",
+    " 31500 dom: vessel pieces=5 · buttons [Continue]",
+    " 32000 — 5 pieces have flown in",
+    " 32000 vessel opens",
+    " 32000 dom: vessel pieces=5 open · buttons [Continue]",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > a failed read on a lost chain puts up the restart card 1`] = `
+{
+  "logs": [],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   100 — the read answers: it failed after its retries",
+    "  5000 — the chain-health card says {"lost":true,"reason":"chain-lost"}",
+    "  5000 chestShown {"chest.outcome":"none","chest.reason":"failed"}",
+    "  5000 payoffStalled chest.load",
+    "  5000 vessel gone",
+    "  5000 dom: [chest-restart restart] · h1 "Restart the Polkadot app" · p "Your Polkadot app is not answering. Close it fully (swipe it away) and open it again. Your chest and collectables are kept."",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > a hand-off the host refuses is tried again from the album 1`] = `
+{
+  "logs": [
+    "info [chest] the vessel opened {"by":"all in","collected":2,"shown":2}",
+    "warn [payoff] the hand-off to Humanity failed {"detail":"capture: the host would not open Humanity"}",
+    "warn [payoff] the hand-off to Humanity failed {"detail":"capture: the host would not open Humanity"}",
+  ],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   500 — the vessel lands",
+    "  1000 — the read answers: two, settled",
+    "  1000 chestShown {"chest.outcome":"collectables","chest.count":"2"}",
+    "  1000 dom: vessel pieces=2 · buttons [Continue (hidden)]",
+    "  1500 — 2 pieces have flown in",
+    "  1500 vessel opens",
+    "  1500 dom: vessel pieces=2 open · buttons [Continue]",
+    "  5000 — Continue pressed",
+    "  5000 markSeen 7 chest",
+    "  5000 album srcs=2",
+    "  5000 dom: vessel pieces=2 open · album · buttons [Continue]",
+    "  6000 — the album close is done",
+    "  6000 payoffHandedOff",
+    "  6000 openHumanity",
+    "  6000 album back, refusals=1",
+    "  8000 — the album close is done",
+    "  8000 openHumanity",
+    "  8000 album back, refusals=2",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > a read that never answers says it is taking longer 10 s after the vessel lands, and Continue leaves the chest unseen 1`] = `
+{
+  "logs": [],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "  1500 — the vessel lands",
+    " 11500 payoffStalled chest.slow",
+    " 11500 dom: [chest-slow] · vessel pieces=0 · h2 "Taking longer than usual" · p "Your rewards will be in the chat when they're ready." · buttons [Continue]",
+    " 12000 — Continue pressed",
+    " 12000 payoffHandedOff",
+    " 12000 openHumanity",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > a settled chest is up before the read answers, opens once all have flown in, and its Continue hands off 1`] = `
+{
+  "logs": [
+    "info [chest] the vessel opened {"by":"all in","collected":6,"shown":6}",
+  ],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "  1500 — the vessel lands",
+    "  2000 — the read answers: six, settled",
+    "  2000 chestShown {"chest.outcome":"collectables","chest.count":"6"}",
+    "  2000 dom: vessel pieces=6 · buttons [Continue (hidden)]",
+    "  3500 — 6 pieces have flown in",
+    "  3500 vessel opens",
+    "  3500 dom: vessel pieces=6 open · buttons [Continue]",
+    "  6000 — Continue pressed",
+    "  6000 markSeen 7 chest",
+    "  6000 album srcs=6",
+    "  6000 dom: vessel pieces=6 open · album · buttons [Continue]",
+    "  7000 — the album close is done",
+    "  7000 payoffHandedOff",
+    "  7000 openHumanity",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > a tap opens the vessel early once something is in, and not before 1`] = `
+{
+  "logs": [
+    "info [chest] the vessel opened {"by":"a tap","collected":1,"shown":3}",
+  ],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   500 — the vessel lands",
+    "   800 — the vessel tapped",
+    "   800 vessel tapped, stays shut",
+    "  1000 — the read answers: three, settled",
+    "  1000 chestShown {"chest.outcome":"collectables","chest.count":"3"}",
+    "  1000 dom: vessel pieces=3 · buttons [Continue (hidden)]",
+    "  1500 — the vessel tapped",
+    "  1500 vessel tapped, stays shut",
+    "  2000 — 1 pieces have flown in",
+    "  2500 — the vessel tapped",
+    "  2500 vessel opens",
+    "  2500 dom: vessel pieces=3 open · buttons [Continue]",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > a vessel that never lands still says it is taking longer after a minute 1`] = `
+{
+  "logs": [],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    " 60000 payoffStalled chest.slow",
+    " 60000 dom: [chest-slow] · vessel pieces=0 · h2 "Taking longer than usual" · p "Your rewards will be in the chat when they're ready." · buttons [Continue]",
+    " 61000 — Continue pressed",
+    " 61000 payoffHandedOff",
+    " 61000 openHumanity",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > an empty chest says why (absent), and Continue goes on 1`] = `
+{
+  "logs": [],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   100 — the read answers: nothing",
+    "   100 chestShown {"chest.outcome":"none","chest.reason":"absent"}",
+    "   100 vessel gone",
+    "   100 dom: h1 "The chest" · p "Nobody thought you were human enough this game. Play again and convince them." · buttons [Continue]",
+    "  2000 — Continue pressed",
+    "  2000 markSeen 7 chest",
+    "  2000 payoffHandedOff",
+    "  2000 openHumanity",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > an empty chest says why (no-attestations), and Continue goes on 1`] = `
+{
+  "logs": [],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   100 — the read answers: nothing",
+    "   100 chestShown {"chest.outcome":"none","chest.reason":"no-attestations"}",
+    "   100 vessel gone",
+    "   100 dom: h1 "The chest" · p "Nobody thought you were human enough this game. Play again and convince them." · buttons [Continue]",
+    "  2000 — Continue pressed",
+    "  2000 markSeen 7 chest",
+    "  2000 payoffHandedOff",
+    "  2000 openHumanity",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > an empty chest says why (report-missed), and Continue goes on 1`] = `
+{
+  "logs": [],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   100 — the read answers: nothing",
+    "   100 chestShown {"chest.outcome":"none","chest.reason":"report-missed"}",
+    "   100 vessel gone",
+    "   100 dom: h1 "The chest" · p "Your votes didn't arrive before voting closed, so this game has nothing for your chest. Join the next one to collect." · buttons [Continue]",
+    "  2000 — Continue pressed",
+    "  2000 markSeen 7 chest",
+    "  2000 payoffHandedOff",
+    "  2000 openHumanity",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > claims earned but not readable yet keep the vessel collecting, and a reread brings them 1`] = `
+{
+  "logs": [],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   500 — the vessel lands",
+    "  1000 — the read answers: two without a hash yet",
+    " 10500 payoffStalled chest.slow",
+    " 10500 dom: [chest-slow] · vessel pieces=0 · h2 "Taking longer than usual" · p "Your rewards will be in the chat when they're ready." · buttons [Continue]",
+    " 31000 chestView game=7 player=- afterSettle=false",
+    " 31500 — the read answers: two, on the reread",
+    " 31500 chestShown {"chest.outcome":"collectables","chest.count":"2"}",
+    " 31500 dom: vessel pieces=2 · buttons [Continue]",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > leaving the screen mid-read lets the read go 1`] = `
+{
+  "logs": [],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "  2000 — the page unmounts",
+    "  2000 vessel gone",
+    "  2000 chestView aborted afterSettle=false",
+    "  2000 dom: empty",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > no player identity says so at once, and Continue goes on 1`] = `
+{
+  "logs": [],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 chestShown {"chest.outcome":"none","chest.reason":"no-identity"}",
+    "    50 dom: h1 "The chest" · p "No player identity here — open Jollity in the Polkadot app to see your collectables." · buttons [Continue]",
+    "  2000 — Continue pressed",
+    "  2000 payoffHandedOff",
+    "  2000 openHumanity",
+  ],
+}
+`;
+
+exports[`the chest screen, captured > nothing read by the collect wait says it is taking longer; the first claim after it opens the vessel, and Continue stays 1`] = `
+{
+  "logs": [
+    "info [chest] the vessel opened {"by":"the wait","collected":1,"shown":2}",
+  ],
+  "trace": [
+    "     0 chestOpened",
+    "     0 dom: buttons [Continue (hidden)]",
+    "     0 vessel up seed=5player:7",
+    "     0 chestView game=7 player=- afterSettle=false",
+    "    50 dom: vessel pieces=0 · buttons [Continue (hidden)]",
+    "   500 — the vessel lands",
+    " 10500 payoffStalled chest.slow",
+    " 10500 dom: [chest-slow] · vessel pieces=0 · h2 "Taking longer than usual" · p "Your rewards will be in the chat when they're ready." · buttons [Continue]",
+    " 15000 — the read answers: two, before the settle",
+    " 15000 chestShown {"chest.outcome":"collectables","chest.count":"2","chest.settling":"true"}",
+    " 15000 watchChest game=7 shown=2",
+    " 15000 dom: vessel pieces=2 · buttons [Continue]",
+    " 16000 — 1 pieces have flown in",
+    " 16000 vessel opens",
+    " 16000 dom: vessel pieces=2 open · buttons [Continue]",
+  ],
+}
+`;

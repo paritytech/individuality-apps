@@ -1,0 +1,537 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the prize draw screen today, captured > a draw preloaded on the confirm screen opens on the wheel, with no black frame 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"ready"}",
+    "info [draw] draw screen shows: the wheel {"game":7,"listed":null,"total":24,"ticket":true,"won":true,"claimed":false}",
+    "info [draw] draw screen shows: the wheel {"game":7,"listed":null,"total":24,"ticket":true,"won":true,"claimed":false}",
+    "info [draw] wheel Continue tapped {"elapsedMs":4000,"continueVisibleMs":1000,"fallbackReason":"none"}",
+    "info [draw] wheel ceremony load started {"elapsedMs":0}",
+    "info [draw] wheel ended; Continue visible {"elapsedMs":3000,"endingMs":3000}",
+    "info [draw] wheel stage mounted {"elapsedMs":0,"loadMs":0}",
+  ],
+  "trace": [
+    "     0 drawShown ready ok game=7",
+    "     0 dom: wheel",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "     0 loadBakedCoins",
+    "     0 loadPrizeCoin 200 CASH",
+    "     0 mountWheel ticket won=true tickets=24 held=false",
+    "   100 — the read answers: the same win, from the page's own read",
+    "  3000 — the stage offers its Continue",
+    "  3000 startAutoClaim 7:0",
+    "  4000 — the stage is done (its Continue pressed, a loss's fall played)",
+    "  4000 reportDrawCeremony {"totalMs":4000,"loadMs":0,"endingMs":3000,"continueVisibleMs":1000,"hiddenMs":0,"ended":true,"tapped":true,"idleAdvanced":false,"fallbackReason":"none"}",
+    "  4000 markSeen 7 draw",
+    "  4000 router.replace /chest?game=7",
+    "  4000 startAutoClaim 7:0",
+    "  4000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > a draw still drawing says so, and Continue skips it 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: Drawing the winners… {"game":7,"listed":null,"total":null,"ticket":null,"won":null,"claimed":null}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read says the chain is still drawing",
+    "   100 dom: h1 "Drawing the winners…" · buttons [Continue]",
+    "  2000 — Continue pressed",
+    "  2000 router.replace /chest?game=7",
+    "  2000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > a draw still drawing that then lands plays the wheel 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: Drawing the winners… {"game":7,"listed":null,"total":null,"ticket":null,"won":null,"claimed":null}",
+    "info [draw] draw screen shows: the wheel {"game":7,"listed":null,"total":24,"ticket":true,"won":false,"claimed":false}",
+    "info [draw] wheel Continue tapped {"elapsedMs":5900,"continueVisibleMs":3000,"fallbackReason":"none"}",
+    "info [draw] wheel ceremony load started {"elapsedMs":0}",
+    "info [draw] wheel ended; Continue visible {"elapsedMs":2900,"endingMs":2900}",
+    "info [draw] wheel stage mounted {"elapsedMs":0,"loadMs":0}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read says the chain is still drawing",
+    "   100 dom: h1 "Drawing the winners…" · buttons [Continue]",
+    "  3100 — the read answers: a loss",
+    "  3100 drawShown ready ok game=7",
+    "  3100 loadBakedCoins",
+    "  3100 mountWheel ticket won=false tickets=24 held=false",
+    "  3100 dom: wheel",
+    "  6000 — the stage offers its Continue",
+    "  9000 — the stage is done (its Continue pressed, a loss's fall played)",
+    "  9000 reportDrawCeremony {"totalMs":5900,"loadMs":0,"endingMs":2900,"continueVisibleMs":3000,"hiddenMs":0,"ended":true,"tapped":true,"idleAdvanced":false,"fallbackReason":"none"}",
+    "  9000 markSeen 7 draw",
+    "  9000 router.replace /chest?game=7",
+    "  9000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > a failed read says so, and Continue goes on to the chest 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: Couldn't load the draw {"game":7,"listed":null,"total":null,"ticket":null,"won":null,"claimed":null}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read fails",
+    "   100 dom: h1 "Couldn't load the draw" · buttons [Continue]",
+    "  3000 — Continue pressed",
+    "  3000 router.replace /chest?game=7",
+    "  3000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > a loser plays the wheel, and goes on once the fall has played 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: the wheel {"game":7,"listed":null,"total":24,"ticket":true,"won":false,"claimed":false}",
+    "info [draw] wheel Continue tapped {"elapsedMs":8900,"continueVisibleMs":5000,"fallbackReason":"none"}",
+    "info [draw] wheel ceremony load started {"elapsedMs":0}",
+    "info [draw] wheel ended; Continue visible {"elapsedMs":3900,"endingMs":3900}",
+    "info [draw] wheel stage mounted {"elapsedMs":0,"loadMs":0}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: a loss",
+    "   100 drawShown ready ok game=7",
+    "   100 loadBakedCoins",
+    "   100 mountWheel ticket won=false tickets=24 held=false",
+    "   100 dom: wheel",
+    "  4000 — the stage offers its Continue",
+    "  9000 — the stage is done (its Continue pressed, a loss's fall played)",
+    "  9000 reportDrawCeremony {"totalMs":8900,"loadMs":0,"endingMs":3900,"continueVisibleMs":5000,"hiddenMs":0,"ended":true,"tapped":true,"idleAdvanced":false,"fallbackReason":"none"}",
+    "  9000 markSeen 7 draw",
+    "  9000 router.replace /chest?game=7",
+    "  9000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > a loss the wheel cannot tell is told in words 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: Not this time (words, no wheel) {"game":7,"listed":null,"total":24,"ticket":true,"won":false,"claimed":false}",
+    "warn [draw] no wheel for this draw {"reason":"the chain has no ticket list or target for this draw"}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: a loss with no wheel",
+    "   100 drawShown ready no-check game=7",
+    "   100 dom: h1 "Not this time" · buttons [Continue]",
+    "  3000 — Continue pressed",
+    "  3000 markSeen 7 draw",
+    "  3000 router.replace /chest?game=7",
+    "  3000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > a page hidden for good reports the ceremony once, and a later Continue still goes on 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: the wheel {"game":7,"listed":null,"total":24,"ticket":true,"won":true,"claimed":false}",
+    "info [draw] wheel Continue tapped {"elapsedMs":3900,"continueVisibleMs":1000,"fallbackReason":"none"}",
+    "info [draw] wheel ceremony load started {"elapsedMs":0}",
+    "info [draw] wheel ended; Continue visible {"elapsedMs":2900,"endingMs":2900}",
+    "info [draw] wheel page left {"elapsedMs":1900,"continueVisible":false}",
+    "info [draw] wheel stage mounted {"elapsedMs":0,"loadMs":0}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: a win",
+    "   100 drawShown ready ok game=7",
+    "   100 loadBakedCoins",
+    "   100 loadPrizeCoin 200 CASH",
+    "   100 mountWheel ticket won=true tickets=24 held=false",
+    "   100 dom: wheel",
+    "  2000 — pagehide",
+    "  2000 reportDrawCeremony {"totalMs":1900,"loadMs":0,"endingMs":1900,"continueVisibleMs":-1,"hiddenMs":0,"ended":false,"tapped":false,"idleAdvanced":false,"fallbackReason":"none"}",
+    "  3000 — the stage offers its Continue",
+    "  3000 startAutoClaim 7:0",
+    "  4000 — the stage is done (its Continue pressed, a loss's fall played)",
+    "  4000 markSeen 7 draw",
+    "  4000 router.replace /chest?game=7",
+    "  4000 startAutoClaim 7:0",
+    "  4000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > a player left idle is moved on a minute after their Continue, the draw not marked seen 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: the wheel {"game":7,"listed":null,"total":24,"ticket":true,"won":false,"claimed":false}",
+    "info [draw] wheel ceremony load started {"elapsedMs":0}",
+    "info [draw] wheel ended; Continue visible {"elapsedMs":3900,"endingMs":3900}",
+    "info [draw] wheel idle; moving on to the chest {"elapsedMs":63900}",
+    "info [draw] wheel stage mounted {"elapsedMs":0,"loadMs":0}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: a loss",
+    "   100 drawShown ready ok game=7",
+    "   100 loadBakedCoins",
+    "   100 mountWheel ticket won=false tickets=24 held=false",
+    "   100 dom: wheel",
+    "  4000 — the stage offers its Continue",
+    " 64000 reportDrawCeremony {"totalMs":63900,"loadMs":0,"endingMs":3900,"continueVisibleMs":60000,"hiddenMs":0,"ended":true,"tapped":false,"idleAdvanced":true,"fallbackReason":"none"}",
+    " 64000 router.replace /chest?game=7",
+    " 64000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > a spectator gets a full minute from their Continue, not from the stage's mount 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: the wheel, watching: You weren't in this draw {"game":7,"listed":null,"total":12,"ticket":false,"won":false,"claimed":false}",
+    "info [draw] wheel ceremony load started {"elapsedMs":0}",
+    "info [draw] wheel ended; Continue visible {"elapsedMs":21900,"endingMs":21900}",
+    "info [draw] wheel idle; moving on to the chest {"elapsedMs":81900}",
+    "info [draw] wheel stage mounted {"elapsedMs":0,"loadMs":0}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: no ticket of theirs",
+    "   100 drawShown ready ok game=7",
+    "   100 mountWheel spectator won=false tickets=12 held=true",
+    "   100 dom: wheel · intro",
+    "  8100 stage.release",
+    "  8100 dom: wheel · intro (leaving)",
+    "  8600 dom: wheel",
+    " 22000 — the stage offers its Continue",
+    " 82000 reportDrawCeremony {"totalMs":81900,"loadMs":0,"endingMs":21900,"continueVisibleMs":60000,"hiddenMs":0,"ended":true,"tapped":false,"idleAdvanced":true,"fallbackReason":"none"}",
+    " 82000 router.replace /chest?game=7",
+    " 82000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > a spectator is told what the draw is over the held stage, then watches it 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: the wheel, watching: You weren't in this draw {"game":7,"listed":null,"total":12,"ticket":false,"won":false,"claimed":false}",
+    "info [draw] wheel Continue tapped {"elapsedMs":21900,"continueVisibleMs":2000,"fallbackReason":"none"}",
+    "info [draw] wheel ceremony load started {"elapsedMs":0}",
+    "info [draw] wheel ended; Continue visible {"elapsedMs":19900,"endingMs":19900}",
+    "info [draw] wheel stage mounted {"elapsedMs":0,"loadMs":0}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: no ticket of theirs",
+    "   100 drawShown ready ok game=7",
+    "   100 mountWheel spectator won=false tickets=12 held=true",
+    "   100 dom: wheel · intro",
+    "  8100 stage.release",
+    "  8100 dom: wheel · intro (leaving)",
+    "  8600 dom: wheel",
+    " 20000 — the stage offers its Continue",
+    " 22000 — the stage is done (its Continue pressed, a loss's fall played)",
+    " 22000 reportDrawCeremony {"totalMs":21900,"loadMs":0,"endingMs":19900,"continueVisibleMs":2000,"hiddenMs":0,"ended":true,"tapped":true,"idleAdvanced":false,"fallbackReason":"none"}",
+    " 22000 markSeen 7 draw",
+    " 22000 router.replace /chest?game=7",
+    " 22000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > a stage that does not mount falls back to words and the page's Continue 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: the wheel {"game":7,"listed":null,"total":24,"ticket":true,"won":false,"claimed":false}",
+    "info [draw] wheel Continue tapped {"elapsedMs":2900,"continueVisibleMs":2900,"fallbackReason":"mount-failed"}",
+    "info [draw] wheel ceremony load started {"elapsedMs":0}",
+    "warn [draw] wheel fallback; Continue visible {"elapsedMs":0,"reason":"mount-failed","detail":"capture: the stage did not mount"}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: a loss",
+    "   100 drawShown ready ok game=7",
+    "   100 loadBakedCoins",
+    "   100 mountWheel ticket won=false tickets=24 held=false",
+    "   100 dom: wheel · fallback "Not this time" · buttons [Continue]",
+    "  3000 — Continue pressed",
+    "  3000 reportDrawCeremony {"totalMs":2900,"loadMs":2900,"endingMs":-1,"continueVisibleMs":2900,"hiddenMs":0,"ended":false,"tapped":true,"idleAdvanced":false,"fallbackReason":"mount-failed"}",
+    "  3000 markSeen 7 draw",
+    "  3000 router.replace /chest?game=7",
+    "  3000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > a stage that never ends falls back once its bound runs out 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: the wheel {"game":7,"listed":null,"total":24,"ticket":true,"won":true,"claimed":false}",
+    "info [draw] wheel Continue tapped {"elapsedMs":44900,"continueVisibleMs":4900,"fallbackReason":"never-ended"}",
+    "info [draw] wheel ceremony load started {"elapsedMs":0}",
+    "info [draw] wheel stage mounted {"elapsedMs":0,"loadMs":0}",
+    "warn [draw] wheel fallback; Continue visible {"elapsedMs":40000,"reason":"never-ended","progress":{"frames":1}}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: a win",
+    "   100 drawShown ready ok game=7",
+    "   100 loadBakedCoins",
+    "   100 loadPrizeCoin 200 CASH",
+    "   100 mountWheel ticket won=true tickets=24 held=false",
+    "   100 dom: wheel",
+    " 40100 startAutoClaim 7:0",
+    " 40100 dom: wheel · fallback "You won" · buttons [Continue]",
+    " 45000 — Continue pressed",
+    " 45000 reportDrawCeremony {"totalMs":44900,"loadMs":0,"endingMs":44900,"continueVisibleMs":4900,"hiddenMs":0,"ended":false,"tapped":true,"idleAdvanced":false,"fallbackReason":"never-ended","stall":{"frames":1}}",
+    " 45000 markSeen 7 draw",
+    " 45000 router.replace /chest?game=7",
+    " 45000 startAutoClaim 7:0",
+    " 45000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > a stage whose code does not load falls back to words and the page's Continue 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: the wheel {"game":7,"listed":null,"total":24,"ticket":true,"won":true,"claimed":false}",
+    "info [draw] wheel Continue tapped {"elapsedMs":2900,"continueVisibleMs":2900,"fallbackReason":"load-failed"}",
+    "info [draw] wheel ceremony load started {"elapsedMs":0}",
+    "warn [draw] wheel fallback; Continue visible {"elapsedMs":0,"reason":"load-failed","detail":"capture: the coins did not load"}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: a win",
+    "   100 drawShown ready ok game=7",
+    "   100 loadBakedCoins",
+    "   100 loadPrizeCoin 200 CASH",
+    "   100 startAutoClaim 7:0",
+    "   100 dom: wheel · fallback "You won" · buttons [Continue]",
+    "  3000 — Continue pressed",
+    "  3000 reportDrawCeremony {"totalMs":2900,"loadMs":2900,"endingMs":-1,"continueVisibleMs":2900,"hiddenMs":0,"ended":false,"tapped":true,"idleAdvanced":false,"fallbackReason":"load-failed"}",
+    "  3000 markSeen 7 draw",
+    "  3000 router.replace /chest?game=7",
+    "  3000 startAutoClaim 7:0",
+    "  3000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > a win the wheel cannot tell is told in words, and claimed at once 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: You won (words, no wheel) {"game":7,"listed":null,"total":24,"ticket":true,"won":true,"claimed":false}",
+    "warn [draw] no wheel for this draw {"reason":"the chain has no ticket list or target for this draw"}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: a win with no wheel",
+    "   100 drawShown ready no-check game=7",
+    "   100 startAutoClaim 7:0",
+    "   100 dom: h1 "You won" · buttons [Continue]",
+    "  3000 — Continue pressed",
+    "  3000 markSeen 7 draw",
+    "  3000 router.replace /chest?game=7",
+    "  3000 startAutoClaim 7:0",
+    "  3000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > a winner plays the wheel and goes on to the chest 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: the wheel {"game":7,"listed":null,"total":24,"ticket":true,"won":true,"claimed":false}",
+    "info [draw] wheel Continue tapped {"elapsedMs":6900,"continueVisibleMs":3000,"fallbackReason":"none"}",
+    "info [draw] wheel ceremony load started {"elapsedMs":0}",
+    "info [draw] wheel ended; Continue visible {"elapsedMs":3900,"endingMs":3900}",
+    "info [draw] wheel stage mounted {"elapsedMs":0,"loadMs":0}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: a win",
+    "   100 drawShown ready ok game=7",
+    "   100 loadBakedCoins",
+    "   100 loadPrizeCoin 200 CASH",
+    "   100 mountWheel ticket won=true tickets=24 held=false",
+    "   100 dom: wheel",
+    "  4000 — the stage offers its Continue",
+    "  4000 startAutoClaim 7:0",
+    "  7000 — the stage is done (its Continue pressed, a loss's fall played)",
+    "  7000 reportDrawCeremony {"totalMs":6900,"loadMs":0,"endingMs":3900,"continueVisibleMs":3000,"hiddenMs":0,"ended":true,"tapped":true,"idleAdvanced":false,"fallbackReason":"none"}",
+    "  7000 markSeen 7 draw",
+    "  7000 router.replace /chest?game=7",
+    "  7000 startAutoClaim 7:0",
+    "  7000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > leaving the screen tears the stage down and reports the ceremony 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: the wheel {"game":7,"listed":null,"total":24,"ticket":true,"won":true,"claimed":false}",
+    "info [draw] wheel ceremony load started {"elapsedMs":0}",
+    "info [draw] wheel page left {"elapsedMs":1900,"continueVisible":false}",
+    "info [draw] wheel stage mounted {"elapsedMs":0,"loadMs":0}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: a win",
+    "   100 drawShown ready ok game=7",
+    "   100 loadBakedCoins",
+    "   100 loadPrizeCoin 200 CASH",
+    "   100 mountWheel ticket won=true tickets=24 held=false",
+    "   100 dom: wheel",
+    "  2000 — the page unmounts",
+    "  2000 stage.destroy",
+    "  2000 reportDrawCeremony {"totalMs":1900,"loadMs":0,"endingMs":1900,"continueVisibleMs":-1,"hiddenMs":0,"ended":false,"tapped":false,"idleAdvanced":false,"fallbackReason":"none"}",
+    "  2000 dom: empty",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > no draw this game goes straight to the chest 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] no draw scheduled — skipping the draw screen {"game":7}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: no draw",
+    "   100 drawShown none no-check game=7",
+    "   100 router.replace /chest?game=7",
+    "   100 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > no player identity says so, and Continue skips it 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: No player identity {"game":7,"listed":null,"total":null,"ticket":null,"won":null,"claimed":null}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 preloadChestFeed",
+    "    50 dom: h1 "Player identity needed" · buttons [Continue]",
+    "  1000 — Continue pressed",
+    "  1000 router.replace /chest?game=7",
+    "  1000 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > the words move on after a minute too 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: Not this time (words, no wheel) {"game":7,"listed":null,"total":24,"ticket":true,"won":false,"claimed":false}",
+    "warn [draw] no wheel for this draw {"reason":"the chain has no ticket list or target for this draw"}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: a loss with no wheel",
+    "   100 drawShown ready no-check game=7",
+    "   100 dom: h1 "Not this time" · buttons [Continue]",
+    " 60100 router.replace /chest?game=7",
+    " 60100 preloadChestFeed",
+  ],
+}
+`;
+
+exports[`the prize draw screen today, captured > time hidden is counted in the ceremony 1`] = `
+{
+  "logs": [
+    "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
+    "info [draw] draw screen shows: the wheel {"game":7,"listed":null,"total":24,"ticket":true,"won":true,"claimed":false}",
+    "info [draw] wheel Continue tapped {"elapsedMs":5900,"continueVisibleMs":1000,"fallbackReason":"none"}",
+    "info [draw] wheel ceremony load started {"elapsedMs":0}",
+    "info [draw] wheel ended; Continue visible {"elapsedMs":4900,"endingMs":4900}",
+    "info [draw] wheel page hidden {"elapsedMs":900,"continueVisible":false}",
+    "info [draw] wheel page resumed {"elapsedMs":3900,"hiddenMs":3000}",
+    "info [draw] wheel stage mounted {"elapsedMs":0,"loadMs":0}",
+  ],
+  "trace": [
+    "     0 dom: busy",
+    "     0 loadDraw game=7 player=-",
+    "     0 preloadChestFeed",
+    "   100 — the read answers: a win",
+    "   100 drawShown ready ok game=7",
+    "   100 loadBakedCoins",
+    "   100 loadPrizeCoin 200 CASH",
+    "   100 mountWheel ticket won=true tickets=24 held=false",
+    "   100 dom: wheel",
+    "  1000 — the page turns hidden",
+    "  4000 — the page turns visible",
+    "  5000 — the stage offers its Continue",
+    "  5000 startAutoClaim 7:0",
+    "  6000 — the stage is done (its Continue pressed, a loss's fall played)",
+    "  6000 reportDrawCeremony {"totalMs":5900,"loadMs":0,"endingMs":4900,"continueVisibleMs":1000,"hiddenMs":3000,"ended":true,"tapped":true,"idleAdvanced":false,"fallbackReason":"none"}",
+    "  6000 markSeen 7 draw",
+    "  6000 router.replace /chest?game=7",
+    "  6000 startAutoClaim 7:0",
+    "  6000 preloadChestFeed",
+  ],
+}
+`;

@@ -1,0 +1,37 @@
+{
+  "name": "@individuality/prize",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A won prize-draw prize on the People chain: who a claim pays, the claim with its retries, a claim made once the chain would pay it, and the prize handed to the host's purse, with the claim's chain side under /chain. It depends on no product's package.",
+  "license": "GPL-3.0-or-later",
+  "author": "Parity Technologies <admin@parity.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paritytech/individuality-apps-community.git",
+    "directory": "packages/individuality-prize"
+  },
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./chain": "./src/chain/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@individuality/people-chain": "*"
+  },
+  "peerDependencies": {
+    "@parity/product-sdk-individuality": "0.11.4",
+    "polkadot-api": "^3.2.1"
+  },
+  "devDependencies": {
+    "@noble/hashes": "^2.3.0",
+    "@parity/product-sdk-individuality": "0.11.4",
+    "polkadot-api": "^3.2.1"
+  }
+}

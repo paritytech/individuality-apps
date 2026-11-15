@@ -1,0 +1,85 @@
+/*
+ * Copyright 2026 Parity Technologies (UK) Ltd.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/* Humanity chrome — ambient light and layout columns.
+   The device frame, status bar, and top bar are gone: screens are full-viewport
+   surfaces whose content centres into a readable column on wide viewports. */
+
+/* ---------- shared layout blocks ----------
+   Each column fills the viewport on phones and caps to a readable width on
+   desktop. width:100% + max-width keeps them full-bleed below the cap and
+   centred above it; align-self centres the block on the cross axis.
+   The cap sits above every phone width (440 is the widest iPhone), so on a
+   phone the gutter is always 16px and lines up with the host's card above
+   the page. A 390 cap shrank the column on a 411dp Android phone. */
+.body-col {
+  flex: 1; display: flex; flex-direction: column; gap: 13px;
+  padding: calc(20px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+  position: relative; z-index: 2;
+  width: 100%; max-width: 440px; align-self: center;
+  overflow: hidden;
+}
+/* Fixed view: nothing scrolls, so blocks keep their intrinsic size and the
+   card wrap alone gives up height when a screen would not fit (see
+   `.card-wrap` in the home stylesheet). */
+.body-col > *:not(.card-wrap) { flex: none; }
+.hero-col {
+  flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
+  gap: 20px; padding: 24px; position: relative; z-index: 2; text-align: center;
+  width: 100%; max-width: 440px; align-self: center;
+}
+.cta-col {
+  flex: none; display: flex; flex-direction: column; gap: 12px; align-items: center;
+  padding: 16px 24px calc(24px + env(safe-area-inset-bottom)); position: relative; z-index: 3;
+  width: 100%; max-width: 440px; align-self: center;
+}
+
+/* Ambient light picks up the current card material and stays centred on the
+   fixed-width composition instead of washing the whole desktop viewport.
+   Screen-blended so it only ever lightens: a glow on dark themes, a faint
+   lift on light ones rather than a tinted smudge. */
+.ambient {
+  position: absolute; left: 50%; top: -120px; width: min(100%, 440px); height: 560px;
+  transform: translateX(-50%); pointer-events: none; z-index: 0;
+  background: radial-gradient(ellipse 55% 42% at 50% 35%, var(--ambient-c, rgba(255,255,255,0.08)) 0%, transparent 70%);
+  mix-blend-mode: screen;
+}
+
+/* keyboard users get a visible focus ring on every interactive control */
+:focus-visible { outline: 2px solid var(--fg-primary); outline-offset: 2px; }
+
+/* ---------- waiting ----------
+   The host's card-opening spinner, redrawn (`LoadSpinner.tsx`): a Material 3
+   indeterminate circle, the arc growing and shrinking as it turns. The circle
+   is r=22 on a 48 box, so its stroke's outer edge fills the box as the
+   native one does (measured on a Pixel 10a: 125px at 2.625x), and its
+   length is about 138. */
+/* The host centres its spinner in everything below the card, down to the
+   screen edge behind its floating tab bar; the page ends above that bar, so
+   its centre sits higher. The offset is half the tab bar as measured on a
+   Pixel 10a (2026-10-09). It is a guess at the host's layout, so it only
+   moves the spinner, never the page. */
+.load-wait {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  transform: translateY(51px);
+}
+.load-spinner { animation: loadSpin 1.4s linear infinite; }
+.load-spinner circle { fill: none; stroke-width: 4; }
+.load-spinner-track { stroke: var(--fg-tertiary); }
+.load-spinner-arc {
+  stroke: var(--fg-primary);
+  stroke-linecap: round;
+  stroke-dasharray: 1 138;
+  stroke-dashoffset: 0;
+  transform-origin: 24px 24px;
+  transform: rotate(-90deg);
+  animation: loadArc 1.4s ease-in-out infinite;
+}
+@keyframes loadSpin { to { transform: rotate(360deg); } }
+@keyframes loadArc {
+  0% { stroke-dasharray: 1 138; stroke-dashoffset: 0; }
+  50% { stroke-dasharray: 103 138; stroke-dashoffset: -16; }
+  100% { stroke-dasharray: 103 138; stroke-dashoffset: -137; }
+}

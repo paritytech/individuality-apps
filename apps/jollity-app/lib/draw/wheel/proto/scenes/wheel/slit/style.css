@@ -1,0 +1,254 @@
+/*
+ * Copyright 2026 Parity Technologies (UK) Ltd.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/* every rule here is scoped under #app */
+/* THE DRAW, THROUGH THE SLIT — scoped to the class
+   the scene puts on #app, so none of it reaches another page. Nominal stage
+   px × --scale, like everything else. */
+/* the two canvases: #slit-under goes UNDER the GL (the backdrop and the
+   slit's light, while the coin is up), #slit over it (everything else). The
+   page takes no taps of its own: the coin, the timeline and the legend do */
+#app #slit-under,
+#app #slit,
+#app #slit-arrows {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+/* the edge arrows: over the names (z 3) and the timeline */
+#app #slit-arrows {
+  z-index: 4;
+}
+/* the stage's furniture this page does not use — and the intro's DOM slot,
+   which keeps running (the scene reads its glow back) but is drawn on the
+   canvas instead, where it can bend */
+#app.scene-slit #slot,
+#app.scene-slit #bearing,
+#app.scene-slit #reset,
+#app.scene-slit #friends {
+  display: none;
+}
+/* the solid coin over the slit's light: screened over the backdrop under
+   it, so the coin reads as lit by the slit. The GL is see-through where the
+   coin is not (it was opaque black, which the screen let through: the same
+   picture). Only while the coin is up: the prize and the fall are drawn
+   over the page as it is */
+#app.scene-slit.is-intro #gl {
+  mix-blend-mode: screen;
+}
+/* on this page the GL is a window the coin's size, moved with it (gl.js):
+   a finger on the stage outside it lands on the stage, which must not
+   scroll a host page either */
+#app.scene-slit {
+  touch-action: none;
+}
+/* ── THE TIMELINE (frames 48–50): the flow's slider, restyled ─────────────
+   A 3 px line, #353535, filled white up to where the spin is (--slit-p), 26
+   px in from the sides at y 780 (scene.js BAR_Y). It only shows where the
+   draw is — it takes no hand (pointer-events none, never focused): the draw
+   is scrubbed only once it has grown into Continue (#slit-continue, below).
+   The native thumb is never shown. */
+#app.scene-slit #phase {
+  --tw: calc(18px * var(--scale, 1));
+  --th: calc(13px * var(--scale, 1));
+  --hit: calc(72px * var(--scale, 1));
+  --line: calc(3px * var(--scale, 1));
+  display: block;
+  position: absolute;
+  z-index: 3;
+  left: calc(26px * var(--scale, 1) - var(--tw) / 2);
+  right: calc(26px * var(--scale, 1) - var(--tw) / 2);
+  top: calc(780px * var(--scale, 1) - var(--hit) / 2);
+  bottom: auto;
+  width: auto;
+  height: var(--hit);
+  margin: 0;
+  background:
+    linear-gradient(#fff, #fff) calc(var(--tw) / 2) 50% / calc((100% - var(--tw)) * var(--slit-p, 0)) var(--line) no-repeat,
+    linear-gradient(#353535, #353535) 50% 50% / calc(100% - var(--tw)) var(--line) no-repeat;
+  opacity: var(--slit-bar, 0);
+  pointer-events: none;
+  touch-action: none;
+  transition: none;
+}
+#app.scene-slit #phase:hover,
+#app.scene-slit #phase:focus-visible,
+#app.scene-slit #phase:active {
+  opacity: var(--slit-bar, 0);
+}
+#app.scene-slit #phase::-webkit-slider-thumb {
+  width: var(--tw);
+  height: var(--th);
+  margin-top: calc(var(--th) / -2 + 0.5px);
+  border: 1px solid #bebebe;
+  border-radius: calc(4px * var(--scale, 1));
+  background: #fff;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+#app.scene-slit #phase::-moz-range-thumb {
+  width: var(--tw);
+  height: var(--th);
+  border: 1px solid #bebebe;
+  border-radius: calc(4px * var(--scale, 1));
+  background: #fff;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+/* ── WHO'S PLAYING: one row of names along the top, once the wheel stops ──
+   Everyone playing, left to right as their tickets are; the scene slides it
+   (translateX) so the lit name is over its ticket, and writes each name's
+   opacity. White names, YOU in your colour — only how much shows changes.
+   Its middle is at --slit-names-y; it takes no taps */
+#app #slit-legend {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--slit-names-y, 116) * 1px * var(--scale, 1));
+  transform: translateY(-50%);
+  z-index: 3;
+  pointer-events: none;
+}
+/* each name placed on its own (--x, the scene's): the row is a ring */
+#app .slit-legend-row {
+  position: relative;
+  height: calc(15px * var(--scale, 1));
+}
+#app .slit-legend-item {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #fff;
+  /* the Figma's: Inter Regular, 12 px (Inter is loaded by the scene) */
+  font: 400 calc(12px * var(--scale, 1)) / 1.25 Inter, var(--font);
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: translate(var(--x, 0px), calc((1 - var(--in, 0)) * 6px * var(--scale, 1)));
+  will-change: transform;
+}
+#app .slit-legend-item.is-you {
+  color: var(--slit-you, #00bcf5); /* SLIT.youColour */
+}
+/* the lit one's name is underlined 8 px under it (Section 7) on the canvas,
+   one path with its line down to its ring — so the corner has no gap */
+/* the names take taps once the walk has started (.is-live, the scene's) */
+#app #slit-legend.is-live .slit-legend-item {
+  pointer-events: auto;
+  cursor: pointer;
+}
+/* A LOSS: 'Not this time', over the row, from the moment you are lit.
+   CONTINUE is the timeline grown into a button (the scene drives its height,
+   its fill and its word: --slit-pill-*), on the timeline's own line — over
+   Back to the wheel while the prize is up. The timeline's own input steps
+   aside for it (.slit-pill) and never comes back for that draw */
+#app #slit-loss {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--slit-loss-y, 40) * 1px * var(--scale, 1));
+  transform: translateY(calc(-50% + (1 - var(--in, 0)) * 8px * var(--scale, 1)));
+  z-index: 3;
+  text-align: center;
+  color: #fff;
+  font: 600 calc(48px * var(--scale, 1)) / calc(64px * var(--scale, 1)) Inter, var(--font); /* the Figma's display-medium: semibold, never bold */
+  letter-spacing: calc(-1px * var(--scale, 1));
+  opacity: var(--in, 0);
+  pointer-events: none;
+}
+#app #slit-continue {
+  position: absolute;
+  left: calc(26px * var(--scale, 1));
+  right: calc(26px * var(--scale, 1));
+  top: calc(var(--slit-pill-y, 780) * 1px * var(--scale, 1));
+  z-index: 6; /* over the prize's layers and its Back pill */
+  height: calc(var(--slit-pill-h, 3) * 1px * var(--scale, 1));
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  /* filled white to where the draw is, the rest the timeline's grey (#353535 on black) */
+  background: linear-gradient(90deg, #fff var(--slit-pill-fill, 100%), rgba(255, 255, 255, 0.21) var(--slit-pill-fill, 100%));
+  color: #000;
+  font: 600 calc(15px * var(--scale, 1)) / 1 Inter, var(--font);
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  touch-action: none;
+  transform: translateY(-50%);
+  transition: top 0.3s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+/* the word: black over the white, white over the grey — it reads at any fill */
+#app #slit-continue span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  opacity: var(--slit-pill-letters, 0);
+  background: linear-gradient(90deg, #000 var(--slit-pill-fill, 100%), #fff var(--slit-pill-fill, 100%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+#app #slit-continue.is-shown {
+  opacity: 1;
+  pointer-events: auto;
+}
+#app.scene-slit.slit-pill #phase {
+  visibility: hidden;
+  pointer-events: none;
+}
+/* the win: no timeline and nobody playing over the prize — out as it comes
+   up, back with the wheel (the flow's rule, on this page's furniture) */
+#app.scene-slit #slit-legend {
+  transition: opacity 0.1s;
+}
+#app.scene-slit.flow-prize-up #phase,
+#app.scene-slit.flow-prize-up #slit-legend {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+/* the fall has the stage: the people playing step back — the scene's
+   (FELL_NAMES_A, per name, so the lit one stays at full) */
+/* THE DRAW, FLIPPED (the same page, with .scene-flip too).
+   While the coin is up the GL is a see-through layer IN FRONT of the whole
+   page — the light ground and then the wheel coming on are canvases under it
+   — so the coin is drawn as it is (no screen blend), over everything, and
+   takes no taps (the hit target under it does) */
+#app.scene-flip.is-intro #gl {
+  mix-blend-mode: normal;
+  z-index: 5;
+  pointer-events: none;
+}
+/* …and it leaves the screen: the GL reaches FLIP.escapePx past the stage
+   (gl.js margin), and the stage stops clipping while it does — its own
+   canvases keep the frame's round corners themselves */
+#app.scene-flip.flip-escape {
+  overflow: visible;
+}
+#app.scene-flip.flip-escape #slit-under,
+#app.scene-flip.flip-escape #slit,
+#app.scene-flip.flip-escape #slit-arrows {
+  clip-path: inset(0 round var(--frame-r));
+}
+/* a win, on this page: the prize's headline as 'Not this time' is — Inter
+   Semi Bold 48/64, the Figma's display-medium (the flow's is a 700) — and
+   the prize's other words in Inter too, none of them bold */
+#app.scene-slit .prize-headline {
+  font: 600 calc(48px * var(--scale, 1)) / calc(64px * var(--scale, 1)) Inter, var(--font);
+  letter-spacing: calc(-1px * var(--scale, 1));
+}
+#app.scene-slit .prize-kicker,
+#app.scene-slit .prize-chip {
+  font-family: Inter, var(--font);
+}

@@ -1,0 +1,38 @@
+{
+  "name": "@jollity/game-chain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Answers the jollity GameEngine from the individuality People chain, through @parity/product-sdk-individuality and its descriptors at spec 3004000. It also holds the round timing, the round state machine and the signalling keys from host entropy, and it knows nothing about statements.",
+  "license": "GPL-3.0-or-later",
+  "author": "Parity Technologies <admin@parity.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paritytech/individuality-apps-community.git",
+    "directory": "packages/jollity-game-chain"
+  },
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./engine": "./src/engine.ts",
+    "./game": "./src/game/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@individuality/people-chain": "*",
+    "@individuality/prize": "*",
+    "@individuality/sign-up": "*",
+    "@jollity/protocol": "*",
+    "@noble/curves": "^2.3.0",
+    "@noble/hashes": "^2.3.0",
+    "@parity/product-sdk-descriptors": "0.14.0",
+    "@parity/product-sdk-individuality": "0.11.4",
+    "@polkadot-api/signers-common": "^0.4.0",
+    "polkadot-api": "^3.2.1"
+  },
+  "devDependencies": {}
+}

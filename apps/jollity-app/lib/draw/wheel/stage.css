@@ -1,0 +1,195 @@
+/*
+ * Copyright 2026 Parity Technologies (UK) Ltd.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/* This app's own styles for the draw's stage (lib/draw/wheel/proto), kept
+   apart from the scene's stylesheets: what the app needs that the
+   scene's own styles do not give it: the whole screen, its own Inter, the CASH
+   wordmark, and the page's Continue for a spectator or a stage that failed. */
+
+/* the stage IS the screen (proto/styles.css frames it as a phone on a desktop) */
+.wheel-host {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.wheel-host #app {
+  width: 100vw;
+  height: 100dvh;
+  aspect-ratio: auto;
+  border-radius: 0;
+  box-shadow: none;
+  /* THE FACE: the scene asks for Inter by name (who's playing, WINNERS, Not
+     this time) and, run on its own, fetches it from Google (loadFace in
+     slit/scene.js). jollity ships Inter itself (app/fonts, next/font's
+     --font-inter), so the scene's fallback face is
+     pointed at it and nothing is fetched (the JOLLITY font patch) */
+  --font: var(--font-inter), system-ui, -apple-system, sans-serif;
+}
+
+/* no timeline under the spin: the scene restyles its slider (#phase) into a
+   line along the bottom that fills as the wheel turns. Continue still grows
+   in where it was, and a drag along Continue still takes you through the draw */
+.wheel-host #app.scene-slit #phase {
+  display: none;
+}
+
+/* the chip is the $CASH lockup on its own: the unit is the design system's
+   CASH wordmark in its small caps form (`.prize-unit` in app/globals.css), in
+   place of the scene's word, and quieter than the figure: the guideline's #999
+   beside a #ECECEC figure, 65% of the chip's colour. The word stays in the
+   DOM for a screen reader; the drawn glyph carries no alt text. Only a build
+   whose prize is CASH draws it (data-cash-wordmark, wheel-stage.tsx) */
+.wheel-host[data-cash-wordmark] #app .prize-chip .prize-caps {
+  font-size: 0;
+  font-variant-caps: normal;
+  letter-spacing: 0;
+  color: color-mix(in srgb, currentColor 65%, transparent);
+}
+.wheel-host[data-cash-wordmark] #app .prize-chip .prize-caps::before {
+  content: "c";
+  content: "c" / "";
+  font: 400 calc(17px * var(--scale, 1)) / 1 var(--font-cash-logo);
+  font-synthesis: none;
+}
+
+/* the page's Continue: only for a stage that failed. The draw has its own */
+.wheel-continue {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+  animation: wheel-continue-in 300ms ease-out;
+}
+.wheel-continue > * {
+  pointer-events: auto;
+}
+@keyframes wheel-continue-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* THE DRAW, EXPLAINED to a player who is not in it (lib/draw/draw-miss
+   drawIntro): words over the draw itself, held on the frame it opens on
+   (wheel-stage.tsx), in the draw's own hand — the display type of Not this
+   time and the win screen's prize chip over the wheel, the lines under it.
+   Laid out as the stage is, in nominal px of a 390 × 844 screen scaled by its
+   height (--intro-u). Each part fades in at its --at, and the words fade out
+   as the draw goes on */
+.wheel-host .wheel-intro {
+  --intro-u: calc(100dvh / 844); /* not --u: the scene registers that one as a number (tokens.css) */
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  pointer-events: none;
+  color: #fff;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  text-align: center;
+  transition: opacity 500ms ease;
+}
+.wheel-host .wheel-intro.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+.wheel-host .wheel-intro-head,
+.wheel-host .wheel-intro-chip,
+.wheel-host .wheel-intro-lines {
+  position: absolute;
+  left: 50%;
+  translate: -50% -50%;
+}
+/* over the wheel, clear of the wedge's arc (y ≈ 224) */
+.wheel-host .wheel-intro-head {
+  top: calc(var(--intro-u) * 104);
+  width: calc(var(--intro-u) * 330);
+  font-size: calc(var(--intro-u) * 40);
+  font-weight: 600;
+  line-height: calc(var(--intro-u) * 46);
+  letter-spacing: calc(var(--intro-u) * -0.8);
+  text-wrap: balance;
+}
+.wheel-host .wheel-intro-chip {
+  top: calc(var(--intro-u) * 182);
+  padding: calc(var(--intro-u) * 9) calc(var(--intro-u) * 18);
+  border-radius: 999px;
+  background: #2c2c2eee;
+  color: #f2f2f7;
+  font-size: calc(var(--intro-u) * 17);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+.wheel-host .wheel-intro-lines {
+  top: calc(var(--intro-u) * 690);
+  width: calc(var(--intro-u) * 350);
+  text-wrap: balance;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--intro-u) * 6);
+  font-size: calc(var(--intro-u) * 15);
+  font-weight: 500;
+  line-height: calc(var(--intro-u) * 21);
+  color: rgba(255, 255, 255, 0.6);
+}
+.wheel-host .wheel-intro-part {
+  opacity: 0;
+  animation: wheel-intro-in 700ms ease-out var(--at, 0ms) forwards;
+}
+@keyframes wheel-intro-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wheel-host .wheel-intro-part {
+    animation-duration: 1ms;
+  }
+}
+
+/* the words of a stage that failed (.wheel-fallback): the chain's result, in a
+   box over the top of the wheel, clear of the notch */
+.wheel-host .wheel-note {
+  position: absolute;
+  top: calc(20px + env(safe-area-inset-top, 0px));
+  left: 16px;
+  right: 16px;
+  z-index: 5;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  text-align: center;
+  pointer-events: none;
+}
+.wheel-host .wheel-note-heading {
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 24px;
+}
+.wheel-host .wheel-note-body {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 20px;
+  opacity: 0.8;
+}

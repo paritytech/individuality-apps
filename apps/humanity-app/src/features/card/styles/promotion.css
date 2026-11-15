@@ -1,0 +1,218 @@
+/*
+ * Copyright 2026 Parity Technologies (UK) Ltd.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/* Promotion overlay — the candidate→member celebration. Layered chrome
+   (.screen/.ambient/.hero-col/.cta-col), scoped under .promotion-screen so it
+   floats above the home surface without leaking. */
+
+.promotion-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface-main);
+}
+
+/* The flip reads as 3D: the wrapper's rotationY sits under this perspective
+   (~1000px on the card container). The card row
+   keeps home's 16px gutters rather than the column's 24px, so the card's
+   358px design width fits the column instead of being clamped. */
+.promotion-hero {
+  perspective: 1000px;
+  padding-inline: 16px;
+}
+
+/* Stretched on purpose: `.idcard` caps itself with `max-width: 100%`, and the
+   hero column centres its children, so a default-aligned wrap would be
+   shrink-to-fit — a max-content basis derived from the card itself. WebKit
+   (the mobile host) resolves that cyclic percentage to zero and the card
+   vanishes mid-celebration while Chromium tolerates it; a definite width
+   gives the percentage a real basis. This is the hazard idcard.css warns
+   about, and it is how `.card-wrap` sizes the same card on home. */
+.promotion-card-wrap {
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+}
+
+.promotion-title {
+  font: 700 26px var(--font-head);
+}
+
+.promotion-sub {
+  font: 400 14px/1.45 var(--font-body);
+  color: var(--fg-secondary);
+  max-width: 300px;
+}
+
+/* Pellet styling for the burst, identical to scratch.css .pellet but scoped
+   here so the celebration renders even when the scratch module never mounts. */
+.promotion-screen .pellet {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 30;
+}
+
+/* ---------- short-viewport styles ----------
+   A host with a Pocket opens the app in a sheet under its own card, about
+   454px tall on a phone rather than the ~840px the column above was drawn
+   for. These styles are sized from the viewport (`dvh`) and let the hero
+   give way rather than push the actions off the bottom. */
+.promotion-screen:is(.is-fit, .is-sweep, .is-cardless) .promotion-hero {
+  min-height: 0;
+  padding: clamp(12px, 3dvh, 24px) 16px 0;
+  gap: clamp(8px, 2.2dvh, 18px);
+}
+.promotion-screen:is(.is-fit, .is-sweep, .is-cardless) .promotion-title {
+  font-size: clamp(21px, 4.6dvh, 26px);
+}
+.promotion-screen:is(.is-fit, .is-sweep, .is-cardless) .promotion-sub {
+  font-size: 13px;
+}
+.promotion-screen:is(.is-fit, .is-sweep, .is-cardless) .cta-col {
+  gap: 4px;
+  padding: 8px 24px calc(14px + env(safe-area-inset-bottom));
+}
+
+/* Fit: the design card where there is room, giving way first when there is
+   not (never below a legible floor). The wrap stretches and the card takes
+   its height, the way `.card-wrap` sizes the home's card. */
+.is-fit .promotion-card-wrap {
+  flex: 0 1 min(199px, 40dvh);
+  min-height: 96px;
+}
+.is-fit .promotion-card-wrap > .idcard { height: 100%; }
+
+/* Sweep: a compact card. The frame has a definite width from its own ratio
+   so the card's `max-width: 100%` never resolves against a shrink-to-fit
+   basis (see `.promotion-card-wrap`). It sits above the hero's pellets, which
+   then show only as they clear its edges. */
+.is-sweep .promotion-card-wrap {
+  height: clamp(96px, 34dvh, 170px);
+  margin-bottom: clamp(0px, 1dvh, 8px);
+  position: relative;
+  z-index: 31;
+}
+.promotion-card-frame {
+  position: relative;
+  height: 100%;
+  aspect-ratio: 343 / 199;
+  max-width: 100%;
+}
+.promotion-card-frame > .idcard { height: 100%; }
+.promotion-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+.promotion-sweep-band {
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 55%;
+  background: linear-gradient(
+    110deg,
+    rgba(255, 255, 255, 0) 20%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0) 80%
+  );
+  mix-blend-mode: screen;
+  transform: translateX(-110%);
+}
+
+/* Card-less: a silver medallion in the member material (`SILVER_BASE_VARS`
+   arrives as inline custom properties): a turned rim, a face in the card's
+   foil, an embossed check. Above the hero's pellets, like the sweep card. */
+.promotion-medal-wrap {
+  position: relative;
+  z-index: 31;
+  flex: none;
+  width: clamp(96px, 30dvh, 156px);
+  aspect-ratio: 1;
+  margin-bottom: clamp(0px, 1dvh, 8px);
+}
+.promotion-medal {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: conic-gradient(
+    from 210deg,
+    var(--c-b2),
+    var(--c-b1) 16%,
+    #f7f5f4 28%,
+    var(--c-b2) 44%,
+    #c5d3ed 58%,
+    var(--c-b1) 72%,
+    #f6dcc5 86%,
+    var(--c-b2)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+    0 16px 36px rgba(0, 0, 0, 0.5),
+    0 0 56px rgba(195, 200, 207, 0.22);
+}
+.promotion-medal-face {
+  position: absolute;
+  inset: 11%;
+  border-radius: 50%;
+  background: var(--c-bg);
+  box-shadow:
+    inset 0 3px 6px rgba(0, 0, 0, 0.28),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.75),
+    0 0 0 1px rgba(11, 12, 15, 0.14);
+  display: grid;
+  place-items: center;
+}
+.promotion-medal-check {
+  width: 48%;
+  height: 48%;
+  fill: none;
+  stroke: var(--c-ink);
+  stroke-opacity: 0.82;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.7));
+}
+.promotion-medal-sheen {
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 20%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 255, 255, 0) 80%
+  );
+  mix-blend-mode: screen;
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+.promotion-medal-ring {
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(220, 222, 224, 0.6);
+  opacity: 0;
+  pointer-events: none;
+}

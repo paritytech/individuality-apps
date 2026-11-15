@@ -1,0 +1,54 @@
+/*
+ * Copyright 2026 Parity Technologies (UK) Ltd.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/* every rule here is scoped under #app */
+/* The stage's tokens. Monochrome: pure black, one light colour. `--light` is
+   THE colour — the shader's uColor mirrors it (config.syncCssVars), so the
+   later colour pass is one variable. Layout vars are JS-written by layout.js. */
+#app {
+  --bg: #000;
+  --fg: #fff;
+  --light: #ffffff;
+  --font: system-ui, -apple-system, sans-serif;
+
+  /* the phone frame around the stage */
+  --frame: rgb(255 255 255 / 0.3);
+  --frame-r: 40px;
+  --frame-gap: 24px;
+
+  /* the bearing cap (dials) */
+  --bearing-d: 56px;
+  --bearing-ms: 160ms;
+
+  /* the reset text button */
+  --reset-bottom: 40px;
+  --reset-size: 12px;
+  --reset-opacity: 0.6;
+
+  /* layout (JS-written, see layout.js) */
+}
+/* 0..1 normalised spin speed — loop.js writes it per frame so the cap can
+   answer the spin without touching the GL side */
+@property --u {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+/* SCENE 0, the slot (intro/slot.js): how lit it is, 0..1 — written per frame,
+   eased here so a release lets the light down softly (--slot-glow-ms) */
+@property --slot-hot {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+#app {
+  --slot-glow-ms: 240ms;
+  --slot-y: 684px; /* 160 px up from the bottom: COIN.slotBottomPx */
+  --slot-w: 148px;
+  --slot-glow-w: 122px;
+  --slot-chevron-px: 22px;
+  --slot-shade: 0.8; /* the dark block's alpha (intro/slot.js writes the dial) */
+  --intro-fade-ms: 320ms;
+}

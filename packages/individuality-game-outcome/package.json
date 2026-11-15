@@ -1,0 +1,36 @@
+{
+  "name": "@individuality/game-outcome",
+  "version": "0.1.0",
+  "private": true,
+  "description": "What a game gave the player, as it lands on the People chain before the game settles where the chain allows it: attendance, the settle, reads repeated until something has arrived, and the credits the game earned, with the credits' chain side under /chain. It depends on no product's package.",
+  "license": "GPL-3.0-or-later",
+  "author": "Parity Technologies <admin@parity.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paritytech/individuality-apps-community.git",
+    "directory": "packages/individuality-game-outcome"
+  },
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./chain": "./src/chain/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@individuality/people-chain": "*"
+  },
+  "peerDependencies": {
+    "@parity/product-sdk-nfts": "0.4.1",
+    "polkadot-api": "^3.2.1"
+  },
+  "devDependencies": {
+    "@parity/product-sdk-nfts": "0.4.1",
+    "polkadot-api": "^3.2.1"
+  }
+}

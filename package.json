@@ -1,0 +1,86 @@
+{
+  "name": "individuality-apps-community",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "author": "Parity Technologies <admin@parity.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paritytech/individuality-apps-community.git"
+  },
+  "homepage": "https://github.com/paritytech/individuality-apps-community",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "apps/jollity-app",
+    "apps/jollity-worker",
+    "packages/*",
+    "apps/humanity-app",
+    "apps/humanity-worker"
+  ],
+  "scripts": {
+    "explore": "npm run explore -w @jollity/app --",
+    "dev": "npm run dev -w @jollity/app",
+    "dev:host": "node scripts/dev-host.mjs",
+    "build": "npm run build -w @jollity/app",
+    "start": "npm run start -w @jollity/app",
+    "lint": "eslint",
+    "test:lint-plugin": "vitest run tools/eslint-plugin-architecture",
+    "test:statement-core": "npm test -w @jollity/statement-core",
+    "test:game-chain": "npm test -w @jollity/game-chain",
+    "test:engines": "npm test -w @jollity/statement-core -w @jollity/game-chain",
+    "test:protocol": "vitest run --dir packages/jollity-protocol",
+    "test:shared-records": "vitest run --dir packages/shared-records",
+    "test:collectables": "vitest run --dir packages/jollity-collectables",
+    "test:shared": "npm test -w @individuality/people-chain -w @individuality/name-link -w @individuality/sign-up -w @individuality/game-outcome -w @individuality/prize -w @individuality/daily-dollar",
+    "test:chat": "npm test -w @jollity/worker",
+    "test:lib": "npm test -w @jollity/app",
+    "test:state-machines": "npm run test:state-machines -w @jollity/app",
+    "test": "npm run test:lib && npm run test:protocol && npm run test:shared-records && npm run test:shared && npm run test:chat && npm run test:engines && npm run test:scripts",
+    "test:scripts": "vitest run scripts/*.test.mts",
+    "typecheck:engines": "npm run typecheck -w @jollity/statement-core -w @jollity/game-chain",
+    "build:chat": "npm run build --workspace @jollity/worker",
+    "typecheck": "npm run typecheck -w @jollity/app && npm run typecheck --workspace @jollity/worker && npm run typecheck -w @individuality/people-chain -w @individuality/name-link -w @individuality/sign-up -w @individuality/game-outcome -w @individuality/prize -w @individuality/daily-dollar",
+    "deploy": "node scripts/deploy.mjs previewnet",
+    "deploy:previewnet": "node scripts/deploy.mjs previewnet",
+    "deploy:paseo": "node scripts/deploy.mjs paseo",
+    "humanity:dev": "npm run dev --workspace @humanity/app --",
+    "humanity:dev:host": "npm run dev:host --workspace @humanity/app --",
+    "humanity:build": "npm run build --workspace @humanity/app && npm run build --workspace @humanity/worker",
+    "humanity:test": "npm run test:shared-records && npm test -w @individuality/daily-dollar && npm run test --workspace @humanity/shared --workspace @humanity/worker --workspace @humanity/app",
+    "humanity:lint": "npm run lint --workspace @humanity/shared --workspace @humanity/worker --workspace @humanity/app",
+    "humanity:typecheck": "npm run typecheck --workspace @humanity/shared --workspace @humanity/worker --workspace @humanity/app",
+    "humanity:setup": "npm run setup --workspace @humanity/app --",
+    "humanity:dotns:resolve": "npm run dotns:resolve --workspace @humanity/app --",
+    "humanity:pocket:faces": "npm run pocket:faces --workspace @humanity/app --",
+    "humanity:pocket:publish": "npm run pocket:publish --workspace @humanity/app --"
+  },
+  "dependencies": {
+    "@parity/product-sdk": "0.42.0",
+    "@parity/product-sdk-host": "0.31.0",
+    "@parity/product-sdk-individuality": "0.11.4",
+    "@parity/product-sdk-nfts": "0.4.1",
+    "@parity/product-sdk-tx": "0.5.7"
+  },
+  "devDependencies": {
+    "@parity/product-sdk-descriptors": "0.14.0",
+    "@types/node": "^24",
+    "@types/semver": "7.8.0",
+    "@typescript-eslint/parser": "^8.62.1",
+    "@vitest/coverage-v8": "^4.1.12",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.3",
+    "fast-check": "4.10.2",
+    "semver": "6.3.1",
+    "tsx": "^4.23.12",
+    "typescript": "^5",
+    "vitest": "^4.1.12"
+  },
+  "overrides": {
+    "@parity/product-sdk-individuality": "$@parity/product-sdk-individuality",
+    "@parity/product-sdk-host": "$@parity/product-sdk-host",
+    "@parity/product-sdk-tx": "$@parity/product-sdk-tx",
+    "deepmerge-ts": "8.0.1"
+  }
+}

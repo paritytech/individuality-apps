@@ -1,0 +1,45 @@
+{
+  "id": "ML1",
+  "target": "lib/state-machines/peer-actor.ts",
+  "contextCommit": "9b131258",
+  "hunks": [
+    {
+      "find": "startConnection(state.connectionEpoch + 1)\n    emit({ kind: \"replace-connection\", cause, initiate, ...(grant ? { answererMayOffer: true as const } : {}), ...(heal === undefined ? {} : { heal }) })",
+      "replace": "void [cause, initiate, grant, heal]"
+    }
+  ],
+  "warmup": [
+    "pc:a/1:negotiationneeded",
+    "wire:a>b:wire-1:deliver",
+    "wire:b>a:wire-2:deliver",
+    "pc:a/1:sld:resolve",
+    "pc:a/1:gather",
+    "wire:a>b:wire-3:deliver",
+    "pc:b/1:srd:resolve",
+    "pc:b/1:sld:resolve",
+    "pc:b/1:gather",
+    "wire:b>a:wire-4:deliver",
+    "pc:a/1:srd:resolve",
+    "pc:a/1:negotiationneeded",
+    "pc:b/1:negotiationneeded",
+    "pc:a/1:sld:resolve",
+    "pc:a/1:gather",
+    "lane:a>b:deliver",
+    "pc:b/1:srd:resolve",
+    "pc:b/1:sld:resolve",
+    "pc:b/1:gather",
+    "lane:b>a:deliver",
+    "pc:a/1:srd:resolve",
+    "env:reload:b"
+  ],
+  "precondition": "none",
+  "scenario": "rejoin-two-offers",
+  "bounds": {
+    "depth": 26,
+    "faults": 1
+  },
+  "mustTrip": [
+    "L1"
+  ],
+  "gating": true
+}

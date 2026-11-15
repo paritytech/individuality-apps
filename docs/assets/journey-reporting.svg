@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 1298" font-family="sans-serif" font-size="12">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#909090"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#c08a00"/>
+    </marker>
+  </defs>
+
+  <rect x="48" y="18" width="165" height="52" rx="6" fill="#e0e0e0" stroke="oklch(72.3% .219 149.579)" stroke-width="1.5"/>
+  <text x="130" y="42" text-anchor="middle" font-weight="bold" fill="#3a3a3a">User</text>
+  <text x="130" y="60" text-anchor="middle" font-size="10" fill="#606060">WebRTC mesh</text>
+  <rect x="508" y="18" width="165" height="52" rx="6" fill="#ffffff" stroke="oklch(72.3% .219 149.579)" stroke-width="1.5"/>
+  <text x="590" y="42" text-anchor="middle" font-weight="bold" fill="#3a3a3a">App</text>
+  <text x="590" y="60" text-anchor="middle" font-size="10" fill="#606060">app.dim2.paseo</text>
+  <rect x="968" y="18" width="165" height="52" rx="6" fill="#e0e0e0" stroke="oklch(72.3% .219 149.579)" stroke-width="1.5"/>
+  <text x="1050" y="49" text-anchor="middle" font-weight="bold" fill="#3a3a3a">Host API</text>
+  <line x1="130" y1="70" x2="130" y2="1218" stroke="oklch(72.3% .219 149.579)" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="590" y1="70" x2="590" y2="1218" stroke="oklch(72.3% .219 149.579)" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="1050" y1="70" x2="1050" y2="1218" stroke="oklch(72.3% .219 149.579)" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <text x="360" y="140" text-anchor="middle" fill="#606060">1:01</text>
+  <text x="360" y="124" text-anchor="middle" fill="#606060">Game starting</text>
+  <line x1="584" y1="146" x2="136" y2="146" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <path d="M 590 188 H 630 V 202 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="199" text-anchor="start" fill="#606060">markJoined(gameAt, door); router.replace("/game")</text>
+  <text x="638" y="213" text-anchor="start" font-size="8" fill="#606060">lib/joined.ts</text>
+  <line x1="596" y1="244" x2="1044" y2="244" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="238" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">getStatementStore()</text>
+  <text x="820" y="257" text-anchor="middle" font-size="8" fill="#606060">@parity/product-sdk-host</text>
+  <line x1="1044" y1="286" x2="596" y2="286" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="280" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">statementStore</text>
+  <line x1="596" y1="328" x2="1044" y2="328" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="322" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">statementTransport({ resolveStore, namespace, labelPrefix })</text>
+  <text x="820" y="341" text-anchor="middle" font-size="8" fill="#606060">@jollity/statement-core</text>
+  <line x1="596" y1="370" x2="1044" y2="370" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="364" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">statementStore.submit({ expiry, channel, topics, data, proof })</text>
+  <text x="820" y="383" text-anchor="middle" font-size="8" fill="#606060">@parity/product-sdk-host</text>
+  <line x1="596" y1="412" x2="1044" y2="412" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="406" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">statementStore.subscribe({ matchAny: [from:&lt;peer&gt;, …] }, onPage)</text>
+  <text x="820" y="425" text-anchor="middle" font-size="8" fill="#606060">@parity/product-sdk-host</text>
+  <line x1="1044" y1="454" x2="596" y2="454" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="448" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ statements: [{ data }] } — each co-player's bundle</text>
+  <path d="M 590 496 H 630 V 510 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="507" text-anchor="start" fill="#606060">pc.createDataChannel("data", { ordered: true })</text>
+  <text x="638" y="521" text-anchor="start" font-size="8" fill="#606060">lib/webrtc/mesh.ts</text>
+  <path d="M 590 552 H 630 V 566 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="563" text-anchor="start" fill="#606060">pc.ondatachannel({ channel })</text>
+  <text x="638" y="577" text-anchor="start" font-size="8" fill="#606060">lib/webrtc/mesh.ts</text>
+  <path d="M 590 608 H 630 V 622 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="619" text-anchor="start" fill="#606060">pc.ontrack({ streams })</text>
+  <text x="638" y="633" text-anchor="start" font-size="8" fill="#606060">lib/webrtc/mesh.ts</text>
+  <text x="360" y="658" text-anchor="middle" fill="#606060">videoRef.current.srcObject = stream</text>
+  <line x1="584" y1="664" x2="136" y2="664" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <path d="M 590 706 H 630 V 720 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="717" text-anchor="start" fill="#606060">calculateSnapshot(now, timing)</text>
+  <text x="638" y="731" text-anchor="start" font-size="8" fill="#606060">@jollity/game-chain/game</text>
+  <rect x="20" y="762" width="1140" height="198" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 20 762 H 64 L 72 770 V 782 H 20 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="26" y="777" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">loop</text>
+  <text x="86" y="777" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ 12 turns: 2 rounds × 6 seats (max_group_size) ]</text>
+  <text x="360" y="814" text-anchor="middle" fill="#606060">tap a tile to vote</text>
+  <text x="360" y="798" text-anchor="middle" fill="#606060">Copy the gesture!</text>
+  <line x1="584" y1="820" x2="136" y2="820" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <path d="M 590 862 H 630 V 876 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="873" text-anchor="start" fill="#606060">channel.send(encodeGesture({ tag: "Accept" | "Unaccept", roundIndex }))</text>
+  <text x="638" y="887" text-anchor="start" font-size="8" fill="#606060">lib/webrtc/mesh.ts, lib/webrtc/gesture.ts</text>
+  <text x="360" y="912" text-anchor="middle" fill="#606060">Check your choices!</text>
+  <line x1="584" y1="918" x2="136" y2="918" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <path d="M 590 1002 H 630 V 1016 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="1013" text-anchor="start" fill="#606060">fullReport: ReportVote[][]</text>
+  <text x="638" y="1027" text-anchor="start" font-size="8" fill="#606060">@jollity/protocol</text>
+  <line x1="596" y1="1058" x2="1044" y2="1058" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="1052" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">reportTx(chain, { fullReport }).createSubmitAndWatch(signer)</text>
+  <text x="820" y="1071" text-anchor="middle" font-size="8" fill="#606060">@parity/product-sdk-individuality, via @jollity/game-chain</text>
+  <line x1="1044" y1="1100" x2="596" y2="1100" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="1094" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ ok: true }</text>
+  <path d="M 590 1142 H 630 V 1156 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="1153" text-anchor="start" fill="#606060">router.replace("/prize-draw?game=N")</text>
+
+  <rect x="48" y="1218" width="165" height="52" rx="6" fill="#e0e0e0" stroke="oklch(72.3% .219 149.579)" stroke-width="1.5"/>
+  <text x="130" y="1242" text-anchor="middle" font-weight="bold" fill="#3a3a3a">User</text>
+  <text x="130" y="1260" text-anchor="middle" font-size="10" fill="#606060">WebRTC mesh</text>
+  <rect x="508" y="1218" width="165" height="52" rx="6" fill="#ffffff" stroke="oklch(72.3% .219 149.579)" stroke-width="1.5"/>
+  <text x="590" y="1242" text-anchor="middle" font-weight="bold" fill="#3a3a3a">App</text>
+  <text x="590" y="1260" text-anchor="middle" font-size="10" fill="#606060">app.dim2.paseo</text>
+  <rect x="968" y="1218" width="165" height="52" rx="6" fill="#e0e0e0" stroke="oklch(72.3% .219 149.579)" stroke-width="1.5"/>
+  <text x="1050" y="1249" text-anchor="middle" font-weight="bold" fill="#3a3a3a">Host API</text>
+</svg>
+

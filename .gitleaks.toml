@@ -1,0 +1,15 @@
+# gitleaks configuration: the default rules, plus the test values that look like
+# secrets and are not. Each is listed by value, so a new secret in the same files
+# is still caught.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Ring member public keys used as test data (public chain values from previewnet, not private keys)"
+regexTarget = "secret"
+regexes = [
+  '''0x8cad933a3e1ff2614e9572c9eab78eccb983aa524fa68d53dc00395c35f0b5ee''',
+  '''0x8cfe8ae1de37175d75d56dec04d7bf5cc13d6bf7366bda892e8e19569256d836''',
+  '''0x936d177b3a002d37c890b0e95fce4de2362d38a7ae36ecff3b9c2f0467b46de0''',
+  '''0xec8b667e199157ef193f6a287f3092422e32da0531d375e102396444cb0cbe96''',
+]

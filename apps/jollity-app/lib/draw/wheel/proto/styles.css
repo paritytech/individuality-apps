@@ -1,0 +1,534 @@
+/*
+ * Copyright 2026 Parity Technologies (UK) Ltd.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/* every rule here is scoped under #app */
+/* ── shell ─────────────────────────────────────────────────────────────── */
+/* the stage: iPhone proportions (390×844), scaled to fit the window, in a
+   hairline frame with iPhone corners. The clipping ancestor. layout.js
+   measures this rect and scales the whole design to it (the cap too, via
+   --scale). */
+#app {
+  position: relative;
+  width: min(390px, calc(100vw - var(--frame-gap) * 2), calc((100dvh - var(--frame-gap) * 2) * 390 / 844));
+  aspect-ratio: 390 / 844;
+  overflow: hidden;
+  background: var(--bg);
+  border-radius: var(--frame-r);
+  box-shadow: 0 0 0 1px var(--frame);
+  --u: 0;
+}
+#app #gl,
+#app #mark,
+#app #fishing {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+/* the marker rides over the GL and lets every pointer through to the cap */
+#app #mark,
+#app #fishing {
+  pointer-events: none;
+}
+/* the fishing scene: its canvas only in that scene; the cap goes (the whole
+   stage is the button, and a captured pointer on the cap would press twice) */
+#app #fishing {
+  display: none;
+}
+#app.scene-fishing #fishing {
+  display: block;
+}
+#app.scene-fishing #bearing,
+#app.scene-fishing #replay {
+  /* the cap goes; and the coin scene's Replay text — this page has no coin scene */
+  display: none;
+}
+#app.scene-fishing {
+  touch-action: none;
+  cursor: pointer;
+}
+/* ── bearing cap ───────────────────────────────────────────────────────── */
+/* a plain disc with a 1px white border. Nothing else: no fill, no glow. */
+#app #bearing {
+  position: absolute;
+  left: var(--cx);
+  top: var(--cy);
+  width: calc(var(--bearing-d) * var(--scale, 1));
+  height: calc(var(--bearing-d) * var(--scale, 1));
+  margin: calc(var(--bearing-d) * var(--scale, 1) / -2) 0 0 calc(var(--bearing-d) * var(--scale, 1) / -2);
+  padding: 0;
+  border: 1px solid var(--fg);
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+/* not before the scene is up: the page paints its markup before the script
+   has run, and a scene with no cap (the wheel's, with its SPIN button off)
+   would show one for that long. main.js puts .is-booted on once create() is
+   done — by which time the scene has said whether it wants it */
+#app:not(.is-booted) #bearing {
+  visibility: hidden;
+}
+/* hidden, not gone (showPressCircle off): the ring goes, the button stays —
+   it is still the hit target, and the iOS motion gesture on its release */
+#app #bearing.is-hidden {
+  border-color: transparent;
+}
+/* ── the phase slider (tickets orbiting) ────────────────────────────────── */
+/* a grey hairline with a solid disc on it, 16 px in from the stage's sides,
+   just above the text buttons — nothing else: no ticks, no fill. The line is
+   drawn on the input's own background over the THUMB'S TRAVEL (the box less
+   half a thumb each side), so at 0 and 1 the disc's centre is on the line's
+   end — half the disc hangs off it. The native track is invisible.
+   The orbiting page only, and not while the coin scene plays. main.js runs
+   the clock from it and moves it with the story.
+
+   The box is the finger's target, so it is taller than it looks: --phase-hit
+   tall, the line and the disc down its middle, and moved down by half of what
+   it grew (--phase-grow) so they sit where they always did. It cannot grow
+   sideways — its two ends are where 0 and 1 are. */
+#app #phase {
+  --thumb: 16px;
+  --track: rgb(255 255 255 / 0.45);
+  --phase-hit: 64px;
+  --phase-grow: calc((var(--phase-hit) - 24px) / 2); /* 24 px was the box it looked like */
+  display: none;
+  position: absolute;
+  z-index: 3;
+  left: calc(16px - var(--thumb) / 2);
+  right: calc(16px - var(--thumb) / 2);
+  bottom: calc((var(--reset-bottom) + 36px) * var(--scale, 1) - var(--phase-grow));
+  width: auto;
+  height: var(--phase-hit);
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(var(--track), var(--track)) center / calc(100% - var(--thumb)) 1px no-repeat;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  opacity: var(--reset-opacity);
+  transition: opacity 160ms;
+}
+#app.tickets-orbiting #phase {
+  display: block;
+}
+#app.is-intro #phase {
+  opacity: 0;
+  pointer-events: none;
+}
+#app #phase:hover,
+#app #phase:focus-visible,
+#app #phase:active {
+  opacity: 1;
+}
+#app #phase::-webkit-slider-runnable-track {
+  height: 1px;
+  background: transparent;
+}
+#app #phase::-moz-range-track {
+  height: 1px;
+  background: transparent;
+}
+#app #phase::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--thumb);
+  height: var(--thumb);
+  margin-top: calc(var(--thumb) / -2 + 0.5px);
+  border: 0;
+  border-radius: 50%;
+  background: var(--fg);
+}
+#app #phase::-moz-range-thumb {
+  width: var(--thumb);
+  height: var(--thumb);
+  border: 0;
+  border-radius: 50%;
+  background: var(--fg);
+}
+/* ── reset ──────────────────────────────────────────────────────────────── */
+/* small text, 40 stage px above the bottom edge — puts every ticket back.
+   #replay (coin/scene.js appends it) shares the look and sits beside it */
+#app #reset,
+#app #replay {
+  position: absolute;
+  z-index: 3; /* above every scene layer: the slit's dark block reaches the bottom edge, under these */
+  left: 50%;
+  bottom: calc(var(--reset-bottom) * var(--scale, 1));
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  opacity: var(--reset-opacity);
+  font: 500 var(--reset-size) / 1 var(--font);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: opacity 160ms;
+}
+#app #reset:hover,
+#app #reset:focus-visible,
+#app #replay:hover,
+#app #replay:focus-visible {
+  opacity: 1;
+}
+/* ── back to the index ─────────────────────────────────────────────────── */
+/* one word in the top-left margin, in the reset button's small type. Fixed to
+   the window, not the stage: it belongs to the browser, not to the phone —
+   and on a phone there is no margin for it, so it goes (below). A chevron in
+   front, drawn in text; it slides a hair left on hover, the way a back link
+   should */
+#app #back {
+  position: fixed;
+  z-index: 4; /* over everything on the stage, including the text buttons */
+  left: 24px;
+  top: 24px;
+  padding: 6px 10px;
+  color: var(--fg);
+  opacity: var(--reset-opacity);
+  font: 500 var(--reset-size) / 1 var(--font);
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  outline: none;
+  transition: opacity 160ms;
+}
+#app #back::before {
+  content: '\2190\00a0\00a0'; /* ← and two spaces */
+}
+#app #back:hover,
+#app #back:focus-visible {
+  opacity: 1;
+}
+/* on a phone the phone IS the frame: full-bleed, no hairline, no corners */
+@media (max-width: 500px) {
+#app {
+    width: 100vw;
+    height: 100dvh;
+    aspect-ratio: auto;
+    border-radius: 0;
+    box-shadow: none;
+  }
+/* no margin left to sit in, and nothing on the stage to sit over */
+#app #back {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+#app #bearing {
+    transition: none;
+  }
+}
+/* ── SCENE 0: the coin and the slot (render-utils/coin/) ──────────────────────────── */
+/* while the intro plays the cap is not there: no hit, no ring — it comes up
+   over --intro-fade-ms once the sphere has taken over. The two text buttons
+   (Replay, New seed) stay through the scene */
+#app #bearing {
+  transition: opacity var(--intro-fade-ms) ease-out;
+}
+#app.is-intro #bearing {
+  opacity: 0;
+  pointer-events: none;
+}
+#app {
+  transition: --slot-hot var(--slot-glow-ms) ease-out;
+}
+/* the coin's hit target: an invisible disc that rides the coin (coin/scene.js
+   moves it each frame); the coin itself is drawn in the GL underneath */
+#app #coin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+  will-change: transform;
+}
+#app #coin.is-down {
+  cursor: grabbing;
+}
+#app #coin.is-hidden {
+  display: none;
+}
+/* the slot, layer by layer as in the Figma (frames 27/28). All sizes are
+   nominal px × --scale, centred on --cx, the mouth line at --slot-y. The
+   stage is 844 nominal px tall, so the shade reaches the bottom edge */
+/* FRIENDS PLAYIN, the chips: who else is in the draw, a row
+   of avatar chips across the top of the stage. You are always the first. DOM,
+   not the marker's canvas — the row changes a few times a session, and that
+   canvas is wiped and repainted every frame.
+
+   The scroller is the full width of the stage: while the chips fit they are
+   centred, and past about four friends the row runs off the end and is
+   dragged sideways rather than anybody being squeezed. Nominal stage px ×
+   --scale, like everything else; --friends-top is the dial. */
+#app #friends {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--friends-top, 72px) * var(--scale, 1));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2; /* over the GL and the slot, under the text buttons */
+}
+#app .friends-scroll {
+  max-width: 100%; /* the stage it sits in, edge to edge */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  pointer-events: auto; /* the row is dragged sideways: it has to take the touch */
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+#app .friends-scroll::-webkit-scrollbar {
+  display: none;
+}
+#app .friends-row {
+  display: flex;
+  gap: calc(6px * var(--scale, 1));
+  width: max-content;
+  margin: 0 auto; /* centred while they fit; the scroller takes over once they do not */
+  padding: calc(4px * var(--scale, 1));
+  border-radius: 999px; /* the chips ride in a pill; no fill of its own — each chip carries one */
+}
+#app .friend-chip {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--scale, 1));
+  flex: 0 0 auto;
+  padding: calc(5px * var(--scale, 1)) calc(14px * var(--scale, 1)) calc(5px * var(--scale, 1)) calc(5px * var(--scale, 1));
+  border-radius: 999px;
+  background: #2c2c2eee; /* a shade up from the container it sits in */
+  color: #f2f2f7;
+  font: 400 calc(16px * var(--scale, 1)) / 1 var(--font);
+  white-space: nowrap;
+}
+#app .friend-chip i {
+  display: grid;
+  place-items: center;
+  width: calc(28px * var(--scale, 1));
+  height: calc(28px * var(--scale, 1));
+  border-radius: 50%;
+  background: var(--c);
+  color: var(--ink);
+  font-style: normal;
+  font-size: calc(16px * var(--scale, 1));
+}
+#app #slot {
+  position: absolute;
+  left: var(--cx);
+  top: calc(var(--slot-y) * var(--scale, 1));
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 1; /* over the GL, under the text buttons */
+  --slot-hint: 1;
+  --slot-chevron: 1;
+  --w: calc(var(--slot-w) * var(--scale, 1));
+  --gw: calc(var(--slot-glow-w) * var(--scale, 1));
+}
+#app #slot.is-hidden {
+  display: none;
+}
+/* the dark block: the full stage width, the mouth down to the bottom edge; the
+   coin (GL, underneath) dims behind it — that is how it goes INTO the slot */
+#app .slot-shade {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  width: calc(390px * var(--scale, 1)); /* the full stage width */
+  height: calc((844px - var(--slot-y)) * var(--scale, 1));
+  background: var(--bg);
+  opacity: var(--slot-shade);
+}
+/* the light, as the Figma builds it: one box standing on the mouth with a
+   radial gradient from the centre of its bottom edge, reaching the box's
+   sides and top exactly (farthest-side) so nothing is cut; it swells with the
+   coin's approach. --slot-hot is the alpha itself: restGlow → slotGlow */
+#app .slot-glow {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: calc(var(--gw) * 1.5);
+  height: calc(var(--gw) * 0.8);
+  transform: translateX(-50%) scale(calc(0.8 + var(--slot-hot) * 0.45));
+  transform-origin: 50% 100%;
+  background: radial-gradient(ellipse farthest-side at 50% 100%, rgb(255 255 255 / 0.7) 0%, rgb(255 255 255 / 0.28) 30%, rgb(255 255 255 / 0.08) 65%, transparent 100%);
+  opacity: var(--slot-hot);
+}
+/* the hairline: brightest at its centre, fading to both ends */
+#app .slot-mouth {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  width: var(--w);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--fg) 35%, var(--fg) 65%, transparent);
+  opacity: calc(0.55 + var(--slot-hot) * 0.45);
+}
+/* the double chevron over the mouth, pointing down: until the coin comes
+   over it or is caught (coin/scene.js: CHEVRON_BOTTOM mirrors the 30px) */
+#app .slot-chevron {
+  position: absolute;
+  left: 50%;
+  bottom: calc(30px * var(--scale, 1));
+  transform: translateX(-50%);
+  width: calc(var(--slot-chevron-px) * var(--scale, 1));
+  height: calc(var(--slot-chevron-px) * var(--scale, 1));
+  color: var(--fg);
+  opacity: calc(0.9 * var(--slot-chevron));
+  transition: opacity 240ms ease-out;
+}
+#app .slot-hint {
+  position: absolute;
+  left: 50%;
+  top: calc(36px * var(--scale, 1));
+  transform: translateX(-50%);
+  width: max-content;
+  text-align: center;
+  font: 500 calc(13px * var(--scale, 1)) / 1.4 var(--font);
+  color: var(--fg);
+  opacity: calc(0.85 * var(--slot-hint));
+  transition: opacity 240ms ease-out;
+}
+/* the two text buttons, both there always: Replay on the left (the coin scene
+   from the top), New seed on the right */
+#app #replay {
+  transform: translateX(calc(-50% - 48px * var(--scale, 1)));
+}
+#app.has-replay #reset {
+  transform: translateX(calc(-50% + 48px * var(--scale, 1)));
+}
+@media (prefers-reduced-motion: reduce) {
+#app,
+#app .slot-hint,
+#app .slot-chevron,
+#app #bearing {
+    transition: none;
+  }
+}
+/* ── THE PRIZE REVEAL (render-utils/prize/) ───────────────────────────────
+   The coin is on the GL; this is the type around it and the confetti over
+   it. #app carries .is-prize for as long as it plays, which lifts the GL over
+   whatever 2D layer a scene has mounted above it (the wheel's canvas), so
+   the coin comes out in FRONT of the page it jumped off. */
+#app.is-prize #gl {
+  z-index: 2;
+}
+/* ── THE FALL (render-utils/fall/) ──────────────────────────────────────
+   The same deal: the coin is on the GL and flips in front of the page it
+   came off, and the headline is a layer of its own. #app carries
+   .is-falling while it plays (a host may name it otherwise: the lost page
+   keeps its own #lost and .is-lost). */
+#app.is-falling #gl {
+  z-index: 2;
+}
+#app #fall {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  text-align: center;
+  color: var(--fg);
+}
+#app #fall.is-hidden {
+  display: none;
+}
+#app .fall-headline {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--fall-head-y, 168px) * var(--scale, 1));
+  transform: translate(-50%, calc(-50% + var(--rise, 0px) * var(--scale, 1)));
+  opacity: 0;
+  white-space: nowrap;
+  font: 700 calc(44px * var(--scale, 1)) / 1 var(--font);
+  letter-spacing: -0.02em;
+}
+/* the prize coin's own hit target, over it once it is home: drag it sideways
+   to turn it over (reveal.js) */
+#app .prize-coin-hit {
+  position: absolute;
+  z-index: 4;
+  display: none;
+  border-radius: 50%;
+  touch-action: none;
+  cursor: grab;
+}
+#app .prize-coin-hit.is-grabbable {
+  display: block;
+}
+#app .prize-coin-hit:active {
+  cursor: grabbing;
+}
+/* a word of the chip in small caps (the host's { caps } part) — all-small-caps,
+   since the word is usually capitals already */
+#app .prize-chip .prize-caps {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.04em;
+}
+#app #confetti {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 4;
+}
+#app #prize {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  text-align: center;
+  color: var(--fg);
+}
+#app #prize.is-hidden {
+  display: none;
+}
+#app .prize-head,
+#app .prize-chip {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, calc(-50% + var(--rise, 0px) * var(--scale, 1))); /* --rise is nominal px */
+  opacity: 0;
+  white-space: nowrap;
+}
+#app .prize-head {
+  top: calc(var(--prize-head-y, 168px) * var(--scale, 1));
+}
+#app .prize-kicker {
+  margin-bottom: calc(10px * var(--scale, 1));
+  font: 500 calc(13px * var(--scale, 1)) / 1 var(--font);
+  letter-spacing: 0.02em;
+  opacity: 0.55;
+}
+#app .prize-headline {
+  font: 700 calc(44px * var(--scale, 1)) / 1 var(--font);
+  letter-spacing: -0.02em;
+}
+#app .prize-chip {
+  top: calc(var(--prize-chip-y, 520px) * var(--scale, 1));
+  padding: calc(9px * var(--scale, 1)) calc(18px * var(--scale, 1));
+  border-radius: 999px;
+  background: #2c2c2eee; /* the friends row's own chip, a size up */
+  color: #f2f2f7;
+  font: 600 calc(17px * var(--scale, 1)) / 1 var(--font);
+}

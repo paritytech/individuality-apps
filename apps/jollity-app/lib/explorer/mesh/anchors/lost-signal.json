@@ -1,0 +1,20 @@
+{
+  "name": "lost-signal",
+  "scenario": "rejoin-two-offers",
+  "doc": "an answer lost with the timers running: b answered a's first offer, the answer was dropped, a still waits in have-local-offer and the clock has moved on",
+  "sourceSha": "7933e0a8efd0",
+  "warmup": [
+    "pc:a/1:negotiationneeded",
+    "wire:a>b:wire-1:deliver",
+    "wire:b>a:wire-2:deliver",
+    "pc:a/1:sld:resolve",
+    "pc:a/1:gather",
+    "wire:a>b:wire-3:deliver",
+    "pc:b/1:srd:resolve",
+    "pc:b/1:sld:resolve",
+    "pc:b/1:gather",
+    "wire:b>a:wire-4:drop",
+    "clock:next",
+    "clock:next"
+  ]
+}

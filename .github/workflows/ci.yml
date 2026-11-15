@@ -1,0 +1,75 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: CI
+
+# Every check a pull request must pass, on GitHub's own runners and with no
+# secrets: the licence headers and notices, then each product's lint,
+# typecheck, tests and build. Nothing here deploys.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  licences:
+    name: Licence headers and notices
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Licence header on every source file
+        run: node scripts/oss/headers.mjs --check
+      - run: npm ci
+      - name: Third-party notices current, licences on the allow-list
+        run: node scripts/oss/third-party.mjs --check
+
+  jollity:
+    name: Jollity
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run typecheck:engines
+      - run: npm test
+      - name: Build the app (static export) and the chat worker
+        run: npm run build && npm run build:chat
+        env:
+          NEXT_PUBLIC_NETWORK_NAME: paseo
+          # the worker refuses to build without the name it is published under
+          PRODUCT_DOTNS: example.paseo
+
+  humanity:
+    name: Humanity
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run humanity:lint
+      - run: npm run humanity:typecheck
+      - run: npm run humanity:test
+      - run: npm run humanity:build

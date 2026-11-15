@@ -1,0 +1,564 @@
+/*
+ * Copyright 2026 Parity Technologies (UK) Ltd.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/* The game tile (components/game/tile). Every class here is one the tile's
+   JSX renders; the numbers that time a turn live in final-tile.tsx. */
+
+/* ── the tile's shared pieces ───────────────────────────────────────────
+   The 3D tile is planes in one scene; each plane shows one side; the faces
+   clip to the rounded square; a verdict's colour fades out on a reset. */
+.tile-3d { transform-style: preserve-3d; }
+.tile-one-sided {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.tile-round {
+  border-radius: 12px;
+  overflow: hidden;
+}
+.tile-fade { transition: opacity 320ms ease-out; }
+.tile-fade.is-out { opacity: 0; }
+
+/* ── the slot a growing tile sits in ─────────────────────────────────────
+   Each grid slot is its own stacking context, so a z-index inside one can
+   never outrank the slot beside it. The slot comes forward with its tile for
+   as long as the tile is doing something, then steps back. The hint layer
+   (z-40, components/game/hints.tsx) stays above it. */
+[data-tile-slot]:has([data-tile-active='true']) { z-index: 30 !important; }
+
+/* ── the slab's gleam ────────────────────────────────────────────────────
+   While the tile turns, a band of light sweeps down the slab. The band is
+   drawn once into a box 1.6 tiles across and only MOVED, on transform: no
+   frame repaints it. (A box 2.6 tiles across was a layer big enough to run a
+   phone out of GPU memory mid-turn; moving the band by background-position
+   repainted the slice on every frame.) Its stops are the old band's, scaled
+   to the smaller box, and its path is the old one: across the slice while
+   the tile is edge-on. */
+.tile-slab-gleam {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  pointer-events: none;
+  animation: tile-edge-gleam var(--turn, 480ms) cubic-bezier(0.22, 0.72, 0.18, 1) both;
+}
+.tile-slab-gleam::after {
+  content: '';
+  position: absolute;
+  left: -30%;
+  top: -30%;
+  width: 160%;
+  height: 160%;
+  background: linear-gradient(135deg, rgba(255,255,255,0) 17.5%, rgba(255,255,255,0.55) 40.25%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.55) 59.75%, rgba(255,255,255,0) 82.5%);
+  will-change: transform;
+  animation: tile-edge-gleam-run var(--turn, 480ms) cubic-bezier(0.22, 0.72, 0.18, 1) both;
+}
+@keyframes tile-edge-gleam {
+  0%   { opacity: 0; }
+  20%  { opacity: 0.7; }
+  50%  { opacity: 1; }
+  80%  { opacity: 0.7; }
+  100% { opacity: 0; }
+}
+@keyframes tile-edge-gleam-run {
+  0%   { transform: translate(210%, 210%); }
+  100% { transform: translate(-210%, -210%); }
+}
+
+/* ── the glint on the turning tile's near edge ───────────────────────────
+   A soft core that flares as the tile passes edge-on (28% of the turn: on
+   the turn's own curve, the keyframes' 50% is exactly edge-on) and is gone by
+   two thirds. The tile sets the duration to the turn's. */
+.tile-flip-glint {
+  position: absolute;
+  top: 36%;
+  width: 120px;
+  height: 120px;
+  pointer-events: none;
+  z-index: 8;
+  animation: tile-flip-glint 480ms cubic-bezier(0.22, 0.72, 0.18, 1) both;
+  will-change: transform, opacity;
+}
+.tile-flip-glint-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, rgba(255,255,255,0.85) 22%, rgba(210,230,255,0.35) 50%, rgba(255,255,255,0) 72%);
+}
+@keyframes tile-flip-glint {
+  0%   { opacity: 0; transform: translate(-50%, -50%) translateZ(var(--glint-z, 0px)) scale(0.25) rotate(-25deg); }
+  30%  { opacity: 0.5; transform: translate(-50%, -50%) translateZ(var(--glint-z, 0px)) scale(0.8) rotate(-10deg); }
+  50%  { opacity: 1; transform: translate(-50%, -50%) translateZ(var(--glint-z, 0px)) scale(1.1) rotate(0deg); }
+  80%  { opacity: 0; transform: translate(-50%, -50%) translateZ(var(--glint-z, 0px)) scale(1.4) rotate(25deg); }
+  100% { opacity: 0; transform: translate(-50%, -50%) translateZ(var(--glint-z, 0px)) scale(1.4) rotate(25deg); }
+}
+
+/* ── the landing ─────────────────────────────────────────────────────────
+   Under the tile: a glow, a white aura hugging the outline and two waves
+   rolling out. Over it: a soft flare at the bottom edge and sparks off the
+   edges. The tile keys the burst per landing, so each plays once. */
+.tile-turn-bloom-plane {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.tile-landing-under,
+.tile-landing-over {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* the aura and the waves are baked silhouettes (tile-bake.ts): no filter, so
+   the landing composites them and never re-blurs */
+.tile-landing-aura,
+.tile-landing-wave {
+  position: absolute;
+  /* the baked silhouettes reach --bake-pad past the tile (LANDING_BAKE_PAD_PX) */
+  inset: calc(-1 * var(--bake-pad, 28px));
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  will-change: transform, opacity;
+}
+.tile-landing-aura {
+  animation: tile-landing-aura 450ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+@keyframes tile-landing-aura {
+  0%   { opacity: 1; }
+  40%  { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+.tile-landing-flare {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 220px;
+  height: 220px;
+  margin: -110px 0 0 -110px;
+  pointer-events: none;
+  animation: tile-landing-flare 350ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.tile-landing-flare .tile-flip-glint-core {
+  width: 56px;
+  height: 56px;
+  transform: translate(-50%, -50%) scale(0.55);
+  opacity: 0.7;
+}
+@keyframes tile-landing-flare {
+  0%   { opacity: 0; transform: scale(0.2) rotate(-10deg); }
+  22%  { opacity: 1; transform: scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: scale(1.25) rotate(8deg); }
+}
+.tile-landing-glow {
+  position: absolute;
+  inset: -34px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--tone), 0.55) 0%, rgba(var(--tone), 0.18) 45%, rgba(var(--tone), 0) 72%);
+  animation: tile-landing-glow 320ms ease-out both;
+}
+@keyframes tile-landing-glow {
+  0%   { opacity: 0;   transform: scale(0.86); }
+  25%  { opacity: 1; }
+  100% { opacity: 0;   transform: scale(1.12); }
+}
+.tile-landing-wave {
+  animation: tile-landing-wave 360ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.tile-landing-wave.is-second { animation-delay: 75ms; }
+@keyframes tile-landing-wave {
+  0%   { opacity: 0.9; transform: scale(0.97); }
+  100% { opacity: 0;   transform: scale(1.32); }
+}
+/* the cue layer, while its lean is written frame by frame */
+.tile-cue-wiggle-y {
+  will-change: transform;
+}
+/* the settle's resonance: a short wobble once the turn has landed */
+.tile-landing-resonate {
+  animation: tile-landing-resonate 320ms cubic-bezier(0.3, 0.6, 0.3, 1) both;
+}
+@keyframes tile-landing-resonate {
+  0%   { transform: scale(1); }
+  22%  { transform: scale(0.982); }
+  50%  { transform: scale(1.012); }
+  76%  { transform: scale(0.996); }
+  100% { transform: scale(1); }
+}
+
+/* ── the pool under the tile ─────────────────────────────────────────────
+   One canvas per side (tile-canvas.tsx): the baked light of the outline,
+   coloured. It reaches POOL_BAKE_PAD_PX (26) past the tile. */
+.tile-glow {
+  position: absolute;
+  left: -26px;
+  top: -26px;
+  width: calc(100% + 52px);
+  height: calc(100% + 52px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 420ms ease-out;
+}
+/* the approve verdict's plain light follows the level; the wheel is lit whole and swept in */
+.tile-glow.is-on.is-red { opacity: var(--level, 1); }
+.tile-glow.is-on.is-rim { opacity: 1; }
+
+/* ── the turned card's planes ────────────────────────────────────────────
+   One plane per face, clipped to the silhouette, carrying the covered card's
+   light and its portrait, or the photo face's mark. */
+.tile-gradient-face {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 7;
+  overflow: hidden;
+  border-radius: 12px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+/* the covered card's own ground, under the light as it arrives */
+.tile-gradient-face.is-glow-face { background: var(--tile-glow-ground); }
+/* …and the face under the card, so a card painted a frame late shows its own
+   ground there, never the feed (tile-faces RotationVerdictFill `covered`) */
+.tile-covered-ground { background: var(--tile-glow-ground); }
+.tile-gradient-face, .tile-covered-ground { --tile-glow-ground: #0b0a24; }
+.tile-v4-cover {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.tile-v4-cover * { will-change: auto !important; }
+.tile-v4-liquid {
+  position: absolute;
+  inset: 0;
+}
+.tile-v4-star {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+/* the mark's box; the mark draws its own entrance */
+.tile-v4-star-morph {
+  position: relative;
+  width: 56%;
+  height: 56%;
+}
+.tile-gradient-face.is-tick .tile-v4-star-morph { width: 66%; height: 66%; }
+
+/* ── the light inside a turned card ──────────────────────────────────────
+   One small canvas (CardGlow in glass-mark.tsx draws it). */
+.a-glow {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  contain: strict;
+}
+
+/* ── the mark as glass ───────────────────────────────────────────────────
+   One baked image (composeMark in glass-mark.tsx). It fades in: opacity only. */
+.a-glass-mark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  pointer-events: none;
+  animation: a-mark-fade var(--a-fade) ease-out var(--a-after) both;
+}
+@keyframes a-mark-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.a-glass-mark-art {
+  position: absolute;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+/* ── the vote screen's frost ─────────────────────────────────────────────
+   Only a reviewed tile with no stream mounts these filters: the game grid
+   never blurs. A rejected card frosts and shades its photo. Each mark is a
+   window onto the face's photo, frosted, under its baked glass. */
+.tile-frost-photo { filter: blur(1.5px); }
+.tile-frost-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1)), rgba(255, 255, 255, 0.06);
+}
+.a-glass-mark-window {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+.a-glass-mark-window img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: none;
+  translate: -50% -50%;
+  object-fit: cover;
+  pointer-events: none;
+  filter: blur(7px);
+}
+.a-glass-mark-window.is-negative img { filter: blur(1.5px); }
+.a-glass-mark-window.is-negative::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* ── the low power look ──────────────────────────────────────────────────
+   No turn and no scale. The verdict's edge and mark fade in over the face,
+   and the washes do not animate. */
+@keyframes tile-lp-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+/* LowPowerMark: the shape as a mask, filled, with a hard outline of four
+   1.5px offsets. No bake, no glass: it fades in and stays still. */
+.tile-lp-mark {
+  position: absolute;
+  inset: 17%;
+  --lp-fill: #22c55e;
+  --lp-stroke: #15803d;
+  filter:
+    drop-shadow(1.5px 0 0 var(--lp-stroke)) drop-shadow(-1.5px 0 0 var(--lp-stroke))
+    drop-shadow(0 1.5px 0 var(--lp-stroke)) drop-shadow(0 -1.5px 0 var(--lp-stroke));
+  animation: tile-lp-in 300ms ease-out both;
+}
+.tile-lp-mark.is-negative {
+  --lp-fill: #ffffff;
+  --lp-stroke: rgba(0, 0, 0, 0.28);
+  inset: 5.45%;
+}
+.tile-lp-mark-shape {
+  width: 100%;
+  height: 100%;
+  transform: scale(1.2);
+  background: var(--lp-fill);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+/* the verdict's edge: a thin line inside the face, green approved, violet rejected */
+.tile-lp-edge {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px #22c55e;
+  pointer-events: none;
+  animation: tile-lp-in 300ms ease-out both;
+}
+.tile-lp-edge.is-reject { box-shadow: inset 0 0 0 1.5px #c4b5fd; }
+/* LowPowerRole: the role pool of full mode ("rim-hair-role", POOL_GROW_ROLE_PX),
+   still. The box is the haze. Its ::after is the 2px band from 1px inside the
+   tile to 1px outside it, in the wheel's colours at the wheel's start. The
+   front face covers the inner px, as it covers the pool in full mode. */
+.tile-lp-role {
+  position: absolute;
+  inset: -1px;
+  z-index: 1;
+  border-radius: 13px;
+  pointer-events: none;
+  box-shadow: 0 0 5px 1px var(--lp-role-haze);
+}
+.tile-lp-role::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: inherit;
+  background: conic-gradient(var(--lp-role-wheel));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: 0.95;
+}
+/* the stops of WHEELS in tile-canvas.tsx */
+.tile-lp-role.is-host {
+  --lp-role-wheel: #ffe38f 0%, #f5b31d 22%, #ffcf5a 45%, #e9961a 66%, #ffd76e 84%, #ffe38f 100%;
+  --lp-role-haze: rgba(245, 179, 29, 0.2);
+}
+.tile-lp-role.is-me {
+  --lp-role-wheel: #e9ecf2 0%, #aab2c0 22%, #d6dbe4 45%, #93a0b3 66%, #cfd5df 84%, #e9ecf2 100%;
+  --lp-role-haze: rgba(207, 213, 223, 0.2);
+}
+/* the rejected face's blue wash (its gradient comes from the tile) */
+.tile-lp-wash {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+}
+/* LowPowerWarn: the wash creeps in to the face's 0.5 over the window's last
+   2 s, so the reject lands without a jump. The small portrait is a radio
+   signal: a soft core pulse and two echoes that spread and fade. --warn-ms is
+   the window, --warn-at the part already gone (negative). */
+.tile-lp-warn {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.tile-lp-warn-wash {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: tile-lp-warn-wash 2000ms linear calc(var(--warn-ms) - 2000ms + var(--warn-at)) forwards;
+}
+@keyframes tile-lp-warn-wash { to { opacity: 0.5; } }
+.tile-lp-warn-mark {
+  position: absolute;
+  inset: 17%;
+  transform: scale(0.35);
+}
+.tile-lp-warn-core,
+.tile-lp-warn-echo {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+.tile-lp-warn-core { animation: tile-lp-warn-core 1200ms ease-in-out var(--warn-at) infinite; }
+@keyframes tile-lp-warn-core {
+  0%   { opacity: 0; }
+  25%  { opacity: 0.18; }
+  100% { opacity: 0; }
+}
+.tile-lp-warn-echo { animation: tile-lp-warn-echo 2400ms ease-in-out var(--warn-at) infinite; }
+.tile-lp-warn-echo.is-late { animation-delay: calc(var(--warn-at) + 1200ms); }
+@keyframes tile-lp-warn-echo {
+  0%   { transform: scale(1);    opacity: 0; }
+  12%  { transform: scale(1.04); opacity: 0.12; }
+  100% { transform: scale(1.3);  opacity: 0; }
+}
+
+/* ── the lesson's tap ────────────────────────────────────────────────────
+   TapHint: a touch circle at the tile centre and a finger on it. It lands,
+   presses in with the tile (the deepest point is the middle of the run),
+   lets go and fades. One run is the whole press (2 × PRESS_MS). */
+.tile-tap-hint {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  animation: tile-tap-hint 2000ms cubic-bezier(0.45, 0, 0.55, 1) both;
+}
+@keyframes tile-tap-hint {
+  0%   { opacity: 0; transform: scale(1.2); }
+  14%  { opacity: 1; transform: scale(1); background: rgba(255, 255, 255, 0.28); }
+  50%  { opacity: 1; transform: scale(0.78); background: rgba(255, 255, 255, 0.55); }
+  86%  { opacity: 1; transform: scale(1); background: rgba(255, 255, 255, 0.28); }
+  100% { opacity: 0; transform: scale(1.05); }
+}
+/* the fingertip (6.75, 3 of the 15 × 21 icon, so 11.7, 5.2 px at 26 px wide)
+   sits on the circle centre */
+.tile-tap-finger {
+  position: absolute;
+  left: calc(50% - 11.7px);
+  top: calc(50% - 5.2px);
+  z-index: 4;
+  overflow: visible;
+  pointer-events: none;
+  transform-origin: 11.7px 5.2px;
+  animation: tile-tap-finger 2000ms cubic-bezier(0.45, 0, 0.55, 1) both;
+}
+@keyframes tile-tap-finger {
+  0%   { opacity: 0; transform: translate(4px, 10px); }
+  14%  { opacity: 1; transform: translate(0, 0) scale(1); }
+  50%  { opacity: 1; transform: translate(0, 0) scale(0.9); }
+  86%  { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(4px, 10px); }
+}
+@keyframes tile-tap-still {
+  0%, 100% { opacity: 0; }
+  15%, 85% { opacity: 1; }
+}
+/* low power: one wrapper fades in, holds and fades out; the circle and the finger sit still */
+.tile-tap-still {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  animation: tile-tap-still 2000ms linear both;
+}
+.tile-tap-hint.is-still,
+.tile-tap-finger.is-still { animation: none; opacity: 1; }
+.tile-tap-hint.is-still { background: rgba(255, 255, 255, 0.4); }
+@media (prefers-reduced-motion: reduce) {
+  .tile-tap-hint, .tile-tap-finger { animation-name: tile-tap-still; }
+}
+
+/* ── the tile's own line ─────────────────────────────────────────────────
+   A plain hairline on the outline, so a tile at rest has an edge of its own. */
+.a-tile-stroke {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  fill: none;
+  z-index: 5;
+}
+.a-tile-stroke path { stroke-linejoin: round; }
+.a-tile-stroke-base {
+  stroke: rgba(255, 255, 255, 0.34);
+  stroke-width: 1;
+}
+
+/* ── the wiggle's wave ───────────────────────────────────────────────────
+   tile-layers' TileWave: a row of lobes per straight edge, drawn once and
+   slid along on transform, so the wave travels without a repaint. */
+.tile-wave {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.tile-wave.is-deepening { animation: tile-wave-in var(--wave-in, 1200ms) ease-out both; }
+@keyframes tile-wave-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.tile-wave-edge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  transform-origin: 0 0;
+}
+.tile-wave-row {
+  display: block;
+  overflow: visible;
+  will-change: transform;
+  animation: tile-wave-run var(--wave-lap, 5100ms) linear infinite;
+}
+@keyframes tile-wave-run {
+  from { transform: translateX(var(--wave-run, -106px)); }
+  to   { transform: translateX(0); }
+}

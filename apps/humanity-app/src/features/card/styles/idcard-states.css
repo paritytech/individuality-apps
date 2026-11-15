@@ -1,0 +1,226 @@
+/*
+ * Copyright 2026 Parity Technologies (UK) Ltd.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/* Humanity card state-specific rules — sash, caution strip, faded, heat stripe.
+   Imported by idcard.css. */
+
+/* ---- Candidate heat: ten skewed segments filled by the share of the threshold covered,
+   lit in --c-score. Each <i> carries --seg-fill (how full it is, 0..1) and --seg-before
+   (the fill to its left, in segments). */
+
+.idcard-stripe {
+  /* A full segment's slice of the mount sweep. */
+  --seg-sweep: 0.12s;
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 8px;
+  display: flex;
+  gap: 4px;
+  transform: skewX(-22deg);
+  pointer-events: none;
+}
+
+.idcard-stripe i {
+  position: relative;
+  flex: 1;
+  height: 7px;
+  min-width: 6px;
+  background: rgba(16, 17, 20, 0.14);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.idcard-stripe i::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--seg-fill) * 100%);
+  border-radius: inherit;
+  background: var(--c-score);
+  transform-origin: left center;
+  /* On mount each segment grows for its fill's share of the sweep, starting
+     where the fill before it stopped, so the row fills as one motion. */
+  animation-name: segSweep;
+  animation-duration: calc(var(--seg-fill) * var(--seg-sweep));
+  animation-delay: calc(0.55s + var(--seg-before) * var(--seg-sweep));
+  animation-timing-function: linear;
+  animation-fill-mode: backwards;
+  /* After mount a new share slides the fill across rather than jumping. */
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes segSweep {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* Wordmark shifts up when stripe is present */
+.idcard.has-stripe .idcard-wordmark {
+  top: 52%;
+}
+
+/* ---- Corner sash (caution / suspended) -----------------------------------
+   A ribbon across the top-right corner: centred on the corner's diagonal so
+   its two ends run off the card symmetrically, the text centred along it.
+   Sized for the 343×199 card; the card's own overflow trims the ends. */
+.idcard-pill {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+  padding: 7px 0;
+  transform: translate(58px, 30px) rotate(45deg);
+  transform-origin: center;
+  text-align: center;
+  background: var(--c-border);
+  color: #1a1a22;
+  font: 700 10px/1 var(--font-body);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-indent: 0.18em;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  display: none;
+  pointer-events: none;
+}
+.idcard.has-pill .idcard-pill {
+  display: block;
+}
+.idcard.is-suspended .idcard-pill {
+  background: var(--c-border);
+  color: #fff;
+}
+/* ---- Diagonal sash (candidate / caution) --------------------------------------- */
+
+.idcard-sash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    125deg,
+    transparent 35%,
+    rgba(0, 0, 0, 0.18) 45%,
+    rgba(0, 0, 0, 0.22) 55%,
+    transparent 65%
+  );
+  pointer-events: none;
+  animation: sashIn 0.6s ease forwards;
+}
+
+@keyframes sashIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ---- Suspended fade --------------------------------------------------------------
+   The design dims the whole face: the avatar and the Polkadot wordmark sink into
+   the gray, the QR glyph with them. The name and status stay at full ink so the
+   card still says whose it is and why; the red edge and sash carry the state. */
+.idcard.is-faded .idcard-avatar { opacity: 0.6; }
+.idcard.is-faded .idcard-wordmark { opacity: 0.1; }
+.idcard.is-faded .idcard-qr { opacity: 0.5; }
+
+/* ---- Reduced-motion resets ------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .idcard-sash {
+    animation: none;
+  }
+  .idcard-stripe i::before {
+    animation: none;
+    transition: none;
+  }
+}
+
+body.reduced .idcard-sash {
+  animation: none;
+}
+
+body.reduced .idcard-stripe i::before {
+  animation: none;
+  transition: none;
+}
+
+/* ---- The back, and the turn -----------------------------------------------
+   An interactive card turns as one slab; the face swaps at 90° so the back is
+   never drawn mirrored. The back keeps the material: what fills the code is
+   the card's own surface, shaded as if each module were milled out. */
+.idcard.is-interactive { touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: grab; }
+.idcard.is-interactive[data-dragging="1"] { cursor: grabbing; }
+.idcard.is-interactive .idcard-qr { cursor: pointer; }
+.idcard.is-interactive .idcard-qr:hover { background: color-mix(in srgb, var(--c-ink2) 12%, transparent); }
+.idcard-back {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  /* The card shrinks on short screens; the code sizes from what is left. */
+  container-type: size;
+}
+/* The whole back is the button that turns the card home: one target for a
+   tap, and something a keyboard can reach. It sits over the code and the
+   name, which say what the back is; its ring stays inside the card. */
+.idcard-back-turn {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  cursor: pointer;
+}
+.idcard-back-turn:focus-visible { outline: 2px solid var(--c-ink); outline-offset: -6px; }
+.idcard.is-flipped .idcard-inner > :not(.idcard-back):not(.idcard-sheen):not(.idcard-grain):not(.idcard-holo) {
+  visibility: hidden;
+}
+.idcard.is-flipped .idcard-back { display: flex; }
+/* Three passes of the same shape, each masked by the code: a shadow wall
+   toward the light, a lit wall away from it, and the floor of the pit over
+   both. The light direction is the card's own (--tilt-x/--tilt-y), so the
+   etch shifts as the phone tilts, the way the sheen does on the front. */
+/* The code is 132px on a full-size card and gives way to the name and the
+   note below it as the card shrinks, so its quiet zone is never cut. */
+.idcard-qr-relief {
+  position: relative;
+  flex: none;
+  /* Without container query units the line below is dropped; 132px stands. */
+  height: 132px;
+  height: min(132px, calc(100cqh - 56px));
+  aspect-ratio: 1;
+  --etch-x: calc((0.7 - var(--tilt-x, 0) * 0.5) * 1.1px);
+  --etch-y: calc((0.7 - var(--tilt-y, 0) * 0.5) * 1.1px);
+}
+.idcard-qr-relief i {
+  position: absolute;
+  inset: 0;
+  -webkit-mask: var(--qr-mask) center / contain no-repeat;
+  mask: var(--qr-mask) center / contain no-repeat;
+}
+.idcard-qr-relief .qr-lo {
+  background: rgba(0, 0, 0, 0.5);
+  transform: translate(calc(-1 * var(--etch-x)), calc(-1 * var(--etch-y)));
+}
+.idcard-qr-relief .qr-hi {
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(var(--etch-x), var(--etch-y));
+}
+/* The floor of the pit at full strength: the walls only show at its edges,
+   and a scanner needs the modules as dark (or light) as the ink allows. */
+.idcard-qr-relief .qr-face { background: var(--c-qr, var(--c-ink)); }
+.idcard-back-name { font: 600 13px var(--font-body); color: var(--c-ink); }
+.idcard-back-note { font: 400 10px var(--font-body); color: var(--c-ink2); }
+/* A short card keeps the code and the name, and lets the note go. */
+@container (max-height: 170px) {
+  .idcard-back-note { display: none; }
+  .idcard-qr-relief { height: calc(100cqh - 48px); }
+}
+

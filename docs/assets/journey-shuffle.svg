@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 1228" font-family="sans-serif" font-size="12">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#909090"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#c08a00"/>
+    </marker>
+  </defs>
+
+  <rect x="48" y="18" width="165" height="52" rx="6" fill="#e0e0e0" stroke="oklch(79.5% .184 86.047)" stroke-width="1.5"/>
+  <text x="130" y="49" text-anchor="middle" font-weight="bold" fill="#3a3a3a">User</text>
+  <rect x="508" y="18" width="165" height="52" rx="6" fill="#ffffff" stroke="oklch(79.5% .184 86.047)" stroke-width="1.5"/>
+  <text x="590" y="42" text-anchor="middle" font-weight="bold" fill="#3a3a3a">App</text>
+  <text x="590" y="60" text-anchor="middle" font-size="10" fill="#606060">app.dim2.paseo</text>
+  <rect x="968" y="18" width="165" height="52" rx="6" fill="#e0e0e0" stroke="oklch(79.5% .184 86.047)" stroke-width="1.5"/>
+  <text x="1050" y="49" text-anchor="middle" font-weight="bold" fill="#3a3a3a">Host API</text>
+  <line x1="130" y1="70" x2="130" y2="1148" stroke="oklch(79.5% .184 86.047)" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="590" y1="70" x2="590" y2="1148" stroke="oklch(79.5% .184 86.047)" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="1050" y1="70" x2="1050" y2="1148" stroke="oklch(79.5% .184 86.047)" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <line x1="596" y1="130" x2="1044" y2="130" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="124" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">api.query.Game.Game.watchValue()</text>
+  <line x1="1044" y1="172" x2="596" y2="172" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="166" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ index, state, game_date, report_ends }</text>
+  <rect x="20" y="214" width="1140" height="182" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 20 214 H 64 L 72 222 V 234 H 20 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="26" y="229" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">alt</text>
+  <text x="86" y="229" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ state.type == Shuffle OR Reporting ]</text>
+  <path d="M 590 256 H 630 V 270 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="267" text-anchor="start" fill="#606060">statePlayerCount(state)</text>
+  <text x="638" y="281" text-anchor="start" font-size="8" fill="#606060">@jollity/protocol</text>
+  <line x1="20" y1="312" x2="1160" y2="312" stroke="#606060" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="32" y="327" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ else ]</text>
+  <text x="360" y="348" text-anchor="middle" fill="#606060">The last game is being finalized. Results are on their way.</text>
+  <line x1="584" y1="354" x2="136" y2="354" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <line x1="596" y1="438" x2="1044" y2="438" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="432" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">api.query.Game.PlayerToIndex.getValue(account)</text>
+  <line x1="1044" y1="480" x2="596" y2="480" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="474" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">[3, 11]</text>
+  <text x="820" y="496" text-anchor="middle" font-size="10" fill="#909090">[shuffle slot in round 0, round 1, … one per round, for group and tile position]</text>
+  <rect x="20" y="522" width="1140" height="238" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 20 522 H 64 L 72 530 V 542 H 20 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="26" y="537" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">opt</text>
+  <text x="86" y="537" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ myIndices ]</text>
+  <path d="M 590 564 H 630 V 578 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="575" text-anchor="start" fill="#606060">numberOfGroups(player_count, max_group_size) = ceil(player_count / max_group_size)</text>
+  <path d="M 590 620 H 630 V 634 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="631" text-anchor="start" fill="#606060">group = ownIndex % numberOfGroups, indices = group + i * numberOfGroups</text>
+  <line x1="596" y1="676" x2="1044" y2="676" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="670" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">api.query.Game.IndexToPlayer.getValues([[round, index], …])</text>
+  <line x1="1044" y1="718" x2="596" y2="718" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="712" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">[{ index, player }, … ] — my group, per round</text>
+  <rect x="20" y="802" width="1140" height="284" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 20 802 H 64 L 72 810 V 822 H 20 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="26" y="817" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">alt</text>
+  <text x="86" y="817" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ registered AND now >= game_date − JOIN_WINDOW_S (300) ]</text>
+  <text x="360" y="870" text-anchor="middle" fill="#606060">4:32</text>
+  <text x="360" y="854" text-anchor="middle" fill="#606060">at 18:00</text>
+  <text x="360" y="838" text-anchor="middle" fill="#606060">Game starting</text>
+  <line x1="584" y1="876" x2="136" y2="876" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <line x1="20" y1="918" x2="1160" y2="918" stroke="#606060" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="32" y="933" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ now >= handoverAt(game_date) = game_date − CONNECTION_STAGE_DURATION ]</text>
+  <text x="360" y="954" text-anchor="middle" fill="#606060">markJoined(gameAt, door), router.replace("/game")</text>
+  <line x1="584" y1="960" x2="136" y2="960" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <line x1="20" y1="1002" x2="1160" y2="1002" stroke="#606060" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="32" y="1017" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ else ]</text>
+  <text x="360" y="1038" text-anchor="middle" fill="#606060">You're in</text>
+  <line x1="584" y1="1044" x2="136" y2="1044" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+
+  <rect x="48" y="1148" width="165" height="52" rx="6" fill="#e0e0e0" stroke="oklch(79.5% .184 86.047)" stroke-width="1.5"/>
+  <text x="130" y="1179" text-anchor="middle" font-weight="bold" fill="#3a3a3a">User</text>
+  <rect x="508" y="1148" width="165" height="52" rx="6" fill="#ffffff" stroke="oklch(79.5% .184 86.047)" stroke-width="1.5"/>
+  <text x="590" y="1172" text-anchor="middle" font-weight="bold" fill="#3a3a3a">App</text>
+  <text x="590" y="1190" text-anchor="middle" font-size="10" fill="#606060">app.dim2.paseo</text>
+  <rect x="968" y="1148" width="165" height="52" rx="6" fill="#e0e0e0" stroke="oklch(79.5% .184 86.047)" stroke-width="1.5"/>
+  <text x="1050" y="1179" text-anchor="middle" font-weight="bold" fill="#3a3a3a">Host API</text>
+</svg>
+
