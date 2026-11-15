@@ -1,0 +1,18 @@
+{
+  "name": "rejoin-queued-offers",
+  "scenario": "rejoin-two-offers",
+  "doc": "a rejoin with offers queued (#1385, M1385's warmup): a/1's offer captured by the new b, a/2's offer stored, both deliverable",
+  "sourceSha": "7933e0a8efd0",
+  "warmup": [
+    "wire:b>a:wire-2:deliver",
+    "pc:a/1:negotiationneeded",
+    "pc:a/1:sld:resolve",
+    "pc:a/1:gather",
+    "env:reload:b",
+    "wire:a>b:wire-3:capture",
+    "wire:b>a:wire-4:deliver",
+    "pc:a/2:negotiationneeded",
+    "pc:a/2:sld:resolve",
+    "pc:a/2:gather"
+  ]
+}

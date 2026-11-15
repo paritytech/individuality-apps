@@ -1,0 +1,25 @@
+{
+  "name": "@jollity/protocol",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "author": "Parity Technologies <admin@parity.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paritytech/individuality-apps-community.git",
+    "directory": "packages/jollity-protocol"
+  },
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@individuality/people-chain": "*",
+    "@individuality/prize": "*",
+    "@individuality/sign-up": "*",
+    "@parity/product-sdk-host": "0.31.0",
+    "@polkadot-api/signers-common": "^0.4.0"
+  },
+  "devDependencies": {
+    "@noble/hashes": "^2.4.0"
+  }
+}

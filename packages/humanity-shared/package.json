@@ -1,0 +1,54 @@
+{
+  "name": "@humanity/shared",
+  "version": "0.4.0",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "author": "Parity Technologies <admin@parity.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paritytech/individuality-apps-community.git",
+    "directory": "packages/humanity-shared"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "postinstall": "papi generate",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "eslint . --fix",
+    "papi:update": "papi update"
+  },
+  "dependencies": {
+    "@individuality/daily-dollar": "*",
+    "@logtape/logtape": "^2.3.1",
+    "@parity/product-sdk": "0.42.0",
+    "@parity/product-sdk-descriptors": "0.14.0",
+    "@parity/truapi": "^0.27.0",
+    "@polkadot-api/descriptors": "file:.papi/descriptors",
+    "@polkadot-api/metadata-builders": "^0.15.2",
+    "@polkadot-api/signers-common": "^0.4.0",
+    "@polkadot-api/substrate-bindings": "^0.21.2",
+    "@polkadot-api/ws-provider": "^0.9.1",
+    "@sentry/browser": "^11.8.0",
+    "@sentry/core": "^11.8.0",
+    "polkadot-api": "^3.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@typescript-eslint/eslint-plugin": "^8.62.1",
+    "@typescript-eslint/parser": "^8.62.1",
+    "eslint": "^9.39.4",
+    "typescript": "^5.9.3",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.12"
+  },
+  "overrides": {
+    "@polkadot-api/json-rpc-provider": "0.2.0"
+  }
+}

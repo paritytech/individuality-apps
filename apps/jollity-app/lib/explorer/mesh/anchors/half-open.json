@@ -1,0 +1,33 @@
+{
+  "name": "half-open",
+  "scenario": "rejoin-two-offers",
+  "doc": "one side connected, the other negotiating: after b's reload, a still reads connected on its old PC while b's new PC has applied a's stored offer",
+  "sourceSha": "7933e0a8efd0",
+  "warmup": [
+    "pc:a/1:negotiationneeded",
+    "wire:a>b:wire-1:deliver",
+    "wire:b>a:wire-2:deliver",
+    "pc:a/1:sld:resolve",
+    "pc:a/1:gather",
+    "wire:a>b:wire-3:deliver",
+    "pc:b/1:srd:resolve",
+    "pc:b/1:sld:resolve",
+    "pc:b/1:gather",
+    "wire:b>a:wire-4:deliver",
+    "pc:a/1:srd:resolve",
+    "pc:a/1:negotiationneeded",
+    "pc:b/1:negotiationneeded",
+    "pc:a/1:sld:resolve",
+    "pc:a/1:gather",
+    "lane:a>b:deliver",
+    "pc:b/1:srd:resolve",
+    "pc:b/1:sld:resolve",
+    "pc:b/1:gather",
+    "lane:b>a:deliver",
+    "pc:a/1:srd:resolve",
+    "env:reload:b",
+    "wire:a>b:wire-1:deliver",
+    "wire:a>b:wire-3:deliver",
+    "pc:b/2:srd:resolve"
+  ]
+}

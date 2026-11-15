@@ -1,0 +1,31 @@
+{
+  "name": "@jollity/statement-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chain-agnostic People-chain statement-store client: submit/subscribe RPC over an injected transport, SCALE statement building and proving, ECDH channel crypto, and host-delegated proving. No papi descriptors, no DOM.",
+  "license": "GPL-3.0-or-later",
+  "author": "Parity Technologies <admin@parity.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paritytech/individuality-apps-community.git",
+    "directory": "packages/jollity-statement-core"
+  },
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.3.0",
+    "@noble/hashes": "^2.3.0",
+    "scale-ts": "^1.6.1"
+  },
+  "devDependencies": {
+    "@scure/sr25519": "^2.3.0"
+  }
+}

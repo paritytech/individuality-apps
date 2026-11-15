@@ -1,0 +1,5 @@
+{
+  "_note": "THE one source for the hardware/software name rules, read by lib/journeys/rtc-impl.ts; keep any other reader of these names on this file. Regex sources, all case-insensitive. Software is checked FIRST: Android own software codecs share the OMX. / c2. prefixes of the vendor hardware ones. OMX.SEC.* is Samsung Exynos HARDWARE; only its .sw. names are software.",
+  "hardware": "VideoToolbox|MediaCodec|NdkVideoEncodeAccelerator|^External(De|En)coder|D3D11|Vaapi|V4L2|MediaFoundation|NVENC|NVDEC|\\bc2\\.|^OMX\\.",
+  "software": "^(libvpx|FFmpeg|OpenH264|libaom|dav1d|libdav1d|SVT-AV1)$|^OMX\\.google\\.|^OMX\\.SEC\\..*\\.sw\\.|^c2\\.(android|google)\\."
+}

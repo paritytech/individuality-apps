@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 675" font-family="sans-serif" font-size="12">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#909090"/>
+    </marker>
+    <marker id="arrow-start" markerWidth="8" markerHeight="8" refX="1" refY="3" orient="auto">
+      <path d="M8,0 L8,6 L0,3 z" fill="#909090"/>
+    </marker>
+  </defs>
+
+  <!-- ── User device ─────────────────────────────────────────────────── -->
+  <rect x="20" y="30" width="1140" height="220" rx="8" fill="none" stroke="#606060" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="20" y="22" font-size="11" font-weight="bold" fill="#909090">USER DEVICE</text>
+
+  <rect x="70" y="126" width="90" height="44" rx="6" fill="#ffffff" stroke="#606060" stroke-width="1.5"/>
+  <text x="115" y="153" text-anchor="middle" font-weight="bold" fill="#3a3a3a">Camera</text>
+
+  <rect x="230" y="60" width="250" height="130" rx="6" fill="none" stroke="#606060" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="230" y="54" font-size="10" font-weight="bold" fill="#909090">HOST CONTAINER</text>
+  <rect x="250" y="88" width="210" height="62" rx="6" fill="#e0e0e0" stroke="#606060" stroke-width="1.5"/>
+  <text x="355" y="113" text-anchor="middle" font-weight="bold" fill="#3a3a3a">App</text>
+  <text x="355" y="133" text-anchor="middle" font-size="10" fill="#606060">app.dim2.paseo</text>
+
+
+  <rect x="540" y="76" width="180" height="114" rx="6" fill="#ffffff" stroke="#606060" stroke-width="1.5"/>
+  <text x="630" y="100" text-anchor="middle" font-weight="bold" fill="#3a3a3a">Host storage</text>
+  <text x="630" y="128" text-anchor="middle" font-size="10" fill="#606060">jollity.showTutorial</text>
+  <text x="630" y="148" text-anchor="middle" font-size="10" fill="#606060">jollity.registration</text>
+  <text x="630" y="168" text-anchor="middle" font-size="10" fill="#606060">jollity.chest</text>
+
+  <rect x="770" y="60" width="290" height="130" rx="6" fill="none" stroke="#606060" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="770" y="54" font-size="10" font-weight="bold" fill="#909090">HOST CONTAINER</text>
+  <rect x="790" y="88" width="250" height="62" rx="6" fill="#e0e0e0" stroke="#606060" stroke-width="1.5"/>
+  <text x="915" y="113" text-anchor="middle" font-weight="bold" fill="#3a3a3a">Chat</text>
+  <text x="915" y="133" text-anchor="middle" font-size="10" fill="#606060">worker.dim2.paseo</text>
+
+  <line x1="160" y1="148" x2="224" y2="148" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="486" y1="119" x2="534" y2="119" stroke="#909090" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow)"/>
+  <line x1="726" y1="119" x2="764" y2="119" stroke="#909090" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow)"/>
+
+  <!-- ── Chains ──────────────────────────────────────────────────────── -->
+  <rect x="20" y="345" width="891" height="290" rx="8" fill="none" stroke="#606060" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="20" y="337" font-size="11" font-weight="bold" fill="#909090">NETWORK</text>
+
+  <rect x="36" y="383" width="411" height="232" rx="8" fill="none" stroke="#606060" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="36" y="377" font-size="11" font-weight="bold" fill="#909090">PEOPLE</text>
+  <rect x="46" y="417" width="180" height="176" rx="6" fill="#ffffff" stroke="#606060" stroke-width="1.5"/>
+  <text x="136" y="447" text-anchor="middle" font-size="11" fill="#3a3a3a">pallet-game</text>
+  <text x="136" y="475" text-anchor="middle" font-size="11" fill="#3a3a3a">pallet-score</text>
+  <text x="136" y="503" text-anchor="middle" font-size="11" fill="#3a3a3a">pallet-nft-credits</text>
+  <text x="136" y="531" text-anchor="middle" font-size="11" fill="#3a3a3a">pallet-airdrop</text>
+  <text x="136" y="559" text-anchor="middle" font-size="11" fill="#3a3a3a">pallet-assets</text>
+  <rect x="257" y="477" width="180" height="56" rx="6" fill="#ffffff" stroke="#606060" stroke-width="1.5"/>
+  <text x="347" y="502" text-anchor="middle" font-size="11" fill="#3a3a3a">Statement</text>
+  <text x="347" y="518" text-anchor="middle" font-size="11" fill="#3a3a3a">store</text>
+
+  <rect x="471" y="383" width="200" height="232" rx="8" fill="none" stroke="#606060" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="471" y="377" font-size="11" font-weight="bold" fill="#909090">ASSET HUB</text>
+  <rect x="481" y="417" width="180" height="176" rx="6" fill="#ffffff" stroke="#606060" stroke-width="1.5"/>
+  <text x="571" y="489" text-anchor="middle" font-size="11" fill="#3a3a3a">pallet-scarcity</text>
+  <text x="571" y="517" text-anchor="middle" font-size="11" fill="#3a3a3a">pallet-nft-claims</text>
+
+  <rect x="695" y="383" width="200" height="232" rx="8" fill="none" stroke="#606060" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="695" y="377" font-size="11" font-weight="bold" fill="#909090">BULLETIN</text>
+  <rect x="705" y="417" width="180" height="176" rx="6" fill="#ffffff" stroke="#606060" stroke-width="1.5"/>
+  <text x="795" y="503" text-anchor="middle" font-size="11" fill="#3a3a3a">pallet-transaction-storage</text>
+
+  <!-- ── Third party · STUN ──────────────────────────────────────────── -->
+  <rect x="937" y="345" width="223" height="140" rx="8" fill="none" stroke="#606060" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="937" y="337" font-size="11" font-weight="bold" fill="#909090">THIRD PARTY</text>
+
+  <rect x="963" y="385" width="170" height="80" rx="6" fill="#ffffff" stroke="#606060" stroke-width="1.5"/>
+  <text x="1048" y="409" text-anchor="middle" font-weight="bold" fill="#3a3a3a">STUN / TURN</text>
+  <text x="1048" y="429" text-anchor="middle" font-size="10" fill="#606060">Google + Cloudflare STUN</text>
+  <text x="1048" y="447" text-anchor="middle" font-size="9" fill="#606060">TURN pass: identity.dotspark.app</text>
+
+  <!-- ── Between the bands ───────────────────────────────────────────── -->
+  <path d="M 290 190 V 290 H 136 V 411" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 960 190 V 290 H 443" fill="none" stroke="#909090" stroke-width="1.5"/>
+  <text x="213" y="284" text-anchor="middle" font-size="11" fill="#606060">reads and writes</text>
+  <text x="701" y="284" text-anchor="middle" font-size="11" fill="#606060">sign up, reads, claims</text>
+
+  <path d="M 390 190 V 315 H 347 V 471" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="368" y="309" text-anchor="middle" font-size="11" fill="#606060">signalling</text>
+
+  <path d="M 750 411 V 260 H 440 V 196" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="595" y="214" text-anchor="middle" font-size="11" fill="#606060">SPA code, art</text>
+
+  <path d="M 840 411 V 238 H 880 V 196" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="860" y="232" text-anchor="middle" font-size="11" fill="#606060">worker code</text>
+
+  <path d="M 430 190 V 355 H 571 V 411" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <path d="M 470 190 V 271 H 1048 V 379" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="640" y="265" text-anchor="middle" font-size="11" fill="#606060">ICE</text>
+</svg>

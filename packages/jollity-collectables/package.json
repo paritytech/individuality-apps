@@ -1,0 +1,19 @@
+{
+  "name": "@jollity/collectables",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "author": "Parity Technologies <admin@parity.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paritytech/individuality-apps-community.git",
+    "directory": "packages/jollity-collectables"
+  },
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@jollity/protocol": "*",
+    "@parity/product-sdk-nfts": "0.4.1"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "@individuality/sign-up",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Signing a player up for a People chain game, the same from every surface, on the product SDK's game registration: the flow around the SDK's seat, bind and sign-up (gates, retries, the registration record), Jollity's draw rule, and the SDK-backed chain side under /chain. It depends on no product's package.",
+  "license": "GPL-3.0-or-later",
+  "author": "Parity Technologies <admin@parity.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paritytech/individuality-apps-community.git",
+    "directory": "packages/individuality-sign-up"
+  },
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./chain": "./src/chain/index.ts",
+    "./failure": "./src/signup-failure.ts",
+    "./reminder": "./src/reminder.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@individuality/name-link": "*",
+    "@individuality/people-chain": "*",
+    "@individuality/shared-records": "*",
+    "@noble/curves": "^2.3.0",
+    "@noble/hashes": "^2.3.0",
+    "@scure/sr25519": "2.4.0"
+  },
+  "peerDependencies": {
+    "@parity/product-sdk-individuality": "0.11.4",
+    "polkadot-api": "^3.2.1"
+  },
+  "devDependencies": {
+    "@parity/product-sdk-individuality": "0.11.4",
+    "polkadot-api": "^3.2.1"
+  }
+}

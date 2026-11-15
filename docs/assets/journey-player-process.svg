@@ -1,0 +1,286 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 5268" font-family="sans-serif" font-size="12">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#909090"/>
+    </marker>
+    <marker id="arrow-warn" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#c08a00"/>
+    </marker>
+  </defs>
+
+  <rect x="48" y="18" width="165" height="52" rx="6" fill="#e0e0e0" stroke="oklch(62.7% .265 303.9)" stroke-width="1.5"/>
+  <text x="130" y="49" text-anchor="middle" font-weight="bold" fill="#3a3a3a">User</text>
+  <rect x="508" y="18" width="165" height="52" rx="6" fill="#ffffff" stroke="oklch(62.7% .265 303.9)" stroke-width="1.5"/>
+  <text x="590" y="42" text-anchor="middle" font-weight="bold" fill="#3a3a3a">App</text>
+  <text x="590" y="60" text-anchor="middle" font-size="10" fill="#606060">app.dim2.paseo</text>
+  <rect x="968" y="18" width="165" height="52" rx="6" fill="#e0e0e0" stroke="oklch(62.7% .265 303.9)" stroke-width="1.5"/>
+  <text x="1050" y="49" text-anchor="middle" font-weight="bold" fill="#3a3a3a">Host API</text>
+  <line x1="130" y1="70" x2="130" y2="5188" stroke="oklch(62.7% .265 303.9)" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="590" y1="70" x2="590" y2="5188" stroke="oklch(62.7% .265 303.9)" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="1050" y1="70" x2="1050" y2="5188" stroke="oklch(62.7% .265 303.9)" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <path d="M 590 130 H 630 V 144 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="141" text-anchor="start" fill="#606060">finishReport(gameIndex): the report landed</text>
+  <text x="638" y="155" text-anchor="start" font-size="8" fill="#606060">lib/game-session.ts</text>
+  <rect x="20" y="186" width="1140" height="196" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 20 186 H 64 L 72 194 V 206 H 20 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="26" y="201" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">alt</text>
+  <text x="86" y="201" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ the waiting room's read proved no draw was scheduled ]</text>
+  <path d="M 590 228 H 630 V 242 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="239" text-anchor="start" fill="#606060">router.replace(`/chest?game=${gameIndex}`)</text>
+  <line x1="20" y1="284" x2="1160" y2="284" stroke="#606060" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="32" y="299" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ else ]</text>
+  <path d="M 590 326 H 630 V 340 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="337" text-anchor="start" fill="#606060">router.replace(`/prize-draw?game=${gameIndex}`)</text>
+  <text x="28" y="424" text-anchor="start" font-size="11" font-weight="bold" fill="#909090">THE PRIZE DRAW</text>
+  <path d="M 590 466 H 630 V 480 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="477" text-anchor="start" fill="#606060">loadDraw(source, gameIndex): a read every 3 s, at most 60</text>
+  <text x="638" y="491" text-anchor="start" font-size="8" fill="#606060">lib/draw/draw-load.ts</text>
+  <rect x="20" y="522" width="1140" height="856" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 20 522 H 64 L 72 530 V 542 H 20 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="26" y="537" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">loop</text>
+  <text x="86" y="537" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ draw.phase === "waiting" ]</text>
+  <text x="360" y="574" text-anchor="middle" fill="#606060">Drawing the winners…</text>
+  <text x="360" y="558" text-anchor="middle" fill="#606060">Prize draw</text>
+  <line x1="584" y1="580" x2="136" y2="580" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <line x1="596" y1="622" x2="1044" y2="622" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="616" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">api.constants.Game.airdrop_event_id_base()</text>
+  <text x="820" y="635" text-anchor="middle" font-size="8" fill="#606060">polkadot-api</text>
+  <line x1="1044" y1="664" x2="596" y2="664" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="658" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">base</text>
+  <rect x="34" y="706" width="1112" height="434" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 34 706 H 78 L 86 714 V 726 H 34 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="40" y="721" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">loop</text>
+  <text x="100" y="721" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ airdropIndex &lt; 4 ]</text>
+  <path d="M 590 748 H 630 V 762 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="759" text-anchor="start" fill="#606060">gameAirdropEventId({ base, gameIndex, airdropIndex })</text>
+  <text x="638" y="773" text-anchor="start" font-size="8" fill="#606060">@parity/product-sdk-individuality</text>
+  <line x1="596" y1="804" x2="1044" y2="804" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="798" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">readAirdropDraw(chain, { eventId, at: "best" })</text>
+  <text x="820" y="817" text-anchor="middle" font-size="8" fill="#606060">@parity/product-sdk-individuality</text>
+  <line x1="1044" y1="846" x2="596" y2="846" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="840" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ event: { prize, effectiveWinners, ... } | null, entropy, at }</text>
+  <line x1="596" y1="888" x2="1044" y2="888" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="882" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">api.query.Airdrop.Registrations.getEntries(eventId, { at }), Airdrop.Winners.getEntries(eventId, { at })</text>
+  <text x="820" y="901" text-anchor="middle" font-size="8" fill="#606060">polkadot-api</text>
+  <line x1="1044" y1="930" x2="596" y2="930" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="924" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">the tickets and their holders, the winners</text>
+  <rect x="48" y="972" width="1084" height="126" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 48 972 H 92 L 100 980 V 992 H 48 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="54" y="987" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">opt</text>
+  <text x="114" y="987" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ event !== null ]</text>
+  <line x1="596" y1="1014" x2="1044" y2="1014" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="1008" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">api.query.Assets.Metadata.getValue(event.prize.assetId, { at })</text>
+  <text x="820" y="1027" text-anchor="middle" font-size="8" fill="#606060">polkadot-api</text>
+  <line x1="1044" y1="1056" x2="596" y2="1056" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="1050" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ symbol, decimals }</text>
+  <line x1="596" y1="1182" x2="1044" y2="1182" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="1176" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">api.query.Score.Participants.getValue(player)</text>
+  <text x="820" y="1195" text-anchor="middle" font-size="8" fill="#606060">polkadot-api</text>
+  <line x1="1044" y1="1224" x2="596" y2="1224" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="1218" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ recognition, reached_personhood, last_attended_game }</text>
+  <path d="M 590 1266 H 630 V 1280 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="1277" text-anchor="start" fill="#606060">claimEligibility(participant, gameIndex)</text>
+  <text x="638" y="1291" text-anchor="start" font-size="8" fill="#606060">@individuality/prize</text>
+  <path d="M 590 1322 H 630 V 1336 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="1333" text-anchor="start" fill="#606060">draws.find((d) =&gt; d.phase !== "over") ?? draws[0]</text>
+  <path d="M 590 1420 H 630 V 1434 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="1431" text-anchor="start" fill="#606060">preloadChest(): the chest's claims are read while the wheel plays</text>
+  <rect x="20" y="1476" width="1140" height="778" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 20 1476 H 64 L 72 1484 V 1496 H 20 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="26" y="1491" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">alt</text>
+  <text x="86" y="1491" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ checkWheel({ tickets, target, winners, mine, winningTickets, won }).ok ]</text>
+  <rect x="34" y="1518" width="1112" height="100" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 34 1518 H 78 L 86 1526 V 1538 H 34 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="40" y="1533" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">opt</text>
+  <text x="100" y="1533" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ !draw.userTicket ]</text>
+  <text x="360" y="1570" text-anchor="middle" fill="#606060">Draws are for members. Keep playing to join.</text>
+  <text x="360" y="1554" text-anchor="middle" fill="#606060">Someone's about to win</text>
+  <line x1="584" y1="1576" x2="136" y2="1576" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <path d="M 590 1660 H 630 V 1674 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="1671" text-anchor="start" fill="#606060">startStage(host, draw): mountWheel(host, draw, { held, onEnded, onDone })</text>
+  <text x="638" y="1685" text-anchor="start" font-size="8" fill="#606060">lib/draw/wheel/stage-runner.ts</text>
+  <path d="M 590 1716 H 630 V 1730 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="1727" text-anchor="start" fill="#606060">the wheel turns and stops on the winning tickets: onEnded, then onDone</text>
+  <line x1="20" y1="1772" x2="1160" y2="1772" stroke="#606060" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="32" y="1787" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ the wheel cannot tell this draw: its words ]</text>
+  <rect x="34" y="1814" width="1112" height="300" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 34 1814 H 78 L 86 1822 V 1834 H 34 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="40" y="1829" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">alt</text>
+  <text x="100" y="1829" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ !draw.userTicket ]</text>
+  <text x="360" y="1866" text-anchor="middle" fill="#606060">Your sign-up didn't enter this game's prize draw.</text>
+  <text x="360" y="1850" text-anchor="middle" fill="#606060">You weren't in this draw</text>
+  <line x1="584" y1="1872" x2="136" y2="1872" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <line x1="34" y1="1914" x2="1146" y2="1914" stroke="#606060" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="46" y="1929" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ draw.won ]</text>
+  <text x="360" y="1966" text-anchor="middle" fill="#606060">$10 CASH is yours.</text>
+  <text x="360" y="1950" text-anchor="middle" fill="#606060">You won</text>
+  <line x1="584" y1="1972" x2="136" y2="1972" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <line x1="34" y1="2014" x2="1146" y2="2014" stroke="#606060" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="46" y="2029" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ else ]</text>
+  <text x="360" y="2066" text-anchor="middle" fill="#606060">3 tickets won $10 CASH.</text>
+  <text x="360" y="2050" text-anchor="middle" fill="#606060">Not this time</text>
+  <line x1="584" y1="2072" x2="136" y2="2072" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <line x1="20" y1="2156" x2="1160" y2="2156" stroke="#606060" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="32" y="2171" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ the draw reads as none ]</text>
+  <path d="M 590 2198 H 630 V 2212 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="2209" text-anchor="start" fill="#606060">no ceremony: on to the chest</text>
+  <rect x="20" y="2296" width="1140" height="476" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 20 2296 H 64 L 72 2304 V 2316 H 20 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="26" y="2311" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">opt</text>
+  <text x="86" y="2311" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ draw.won ]</text>
+  <path d="M 590 2338 H 630 V 2352 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="2349" text-anchor="start" fill="#606060">startAutoClaim(source, draw): no button, nothing on screen</text>
+  <text x="638" y="2363" text-anchor="start" font-size="8" fill="#606060">lib/draw/auto-claim.ts</text>
+  <line x1="596" y1="2394" x2="1044" y2="2394" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="2388" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">api.query.Game.Players.watchValue(player), Game.Game: until the attendance is applied</text>
+  <text x="820" y="2407" text-anchor="middle" font-size="8" fill="#606060">polkadot-api</text>
+  <line x1="1044" y1="2436" x2="596" y2="2436" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="2430" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">applied (early, or at the settle)</text>
+  <path d="M 590 2478 H 630 V 2492 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="2489" text-anchor="start" fill="#606060">claimWhenPayable: read the draw again, claim only what the chain would pay</text>
+  <text x="638" y="2503" text-anchor="start" font-size="8" fill="#606060">@individuality/prize</text>
+  <rect x="34" y="2534" width="1112" height="140" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 34 2534 H 78 L 86 2542 V 2554 H 34 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="40" y="2549" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">opt</text>
+  <text x="100" y="2549" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ the chain would pay ]</text>
+  <line x1="596" y1="2576" x2="1044" y2="2576" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="2570" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">claimPrizeTx(chain, { gameIndex, airdropIndex, beneficiary })</text>
+  <text x="820" y="2589" text-anchor="middle" font-size="8" fill="#606060">@parity/product-sdk-individuality</text>
+  <text x="820" y="2603" text-anchor="middle" font-size="10" fill="#909090">.createSubmitAndWatch(withScoreParticipant(signer)), re-read before each send</text>
+  <line x1="1044" y1="2632" x2="596" y2="2632" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="2626" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ ok }</text>
+  <path d="M 590 2716 H 630 V 2730 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="2727" text-anchor="start" fill="#606060">every outcome goes to the debug log; a claim left undone is the chat's</text>
+  <line x1="136" y1="2814" x2="584" y2="2814" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="360" y="2808" text-anchor="middle" fill="#606060">Taps Continue (or 60 s pass)</text>
+  <path d="M 590 2856 H 630 V 2870 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="2867" text-anchor="start" fill="#606060">router.replace(postGameHref("/chest"))</text>
+  <text x="638" y="2881" text-anchor="start" font-size="8" fill="#606060">lib/draw/draw-screen-deps.ts</text>
+  <text x="28" y="2912" text-anchor="start" font-size="11" font-weight="bold" fill="#909090">THE CHEST</text>
+  <rect x="20" y="2954" width="1140" height="1148" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 20 2954 H 64 L 72 2962 V 2974 H 20 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="26" y="2969" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">par</text>
+  <text x="86" y="2969" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ the chest feed: the first read ]</text>
+  <line x1="596" y1="2996" x2="1044" y2="2996" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="2990" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">getClaims(chain, { claimant: { tag: "Account", address }, individualityAt: "best" })</text>
+  <text x="820" y="3009" text-anchor="middle" font-size="8" fill="#606060">@parity/product-sdk-nfts</text>
+  <line x1="1044" y1="3038" x2="596" y2="3038" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="3032" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ claims: [{ hash, gameIndex, state, proof }, ...], at: { assetHub } }</text>
+  <line x1="596" y1="3080" x2="1044" y2="3080" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="3074" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">getClaimableCollections(chain, { at, fromId? }), filtered to getApprovedCollections(network)</text>
+  <text x="820" y="3093" text-anchor="middle" font-size="8" fill="#606060">@parity/product-sdk-nfts</text>
+  <line x1="1044" y1="3122" x2="596" y2="3122" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="3116" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ collections: [{ id, name, ... }], nextId }</text>
+  <line x1="596" y1="3164" x2="1044" y2="3164" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="3158" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">getCollectionItems(chain, id, { at, attributes: true })</text>
+  <text x="820" y="3177" text-anchor="middle" font-size="8" fill="#606060">@parity/product-sdk-nfts</text>
+  <line x1="1044" y1="3206" x2="596" y2="3206" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="3200" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ tag: "Found", collection: { items }, nextId }</text>
+  <rect x="34" y="3248" width="1112" height="602" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 34 3248 H 78 L 86 3256 V 3268 H 34 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="40" y="3263" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">loop</text>
+  <text x="100" y="3263" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ per claim ]</text>
+  <line x1="596" y1="3290" x2="1044" y2="3290" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="3284" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">previewClaim(chain, { credit: claim.hash, collections, at })</text>
+  <text x="820" y="3303" text-anchor="middle" font-size="8" fill="#606060">@parity/product-sdk-nfts</text>
+  <line x1="1044" y1="3332" x2="596" y2="3332" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="3326" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ previews: [{ collection, outcome: { item, rarity } }, ...] }</text>
+  <rect x="48" y="3374" width="1084" height="378" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 48 3374 H 92 L 100 3382 V 3394 H 48 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="54" y="3389" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">loop</text>
+  <text x="114" y="3389" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ per preview ]</text>
+  <path d="M 590 3416 H 630 V 3430 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="3427" text-anchor="start" fill="#606060">items.get(`${collection}:${item}`); name = titleCase(archetype)</text>
+  <text x="638" y="3441" text-anchor="start" font-size="8" fill="#606060">packages/jollity-collectables/src/chest.ts</text>
+  <line x1="596" y1="3472" x2="1044" y2="3472" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="3466" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">getVerifiedArtwork({ hex, text: manifest }, { source })</text>
+  <text x="820" y="3485" text-anchor="middle" font-size="8" fill="#606060">@parity/product-sdk-nfts</text>
+  <line x1="1044" y1="3514" x2="596" y2="3514" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="3508" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ tag: Verified, bytes }</text>
+  <path d="M 590 3556 H 630 V 3570 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="3567" text-anchor="start" fill="#606060">manifestPicture(manifest): the thumbnail, else the base image</text>
+  <text x="638" y="3581" text-anchor="start" font-size="8" fill="#606060">packages/jollity-collectables/src/manifest.ts</text>
+  <line x1="596" y1="3612" x2="1044" y2="3612" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="3606" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">getVerifiedArtwork({ text: picture.cid }, { source })</text>
+  <text x="820" y="3625" text-anchor="middle" font-size="8" fill="#606060">@parity/product-sdk-nfts</text>
+  <line x1="1044" y1="3654" x2="596" y2="3654" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="3648" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ tag: Verified, bytes }</text>
+  <path d="M 590 3696 H 630 V 3710 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="3707" text-anchor="start" fill="#606060">URL.createObjectURL(new Blob([image], { type: mime }))</text>
+  <text x="638" y="3721" text-anchor="start" font-size="8" fill="#606060">lib/collectable-art.ts</text>
+  <path d="M 590 3794 H 630 V 3808 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="3805" text-anchor="start" fill="#606060">shown = the default collection the claim's hash picks</text>
+  <line x1="20" y1="3892" x2="1160" y2="3892" stroke="#606060" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="32" y="3907" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ the picks ]</text>
+  <line x1="596" y1="3934" x2="1044" y2="3934" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="3928" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">readJSON("jollity.chest")</text>
+  <text x="820" y="3947" text-anchor="middle" font-size="8" fill="#606060">getHostLocalStorage(), lib/chest-picks.ts</text>
+  <line x1="1044" y1="3976" x2="596" y2="3976" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="3970" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ [hash]: { collectionId } }</text>
+  <line x1="596" y1="4018" x2="1044" y2="4018" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="4012" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">truApi.localStorage.read({ product: "stash.paseo", key: "stash.picks" })</text>
+  <text x="820" y="4031" text-anchor="middle" font-size="8" fill="#606060">lib/host/stash-picks.ts</text>
+  <line x1="1044" y1="4060" x2="596" y2="4060" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="4054" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">Stash's picks</text>
+  <path d="M 590 4144 H 630 V 4158 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="4155" text-anchor="start" fill="#606060">withPicks(claims.slice(0, 10), picks, stash): Stash's picks win</text>
+  <text x="638" y="4169" text-anchor="start" font-size="8" fill="#606060">@jollity/collectables</text>
+  <rect x="20" y="4200" width="1140" height="126" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 20 4200 H 64 L 72 4208 V 4220 H 20 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="26" y="4215" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">opt</text>
+  <text x="86" y="4215" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ the game is still settling ]</text>
+  <line x1="596" y1="4242" x2="1044" y2="4242" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="4236" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">watchChest: the claims that land, then one read after the settle</text>
+  <text x="820" y="4255" text-anchor="middle" font-size="8" fill="#606060">lib/game-source.ts, lib/chest/chest-feed.ts</text>
+  <line x1="1044" y1="4284" x2="596" y2="4284" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="820" y="4278" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">the new claims</text>
+  <path d="M 590 4368 H 630 V 4382 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="4379" text-anchor="start" fill="#606060">the vessel collects the claims as they fly in, then opens</text>
+  <rect x="20" y="4424" width="1140" height="364" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 20 4424 H 64 L 72 4432 V 4444 H 20 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="26" y="4439" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">loop</text>
+  <text x="86" y="4439" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ per collectable tapped ]</text>
+  <line x1="136" y1="4466" x2="584" y2="4466" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="360" y="4460" text-anchor="middle" fill="#606060">Taps a collectable</text>
+  <path d="M 590 4508 H 630 V 4522 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="4519" text-anchor="start" fill="#606060">onShelfTap(index, rect)</text>
+  <text x="638" y="4533" text-anchor="start" font-size="8" fill="#606060">components/chest/chest-scene.tsx</text>
+  <line x1="136" y1="4564" x2="584" y2="4564" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="360" y="4558" text-anchor="middle" fill="#606060">Turns the coin to another collection</text>
+  <rect x="34" y="4606" width="1112" height="140" fill="none" stroke="#606060" stroke-width="1.2"/>
+  <path d="M 34 4606 H 78 L 86 4614 V 4626 H 34 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
+  <text x="40" y="4621" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">opt</text>
+  <text x="100" y="4621" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ picked, and Stash has not picked it ]</text>
+  <path d="M 590 4648 H 630 V 4662 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="4659" text-anchor="start" fill="#606060">send({ type: "pick", index, collectionId }): save-pick</text>
+  <line x1="596" y1="4704" x2="1044" y2="4704" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="4698" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">writeJSON("jollity.chest", chestValue(known))</text>
+  <text x="820" y="4717" text-anchor="middle" font-size="8" fill="#606060">getHostLocalStorage(), lib/chest-picks.ts</text>
+  <line x1="136" y1="4830" x2="584" y2="4830" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="360" y="4824" text-anchor="middle" fill="#606060">Taps Continue</text>
+  <path d="M 590 4872 H 630 V 4886 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="638" y="4883" text-anchor="start" fill="#606060">send({ type: "cta" }): the Pocket album opens</text>
+  <text x="360" y="4922" text-anchor="middle" fill="#606060">Claim all</text>
+  <line x1="584" y1="4928" x2="136" y2="4928" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <line x1="136" y1="4970" x2="584" y2="4970" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="360" y="4964" text-anchor="middle" fill="#606060">Swipes down, or taps Claim all</text>
+  <text x="360" y="5022" text-anchor="middle" fill="#606060">Continue</text>
+  <text x="360" y="5006" text-anchor="middle" fill="#606060">Added to your Pocket</text>
+  <line x1="584" y1="5028" x2="136" y2="5028" stroke="#606060" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <line x1="136" y1="5070" x2="584" y2="5070" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="360" y="5064" text-anchor="middle" fill="#606060">Taps Continue</text>
+  <line x1="596" y1="5112" x2="1044" y2="5112" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="820" y="5106" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">navigateTo("polkadotapp://pocket/open?product=peopl.paseo&amp;card=humanity")</text>
+  <text x="820" y="5125" text-anchor="middle" font-size="8" fill="#606060">lib/membership/humanity-target.ts, lib/host/navigate.ts</text>
+  <text x="820" y="5139" text-anchor="middle" font-size="10" fill="#909090">on a desktop host: https://peopl.paseo</text>
+
+  <rect x="48" y="5188" width="165" height="52" rx="6" fill="#e0e0e0" stroke="oklch(62.7% .265 303.9)" stroke-width="1.5"/>
+  <text x="130" y="5219" text-anchor="middle" font-weight="bold" fill="#3a3a3a">User</text>
+  <rect x="508" y="5188" width="165" height="52" rx="6" fill="#ffffff" stroke="oklch(62.7% .265 303.9)" stroke-width="1.5"/>
+  <text x="590" y="5212" text-anchor="middle" font-weight="bold" fill="#3a3a3a">App</text>
+  <text x="590" y="5230" text-anchor="middle" font-size="10" fill="#606060">app.dim2.paseo</text>
+  <rect x="968" y="5188" width="165" height="52" rx="6" fill="#e0e0e0" stroke="oklch(62.7% .265 303.9)" stroke-width="1.5"/>
+  <text x="1050" y="5219" text-anchor="middle" font-weight="bold" fill="#3a3a3a">Host API</text>
+</svg>
+

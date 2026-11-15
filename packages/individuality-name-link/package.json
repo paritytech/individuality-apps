@@ -1,0 +1,39 @@
+{
+  "name": "@individuality/name-link",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The player's name on the prize draw: the DotNS read of a username and its note, linking the name to the playing account with its deposit in PGAS, and the gate a sign-up waits on until it is linked. It depends on no product's package.",
+  "license": "GPL-3.0-or-later",
+  "author": "Parity Technologies <admin@parity.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paritytech/individuality-apps-community.git",
+    "directory": "packages/individuality-name-link"
+  },
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@individuality/people-chain": "*",
+    "@noble/hashes": "^2.3.0",
+    "@scure/sr25519": "^2.3.0"
+  },
+  "peerDependencies": {
+    "@parity/product-sdk-individuality": "0.11.4",
+    "@polkadot-api/signers-common": "^0.4.0",
+    "polkadot-api": "^3.2.1"
+  },
+  "devDependencies": {
+    "@parity/product-sdk-individuality": "0.11.4",
+    "@polkadot-api/signers-common": "^0.4.0",
+    "polkadot-api": "^3.2.1"
+  }
+}

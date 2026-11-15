@@ -1,0 +1,90 @@
+/*
+ * Copyright 2026 Parity Technologies (UK) Ltd.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/* Humanity design system — foundations.
+   Variable font-faces, the zinc/silver :root token stage, the reset, the
+   body, and the responsive screen surface. No gold on Humanity surfaces. */
+
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('../../assets/fonts/manrope-var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../../assets/fonts/inter-var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Mulish';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: swap;
+  src: url('../../assets/fonts/mulish-var.woff2') format('woff2');
+}
+
+:root {
+  /* semantic stage — the host's active palette (themes.css, set by
+     data-theme). Berlin Night is the zinc stage this app was drawn on. */
+  --surface-main: var(--ds-bg-surface-main);
+  --surface-container: var(--ds-bg-surface-container);
+  --surface-nested: var(--ds-bg-surface-nested);
+  --fg-primary: var(--ds-fg-primary);
+  --fg-secondary: var(--ds-fg-secondary);
+  --fg-tertiary: var(--ds-fg-tertiary);
+  /* Primary buttons keep the original silver/ink on every theme. */
+  --fg-inverted: #0b0c0f;
+  --stroke-primary: var(--ds-stroke-primary);
+  --stroke-secondary: var(--ds-stroke-secondary);
+  --action-primary: #dadbe0;
+  --warning: var(--ds-fg-warning);
+  --error: var(--ds-fg-error);
+  --success: var(--ds-fg-success);
+  /* game register */
+  --game-top: #15152e;
+  --game-bottom: #28245b;
+  --game-accent: #5163f5;
+  --game-bright: #7686ff;
+  --game-cyan: #00d4ff;
+  /* money (silver/white chrome on Humanity; gold is game-only) */
+  --gold-1: #fff5d8;
+  --gold-2: #f6c869;
+  --gold-3: #d29539;
+  --gold-text: linear-gradient(180deg, #fff5d8 0%, #f6c869 50%, #d29539 100%);
+  --cta-grad: linear-gradient(180deg, #3b62fa 0%, #343fb7 52%, #543ca5 100%);
+  --font-head: 'Manrope', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-game: 'Mulish', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-serif: Georgia, 'Times New Roman', serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+.icn { display: inline-block; vertical-align: -0.18em; flex: none; }
+html, body { height: 100%; }
+body {
+  background: var(--surface-main);
+  color: var(--fg-primary);
+  font: 400 14px/1.45 var(--font-body);
+  overflow: hidden;
+}
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+/* ---------- screen surface ----------
+   .screen is the root page surface: a fixed-height column pinned to the
+   viewport. The app never scrolls — every screen composes to fit, so the
+   surface is clipped rather than scrolled if a screen ever overflows. */
+.screen {
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-main);
+}

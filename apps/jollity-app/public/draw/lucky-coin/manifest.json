@@ -1,0 +1,67 @@
+{
+  "key": "good luck||GOOD LUCK|true|none|spiral|0.8|0.26|false|logo|38|64|512|0.12|0.095|0|0.25|false|2|1.1|struck|geometry|1.08|0.2",
+  "N": 256,
+  "letters": "letters.bin.gz",
+  "sides": {
+    "front": {
+      "normal": "front-normal.webp",
+      "orm": "front-orm.webp",
+      "letters": {
+        "attributes": {
+          "position": {
+            "itemSize": 3,
+            "normalized": true,
+            "type": "Int16Array",
+            "offset": 0,
+            "bytes": 73656
+          },
+          "uv": {
+            "itemSize": 2,
+            "normalized": false,
+            "type": "Float32Array",
+            "offset": 73656,
+            "bytes": 98208
+          },
+          "normal": {
+            "itemSize": 3,
+            "normalized": true,
+            "type": "Int16Array",
+            "offset": 171864,
+            "bytes": 73656
+          }
+        },
+        "index": null
+      }
+    },
+    "back": {
+      "normal": "back-normal.webp",
+      "orm": "back-orm.webp",
+      "letters": {
+        "attributes": {
+          "position": {
+            "itemSize": 3,
+            "normalized": true,
+            "type": "Int16Array",
+            "offset": 245520,
+            "bytes": 29520
+          },
+          "uv": {
+            "itemSize": 2,
+            "normalized": false,
+            "type": "Float32Array",
+            "offset": 275040,
+            "bytes": 39360
+          },
+          "normal": {
+            "itemSize": 3,
+            "normalized": true,
+            "type": "Int16Array",
+            "offset": 314400,
+            "bytes": 29520
+          }
+        },
+        "index": null
+      }
+    }
+  }
+}

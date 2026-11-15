@@ -1,0 +1,159 @@
+/*
+ * Copyright 2026 Parity Technologies (UK) Ltd.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/* Humanity identity card — base structure and shared surface.
+   State-specific rules (sash, pill, stripe, fade) live in idcard-states.css. */
+
+.idcard {
+  /* Height-driven, not width-driven: 199px is the design height, which with
+     the Pocket card's 343/199 ratio yields the app's own card — the one the
+     person tapped to get here — centred in the 358px content column, and
+     `aspect-ratio` derives the width from whatever height the card is given.
+     On the home screen `.card-wrap` stretches it and owns the shrink floor
+     (the app is a fixed view and the card is its slack); everywhere else
+     this design height stands.
+     Never size this with a percentage width: the card also mounts inside
+     shrink-to-fit parents (`.promotion-card-wrap`), where a percentage
+     resolves against a max-content basis and collapses the card to nothing. */
+  height: 199px;
+  width: auto;
+  max-width: 100%;
+  aspect-ratio: 343 / 199;
+  perspective: 700px;
+  flex: none;
+  position: relative;
+}
+/* The card is a slab, not a sheet: the body carries the edge and the face
+   together, so a flip turns them as one and the thickness shows on the way
+   round. */
+.idcard-body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.idcard-edge {
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--c-b2) 62%, #000);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08), 0 14px 30px rgba(0, 0, 0, 0.45);
+  transform: translate3d(0, 3px, -3px);
+}
+.idcard-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--c-bg, linear-gradient(160deg, var(--c-b1) 0%, var(--c-b2) 100%));
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+  border: var(--c-bw, 0px) solid var(--c-border, transparent);
+  transform-style: preserve-3d;
+  will-change: transform;
+  color: var(--c-ink);
+  font-family: var(--font-body);
+}
+.idcard-sheen {
+  position: absolute;
+  inset: -30%;
+  background: linear-gradient(125deg, transparent 30%, var(--c-sheen) 50%, transparent 70%);
+  background-size: 220% 220%;
+  background-position: var(--sheen-x, 50%) var(--sheen-y, 50%);
+  opacity: var(--c-sheen-o, 1);
+  pointer-events: none;
+  transition: background-position 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.idcard-holo {
+  position: absolute;
+  inset: -10%;
+  background: conic-gradient(
+    from 210deg at 60% 30%,
+    rgba(255, 107, 107, 0.3),
+    rgba(246, 200, 105, 0.3),
+    rgba(79, 208, 122, 0.3),
+    rgba(0, 212, 255, 0.3),
+    rgba(139, 92, 246, 0.3),
+    rgba(255, 107, 107, 0.3)
+  );
+  filter: blur(10px) saturate(1.2);
+  opacity: var(--c-holo, 0);
+  pointer-events: none;
+  transform: translate(var(--holo-x, 0px), var(--holo-y, 0px));
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.idcard-grain {
+  position: absolute;
+  inset: 0;
+  background: url('../../../assets/prize/grain.png') repeat;
+  background-size: 180px;
+  opacity: var(--c-grain, 0.1);
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+.idcard-wordmark {
+  position: absolute;
+  left: -4px;
+  top: 58%;
+  width: 221px;
+  height: auto;
+  opacity: 0.14;
+  pointer-events: none;
+}
+
+.idcard-top {
+  position: absolute;
+  left: 16px;
+  top: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.idcard-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--c-av-bg);
+  color: var(--c-av-fg);
+  display: grid;
+  place-items: center;
+  font: 700 20px var(--font-head);
+  flex: none;
+}
+
+.idcard-idcol {
+  display: flex;
+  flex-direction: column;
+}
+
+.idcard-name {
+  font: 700 18px/1.3 var(--font-head);
+  letter-spacing: -0.01em;
+}
+/* The QR glyph, the card's one control: it turns the card over. With a sash
+   across the corner the glyph moves down so both stay readable. */
+.idcard-qr {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--c-ink2);
+}
+.idcard.has-pill .idcard-qr {
+  top: auto;
+  bottom: 12px;
+}

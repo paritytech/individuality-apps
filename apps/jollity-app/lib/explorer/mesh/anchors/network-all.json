@@ -1,0 +1,31 @@
+{
+  "name": "network-all",
+  "scenario": "rejoin-two-offers",
+  "doc": "a network change on both phones at one instant on a steady pair (the abstract room's network-all run): the steady warmup, then env:network:a and env:network:b, each side's repair issued, nothing negotiated yet",
+  "sourceSha": "79e592fe1968",
+  "warmup": [
+    "pc:a/1:negotiationneeded",
+    "wire:a>b:wire-1:deliver",
+    "wire:b>a:wire-2:deliver",
+    "pc:a/1:sld:resolve",
+    "pc:a/1:gather",
+    "wire:a>b:wire-3:deliver",
+    "pc:b/1:srd:resolve",
+    "pc:b/1:sld:resolve",
+    "pc:b/1:gather",
+    "wire:b>a:wire-4:deliver",
+    "pc:a/1:srd:resolve",
+    "pc:a/1:negotiationneeded",
+    "pc:b/1:negotiationneeded",
+    "pc:a/1:sld:resolve",
+    "pc:a/1:gather",
+    "lane:a>b:deliver",
+    "pc:b/1:srd:resolve",
+    "pc:b/1:sld:resolve",
+    "pc:b/1:gather",
+    "lane:b>a:deliver",
+    "pc:a/1:srd:resolve",
+    "env:network:a",
+    "env:network:b"
+  ]
+}

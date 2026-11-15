@@ -1,0 +1,29 @@
+<!doctype html>
+<!--
+  Copyright 2026 Parity Technologies (UK) Ltd.
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Same squircle as the README header; the on-chain product icon the host
+         shows is the square `deploy/icon.png` from the deploy manifest. Vite
+         hashes and rewrites this against `base: "./"`, so it survives being
+         served from a gateway subpath. -->
+    <link rel="icon" type="image/png" href="./src/assets/icon.png" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+    />
+    <meta
+      name="description"
+      content="Humanity Prizes — the prize game over the Polkadot People Chain personhood runtime."
+    />
+    <title>Humanity Prizes</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

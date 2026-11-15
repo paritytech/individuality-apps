@@ -1,0 +1,261 @@
+/*
+ * Copyright 2026 Parity Technologies (UK) Ltd.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/* Humanity home — the card journey screen. Per-variant styles live here as
+   classes. Quiet register: theme surfaces, hairline borders, all
+   colour from the card material. Every animation has a reduced-motion path. */
+
+/* The card is the slack in the fixed (non-scrolling) view. The wrap carries
+   the design height (226px card + 4px nudge) as its flex basis and shrinks
+   toward `min-height` when a screen would otherwise overflow; the card
+   stretches to whatever height survives and its width follows from
+   `aspect-ratio`. */
+.card-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding-top: 4px;
+  height: 203px;
+  min-height: 128px;
+  flex: 0 1 auto;
+  position: relative;
+}
+.card-wrap > .idcard,
+
+/* ---------- the line under the card ---------- */
+.under-card { display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; }
+.under-card-title { font: 700 18px var(--font-head); }
+.under-card-sub { font: 400 12px/1.4 var(--font-body); color: var(--fg-secondary); max-width: 320px; }
+/* A line on its own under a block, centred like the block notes. */
+.under-note { text-align: center; }
+
+/* ---------- block interior rhythm ---------- */
+.block-stack { display: flex; flex-direction: column; gap: 11px; }
+.block-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.game-block { display: flex; flex-direction: column; gap: 12px; }
+/* The home's ambient light, as a halo around the one verb rather than a wash
+   at the top of the screen. A shadow, not a pseudo-element: it paints only
+   outside the block, so the entrance transform can never tint the block
+   itself. It stays inside the column's 16px gutter (`.body-col` clips). */
+.member-home-col .game-block {
+  box-shadow: 0 4px 28px 0 var(--ambient-c);
+}
+.block-title { font: 600 14px var(--font-body); }
+/* fg-tertiary on the container surface fails AA at 11px, so notes sit on the
+   secondary step instead. */
+.block-note { font: 400 11px var(--font-body); color: var(--fg-secondary); }
+.game-block .block-note { text-align: center; }
+.chip.is-warning { color: var(--warning); }
+/* A caution deadline colours the block's edge: a warning, never red. */
+.game-block.is-caution { border: 1px solid color-mix(in srgb, var(--ds-stroke-warning) 40%, transparent); }
+
+/* A confirmed seat keeps the pill silhouette and hands off to the game. */
+.cta-confirmed {
+  width: 100%; min-height: 54px; border-radius: 999px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 24px;
+  background: var(--surface-nested); color: var(--fg-primary);
+  font: 700 16px var(--font-head);
+  border: 1px solid color-mix(in srgb, var(--fg-primary) 12%, transparent);
+  cursor: pointer;
+}
+.cta-confirmed .icn { color: var(--success); }
+/* Tinted themes keep the neutral Berlin Day grey, not the palette tint. */
+:is([data-theme='lisbon'], [data-theme='malta'], [data-theme='tokyo']) .cta-confirmed { background: #f7f7f8; }
+
+/* ---------- the story ladder ----------
+   Three rungs, a swatch each in the material it earns, the current one
+   marked. Done rungs carry a check; future ones step back. */
+.story-block { display: flex; flex-direction: column; gap: 12px; }
+.story { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.story-row { display: flex; gap: 12px; align-items: center; }
+.story-row.is-future { opacity: 0.7; }
+.story-text { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.story-title { font: 600 13px var(--font-body); }
+.story-sub { font: 400 11px/1.35 var(--font-body); color: var(--fg-secondary); }
+.mini-card {
+  position: relative; width: 36px; height: 23px; border-radius: 5px; flex: none; overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 1px 3px rgba(0, 0, 0, 0.45);
+  display: grid; place-items: center; color: var(--success);
+}
+.mini-card b {
+  position: absolute; left: 5px; right: 5px; bottom: 3px; height: 2px; border-radius: 1px;
+  transform: skewX(-22deg);
+}
+/* ---------- showing up ----------
+   The member's recent games, oldest on the left. A hollow mark is a miss;
+   a dimmed one lies outside the window the runtime still counts. */
+.attendance-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.attendance-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.attendance-marks { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+.marks-row { display: flex; gap: 6px; }
+.mark { display: block; width: 12px; height: 12px; border-radius: 50%; background: var(--fg-primary); }
+.mark.is-missed { background: transparent; border: 1.5px solid var(--fg-tertiary); }
+.mark.is-outside { opacity: 0.35; }
+/* Before the person started playing: a slot, not a game. */
+.mark.is-before { background: transparent; border: 1.5px dotted var(--fg-tertiary); opacity: 0.45; }
+.route-arrow { color: var(--fg-secondary); }
+/* ---------- name upgrade (lite → full person) ---------- */
+.name-field { display: flex; flex-direction: column; gap: 6px; }
+.name-input {
+  width: 100%; min-height: 46px; border-radius: 12px;
+  background: var(--surface-nested); color: var(--fg-primary);
+  border: 1px solid var(--stroke-secondary); padding: 12px 14px;
+  font: 500 15px var(--font-body); letter-spacing: 0.01em;
+}
+.name-input::placeholder { color: var(--fg-tertiary); }
+.name-input:disabled { opacity: 0.55; cursor: default; }
+:is([data-theme='lisbon'], [data-theme='malta'], [data-theme='tokyo']) .name-input {
+  background: #f7f7f8; border-color: #dadbe0;
+}
+/* The permanence warning is the one line that must not be skimmed past: a
+   hairline rule sets it apart from the field hint above it. */
+.name-warn {
+  border-top: 1px solid color-mix(in srgb, var(--fg-primary) 8%, transparent);
+  padding-top: 11px; color: var(--fg-secondary);
+}
+.name-form .cta-pill:disabled { opacity: 0.45; cursor: default; transform: none; }
+
+/* ---------- choosing a name ---------- */
+.username-claim-col { gap: 13px; }
+.username-claim-col .under-card-title { outline: none; }
+.username-claim-message { color: var(--fg-secondary); font: 400 13px/1.5 var(--font-body); text-align: center; }
+.name-status { display: flex; align-items: center; gap: 6px; min-height: 16px; }
+.name-status.is-ok { color: var(--success); }
+.name-status.is-warn { color: var(--warning); }
+.name-retry {
+  margin-left: 4px; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid currentColor; color: inherit; font: 600 11px var(--font-body);
+}
+.name-screen { position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.name-screen .pellet { position: absolute; width: 7px; height: 7px; border-radius: 50%; pointer-events: none; z-index: 30; }
+.name-form .cta-pill.is-armed { background: var(--fg-primary); }
+.name-warn { transition: color 0.2s ease; }
+
+/* ---------- rows ---------- */
+.route-card { transition: background 0.16s ease, transform 0.12s ease; }
+button.route-card:hover { background: color-mix(in srgb, var(--fg-primary) 3%, var(--surface-container)); }
+button.route-card:active { transform: scale(0.985); }
+/* ---------- the one onboarding tip ----------
+   A small card anchored to the thing it explains, measured in the column's
+   coordinates: a title and one line, an arrow on the target's centre line,
+   below the target unless there is no room. The home mounts it once the
+   entrance has settled, and each new tip fades in; reduced motion shows it
+   at rest. */
+.hint-tip {
+  position: absolute;
+  z-index: 7;
+  width: 280px;
+  max-width: calc(100% - 24px);
+  padding: 12px 40px 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-container);
+  border: 1px solid color-mix(in srgb, var(--fg-primary) 14%, transparent);
+  box-shadow: 0 12px 32px var(--ds-shadow-medium);
+  color: var(--fg-primary);
+  cursor: pointer;
+  opacity: 0;
+  animation: hintIn 0.3s ease forwards;
+}
+.hint-tip::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--hint-arrow, 18px) - 6px);
+  width: 12px;
+  height: 12px;
+  background: var(--surface-container);
+  border-left: 1px solid color-mix(in srgb, var(--fg-primary) 14%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--fg-primary) 14%, transparent);
+}
+.hint-tip.is-below::before { top: -7px; transform: rotate(45deg); }
+.hint-tip.is-above::before { bottom: -7px; transform: rotate(225deg); }
+.hint-tip-title { font: 600 13px/1.3 var(--font-body); }
+.hint-tip-body { font: 400 12px/1.4 var(--font-body); color: var(--fg-secondary); margin-top: 3px; }
+.hint-tip-dismiss {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--fg-secondary);
+}
+.hint-tip-dismiss:hover { background: var(--surface-nested); }
+@keyframes hintIn { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .hint-tip { opacity: 1; animation: none; } }
+body.reduced .hint-tip { opacity: 1; animation: none; }
+/* ---------- the last-day sheet ----------
+   Lays over the home on the last day of a grace window. A modal <dialog>:
+   the frame is transparent, padding included, so a click on it is a click
+   on the scrim (its ::backdrop), and the visible sheet is its one child.
+   The scrim and the second button both put it away; nothing here traps. */
+.caution-sheet {
+  margin: auto auto 0; padding: 0 8px calc(8px + env(safe-area-inset-bottom));
+  border: 0; background: transparent; color: var(--fg-primary);
+  width: 100%; max-width: 440px; max-height: 100%; overflow: visible;
+  animation: sheetUp 0.55s 0.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.caution-sheet::backdrop { background: rgba(0, 0, 0, 0.62); animation: scrimIn 0.3s ease both; }
+.sheet {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 12px 24px 20px; border-radius: 28px;
+  background: var(--surface-container); border: 1px solid color-mix(in srgb, var(--fg-primary) 8%, transparent);
+  box-shadow: 0 -12px 40px var(--ds-shadow-medium); text-align: center;
+}
+.sheet-handle { width: 44px; height: 5px; border-radius: 4px; background: var(--fg-tertiary); }
+.sheet-icon {
+  display: grid; place-items: center; width: 64px; height: 64px; margin-top: 4px; border-radius: 22px;
+  background: color-mix(in srgb, var(--ds-bg-status-warning) 12%, transparent); color: var(--warning);
+}
+.sheet-title { font: 700 22px/1.2 var(--font-head); outline: none; }
+.sheet-sub { font: 400 14px/1.45 var(--font-body); color: var(--fg-secondary); max-width: 280px; margin-bottom: 4px; }
+.sheet-note { font: 600 12px var(--font-body); color: var(--warning); margin: -6px 0 2px; }
+.sheet .cta-ghost { margin-top: -4px; }
+@keyframes sheetUp { from { transform: translateY(110%); } }
+@keyframes scrimIn { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .caution-sheet, .caution-sheet::backdrop { animation: none; }
+}
+body.reduced .caution-sheet,
+body.reduced .caution-sheet::backdrop { animation: none; }
+/* ---------- assistive text ---------- */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+/* ---------- narrow phones ---------- */
+@media (max-width: 359px) {
+  .body-col { padding-inline: 12px; }
+  .under-card-title { font-size: 17px; }
+  .card-value { font-size: 16px; }
+}
+
+/* ---------- short viewports ----------
+   The app is a fixed view: it never scrolls. The card absorbs most of the
+   slack on its own (`.card-wrap` shrinks it), and below ~700px tall the
+   column also tightens its gap and padding so the card keeps more of its
+   height. The second step clears the tallest screen (caution) at 640px. */
+@media (max-height: 700px) {
+  .body-col {
+    gap: 9px;
+    padding-top: calc(12px + env(safe-area-inset-top));
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+}
+@media (max-height: 660px) {
+  .body-col { gap: 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-card { transition: none; }
+  button.route-card:active { transform: none; }
+}
+body.reduced .route-card { transition: none; }
+body.reduced button.route-card:active { transform: none; }
+
+.membership-note { text-align: center; }

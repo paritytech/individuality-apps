@@ -1,0 +1,47 @@
+/*
+ * Copyright 2026 Parity Technologies (UK) Ltd.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+@import "tailwindcss";
+/* Tailwind scans the whole package for class names; the app's scripts, deploy
+   manifests, docs and assets are not markup. */
+@source not "../scripts";
+@source not "../deploy";
+@source not "../docs";
+@source not "../assets";
+@source not "../AGENTS.md";
+@source not "../CONTEXT.md";
+@source not "../STATES.md";
+@source not "../README.md";
+@source not "../CLAUDE.md";
+@source not "../.agents";
+
+/* Humanity presentation CSS, split into files under the 200-line ceiling. Loaded once here (main.tsx imports this file).
+   Scratch-card CSS (.scratch-*, .sc-*) is co-located with ScratchCard.tsx. */
+@import "./shared/styles/themes.css";
+@import "./shared/styles/foundation.css";
+@import "./shared/styles/chrome.css";
+@import "./features/card/styles/widgets.css";
+@import "./features/card/styles/idcard.css";
+@import "./features/card/styles/idcard-states.css";
+@import "./features/card/styles/home.css";
+@import "./features/card/styles/promotion.css";
+
+/* Bridge the scaffold's placeholder Tailwind tokens onto the real zinc/silver
+   Humanity palette so existing utilities (bg-surface, text-fg2, border-border,
+   font-mono, …) resolve to the design system instead of the neutral draft. */
+@theme inline {
+  --color-bg: var(--surface-main);
+  --color-surface: var(--surface-container);
+  --color-nested: var(--surface-nested);
+  --color-border: var(--stroke-primary);
+  --color-fg1: var(--fg-primary);
+  --color-fg2: var(--fg-secondary);
+  --color-accent: var(--action-primary);
+  --color-danger: var(--error);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+}

@@ -1,0 +1,83 @@
+/* Copyright 2026 Parity Technologies (UK) Ltd.
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+
+/* ---------- scratch card (pre-baked art from game-end) ---------- */
+
+.scratch-wrap { position: relative; width: 100%; display: flex; justify-content: center; }
+.scratch-card {
+  position: relative;
+  width: min(310px, 84%);
+  aspect-ratio: 1173 / 1341;
+  will-change: transform;
+  user-select: none; -webkit-user-select: none;
+  filter: drop-shadow(0 18px 34px var(--ds-shadow-medium));
+  /* zinc/silver register for the card's own text (no gold anywhere). The card
+     is dark material in every theme, so it pins its own foreground. */
+  color: var(--fg-primary);
+  --font-head: 'Manrope', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-game: 'Mulish', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-serif: Georgia, 'Times New Roman', serif;
+  --fg-primary: #f4f4f5;
+  --fg-secondary: #8c8f98;
+}
+.sc-art { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.sc-eyebrow, .sc-date, .sc-odds, .sc-brand { position: absolute; left: 10%; right: 10%; text-align: center; pointer-events: none; }
+.sc-eyebrow { top: 12.5%; font: 600 11px var(--font-head); letter-spacing: 0.3em; color: #e8eaee; text-indent: 0.3em; }
+.sc-date { top: 17.2%; font: 500 8.5px var(--font-mono); letter-spacing: 0.26em; color: rgba(232, 234, 238, 0.42); text-indent: 0.26em; }
+.sc-odds { top: 21.6%; font: 400 10.5px var(--font-body); color: rgba(232, 234, 238, 0.55); }
+.sc-brand { top: 36.5%; font: 500 26px var(--font-serif); color: rgba(232, 234, 238, 0.32); }
+.sc-panel { position: absolute; }
+.sc-prize {
+  position: absolute; inset: 0; border-radius: inherit; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 40%, #191a1f 0%, #0e0f12 75%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  z-index: 1;
+}
+.sc-amount {
+  font: 900 46px var(--font-game); letter-spacing: -1px;
+  background: linear-gradient(180deg, #ffffff 0%, #d6d2c4 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 20px rgba(255, 255, 255, 0.16));
+}
+.sc-pity { font: 800 20px var(--font-head); color: var(--fg-primary); }
+.sc-note { font: 400 11px var(--font-body); color: var(--fg-secondary); margin-top: 2px; }
+.sc-foil { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; z-index: 2; cursor: pointer; }
+.sc-holo {
+  position: absolute; inset: 0; border-radius: inherit; z-index: 3; pointer-events: none;
+  background-size: 42% auto, 68% auto;
+  background-position: 50% 50%, 50% 50%;
+  mix-blend-mode: screen; opacity: 0.5;
+}
+.sc-debris { position: absolute; inset: -30px; width: calc(100% + 60px); height: calc(100% + 60px); pointer-events: none; z-index: 5; }
+.sc-hint { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 32px; z-index: 4; pointer-events: none; opacity: 0.85; filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.45)); }
+.sc-flash { position: absolute; inset: -60px; background: #fff; opacity: 0; z-index: 10; pointer-events: none; border-radius: 24px; }
+
+/* Shared by the pellet burst and the hint icon. */
+.icn { display: inline-block; vertical-align: -0.18em; flex: none; }
+.pellet { position: absolute; width: 7px; height: 7px; border-radius: 50%; pointer-events: none; z-index: 30; }
+
+/* Keyboard path: the foil surface is a focusable button (Enter/Space reveal). */
+.sc-foil:focus-visible {
+  outline: 2px solid #7686ff;
+  outline-offset: 3px;
+}
+
+/* ---- the scratch screen: the card and nothing else ----
+   The card takes the column's width, capped by the height the screen has
+   left once the close control and the button's row are counted; the button
+   row keeps its height so the card never jumps when the button arrives. */
+.scratch-stage { justify-content: center; padding: 8px 16px 0; gap: 0; }
+/* The art carries its own transparent margin (the card fills about three
+   quarters of the image), so the box may run wider than the column: what
+   overflows is margin, and the wrap centres it. */
+.scratch-screen .scratch-wrap { overflow: visible; }
+.scratch-screen .scratch-card {
+  flex: none;
+  max-width: none;
+  width: min(132%, calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 176px) * 1173 / 1341));
+}
+.scratch-after { min-height: calc(94px + env(safe-area-inset-bottom)); justify-content: flex-end; }
+.scratch-after-inner { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.scratch-after .cta-pill { max-width: 280px; }

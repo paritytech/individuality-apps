@@ -1,0 +1,37 @@
+{
+  "id": "M1385b",
+  "target": "lib/webrtc/mesh.ts",
+  "contextCommit": "319c3e00",
+  "hunks": [
+    {
+      "find": "if (conn.offersApplied !== applied || pc.localDescription?.type !== \"answer\") {",
+      "replace": "if (conn.offersApplied !== applied) {"
+    },
+    {
+      "find": "const held = remoteSessionOf(conn.pc.remoteDescription?.sdp) ?? this.answeringOn(peerId)?.session ?? null",
+      "replace": "const held = remoteSessionOf(conn.pc.remoteDescription?.sdp) ?? null"
+    }
+  ],
+  "warmup": [
+    "wire:b>a:wire-2:deliver",
+    "pc:a/1:negotiationneeded",
+    "pc:a/1:sld:resolve",
+    "pc:a/1:gather",
+    "env:reload:b",
+    "wire:a>b:wire-3:capture",
+    "wire:b>a:wire-4:deliver",
+    "pc:a/2:negotiationneeded",
+    "pc:a/2:sld:resolve",
+    "pc:a/2:gather"
+  ],
+  "precondition": "twoOffersDeliverable",
+  "scenario": "rejoin-two-offers",
+  "bounds": {
+    "depth": 14,
+    "faults": 2
+  },
+  "mustTrip": [
+    "P1"
+  ],
+  "gating": false
+}

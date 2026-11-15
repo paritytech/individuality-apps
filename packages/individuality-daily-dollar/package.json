@@ -1,0 +1,24 @@
+{
+  "name": "@individuality/daily-dollar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Daily Dollar, the same in every product: the people-airdrop draw and a person's standing in it, and the registry core of draw records (parsing, the chain standing folded in, the registration gate and the registration, scratch and cancel reducers) a product instantiates over its own record. It depends on no product's package.",
+  "license": "GPL-3.0-or-later",
+  "author": "Parity Technologies <admin@parity.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paritytech/individuality-apps-community.git",
+    "directory": "packages/individuality-daily-dollar"
+  },
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  }
+}

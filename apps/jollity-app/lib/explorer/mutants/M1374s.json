@@ -1,0 +1,34 @@
+{
+  "id": "M1374s",
+  "target": "lib/webrtc/mesh.ts",
+  "contextCommit": "6bc703857",
+  "hunks": [
+    {
+      "find": "rtcLog(\"[jollity-rtc] onRtc error from\", peerId, describeError(err))\n        return { outcome: \"rejected\", site: \"statement-answer\", reason: sdpRejection(err) }",
+      "replace": "rtcLog(\"[jollity-rtc] onRtc error from\", peerId, describeError(err))\n        return { outcome: \"resolved\" }"
+    },
+    {
+      "find": "if (sent === \"stale\") return { outcome: \"stale\", site: \"statement-answer\" }",
+      "replace": "if (sent === \"stale\") return { outcome: \"resolved\" }"
+    }
+  ],
+  "warmup": [
+    "pc:a/1:negotiationneeded",
+    "wire:a>b:wire-1:deliver",
+    "wire:b>a:wire-2:deliver",
+    "pc:a/1:sld:resolve",
+    "pc:a/1:gather",
+    "wire:a>b:wire-3:deliver",
+    "pc:b/1:srd:resolve"
+  ],
+  "precondition": "bSendAnswerOpen",
+  "scenario": "single-offer",
+  "bounds": {
+    "depth": 12,
+    "faults": 2
+  },
+  "mustTrip": [
+    "P2"
+  ],
+  "gating": true
+}
