@@ -82,6 +82,12 @@
     "@parity/product-sdk-individuality": "$@parity/product-sdk-individuality",
     "@parity/product-sdk-host": "$@parity/product-sdk-host",
     "@parity/product-sdk-tx": "$@parity/product-sdk-tx",
-    "deepmerge-ts": "8.0.1"
+    "deepmerge-ts": "8.0.1",
+    "@ts-morph/common": {
+      "minimatch": "^11.0.1"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
+    }
   }
 }
