@@ -7,7 +7,7 @@
   "author": "Parity Technologies <admin@parity.io>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paritytech/individuality-apps-community.git",
+    "url": "git+https://github.com/paritytech/individuality-apps.git",
     "directory": "packages/jollity-game-chain"
   },
   "type": "module",

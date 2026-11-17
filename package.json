@@ -1,14 +1,14 @@
 {
-  "name": "individuality-apps-community",
+  "name": "individuality-apps",
   "version": "0.1.0",
   "private": true,
   "license": "GPL-3.0-or-later",
   "author": "Parity Technologies <admin@parity.io>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paritytech/individuality-apps-community.git"
+    "url": "git+https://github.com/paritytech/individuality-apps.git"
   },
-  "homepage": "https://github.com/paritytech/individuality-apps-community",
+  "homepage": "https://github.com/paritytech/individuality-apps",
   "engines": {
     "node": ">=24"
   },
