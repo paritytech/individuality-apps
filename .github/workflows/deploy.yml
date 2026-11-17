@@ -1,0 +1,568 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Deploy
+# Publishes the app and its chat worker to Bulletin and DotNS, with a product
+# manifest, on both networks at once. Every name comes from the DOTNS_DOMAIN
+# secret, a bare label such as `my-game`:
+#
+#   push main          <DOTNS_DOMAIN>.testnet + <DOTNS_DOMAIN>next.paseo
+#   pull_request       <DOTNS_DOMAIN>-pr<N>-sandbox00 on previewnet, only when
+#                      deployed sources changed (scripts/ci/changes.mjs) or the
+#                      PR has the deploy-preview label. Paseo only with the
+#                      deploy-paseo label.
+#   workflow_dispatch  the same as push main
+#
+# The paseo staging name is built as <DOTNS_DOMAIN>.paseo, because release.yml
+# promotes its CIDs onto that name and the product name is compiled into the
+# bytes: a bundle built for the staging name would derive the wrong product
+# account once promoted. The previewnet PR leg is built as
+# <DOTNS_DOMAIN>.testnet for the same reason, since only that name is
+# allowlisted for lite proofs. Both legs therefore waive the manifest's
+# worker-name guard, which exists to catch a stale dist, and they build the
+# worker in this same job.
+#
+# The manifest's `domain`, NEXT_PUBLIC_PRODUCT_DOTNS and the worker's baked-in
+# PRODUCT_DOTNS must name the same product, so all three come from "Determine
+# domain".
+run-name: Deploy ${{ github.event_name == 'pull_request' && format('PR {0}', github.event.pull_request.number) || github.ref_name }}
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "apps/humanity-app/**"
+      - "apps/humanity-worker/**"
+      - "packages/humanity-shared/**"
+  pull_request:
+    branches: [main]
+    # `labeled`, so deploy-preview and deploy-paseo deploy at once. Any other
+    # label makes the deploy job's `if` false and it shows skipped.
+    types: [opened, synchronize, reopened, labeled]
+    paths-ignore:
+      - "apps/humanity-app/**"
+      - "apps/humanity-worker/**"
+      - "packages/humanity-shared/**"
+  workflow_dispatch:
+    inputs:
+      network:
+        description: "Network to deploy; all on push, pick one for a targeted redeploy"
+        type: choice
+        default: all
+        options: [all, preview, paseo-next-v2]
+      skip-cache:
+        description: "Skip the deployment cache and force a redeploy"
+        type: boolean
+        default: false
+      target:
+        description: "Paseo name to publish under. staging: <DOTNS_DOMAIN>next (previewnet always gets <DOTNS_DOMAIN>). release: <DOTNS_DOMAIN> itself, restored in full after a wipe, unlike release.yml."
+        type: choice
+        default: staging
+        options: [staging, release]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  # GitHub keeps one pending run per group. Every productive PR event carries
+  # the complete current plan, so replacing a pending run loses no leg. An
+  # unrelated label gets a group of its own so it cannot evict productive work.
+  group: deploy-${{ github.event.pull_request.number || 'production' }}${{ github.event.action == 'labeled' && github.event.label.name != 'deploy-preview' && github.event.label.name != 'deploy-paseo' && format('-noop-{0}', github.run_id) || '' }}
+  # A publish is a sequence of on-chain writes, and killing it midway leaves
+  # the name half-published.
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: ${{ matrix.display-name }}
+    # GitHub withholds secrets from pull requests opened from a fork. An empty
+    # matrix fails the run, so the label clause is false exactly when the
+    # matrix is empty (scripts/ci/deploy-matrix.test.ts).
+    if: >-
+      (github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository) &&
+      (github.event.action != 'labeled' ||
+      github.event.label.name == 'deploy-preview' ||
+      github.event.label.name == 'deploy-paseo')
+    runs-on: ubuntu-latest
+    env:
+      # Where running apps read which build is current (apps/jollity-app/lib/release).
+      # Empty on a PR sandbox or without the variables, which switches the
+      # update check off.
+      VERSION_URL: ${{ github.event_name != 'pull_request' && vars.VERSION_GIST_ID && vars.VERSION_GIST_OWNER && format('https://gist.githubusercontent.com/{0}/{1}/raw/{2}-version.json', vars.VERSION_GIST_OWNER, vars.VERSION_GIST_ID, secrets.DOTNS_DOMAIN) || '' }}
+      CAN_WRITE_VERSION: ${{ github.event_name != 'pull_request' && secrets.GIST_TOKEN != '' && vars.VERSION_GIST_ID != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # One include list of the selected rows: an include row that cannot
+        # merge into an existing combination is added as a new one, so a static
+        # row per network would always run both. scripts/ci/deploy-matrix.mjs
+        # is the same table, and its test evaluates this expression against it.
+        include: >-
+          ${{ fromJSON(format('[{0}{1}{2}]',
+          (inputs.network != 'paseo-next-v2' && (github.event.action != 'labeled' || github.event.label.name == 'deploy-preview' || github.event.label.name == 'deploy-paseo')) && '{"env":"preview","display-name":"Previewnet","network-name":"previewnet","suffix":".testnet","shell":"testnet.li","staging-suffix":"","deployer-product-id":""}' || '',
+          ((inputs.network != 'paseo-next-v2' && (github.event.action != 'labeled' || github.event.label.name == 'deploy-preview' || github.event.label.name == 'deploy-paseo')) && (inputs.network != 'preview' && (github.event_name != 'pull_request' || ((github.event.action != 'labeled' || github.event.label.name == 'deploy-preview' || github.event.label.name == 'deploy-paseo') && contains(github.event.pull_request.labels.*.name, 'deploy-paseo'))))) && ',' || '',
+          (inputs.network != 'preview' && (github.event_name != 'pull_request' || ((github.event.action != 'labeled' || github.event.label.name == 'deploy-preview' || github.event.label.name == 'deploy-paseo') && contains(github.event.pull_request.labels.*.name, 'deploy-paseo')))) && '{"env":"paseo-next-v2","display-name":"Paseo","network-name":"paseo","suffix":".paseo","shell":"paseo.li","staging-suffix":"next","deployer-product-id":"uid.paseo"}' || '')) }}
+    steps:
+      # A PR checks out its merge commit, whose first parent is the base tip, so
+      # depth 2 lets the gate diff the whole PR, never just the last push.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      # On a PR push, or a deploy-paseo label event that may replace one,
+      # previewnet deploys only when deployed sources changed or the PR carries
+      # deploy-preview. An absent output means deploy.
+      - name: Decide whether this PR needs a preview
+        id: gate
+        if: matrix.env == 'preview' && github.event_name == 'pull_request' && (github.event.action != 'labeled' || github.event.label.name == 'deploy-paseo')
+        shell: bash
+        env:
+          FORCED: ${{ contains(github.event.pull_request.labels.*.name, 'deploy-preview') }}
+        run: |
+          set -o pipefail
+          node scripts/ci/changes.mjs HEAD^1 HEAD | tee -a "$GITHUB_OUTPUT"
+          if grep -qx 'deploy=1' "$GITHUB_OUTPUT" || [ "$FORCED" = true ]; then
+            echo "gate=deploy" >> "$GITHUB_OUTPUT"
+          else
+            echo "gate=skip" >> "$GITHUB_OUTPUT"
+            echo "::notice::No deployed sources changed and no deploy-preview label: no previewnet preview for this push."
+          fi
+
+      # Validates only and exports nothing, so npm ci and the builds never hold
+      # the seed. The CLI reports a malformed phrase only as "Unable to match
+      # provided value to a secret URI", so the shape is checked here.
+      - name: Require the DOTNS_MNEMONIC secret
+        if: steps.gate.outputs.gate != 'skip'
+        env:
+          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_MNEMONIC }}
+        run: |
+          if [ -z "$DEPLOY_MNEMONIC" ]; then
+            echo "::error title=DOTNS_MNEMONIC secret missing::Add the DOTNS_MNEMONIC repo secret, the seed of the account that owns the deployed names."
+            exit 1
+          fi
+          WORDS=$(printf '%s' "$DEPLOY_MNEMONIC" | tr -d '\r' | wc -w | tr -d ' ')
+          case "$WORDS" in
+            12|15|18|21|24) ;;
+            *)
+              echo "::error title=DOTNS_MNEMONIC is not a mnemonic::The secret holds $WORDS whitespace-separated words. bulletin-deploy needs a 12, 15, 18, 21 or 24-word BIP39 phrase, optionally with a //derivation suffix on the last word."
+              exit 1
+              ;;
+          esac
+
+      - uses: actions/setup-node@v7
+        if: steps.gate.outputs.gate != 'skip'
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: npm
+
+      - name: Determine domain
+        if: steps.gate.outputs.gate != 'skip'
+        id: domain
+        env:
+          DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN }}
+          EVENT: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SUFFIX: ${{ matrix.suffix }}
+          STAGING_SUFFIX: ${{ matrix.staging-suffix }}
+          DEPLOY_ENV: ${{ matrix.env }}
+          TARGET: ${{ matrix.env == 'paseo-next-v2' && inputs.target || '' }}
+        run: |
+          set -o pipefail
+          bash scripts/ci/determine-domain.sh | tee -a "$GITHUB_OUTPUT"
+
+      # Hashed over the sources, not over out/, so the key is known before the
+      # build and a hit skips the build as well as the publish. The product, the
+      # network and the name are in the key because the product is compiled
+      # into the bundle and the staging and release names share a product.
+      - name: Compute the source hash
+        if: steps.gate.outputs.gate != 'skip'
+        id: hash
+        env:
+          PRODUCT: ${{ steps.domain.outputs.product }}
+          DEPLOY_ENV: ${{ matrix.env }}
+          DOTNS: ${{ steps.domain.outputs.dotns }}
+          # Hashed and never echoed, so a rotated DSN cannot restore a bundle
+          # built with the old one.
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SENTRY_DSN_TEST: ${{ secrets.SENTRY_DSN_TEST }}
+          TELEMETRY_LOGS: ${{ matrix.env == 'preview' && '1' || vars.NEXT_PUBLIC_TELEMETRY_LOGS || '0' }}
+          # A PR preview is tied to its exact head, while main keeps reusing
+          # bundles built from identical sources.
+          COMMIT_KEY: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
+        run: |
+          if [ -n "$COMMIT_KEY" ]; then
+            echo "commit_marker=jollity-build-commit:$COMMIT_KEY" >> "$GITHUB_OUTPUT"
+          else
+            echo "commit_marker=jollity-build-commit:cached" >> "$GITHUB_OUTPUT"
+          fi
+          HASH=$( {
+            # The list expands into individual git pathspecs on purpose.
+            # shellcheck disable=SC2046
+            git ls-files -s -- $(grep -v -e '^#' -e '^$' scripts/ci/bundle-sources.txt)
+            printf '%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n' "$PRODUCT" "$DEPLOY_ENV" "$DOTNS" "$SENTRY_DSN" "$SENTRY_DSN_TEST" "$VERSION_URL" "$TELEMETRY_LOGS" "$COMMIT_KEY"
+          } | sha256sum | cut -d' ' -f1)
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          echo "source hash: $HASH"
+
+      - name: Check the deployment cache
+        id: cache
+        if: (inputs.skip-cache != true) && steps.gate.outputs.gate != 'skip'
+        uses: actions/cache@v4
+        with:
+          path: .deploy-cache
+          key: deploy-${{ matrix.env }}-${{ steps.hash.outputs.hash }}
+
+      - name: Load the cached CIDs
+        id: cached
+        if: (steps.cache.outputs.cache-hit == 'true') && steps.gate.outputs.gate != 'skip'
+        run: |
+          cat .deploy-cache/cids.json
+          echo "app=$(jq -r .app .deploy-cache/cids.json)" >> "$GITHUB_OUTPUT"
+          echo "worker=$(jq -r .worker .deploy-cache/cids.json)" >> "$GITHUB_OUTPUT"
+          echo "::notice::Sources unchanged; reusing the published CIDs and skipping the build."
+
+      # The build's place in order, which the source hash has not
+      # (apps/jollity-app/lib/release/stale-build.ts). A cache hit reuses the
+      # time baked into the cached bytes.
+      - name: Stamp the build time
+        if: steps.gate.outputs.gate != 'skip'
+        id: buildtime
+        env:
+          CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+        run: |
+          if [ "$CACHE_HIT" = "true" ]; then
+            TIME=$(jq -r '.time // ""' .deploy-cache/cids.json)
+          else
+            TIME=$(git log -1 --format=%ct)
+          fi
+          echo "time=$TIME" >> "$GITHUB_OUTPUT"
+          echo "build time: ${TIME:-unknown}"
+
+      - name: Install dependencies
+        if: (steps.cache.outputs.cache-hit != 'true') && steps.gate.outputs.gate != 'skip'
+        run: npm ci
+
+      - name: Build the app
+        if: (steps.cache.outputs.cache-hit != 'true') && steps.gate.outputs.gate != 'skip'
+        env:
+          NEXT_PUBLIC_PRODUCT_DOTNS: ${{ steps.domain.outputs.product }}
+          NEXT_PUBLIC_NETWORK_NAME: ${{ matrix.network-name }}
+          NEXT_PUBLIC_APP_VERSION: ${{ steps.hash.outputs.hash }}
+          NEXT_PUBLIC_BUILD_COMMIT: ${{ steps.hash.outputs.commit_marker }}
+          NEXT_PUBLIC_BUILD_TIME: ${{ steps.buildtime.outputs.time }}
+          NEXT_PUBLIC_VERSION_URL: ${{ env.VERSION_URL }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          NEXT_PUBLIC_SENTRY_DSN_TEST: ${{ secrets.SENTRY_DSN_TEST }}
+          NEXT_PUBLIC_TELEMETRY_LOGS: ${{ matrix.env == 'preview' && '1' || vars.NEXT_PUBLIC_TELEMETRY_LOGS || '0' }}
+          NEXT_PUBLIC_SENTRY_TAG: ""
+        run: npm run build
+
+      - name: Build the chat worker
+        if: (steps.cache.outputs.cache-hit != 'true') && steps.gate.outputs.gate != 'skip'
+        env:
+          PRODUCT_DOTNS: ${{ steps.domain.outputs.product }}
+          NEXT_PUBLIC_NETWORK_NAME: ${{ matrix.network-name }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          NEXT_PUBLIC_SENTRY_DSN_TEST: ${{ secrets.SENTRY_DSN_TEST }}
+          NEXT_PUBLIC_APP_VERSION: ${{ steps.hash.outputs.hash }}
+        run: npm run build:chat
+
+      # A missing bundle would otherwise fail at the manifest's guard with a
+      # message about a name mismatch.
+      - name: Assert both executables exist
+        if: (steps.cache.outputs.cache-hit != 'true') && steps.gate.outputs.gate != 'skip'
+        run: |
+          test -s apps/jollity-app/out/index.html || {
+            echo "::error title=No app export::apps/jollity-app/out/index.html is missing, so 'next build' did not export."
+            exit 1
+          }
+          test -s apps/jollity-worker/dist/index.js || {
+            echo "::error title=No worker bundle::apps/jollity-worker/dist/index.js is missing or empty, so the chat extension would not publish."
+            exit 1
+          }
+          echo "worker bundle: $(wc -c < apps/jollity-worker/dist/index.js) bytes"
+
+      - name: Resolve the worker-name guard
+        id: guard
+        if: (steps.cache.outputs.cache-hit != 'true') && steps.gate.outputs.gate != 'skip'
+        env:
+          DOTNS: ${{ steps.domain.outputs.dotns }}
+          PRODUCT: ${{ steps.domain.outputs.product }}
+        run: |
+          if [ "$DOTNS" = "$PRODUCT" ]; then
+            echo "skip=" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+            echo "::notice::This leg stages a build named for another product, so the worker-name guard is waived."
+          fi
+
+      - name: Publish to Bulletin and DotNS
+        id: publish
+        if: (steps.cache.outputs.cache-hit != 'true') && steps.gate.outputs.gate != 'skip'
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 20
+          max_attempts: 3
+          retry_wait_seconds: 30
+          shell: bash
+          # The seed is normalised in the only step that holds it, since a
+          # pasted phrase easily picks up a newline, a CR or quotes. The
+          # staging name may act in the release name's context, so the grant
+          # is added to the repository's own.
+          command: |
+            set -o pipefail
+            MNEMONIC=$(printf '%s' "$DEPLOY_MNEMONIC" | tr -d '\r' \
+              | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' \
+                    -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/")
+            echo "::add-mask::$MNEMONIC"
+            export MNEMONIC
+            [ -n "$TRUSTED_PRODUCTS" ] || TRUSTED_PRODUCTS='{}'
+            DEPLOY_TRUSTED_PRODUCTS=$(jq -cn --argjson base "$TRUSTED_PRODUCTS" --arg staging "${DOTNS_DOMAIN}next" '$base + {($staging): ["context"]}')
+            export DEPLOY_TRUSTED_PRODUCTS
+            SIGNER_ARGS=()
+            if [ -n "$DEPLOYER_PRODUCT_ID" ]; then
+              SIGNER_ARGS=(--product-name "$DEPLOYER_PRODUCT_ID")
+            fi
+            npx -y "$BULLETIN_DEPLOY_SPEC" \
+              --env "$DEPLOY_ENV" \
+              --js-merkle \
+              --config deploy/bulletin-deploy.config.ts \
+              --no-transfer-to-signedin-user \
+              "${SIGNER_ARGS[@]}" \
+              ./apps/jollity-app/out "$DOTNS" 2>&1 | tee deploy.log
+        env:
+          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_MNEMONIC }}
+          DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN }}
+          TRUSTED_PRODUCTS: ${{ vars.TRUSTED_PRODUCTS }}
+          DEPLOYER_PRODUCT_ID: ${{ steps.domain.outputs.staging == '1' && matrix.deployer-product-id || '' }}
+          NODE_OPTIONS: "--max-old-space-size=8192"
+          DEPLOY_ENV: ${{ matrix.env }}
+          DOTNS: ${{ steps.domain.outputs.dotns }}
+          # The CLI compares the manifest's `domain` with its positional
+          # argument verbatim.
+          DEPLOY_DOMAIN: ${{ steps.domain.outputs.dotns }}
+          SKIP_WORKER_NAME_CHECK: ${{ steps.guard.outputs.skip }}
+          BULLETIN_DEPLOY_SPEC: ${{ vars.BULLETIN_DEPLOY_SPEC || 'bulletin-deploy@0.25.0' }}
+
+      - name: Read the published CIDs
+        id: cids
+        if: (steps.cache.outputs.cache-hit != 'true') && steps.gate.outputs.gate != 'skip'
+        env:
+          PUBLISH_CID: ${{ steps.publish.outputs.cid }}
+        run: |
+          cid_for() { grep -iE "executable \[$1\] cid" deploy.log | tail -1 | grep -oE '(bafy|Qm)[A-Za-z0-9]+' | tail -1; }
+          APP_CID=$(cid_for app)
+          WORKER_CID=$(cid_for worker)
+          [ -n "$APP_CID" ] || APP_CID="$PUBLISH_CID"
+          # The publish already succeeded. Only a release needs these, so
+          # release.yml is where a missing one is fatal.
+          if [ -z "$APP_CID" ]; then
+            echo "::warning title=No app CID::Could not read the app CID from the deploy log, so release.yml cannot promote this commit."
+          fi
+          if [ -z "$WORKER_CID" ]; then
+            echo "::warning title=No worker CID::Could not read the worker CID from the deploy log, so release.yml cannot promote the chat extension."
+          fi
+          echo "app=$APP_CID" >> "$GITHUB_OUTPUT"
+          echo "worker=$WORKER_CID" >> "$GITHUB_OUTPUT"
+
+      - name: Save the deployment to the cache
+        if: (steps.cache.outputs.cache-hit != 'true') && steps.gate.outputs.gate != 'skip'
+        env:
+          APP_CID: ${{ steps.cids.outputs.app }}
+          WORKER_CID: ${{ steps.cids.outputs.worker }}
+          APP_TIME: ${{ steps.buildtime.outputs.time }}
+        run: |
+          mkdir -p .deploy-cache
+          jq -n --arg app "$APP_CID" --arg worker "$WORKER_CID" --arg time "$APP_TIME" \
+            '{app: $app, worker: $worker, time: $time}' > .deploy-cache/cids.json
+
+      - name: Persist the deployment result
+        if: steps.gate.outputs.gate != 'skip'
+        id: result
+        env:
+          ENV_ID: ${{ matrix.env }}
+          NETWORK: ${{ matrix.env == 'preview' && 'previewnet' || matrix.env }}
+          SHELL_HOST: ${{ matrix.shell }}
+          DOMAIN: ${{ steps.domain.outputs.dotns }}
+          LABEL: ${{ steps.domain.outputs.label }}
+          PRODUCT: ${{ steps.domain.outputs.product }}
+          APP_VERSION: ${{ steps.hash.outputs.hash }}
+          APP_TIME: ${{ steps.buildtime.outputs.time }}
+          CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+          CACHED_APP: ${{ steps.cached.outputs.app }}
+          CACHED_WORKER: ${{ steps.cached.outputs.worker }}
+          BUILT_APP: ${{ steps.cids.outputs.app }}
+          BUILT_WORKER: ${{ steps.cids.outputs.worker }}
+        run: |
+          if [ "$CACHE_HIT" = "true" ]; then
+            APP_CID="$CACHED_APP"
+            WORKER_CID="$CACHED_WORKER"
+          else
+            APP_CID="$BUILT_APP"
+            WORKER_CID="$BUILT_WORKER"
+          fi
+          mkdir -p .deploy-result
+          jq -n \
+            --arg env "$ENV_ID" --arg network "$NETWORK" --arg domain "$DOMAIN" \
+            --arg label "$LABEL" --arg shell "$SHELL_HOST" --arg product "$PRODUCT" \
+            --arg cid "$APP_CID" --arg worker "$WORKER_CID" --arg version "$APP_VERSION" --arg time "$APP_TIME" \
+            '{env:$env, network:$network, domain:$domain, label:$label, shell:$shell, product:$product, cid:$cid, worker:$worker, version:$version, time:$time}' \
+            > ".deploy-result/${ENV_ID}.json"
+          cat ".deploy-result/${ENV_ID}.json"
+          echo "app=$APP_CID" >> "$GITHUB_OUTPUT"
+          echo "worker=$WORKER_CID" >> "$GITHUB_OUTPUT"
+
+      # One public gist file with one key per leg, so each leg merges only its
+      # own key. Never fails the deploy.
+      - name: Publish the version for running apps
+        if: (env.CAN_WRITE_VERSION == 'true' && steps.result.outputs.app != '') && steps.gate.outputs.gate != 'skip'
+        continue-on-error: true
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ vars.VERSION_GIST_ID }}
+          GIST_FILE: ${{ secrets.DOTNS_DOMAIN }}-version.json
+          KEY: ${{ steps.domain.outputs.dotns }}
+          VERSION: ${{ steps.hash.outputs.hash }}
+          TIME: ${{ steps.buildtime.outputs.time }}
+        run: node scripts/ci/merge-version-gist.mjs
+
+      # Lets the Comment job tell a leg skipped on purpose from one that failed
+      # before its upload.
+      - name: Record the skipped preview
+        if: steps.gate.outputs.gate == 'skip'
+        run: |
+          mkdir -p .deploy-result
+          jq -n '{env: "preview", skipped: true}' > .deploy-result/preview.json
+
+      - name: Upload the deployment result
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-result-${{ matrix.env }}
+          path: .deploy-result/${{ matrix.env }}.json
+          retention-days: 14
+
+      # release.yml restores this to promote the staged build, keyed by commit
+      # so a tag on this commit finds exactly these CIDs.
+      - name: Cache the paseo CIDs for the release
+        if: (matrix.env == 'paseo-next-v2' && github.ref == 'refs/heads/main' && steps.result.outputs.app != '') && steps.gate.outputs.gate != 'skip'
+        uses: actions/cache/save@v4
+        with:
+          path: .deploy-result/paseo-next-v2.json
+          key: release-cid-${{ github.sha }}
+
+      - name: Deployment summary
+        if: steps.gate.outputs.gate != 'skip'
+        env:
+          DISPLAY: ${{ matrix.display-name }}
+          SHELL_HOST: ${{ matrix.shell }}
+          DOMAIN: ${{ steps.domain.outputs.dotns }}
+          LABEL: ${{ steps.domain.outputs.label }}
+          PRODUCT: ${{ steps.domain.outputs.product }}
+          APP_CID: ${{ steps.result.outputs.app }}
+          WORKER_CID: ${{ steps.result.outputs.worker }}
+        run: |
+          {
+            echo "### ${DOMAIN} on ${DISPLAY}"
+            echo ""
+            echo "Browser &nbsp; https://${LABEL}.${SHELL_HOST}"
+            echo "Mobile / Desktop &nbsp; \`${DOMAIN}\`"
+            echo "Product &nbsp; \`${PRODUCT}\`"
+            echo "App CID &nbsp; \`${APP_CID}\`"
+            echo "Worker CID &nbsp; \`${WORKER_CID}\`"
+            echo ""
+            echo "Open \`${DOMAIN}\` in the Polkadot app. The gateway link is for a browser."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  comment:
+    name: Comment
+    # always(), so one network failing still leaves the other's link on the PR.
+    # The last clause is the deploy job's, so an unrelated label leaves the
+    # comment alone. Fork pull requests get no write token.
+    if: >-
+      always() &&
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.action != 'labeled' ||
+      github.event.label.name == 'deploy-preview' ||
+      github.event.label.name == 'deploy-paseo')
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/ci
+
+      - name: Download the deployment results
+        uses: actions/download-artifact@v4
+        # A leg that failed before its upload leaves no artifact.
+        continue-on-error: true
+        with:
+          pattern: deploy-result-*
+          path: deploy-results
+          merge-multiple: true
+
+      - uses: actions/github-script@v7
+        env:
+          DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const path = require('node:path');
+            const { MARKER, renderDeployComment } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/ci/deploy-comment.mjs`);
+            const { planLegs } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/ci/deploy-matrix.mjs`);
+
+            const dir = 'deploy-results';
+            const files = fs.existsSync(dir)
+              ? fs.readdirSync(dir).filter(f => f.endsWith('.json'))
+              : [];
+            const results = files.map(f => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')));
+            const p = context.payload;
+            const planned = planLegs({
+              event: context.eventName,
+              action: p.action,
+              label: p.label?.name,
+              labels: (p.pull_request?.labels ?? []).map(l => l.name),
+            }).map(l => l.env);
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const existing = comments.find(c => c.user.type === 'Bot' && c.body.includes(MARKER));
+
+            const body = renderDeployComment({
+              label: `${process.env.DOTNS_DOMAIN}-pr${context.issue.number}-sandbox00`,
+              runUrl: `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
+              planned,
+              results,
+              // a late label adds its leg to what is there, a push shows this run
+              previous: p.action === 'labeled' ? (existing?.body ?? '') : '',
+            });
+            if (body === null) {
+              core.info('Nothing published; leaving the PR comment alone.');
+              return;
+            }
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
