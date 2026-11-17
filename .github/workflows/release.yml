@@ -1,0 +1,301 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Release
+# Promotes what <DOTNS_DOMAIN>next.paseo has been serving onto
+# <DOTNS_DOMAIN>.paseo, with DOTNS_DOMAIN the bare label in the repository's
+# secret of that name.
+#
+# A release rebuilds nothing. deploy.yml already built the paseo artifacts for
+# the release name, published them at the staging name and cached their CIDs
+# under release-cid-<sha>. This workflow restores those CIDs and repoints the
+# release name's executable records at them, so the released bytes are exactly
+# the bytes that were staged and tested.
+#
+# A product is not one contenthash. bulletin-deploy writes text records on the
+# root name, a contenthash on `app.<name>`, and registers `worker.<name>` with
+# its own CID. Promotion therefore sets those two content records and the root
+# manifest, which carries the display name, the description and the
+# trustedProducts grants. Nothing else writes that manifest on the release
+# name.
+#
+# It runs every day at 09:00 UTC on main, on a pushed v* tag, and by hand.
+# Without a version it releases the next patch of the latest v* release, and it
+# skips when main is still the commit that release points at.
+#
+# The staged CIDs live in the Actions cache, which GitHub evicts after 7 days
+# without a read. Release within a week of the main deploy, or re-run Deploy on
+# the commit first: the restore fails closed rather than releasing something
+# else.
+run-name: Release ${{ inputs.version || (github.ref_type == 'tag' && github.ref_name) || 'next patch' }}
+
+on:
+  push:
+    tags: ["v*"]
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, such as 1.4.0. Empty releases the next patch."
+        type: string
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-paseo
+  cancel-in-progress: false
+
+env:
+  # bulletin-deploy calls the network `paseo-next-v2`, and the dotns CLI rejects
+  # that name. Only dotns runs here.
+  DOTNS_ENV: paseo-v2
+  CAN_WRITE_VERSION: ${{ secrets.GIST_TOKEN != '' && vars.VERSION_GIST_ID != '' }}
+
+jobs:
+  version:
+    name: Resolve the version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      skip: ${{ steps.version.outputs.skip }}
+    steps:
+      - name: Resolve the version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: |
+          VERSION="${INPUT_VERSION:-${TAG#v}}"
+          if [ -z "$VERSION" ]; then
+            LATEST=$(gh release list -R "$GITHUB_REPOSITORY" -L 100 --exclude-drafts --json tagName \
+              | jq -r '[.[].tagName | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))] | sort_by(ltrimstr("v") | split(".") | map(tonumber)) | last // ""')
+            if [ -z "$LATEST" ]; then
+              echo "::error title=No previous release::No v* release to bump from. Run this by hand with a version."
+              exit 1
+            fi
+            RELEASED_SHA=$(gh api "repos/$GITHUB_REPOSITORY/commits/$LATEST" --jq .sha)
+            if [ "$RELEASED_SHA" = "$GITHUB_SHA" ]; then
+              echo "::notice title=Nothing to release::$LATEST already points at $GITHUB_SHA."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            IFS=. read -r MAJOR MINOR PATCH <<< "${LATEST#v}"
+            VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+          fi
+          if ! printf '%s' "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error title=Bad version::'$VERSION' is not a semantic version, such as 1.4.0."
+            exit 1
+          fi
+          {
+            echo "version=$VERSION"
+            echo "tag=v$VERSION"
+          } >> "$GITHUB_OUTPUT"
+
+  release:
+    name: Promote to paseo
+    needs: version
+    if: needs.version.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    # A release records a deployment, so tools that watch deployments can
+    # announce it.
+    environment:
+      name: paseo
+      url: ${{ steps.release.outputs.url }}
+    steps:
+      - name: Resolve the released name
+        id: name
+        env:
+          DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN }}
+        run: |
+          if ! [[ "$DOTNS_DOMAIN" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+            echo "::error title=DOTNS_DOMAIN is not a DotNS label::Set the DOTNS_DOMAIN secret to the bare label the product deploys under, without a TLD."
+            exit 1
+          fi
+          echo "domain=${DOTNS_DOMAIN}.paseo" >> "$GITHUB_OUTPUT"
+
+      # Validates the shape and exports nothing. The CLI reports a malformed
+      # phrase only as "Unable to match provided value to a secret URI".
+      - name: Require the DOTNS_MNEMONIC secret
+        env:
+          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_MNEMONIC }}
+        run: |
+          if [ -z "$DEPLOY_MNEMONIC" ]; then
+            echo "::error title=DOTNS_MNEMONIC secret missing::Add the DOTNS_MNEMONIC repo secret, the seed of the account that owns the released name."
+            exit 1
+          fi
+          WORDS=$(printf '%s' "$DEPLOY_MNEMONIC" | tr -d '\r' | wc -w | tr -d ' ')
+          case "$WORDS" in
+            12|15|18|21|24) ;;
+            *)
+              echo "::error title=DOTNS_MNEMONIC is not a mnemonic::The secret holds $WORDS whitespace-separated words, and the CLI needs a 12, 15, 18, 21 or 24-word BIP39 phrase."
+              exit 1
+              ;;
+          esac
+
+      # The tree is read for deploy/constants.ts and scripts/sync-manifest.mts,
+      # never built.
+      - uses: actions/checkout@v7
+
+      - name: Restore the staged CIDs
+        uses: actions/cache/restore@v4
+        with:
+          path: .deploy-result/paseo-next-v2.json
+          key: release-cid-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - name: Read the staged CIDs
+        id: cids
+        env:
+          DOMAIN: ${{ steps.name.outputs.domain }}
+        run: |
+          cat .deploy-result/paseo-next-v2.json
+          APP_CID=$(jq -r '.cid // ""' .deploy-result/paseo-next-v2.json)
+          WORKER_CID=$(jq -r '.worker // ""' .deploy-result/paseo-next-v2.json)
+          STAGED=$(jq -r '.domain // ""' .deploy-result/paseo-next-v2.json)
+          VERSION=$(jq -r '.version // ""' .deploy-result/paseo-next-v2.json)
+          TIME=$(jq -r '.time // ""' .deploy-result/paseo-next-v2.json)
+          PRODUCT=$(jq -r '.product // ""' .deploy-result/paseo-next-v2.json)
+          if [ -z "$APP_CID" ]; then
+            echo "::error title=No app CID staged::The cached result carries no app CID, so re-run Deploy on this commit."
+            exit 1
+          fi
+          # The staged bundle must already name the release name, or the host
+          # derives the wrong product account and signing fails after the
+          # release looks successful.
+          if [ "$PRODUCT" != "$DOMAIN" ]; then
+            echo "::error title=Staged for the wrong product::${STAGED} was built as another product than the released name. Promoting it would break signing."
+            exit 1
+          fi
+          {
+            echo "app=$APP_CID"
+            echo "worker=$WORKER_CID"
+            echo "staged=$STAGED"
+            echo "appversion=$VERSION"
+            echo "apptime=$TIME"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+
+      - name: Install the dotns CLI
+        run: npm install -g @parity/dotns-cli
+
+      # One step, so the seed is normalised once and held by one step only.
+      # DOTNS_MNEMONIC is the CLI's own variable for the phrase. The manifest
+      # carries the same grants deploy.yml publishes on the staging name.
+      - name: Point the released name at the staged CIDs
+        env:
+          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_MNEMONIC }}
+          DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN }}
+          TRUSTED_PRODUCTS: ${{ vars.DEPLOY_TRUSTED_PRODUCTS }}
+          DOMAIN: ${{ steps.name.outputs.domain }}
+          APP_CID: ${{ steps.cids.outputs.app }}
+          WORKER_CID: ${{ steps.cids.outputs.worker }}
+        run: |
+          # The manifest is rewritten whole, so an unset variable would strip
+          # every grant the released name holds. Write {} to grant nothing.
+          if [ -z "$TRUSTED_PRODUCTS" ]; then
+            echo "::error title=DEPLOY_TRUSTED_PRODUCTS variable missing::Set the DEPLOY_TRUSTED_PRODUCTS repo variable to the grants of the released name, or {} for none."
+            exit 1
+          fi
+          DOTNS_MNEMONIC=$(printf '%s' "$DEPLOY_MNEMONIC" | tr -d '\r' \
+            | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' \
+                  -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/")
+          echo "::add-mask::$DOTNS_MNEMONIC"
+          export DOTNS_MNEMONIC
+          dotns content set "app.${DOMAIN}" "$APP_CID" --env "$DOTNS_ENV"
+          if [ -n "$WORKER_CID" ]; then
+            dotns content set "worker.${DOMAIN}" "$WORKER_CID" --env "$DOTNS_ENV"
+          else
+            echo "::warning title=Worker not promoted::No worker CID was staged, so the released name keeps its previous chat extension."
+          fi
+
+          DEPLOY_TRUSTED_PRODUCTS=$(jq -cn --argjson base "$TRUSTED_PRODUCTS" --arg staging "${DOTNS_DOMAIN}next" '$base + {($staging): ["context"]}')
+          export DEPLOY_TRUSTED_PRODUCTS
+          # sync-manifest emits nothing when the manifests match, and fails
+          # rather than writing when the name carries no manifest to build on.
+          dotns text view "$DOMAIN" manifest --env "$DOTNS_ENV" --json > manifest-published.json
+          npx --yes tsx scripts/sync-manifest.mts < manifest-published.json > manifest-next.json
+          if [ -s manifest-next.json ]; then
+            cat manifest-next.json
+            dotns text set "$DOMAIN" manifest --env "$DOTNS_ENV" < manifest-next.json
+          else
+            echo "The published manifest already matches deploy/constants.ts."
+          fi
+
+      # The promoted bytes are the staged bundle, so the released name's
+      # version is the staged result's APP_VERSION and its time. Never fails
+      # the release.
+      - name: Publish the released version for running apps
+        if: env.CAN_WRITE_VERSION == 'true' && steps.cids.outputs.appversion != '' && steps.cids.outputs.apptime != ''
+        continue-on-error: true
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ vars.VERSION_GIST_ID }}
+          GIST_FILE: ${{ secrets.DOTNS_DOMAIN }}-version.json
+          KEY: ${{ steps.name.outputs.domain }}
+          VERSION: ${{ steps.cids.outputs.appversion }}
+          TIME: ${{ steps.cids.outputs.apptime }}
+        run: node scripts/ci/merge-version-gist.mjs
+
+      # Generated notes start at the most recent release of any tag, so start
+      # them at this product's own previous one. Never blocks the release.
+      - name: Find the previous release
+        id: previous
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          prev=$(gh release list -R "$GITHUB_REPOSITORY" -L 100 --exclude-drafts --json tagName \
+            | jq -r --arg tag "$TAG" '[.[].tagName | select(test("^v[0-9]") and . != $tag)][0] // ""')
+          echo "Notes start at ${prev:-the first release}"
+          echo "tag=$prev" >> "$GITHUB_OUTPUT"
+
+      - name: Create the release
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: Jollity ${{ needs.version.outputs.version }}
+          generate_release_notes: true
+          previous_tag: ${{ steps.previous.outputs.tag }}
+          append_body: true
+          body: |
+            ### Deployment
+
+            | | |
+            |---|---|
+            | Version | `${{ needs.version.outputs.version }}` |
+            | Domain | `${{ steps.name.outputs.domain }}` |
+            | Staged at | `${{ steps.cids.outputs.staged }}` |
+            | App CID | `${{ steps.cids.outputs.app }}` |
+            | Worker CID | `${{ steps.cids.outputs.worker }}` |
+            | Browser | https://${{ steps.name.outputs.domain }}.li |
+
+            Open `${{ steps.name.outputs.domain }}` in the Polkadot app. To roll back, re-run
+            `dotns content set` with a prior release's CIDs.
+
+      - name: Release summary
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          DOMAIN: ${{ steps.name.outputs.domain }}
+          STAGED: ${{ steps.cids.outputs.staged }}
+          APP_CID: ${{ steps.cids.outputs.app }}
+          WORKER_CID: ${{ steps.cids.outputs.worker }}
+        run: |
+          {
+            echo "### ${DOMAIN} ${VERSION}"
+            echo ""
+            echo "Promoted from &nbsp; \`${STAGED}\`"
+            echo "App CID &nbsp; \`${APP_CID}\`"
+            echo "Worker CID &nbsp; \`${WORKER_CID}\`"
+            echo "Browser &nbsp; https://${DOMAIN}.li"
+          } >> "$GITHUB_STEP_SUMMARY"

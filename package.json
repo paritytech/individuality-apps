@@ -37,7 +37,8 @@
     "test:chat": "npm test -w @jollity/worker",
     "test:lib": "npm test -w @jollity/app",
     "test:state-machines": "npm run test:state-machines -w @jollity/app",
-    "test": "npm run test:lib && npm run test:protocol && npm run test:shared-records && npm run test:shared && npm run test:chat && npm run test:engines && npm run test:scripts",
+    "test": "npm run test:lib && npm run test:protocol && npm run test:shared-records && npm run test:shared && npm run test:chat && npm run test:engines && npm run test:scripts && npm run test:ci-scripts",
+    "test:ci-scripts": "vitest run scripts/ci",
     "test:scripts": "vitest run scripts/*.test.mts",
     "jollity:stacks": "tsx scripts/trinity-stacks.mts",
     "typecheck:engines": "npm run typecheck -w @jollity/statement-core -w @jollity/game-chain",
@@ -76,7 +77,8 @@
     "semver": "6.3.1",
     "tsx": "^4.23.12",
     "typescript": "^5",
-    "vitest": "^4.1.12"
+    "vitest": "^4.1.12",
+    "yaml": "^2.9.1"
   },
   "overrides": {
     "@parity/product-sdk-individuality": "$@parity/product-sdk-individuality",
