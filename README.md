@@ -7,7 +7,7 @@ If you experience problems with any product or service that was built on or depl
 
 # individuality-apps
 
-[![CI](https://github.com/paritytech/individuality-apps-community/actions/workflows/ci.yml/badge.svg)](https://github.com/paritytech/individuality-apps-community/actions/workflows/ci.yml)
+[![CI](https://github.com/paritytech/individuality-apps/actions/workflows/ci.yml/badge.svg)](https://github.com/paritytech/individuality-apps/actions/workflows/ci.yml)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 
 Two reference apps for the People chain of the Polkadot individuality runtime. Both run inside a
@@ -66,8 +66,8 @@ network's signed Trinity stack descriptor (`packages/jollity-protocol/src/stacks
 ## Quick start
 
 ```bash
-git clone https://github.com/paritytech/individuality-apps-community.git
-cd individuality-apps-community
+git clone https://github.com/paritytech/individuality-apps.git
+cd individuality-apps
 npm ci
 cp apps/jollity-app/.env.example apps/jollity-app/.env.local
 ```
