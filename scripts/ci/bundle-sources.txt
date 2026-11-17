@@ -1,0 +1,30 @@
+# What the deployed bundle is built from. One list, read by
+# scripts/ci/changes.mjs (does a PR need a preview?) and by deploy.yml's
+# "Compute the source hash" step (is this bundle cached?), so the two cannot
+# drift. A path ending in / is a directory.
+#
+# A file the build reads from outside this list skips a needed preview. The
+# deploy-preview label forces one meanwhile, and the fix is to add the path here.
+apps/jollity-app/app/
+apps/jollity-app/lib/
+apps/jollity-app/components/
+apps/jollity-app/public/
+apps/jollity-app/next.config.ts
+apps/jollity-app/postcss.config.mjs
+apps/jollity-app/tsconfig.json
+apps/jollity-app/package.json
+apps/jollity-worker/
+packages/jollity-collectables/
+packages/jollity-game-chain/
+packages/jollity-protocol/
+packages/shared-records/
+packages/individuality-people-chain/
+packages/individuality-name-link/
+packages/individuality-sign-up/
+packages/individuality-game-outcome/
+packages/individuality-prize/
+packages/individuality-daily-dollar/
+packages/jollity-statement-core/
+deploy/
+package.json
+package-lock.json

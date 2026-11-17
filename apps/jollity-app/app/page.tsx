@@ -395,7 +395,7 @@ export default function Home() {
             </Badge>
             <h1 className="text-[28px] leading-9 font-bold">{`Game at ${formatGameAt(screen.gameAt, now)}`}</h1>
             <p className="max-w-[38ch] text-base leading-6 text-muted-foreground">
-              We&apos;ll ping you in chat when sign-up opens.
+              We&apos;ll ping you in the chat when you can join.
             </p>
           </>
         ) : screen.kind === "wrapping-up" ? (
