@@ -336,7 +336,7 @@ jobs:
         env:
           DEPLOY_MNEMONIC: ${{ secrets.DOTNS_MNEMONIC }}
           DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN }}
-          TRUSTED_PRODUCTS: ${{ vars.DEPLOY_TRUSTED_PRODUCTS }}
+          TRUSTED_PRODUCTS: ${{ vars.TRUSTED_PRODUCTS }}
           DEPLOYER_PRODUCT_ID: ${{ steps.domain.outputs.staging == '1' && matrix.deployer-product-id || '' }}
           NODE_OPTIONS: "--max-old-space-size=8192"
           DEPLOY_ENV: ${{ matrix.env }}
