@@ -16,16 +16,17 @@ export const NEXT_GAME = "Next game"
  * It stays as posted while the card redraws, since truapi has no way to edit a message, so it holds for every face, a cancelled game included.
  */
 export const GAME_CARD_ALT = "Your weekly game. Tap to join or see results."
-export const REGISTER = "Register"
-/** The label on the slide that registers, where the host draws one in place of Register. */
+/** The button that signs the player up for the next game. */
+export const ILL_BE_THERE = "I'll be there"
+/** The label on the slide that registers, where the host draws one in place of I'll be there. */
 export const SLIDE_TO_REGISTER = "Slide to register"
 /** The line under the card of a player who declined the camera. */
 export const CAMERA_OFF = "Camera is off. Turn it on to play."
 /** The button beside the camera line. */
 export const TURN_ON = "Turn on"
 export const REGISTERED = "Registered"
-/** The middle dot between "Registered" and "Next game", escaped so this file stays ASCII. */
-export const SEPARATOR = "\u00b7"
+/** Heads the card of a game the player signed up for. */
+export const YOURE_IN = "You're in"
 export const HOW_TO_PLAY = "How to play"
 /** The disabled button before sign-up opens. It names no time, because the
  *  chain opens sign-up when it creates the game, which is only projected
@@ -35,34 +36,40 @@ export const OPENING_SOON = "Opening soon"
 export const GAME_STARTING_IN = "Game starting in"
 /** It stands where the date was while the pill of the host counts down, so the pill is the only countdown. */
 export const GAME_STARTING_SOON = "Game starting soon"
-/** The whole card in the last minute, a pill with the seconds left. */
-export const GAME_STARTS_IN = (seconds: number) => `Game starts in ${seconds}`
-/** The countdown of the last five minutes on the card, in the words of the native card. */
-export const LEFT_TO_JOIN = (countdown: string) => `${countdown} left to join`
+/** The whole card in the last minute, a pill with the seconds left beside it. */
+export const GAME_STARTS_IN = "Game starts in"
+/** Heads the countdown of the last five minutes on the card. */
+export const LEFT_TO_JOIN = "Left to join"
 /** It stands where the date was once registration has shut. */
 export const REGISTRATION_CLOSED = "Registration closed"
 export const GAME_CANCELLED = "Game cancelled"
 /** The way into a running game from the card. */
 export const START_PLAYING = "Start playing"
-/** It stands where the countdown was once the game has started, for a registered player. */
-export const GAME_IN_PROGRESS = "Game in Progress"
+/** Heads the card once the game has started, for a registered player. */
+export const LIVE_NOW = "Live now"
+/** Along the top of the card of a game ahead, beside a circle for each game still between a candidate and membership. */
+export const GAMES_TO_MEMBERSHIP = (count: number) => `${count} ${count === 1 ? "game" : "games"} to Membership`
 
 export const REGISTRATION_CLOSED_NOTICE = "You just missed this one. Stay tuned for the next game."
-/** The notice under Register when a sign-up from the chat did not go through. */
+/** The notice under I'll be there when a sign-up from the chat did not go through. */
 export const SIGN_UP_FAILED = "Couldn't sign you up."
-/** The notice under Register, here and in the app, while the People chain says nobody owns the player's username. */
+/** The notice under I'll be there, here and in the app, while the People chain says nobody owns the username of the player. */
 export const NAME_UNOWNED = "Your username isn't registered. Open your membership card to set it up."
 /** It stands where Next game was while the host or the phone refuses the reminders of the game. */
 export const NOT_REGISTERED = "Not registered"
-/** The notice under Register while the host or the phone refuses the reminders of the game. */
+/** The notice under I'll be there while the host or the phone refuses the reminders of the game. */
 export const NOTIFICATIONS_REQUIRED = "Enable notifications to register."
-/** The notice under Register of the game product in a host that cannot remind yet. */
+/** The notice under I'll be there of the game product in a host that cannot remind yet. */
 export const REMINDERS_UNSUPPORTED = "Update to new version to register."
 /** The notice under a button whose product the host did not open, by the name the player knows. */
 export const openFailed = (product: string) => `The Polkadot app couldn't open ${product}. Update it to the latest version.`
 
-/** The pending card, in the words of the native results card. */
+/** The pending card, in the words of the native results card, when the chain gives no time for the results. */
 export const RESULTS_PENDING = "Game Results Pending"
+/** The pending card while the chain still takes reports, counting to when it stops. */
+export const RESULTS_IN = (countdown: string) => `Results in ${countdown}`
+/** Under it, so the player knows the card turns into the results on its own. */
+export const NOTHING_TO_DO = "Nothing to do. Your results will show here."
 export const GAME_ENDED = "Game ended"
 /** Under Game ended for a member who did not pass, as the native card says it. */
 export const GOT_AWAY = "This one got away."

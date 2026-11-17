@@ -33,6 +33,7 @@ import {
   type GamePhase,
   type GamePlayersChain,
   type IndividualityChain,
+  type PersonhoodState,
   type PrizeStatusChain,
 } from "@parity/product-sdk-individuality"
 import type { NftsChain, NftsCreditsChain } from "@parity/product-sdk-nfts"
@@ -408,11 +409,24 @@ export async function readGame(host: StorageHost, people: People, address: strin
   return read
 }
 
-/** The player's personhood state tag (Member, Suspended, Candidate...), or null when the read fails. */
-export async function readStanding(people: People, address: string): Promise<string | null> {
+/** The personhood state of the player and, for a candidate, the games still between them and membership. */
+export interface Standing {
+  /** Member, Suspended, Candidate... */
+  tag: string
+  /** Null for anyone but a candidate with games still to play. */
+  gamesToMembership: number | null
+}
+
+/** Where the player stands, or null when the read fails. */
+export async function readStanding(people: People, address: string): Promise<Standing | null> {
   const personhood = await readPersonhoodState(people.chain, { account: address })
   if (!personhood.ok || personhood.value.tag !== "Resolved") return null
-  return personhood.value.state.tag
+  const state = personhood.value.state
+  return { tag: state.tag, gamesToMembership: gamesLeft(state) }
+}
+
+function gamesLeft(state: PersonhoodState | undefined): number | null {
+  return state?.tag === "Candidate" && state.gamesRemaining > 0 ? state.gamesRemaining : null
 }
 
 const PEOPLE_RING = `0x${Array.from(new TextEncoder().encode("pop:polkadot.network/people".padEnd(32, " ")), (b) => b.toString(16).padStart(2, "0")).join("")}`
@@ -698,7 +712,7 @@ export async function readOutcome(people: People, address: string, game: SeenGam
   if (!personhood.ok) return null
   const resolved = personhood.value.tag === "Resolved" ? personhood.value : null
   const state = resolved?.state
-  const gamesToMembership = state?.tag === "Candidate" && state.gamesRemaining > 0 ? state.gamesRemaining : null
+  const gamesToMembership = gamesLeft(state)
   const participant = resolved?.participant
   const member = state !== undefined && MEMBER_STATES.has(state.tag)
   const metrics = resolved?.metrics

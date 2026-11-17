@@ -1096,7 +1096,7 @@ describe("membership reading works", () => {
     const { chain } = await personhood({ tag: "Caution", misses: 1, allowedMisses: 1, window: 4, lastAttendedGame: 7 }, 7)
 
     // When
-    const isMember = isMemberStanding(await chain.readStanding(people(), ADDRESS))
+    const isMember = isMemberStanding((await chain.readStanding(people(), ADDRESS))?.tag ?? null)
 
     // Then
     expect(isMember).toBe(true)
@@ -1107,7 +1107,7 @@ describe("membership reading works", () => {
     const { chain } = await personhood({ tag: "MembershipReady" }, 7)
 
     // When
-    const isMember = isMemberStanding(await chain.readStanding(people(), ADDRESS))
+    const isMember = isMemberStanding((await chain.readStanding(people(), ADDRESS))?.tag ?? null)
     const outcome = await chain.readOutcome(people(), ADDRESS, seenGame)
 
     // Then
@@ -1120,10 +1120,43 @@ describe("membership reading works", () => {
     const { chain } = await personhood(candidate, 7)
 
     // When
-    const isMember = isMemberStanding(await chain.readStanding(people(), ADDRESS))
+    const isMember = isMemberStanding((await chain.readStanding(people(), ADDRESS))?.tag ?? null)
 
     // Then
     expect(isMember).toBe(false)
+  })
+
+  it("reads the games a candidate still has to play", async () => {
+    // Given
+    const { chain } = await personhood(candidate, 7)
+
+    // When
+    const standing = await chain.readStanding(people(), ADDRESS)
+
+    // Then
+    expect(standing).toEqual({ tag: "Candidate", gamesToMembership: 2 })
+  })
+
+  it("reads no games to membership for a member", async () => {
+    // Given
+    const { chain } = await personhood({ tag: "MembershipReady" }, 7)
+
+    // When
+    const standing = await chain.readStanding(people(), ADDRESS)
+
+    // Then
+    expect(standing).toEqual({ tag: "MembershipReady", gamesToMembership: null })
+  })
+
+  it("reads no games to membership for a candidate with none left to play", async () => {
+    // Given
+    const { chain } = await personhood({ ...candidate, gamesRemaining: 0 }, 7)
+
+    // When
+    const standing = await chain.readStanding(people(), ADDRESS)
+
+    // Then
+    expect(standing).toEqual({ tag: "Candidate", gamesToMembership: null })
   })
 })
 

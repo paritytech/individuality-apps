@@ -119,20 +119,25 @@ export interface SlotInput {
   cancelled?: boolean
   /** Games left to membership when there are no results to carry the count. */
   gamesToMembership?: number | null
+  /** When the chain closes the reports of a game that has been played, after which its results settle. */
+  resultsAt?: number
   /** The report of the player landed, by `jollity.seen:<game>` of the app or the stored outcome of the chain. */
   reported?: boolean
   earned?: number
 }
 
+/** The games still between a candidate and membership, which the cards of a game ahead count down. Absent or null when unknown, or for a member. */
+type Progress = { gamesToMembership?: number | null }
+
 export type GameSlot =
   | { kind: "none" }
-  | { kind: "cancelled"; startAt: number }
-  | { kind: "next"; startAt: number; opensAt: number }
-  | { kind: "register"; startAt: number; closesAt: number }
-  | { kind: "registered"; startAt: number }
-  | { kind: "starting"; startAt: number }
-  | { kind: "closed"; startAt: number }
-  | { kind: "pending"; endedAt: number }
+  | ({ kind: "cancelled"; startAt: number } & Progress)
+  | ({ kind: "next"; startAt: number; opensAt: number } & Progress)
+  | ({ kind: "register"; startAt: number; closesAt: number } & Progress)
+  | ({ kind: "registered"; startAt: number } & Progress)
+  | ({ kind: "starting"; startAt: number } & Progress)
+  | ({ kind: "closed"; startAt: number } & Progress)
+  | ({ kind: "pending"; endedAt: number; resultsAt?: number } & Progress)
   | { kind: "results"; results: GameResults }
   | {
       kind: "missed"
@@ -151,6 +156,19 @@ export type GameSlot =
 type MissedReason = Extract<GameSlot, { kind: "missed" }>["reason"]
 
 export function gameSlot(input: SlotInput): GameSlot {
+  const slot = baseSlot(input)
+  const progress = input.gamesToMembership ? { gamesToMembership: input.gamesToMembership } : {}
+  switch (slot.kind) {
+    case "none":
+    case "missed":
+    case "results":
+      return slot
+    default:
+      return { ...slot, ...progress }
+  }
+}
+
+function baseSlot(input: SlotInput): GameSlot {
   const { game, registered, results, nowSeconds } = input
   if (!game || game.status === "idle") return { kind: "none" }
   if (input.cancelled) return { kind: "cancelled", startAt: game.startAt }
@@ -173,7 +191,8 @@ export function gameSlot(input: SlotInput): GameSlot {
       // #699), so the way in stays.
       return registered ? { kind: "starting", startAt: game.startAt } : { kind: "closed", startAt: game.startAt }
     case "reporting":
-      return registered ? { kind: "pending", endedAt: game.startAt } : missed(input, "never-registered")
+      if (!registered) return missed({ ...input, gamesToMembership: null }, "never-registered")
+      return { kind: "pending", endedAt: game.startAt, ...(input.resultsAt === undefined ? {} : { resultsAt: input.resultsAt }) }
     case "finished":
       if (!registered && !input.reported) return missed(input, "never-registered")
       if (results) return { kind: "results", results: { ...results, endedAt: game.startAt } }

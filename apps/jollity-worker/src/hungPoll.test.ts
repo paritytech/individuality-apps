@@ -100,7 +100,7 @@ describe("the poll survives a call that never answers", () => {
       const chain = await import("./chain")
       vi.mocked(chain.connect).mockResolvedValue({} as never)
       vi.mocked(chain.playerAddress).mockResolvedValue(ADDRESS)
-      vi.mocked(chain.readStanding).mockResolvedValue("Candidate")
+      vi.mocked(chain.readStanding).mockResolvedValue({ tag: "Candidate", gamesToMembership: null })
       vi.mocked(chain.connectAssetHub).mockResolvedValue(null)
       vi.mocked(chain.readGame).mockResolvedValueOnce(chainRead()).mockResolvedValueOnce(chainRead())
       const host = fakeHost()

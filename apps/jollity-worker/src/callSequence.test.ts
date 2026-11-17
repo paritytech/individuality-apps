@@ -189,7 +189,7 @@ async function withChain(...reads: ChainRead[]) {
   for (const read of [chain.readGame, chain.readPastGames, chain.readPrize, chain.readClaimed, chain.readOutcome, chain.readAttendance, chain.readEarned, chain.readCollectables, chain.connectAssetHub]) vi.mocked(read).mockReset()
   vi.mocked(chain.connect).mockResolvedValue({} as never)
   vi.mocked(chain.playerAddress).mockResolvedValue(ADDRESS)
-  vi.mocked(chain.readStanding).mockResolvedValue("Candidate")
+  vi.mocked(chain.readStanding).mockResolvedValue({ tag: "Candidate", gamesToMembership: null })
   vi.mocked(chain.readNameReady).mockReset().mockResolvedValue(true)
   vi.mocked(chain.connectAssetHub).mockResolvedValue(null)
   vi.mocked(chain.readPastGames).mockResolvedValue(pastGames([], null))
@@ -261,7 +261,7 @@ async function peopleHolding(consumer: { full_username: Uint8Array | null; lite_
   }
   const chain = await withChain(...Array.from({ length: 8 }, () => chainRead({ running: null })))
   vi.mocked(chain.connect).mockResolvedValue({ client: { getUnsafeApi: () => ({ query }) } } as never)
-  vi.mocked(chain.readStanding).mockResolvedValue(member ? "Member" : "Candidate")
+  vi.mocked(chain.readStanding).mockResolvedValue({ tag: member ? "Member" : "Candidate", gamesToMembership: null })
   return query
 }
 
@@ -1587,6 +1587,41 @@ describe("the chain poll works", () => {
     expect(stored).toEqual({ cancelled: true, results: null, gamesToMembership: null, gameIndex: 7, registered: false, memberBefore: false })
   })
 
+  it("records the games a candidate has left on a cancelled game, so its card keeps the circles", async () => {
+    // Given
+    const chain = await withChain(chainRead({ running: running({ phase: "cancelled" }) }))
+    vi.mocked(chain.readStanding).mockResolvedValue({ tag: "Candidate", gamesToMembership: 3 })
+    const { tick } = await import("./index")
+    const host = fakeHost()
+
+    // When
+    await tick(host)
+
+    // Then
+    const [stored] = [...host.store.entries()].filter(([key]) => key.startsWith("jollity.wg.recap:")).map(([, value]) => value)
+    expect(stored).toMatchObject({ cancelled: true, gamesToMembership: 3 })
+  })
+
+  it("keeps the circles of a candidate on the card when a later read of the standing fails", async () => {
+    // Given
+    const game = running()
+    const chain = await withChain(...Array.from({ length: 8 }, () => chainRead({ running: game })))
+    vi.mocked(chain.readStanding).mockResolvedValueOnce({ tag: "Candidate", gamesToMembership: 3 }).mockResolvedValue(null)
+    const host = welcomedHost()
+    const handler = await renderHandler(host)
+    const { tick } = await import("./index")
+
+    // When
+    for (let i = 0; i < 4; i++) await tick(host)
+    const send = vi.fn()
+    handler({ messageId: "m-standing", messageType: "jollity.gamecard", payload: encPayload({ gamePlayTime: game.gamePlayTime }) }, send, () => () => {})
+    await flush()
+
+    // Then
+    expect(vi.mocked(chain.readStanding).mock.calls.length).toBeGreaterThan(1)
+    expect(JSON.stringify(send.mock.calls.at(-1)![0])).toContain("3 games to Membership")
+  })
+
   it("stores the outcome early once the chain has applied the player's attendance, before the game settles", async () => {
     // Given
     const game = running({ phase: "reporting", registered: true })
@@ -2362,7 +2397,7 @@ describe("the chain poll works", () => {
   it("reads membership for the banner of the card", async () => {
     // Given
     const chain = await withChain(chainRead())
-    vi.mocked(chain.readStanding).mockResolvedValue("Member")
+    vi.mocked(chain.readStanding).mockResolvedValue({ tag: "Member", gamesToMembership: null })
     const { tick } = await import("./index")
     const host = fakeHost()
 
@@ -3748,7 +3783,7 @@ describe("the card works", () => {
     teardown?.()
   })
 
-  it("Register signs up from the chat for the game of the card, which says Registered once the sign-up is on the wire", async () => {
+  it("Register signs up from the chat for the game of the card, which says You're in once the sign-up is on the wire", async () => {
     // Given
     const game = running()
     await withChain(chainRead({ running: game }))
@@ -3778,7 +3813,7 @@ describe("the card works", () => {
       expect.anything(),
     )
     expect(host.navigate).not.toHaveBeenCalled()
-    expect(JSON.stringify(send.mock.calls.at(-1)![0])).toContain("Registered")
+    expect(JSON.stringify(send.mock.calls.at(-1)![0])).toContain("You're in")
   })
 
   it("Register signs up when the host refuses a past reminder, while preserving the refusal record", async () => {
@@ -3810,7 +3845,7 @@ describe("the card works", () => {
     // Then
     expect(engine.register).toHaveBeenCalled()
     expect(host.store.get("jollity.wg.host-reminder")).toMatchObject({ gamePlayTime: game.gamePlayTime, outcome: "starts-in-past" })
-    expect(JSON.stringify(send.mock.calls.at(-1)![0])).toContain("Registered")
+    expect(JSON.stringify(send.mock.calls.at(-1)![0])).toContain("You're in")
     expect(JSON.stringify(send.mock.calls)).not.toContain("You just missed this one")
   })
 
@@ -3840,8 +3875,8 @@ describe("the card works", () => {
     // Then
     const last = JSON.stringify(send.mock.calls.at(-1)![0])
     expect(last).toContain("Couldn't sign you up")
-    expect(last).toContain("Register")
-    expect(last).not.toContain("Registered")
+    expect(last).toContain("I'll be there")
+    expect(last).not.toContain("You're in")
   })
 
   it("keeps the host reminder while a sign-up is on its way, though the chain still reads the player as out", async () => {
@@ -4130,8 +4165,8 @@ describe("the card works", () => {
 
     // Then
     const drawn = JSON.stringify(send.mock.calls.at(-1)![0])
-    expect(drawn).toContain("Registered")
-    expect(drawn).not.toContain("left to join")
+    expect(drawn).toContain("Game starting soon")
+    expect(drawn).not.toContain("Left to join")
   })
 
   it("Register signs up for the running game before the card has read the stored games", async () => {
@@ -4609,7 +4644,7 @@ describe("the card works", () => {
       const { card } = await registeredCard(host)
 
       // Then
-      expect(card()).toContain("Registered")
+      expect(card()).toContain("You're in")
       expect(card()).toContain("Camera is off. Turn it on to play.")
       expect(card()).toContain("Turn on")
       expect(card()).toContain("jollity.turn-on-camera")
@@ -4628,7 +4663,7 @@ describe("the card works", () => {
       const { card } = await registeredCard(host)
 
       // Then
-      expect(card()).toContain("Registered")
+      expect(card()).toContain("You're in")
       expect(card()).not.toContain("Camera is off")
     })
 
@@ -4646,7 +4681,7 @@ describe("the card works", () => {
       const { card } = await registeredCard(host)
 
       // Then
-      expect(card()).toContain("Registered")
+      expect(card()).toContain("You're in")
       expect(card()).not.toContain("Camera is off")
     })
 
@@ -5021,7 +5056,7 @@ describe("the card works", () => {
       expect(engine.register).toHaveBeenCalledTimes(1)
       const card = send.mock.calls.at(-1)![0] as DrawnNode
       expect(draws(card, "Not registered")).toBe(false)
-      expect(JSON.stringify(card)).toContain("Registered")
+      expect(JSON.stringify(card)).toContain("You're in")
     })
   })
 })
@@ -6438,7 +6473,7 @@ describe("the worker's telemetry is sent", () => {
     // Then
     expect(claimPrize).toHaveBeenCalledTimes(1)
     expect(engine.register).toHaveBeenCalledTimes(2)
-    expect(JSON.stringify(send.mock.calls.at(-1)![0])).toContain("Registered")
+    expect(JSON.stringify(send.mock.calls.at(-1)![0])).toContain("You're in")
     expect(events.filter((record) => record.tags["failure.kind"] === "signup-failed")).toEqual([])
   })
 
@@ -7966,7 +8001,7 @@ describe("Humanity's Membership news in the room works", () => {
     const host = welcomedHost()
     host.store.set(RECORD_KEY, { version: 1, standing: "member", claimable: false, restoredPending: false, announced: ["membership"] })
     const chain = await withChain(chainRead({ running: null }), chainRead({ running: null }))
-    vi.mocked(chain.readStanding).mockResolvedValue("Suspended")
+    vi.mocked(chain.readStanding).mockResolvedValue({ tag: "Suspended", gamesToMembership: null })
     const { tick } = await import("./index")
 
     // When

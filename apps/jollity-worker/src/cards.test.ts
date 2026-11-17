@@ -66,7 +66,7 @@ const RESULTS: GameResults = {
 }
 
 function slot(
-  chainRead: ChainRead | null,
+  chainRead: (ChainRead & { gamesToMembership?: number | null }) | null,
   nowMs: number,
   games: SeenGame[] = [],
   outcome: StoredOutcome | null = null,
@@ -281,6 +281,44 @@ describe("slotInputFor before the game works", () => {
     expect(afterItOpens.kind).toBe("register")
   })
 
+  it("carries the games a candidate has left to membership onto the cards of a game ahead and its pending results", () => {
+    // Given
+    const candidate = { gamesToMembership: 3 }
+    const registration = { ...read({ running: running({ phase: "registration" }) }), ...candidate }
+    const settling = { ...read({ running: running({ phase: "settling", registered: true }) }), ...candidate }
+    const upcoming = {
+      ...read({ running: null, upcoming: [{ gamePlayTime: PLAY, registrationStarts: PLAY - 3600, registrationEnds: PLAY - 90, reportingEnds: PLAY + 600 }] }),
+      ...candidate,
+    }
+    const unlisted = { ...read({ running: null }), ...candidate }
+    const member = { ...read({ running: running({ phase: "registration" }) }), gamesToMembership: null }
+
+    // When
+    const ahead = slot(registration, at(1800))
+    const pending = slot(settling, at(-900))
+    const listedAhead = slot(upcoming, at(1800))
+    const scheduledAhead = slot(unlisted, at(1800))
+    const asMember = slot(member, at(1800))
+
+    // Then
+    expect(ahead).toMatchObject({ kind: "register", gamesToMembership: 3 })
+    expect(pending).toEqual({ kind: "pending", endedAt: PLAY, resultsAt: PLAY + 600, gamesToMembership: 3 })
+    expect(listedAhead).toMatchObject({ kind: "register", gamesToMembership: 3 })
+    expect(scheduledAhead).toMatchObject({ gamesToMembership: 3 })
+    expect(asMember).not.toHaveProperty("gamesToMembership")
+  })
+
+  it("says a candidate missed a game they never signed up for in the words it used before the count, while the game settles", () => {
+    // Given
+    const settling = { ...read({ running: running({ phase: "settling" }) }), gamesToMembership: 3 }
+
+    // When
+    const drawn = slot(settling, at(-900))
+
+    // Then
+    expect(drawn).toMatchObject({ kind: "missed", reason: "never-registered", gamesToMembership: null })
+  })
+
   it("is cancelled when the chain cancels the game, or two reads in a row list it nowhere", () => {
     // Given
     const cancelledByTheChain = read({ running: running({ phase: "cancelled" }) })
@@ -324,7 +362,7 @@ describe("slotInputFor after the game works", () => {
     // Then
     expect(wayIn.kind).toBe("starting")
     expect(noWayIn.kind).toBe("closed")
-    expect(waiting).toEqual({ kind: "pending", endedAt: PLAY })
+    expect(waiting).toEqual({ kind: "pending", endedAt: PLAY, resultsAt: PLAY + 600 })
   })
 
   it("keeps the way in from the play time until the last turn, then waits for the results", () => {
@@ -339,7 +377,7 @@ describe("slotInputFor after the game works", () => {
     // Then
     expect(atThePlayTime.kind).toBe("starting")
     expect(duringTheLastTurn.kind).toBe("starting")
-    expect(afterTheLastTurn).toEqual({ kind: "pending", endedAt: PLAY })
+    expect(afterTheLastTurn).toEqual({ kind: "pending", endedAt: PLAY, resultsAt: PLAY + 600 })
   })
 
   it("waits on a past game the chain has let go when the player signed up for it", () => {
@@ -492,6 +530,18 @@ describe("slotInputFor after the game works", () => {
 
     // Then
     expect(drawn.kind).toBe("cancelled")
+  })
+
+  it("keeps the circles of a stored cancellation of a candidate", () => {
+    // Given
+    const nothingRunning = read({ running: null })
+    const outcome: StoredOutcome = { cancelled: true, results: null, gamesToMembership: 3 }
+
+    // When
+    const drawn = slot(nothingRunning, at(-3600), [known()], outcome)
+
+    // Then
+    expect(drawn).toEqual({ kind: "cancelled", startAt: PLAY, gamesToMembership: 3 })
   })
 })
 

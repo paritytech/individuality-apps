@@ -11,11 +11,11 @@
  *
  * The faces come in two families, deliberately different.
  *
- * Before the game, the card is the docked "Next game" slab of the design, the
- * RegisterCard of DIM2. It is a nested surface in a heavy frame whose color
- * carries the state, amber while registration is open. Before the window
- * opens the button carries it too, as the same button disabled, so the slab
- * holds its shape when it goes live.
+ * Before the game, and while its results are pending, the card is the Party
+ * clock of DIM2: a nested card in a frame of the container colour, with a
+ * circle for each game left to membership along the top. The words and the
+ * button carry the state. Before the window opens the button is there in
+ * grey, so the card holds its shape when it goes live.
  *
  * After the game, the card is the results in the words of the native results
  * card. A new member gets the moment of the design. Everyone else gets the
@@ -29,7 +29,6 @@
  */
 import {
   background,
-  border,
   box,
   bulletinImage,
   button,
@@ -60,7 +59,7 @@ import {
   ACTION_TURN_ON_CAMERA,
 } from "./actions"
 import * as copy from "./copy"
-import { formatCountdown, formatGameDate, formatGameTime, formatMinutesSeconds, formatPrize, formatPrizeAmount, prizeUnit } from "./format"
+import { formatCountdown, formatGameDate, formatGameTime, formatPrize, formatPrizeAmount, prizeUnit } from "./format"
 import { payoff, type GameResults, type GameSlot, type Payoff, type SlotCollectable } from "./game-slot"
 import { claimRefusalWords } from "@jollity/protocol"
 import { type ClaimFailure } from "@individuality/prize"
@@ -73,10 +72,10 @@ export interface CardUi {
     text: string
     status?: string
     tone: "fg.secondary" | "fg.warning" | "fg.error"
-    /** Register stays greyed out and takes no tap while the notice holds */
+    /** I'll be there stays greyed out and takes no tap while the notice holds */
     registerOff?: boolean
   } | null
-  /** How far a busy sign-up got, from 0 to 1, which Register shows as a ring that fills. */
+  /** How far a busy sign-up got, from 0 to 1, which I'll be there shows as a ring that fills. */
   progress?: number
   /** Set when the stored answer is a refusal, which draws the camera line. */
   camera?: "off"
@@ -95,7 +94,7 @@ export const IDLE_UI: CardUi = { busy: false, notice: null }
 export type SignupStep = "reminders" | "name" | "signer" | "route" | "bind" | "draws" | "sign"
 
 /**
- * How far along each step leaves the ring of Register.
+ * How far along each step leaves the ring of I'll be there.
  *
  * The ring stops short of full until the card turns registered. The steps are
  * declared in the order a sign-up takes them.
@@ -139,9 +138,9 @@ const CAMERA_OFF = { path: "chat-card/camera-off.png", size: 16 }
 // of each side, baked by apps/jollity-app/scripts/bake-prize-ticket.mjs at the width of the
 // card of the design and stretched to the width of this one.
 const TICKET = { path: "chat-card/prize-ticket.png", height: 136 }
-// The host draws no arc, so the ring that fills on Register is one picture a
-// step, baked by scripts/bake-signup-ring.mjs. Each path is spelled out, since
-// the build ships only the pictures the bundle names whole.
+// The host draws no arc, so the ring that fills on I'll be there is one picture
+// a step, baked by scripts/bake-signup-ring.mjs. Each path is spelled out,
+// since the build ships only the pictures the bundle names whole.
 const SIGNUP_RING = {
   size: 22,
   steps: [
@@ -162,26 +161,21 @@ const SIGNUP_RING = {
 // the row it sits on the amount's baseline.
 const CASH_WORDMARK = { path: "chat-card/cash-wordmark.png", width: 43, height: 32 }
 
-/**
- * The widths that fit "Opening soon", "Register" and "Start playing" in the pills of the card.
- *
- * The iOS host draws a button label at an unbounded width, so a button sized by
- * its text still takes all the room of the row, and the text beside it wraps
- * mid-word.
- */
-const REGISTER_WIDTH = 136
 const FOOT_TAP_WIDTH = 56
 // Fits either line of a foot row on one line. iOS would wrap a line sized by
 // its text beside a flexible spacer, and Android gives a filled one all the width.
 const FOOT_LINE_WIDTH = 192
-const BLOCKED_REGISTER_WIDTH = 104
 const BLOCKED_FOOT_PADDING = 8
-type PillLook = { padding: [number, number, number, number] }
-const DEFAULT_PILL: PillLook = { padding: [12, 16, 12, 16] }
-const BLOCKED_PILL: PillLook = { padding: [8, 12, 8, 12] }
-const OPENING_SOON_WIDTH = 156
-const START_PLAYING_WIDTH = 132
-const START_PLAYING_PILL: PillLook = { padding: [10, 12, 10, 12] }
+const CIRCLE_HOLE = 10
+const CIRCLE_RING = 2
+const CIRCLE_DOT = 4
+const CIRCLE_GAP = 5
+// Six circles and the caption still fit one row on a 375pt iPhone, and the count says the rest.
+const MAX_CIRCLES = 6
+// Fits the count of games on one line at body.small on iOS, which measured about
+// 133 with one digit and 141 with two, for the same reason as FOOT_LINE_WIDTH.
+const GAMES_CAPTION_WIDTH = 168
+const LIVE_DOT = 8
 
 /**
  * A button beside a label rather than under it.
@@ -197,19 +191,6 @@ function compact(node: RenderNode): RenderNode {
   }
 }
 
-/** A nested surface in a heavy frame, whose color is the state. */
-function framed(children: RenderNode[], frame: ColorToken): RenderNode {
-  const modifiers: Modifier[] = [fill, pad(16), background("bg.surface.nested", 24), border(4, frame, 24)]
-  return column(children, modifiers, { horizontalAlignment: "start" })
-}
-
-/**
- * The left column of the slab, a label over the date.
- *
- * With the date at title.medium the pair stands 46px, the height of the button
- * beside it, so the frame sits as far from the top and bottom as from the
- * sides.
- */
 function labelOverDate(label: RenderNode, date: RenderNode, alignment: HorizontalAlignment = "start"): RenderNode {
   return column([label, spacer(2), date], [], { horizontalAlignment: alignment })
 }
@@ -229,17 +210,6 @@ function endedBox(label: string | RenderNode, endedAt: number): RenderNode {
   )
 }
 
-/**
- * The label over the time on the cards of a game ahead, 4px apart as the
- * registration design has it.
- *
- * Space between is what keeps it at 4px on iOS, which puts its default stack
- * spacing between the children of any other column.
- */
-function labelOverTime(label: RenderNode, time: RenderNode): RenderNode {
-  return column([label, spacer(4), time], [], { horizontalAlignment: "start", verticalArrangement: "spaceBetween" })
-}
-
 /** The card with its notice centred under the frame, where it does not crowd the row of the button. */
 function withNotice(node: RenderNode, ui: CardUi): RenderNode {
   if (!ui.notice) return node
@@ -251,7 +221,7 @@ function withNotice(node: RenderNode, ui: CardUi): RenderNode {
 /** What a caller can change about the faces. */
 export interface CardOptions {
   /**
-   * A design exploration that shows a countdown to the game on the Register
+   * A design exploration that shows a countdown to the game on the sign-up
    * face where the date is.
    *
    * Both looks are kept for now. Pick one and delete this, since the worker
@@ -276,10 +246,10 @@ export interface CardOptions {
   /** Whether the host docks the card in the footer of the room, whose own padding takes the place of the gap under a card in the feed. */
   docked?: boolean
   /**
-   * Whether the host draws a slide to confirm, so Register is a slide rather
-   * than a tap. The worker sets it only for a host it knows draws one
+   * Whether the host draws a slide to confirm, so I'll be there is a slide
+   * rather than a tap. The worker sets it only for a host it knows draws one
    * (`drawsSlideToConfirm` in src/renderer.ts); every other host gets the
-   * Register button, which sends the same action.
+   * I'll be there button, which sends the same action.
    */
   slide?: boolean
 }
@@ -298,170 +268,126 @@ export interface ClaimUi {
 export function gameCardNode(slot: GameSlot, ui: CardUi, nowSeconds: number, options: CardOptions = {}): RenderNode {
   const frame = cardFrame(options.docked)
   switch (slot.kind) {
-    // A game that is not coming, in the box of an ended game, with nothing under it.
+    // A game that is not coming, in the clock it would have shown, its circles greyed out.
     case "cancelled":
-      return column([endedBox(copy.GAME_CANCELLED, slot.startAt)], frame, { horizontalAlignment: "center" })
+      return column([partyClock(heading(copy.GAME_CANCELLED, dateLine(slot.startAt)), { gamesLeft: slot.gamesToMembership, off: true })], frame)
 
     // The worker posts a card per game, so no card is ever drawn without one.
     case "none":
       return nil()
 
     case "next":
-      return framed(
-        [
-          row([
-            labelOverTime(
-              text(copy.NEXT_GAME, { style: "body.large.regular", color: "fg.secondary" }),
-              text(formatGameTime(slot.startAt), { style: "title.medium.regular", color: "fg.primary" }),
-            ),
-            // The pill of Register in grey, with nothing to tap until the window opens.
-            horizontalSpacer(12),
-            fixedWidth(pill(copy.OPENING_SOON, "bg.surface.container", "fg.tertiary"), OPENING_SOON_WIDTH),
-          ]),
-        ],
-        "fg.tertiary",
+      return partyClock(
+        [...heading(copy.NEXT_GAME, dateLine(slot.startAt)), spacer(12), actionPill(copy.OPENING_SOON, "bg.surface.container", "fg.tertiary")],
+        { gamesLeft: slot.gamesToMembership },
       )
 
     case "register": {
       const blocked = Boolean(ui.notice?.status)
       const off = Boolean(ui.notice?.registerOff)
       const notice = ui.notice ? registerFoot(ui.notice) : undefined
-      // The slide stands in for the label, the time and the pill: it says the
-      // time on its second line. A blocked or greyed-out Register keeps the
-      // pill, whose look carries why, and the slide shows no ring of progress,
+      const date = options.registerCountdown ? formatCountdown(slot.startAt, nowSeconds) : formatGameTime(slot.startAt)
+      // The slide stands in for the label, the time and the button: it says the
+      // time on its second line. A blocked or greyed-out sign-up keeps the
+      // button, whose look carries why, and the slide shows no fill of progress,
       // only the loading state of the host.
       if (options.slide === true && !blocked && !off)
-        return nextFrame(
+        return partyClock(
           [
             slideToConfirm(copy.SLIDE_TO_REGISTER, ACTION_REGISTER, {
-              secondaryText: options.registerCountdown ? formatCountdown(slot.startAt, nowSeconds) : formatGameTime(slot.startAt),
+              secondaryText: date,
               confirmedText: copy.REGISTERED,
               accent: "fg.warning",
               loading: ui.busy,
             }),
           ],
-          "fg.warning",
-          notice,
+          { gamesLeft: slot.gamesToMembership, foot: notice },
         )
-      return nextFrame(
+      return partyClock(
         [
-          row([
-            labelOverTime(
-              ui.notice?.status
-                ? text(ui.notice.status, { style: "title.medium.regular", color: "fg.warning" })
-                : text(copy.NEXT_GAME, { style: "body.large.regular", color: "fg.secondary" }),
-              text(options.registerCountdown ? formatCountdown(slot.startAt, nowSeconds) : formatGameTime(slot.startAt), {
-                style: "title.medium.regular",
-                color: "fg.primary",
-              }),
-            ),
-            horizontalSpacer(12),
-            off
-              ? fixedWidth(pill(copy.REGISTER, "bg.surface.container", "fg.tertiary"), REGISTER_WIDTH)
-              : pillButton(
-                  copy.REGISTER,
-                  ACTION_REGISTER,
-                  "fg.warning",
-                  blocked ? BLOCKED_REGISTER_WIDTH : REGISTER_WIDTH,
-                  { loading: ui.busy && ui.progress === undefined, enabled: !ui.busy, progress: ui.busy ? ui.progress : undefined },
-                  blocked ? BLOCKED_PILL : undefined,
-                ),
-          ]),
+          ...heading(
+            ui.notice?.status ? text(ui.notice.status, { style: "body.large.regular", color: "fg.warning" }) : copy.NEXT_GAME,
+            date,
+          ),
+          spacer(12),
+          off ? actionPill(copy.ILL_BE_THERE, "bg.surface.container", "fg.tertiary") : signUpButton(ui),
         ],
-        blocked ? "bg.surface.container" : "fg.warning",
-        notice && blocked && ui.camera === "off" ? [notice, cameraFoot(ui.busy)] : notice,
-        blocked ? BLOCKED_FOOT_PADDING : undefined,
+        {
+          gamesLeft: slot.gamesToMembership,
+          foot: notice && blocked && ui.camera === "off" ? [notice, cameraFoot(ui.busy)] : notice,
+          footPadding: blocked ? BLOCKED_FOOT_PADDING : undefined,
+        },
       )
     }
 
     // A posted message cannot be removed, and iOS draws a spinner for a card
-    // that renders nothing, so under the pill of the host the card shows the
-    // registered face, saying the game is starting soon where the date was:
-    // the pill is the only countdown. The host drops its pill at the join, so
-    // the card comes back with Start playing then.
+    // that renders nothing, so under the pill of the host the card says the
+    // game is starting soon where the date was: the pill is the only
+    // countdown. The host drops its pill at the join, so the card comes back
+    // with Start playing then.
 
     // Before the join, a minute ahead of the start, the card counts down with
     // no button, as the native card does, to the moment the pill of the host
     // counts to. Start playing is the way in from then on.
     case "starting": {
       const joinAt = slot.startAt - JOIN_LEAD_S
+      const progress = { gamesLeft: slot.gamesToMembership }
       if (options.hostPill === true && nowSeconds < joinAt)
-        return withNotice(registeredSlab(text(copy.GAME_STARTING_SOON, { style: "title.medium.regular", color: "fg.primary" })), ui)
+        return withNotice(partyClock(heading(youreIn(), copy.GAME_STARTING_SOON), progress), ui)
       if (nowSeconds < joinAt && joinAt - nowSeconds <= LAST_MINUTE_S)
         return withNotice(lastMinutePill(joinAt - nowSeconds), ui)
       if (nowSeconds < joinAt)
-        return withNotice(registeredSlab(text(copy.LEFT_TO_JOIN(formatMinutesSeconds(joinAt, nowSeconds)), { style: "title.medium.regular", color: "fg.primary" })), ui)
+        return withNotice(partyClock(heading(copy.LEFT_TO_JOIN, formatCountdown(joinAt, nowSeconds)), progress), ui)
       return withNotice(
-        framed(
+        partyClock(
           [
-            row([
-              labelOverTime(
-                text(copy.GAME_IN_PROGRESS, { style: "body.medium.regular", color: "fg.primary" }),
-                text(formatGameTime(slot.startAt), { style: "title.medium.regular", color: "fg.warning" }),
-              ),
-              horizontalSpacer(12),
-              pillButton(copy.START_PLAYING, ACTION_OPEN_GAME, "fg.primary", START_PLAYING_WIDTH, {}, START_PLAYING_PILL),
-            ]),
+            ...heading(liveNow(), dateLine(slot.startAt, "fg.warning")),
+            spacer(12),
+            actionPill(copy.START_PLAYING, "fg.primary", "bg.surface.main", ACTION_OPEN_GAME),
           ],
-          "fg.warning",
+          progress,
         ),
         ui,
       )
     }
 
-    // The design puts a bell where Register was, and rows for the alarm and the
-    // calendar under the slab. The host draws no icons and gives a product no
-    // alarm or calendar, so the slab stands alone in its frame.
+    // The design puts a bell where the button was, and rows for the alarm and
+    // the calendar under the card. The host draws no icons and gives a product
+    // no alarm or calendar, so the card stands alone in its frame.
     case "registered":
       return withNotice(
-        registeredSlab(
-          text(
-            options.hostPill === true && hostPillUp(slot.startAt, nowSeconds) ? copy.GAME_STARTING_SOON : formatGameTime(slot.startAt),
-            { style: "title.medium.regular", color: "fg.primary" },
+        partyClock(
+          heading(
+            youreIn(),
+            options.hostPill === true && hostPillUp(slot.startAt, nowSeconds) ? copy.GAME_STARTING_SOON : dateLine(slot.startAt),
           ),
-          ui.camera === "off" ? cameraFoot(ui.busy) : undefined,
+          { gamesLeft: slot.gamesToMembership, foot: ui.camera === "off" ? cameraFoot(ui.busy) : undefined },
         ),
         ui,
       )
 
-    // The "Next game" slab puts the verdict where the date was and has no
-    // button, since there is nothing left to tap for this game.
-
+    // Registration closed where the date was, and no button, since there is
+    // nothing left to tap for this game.
     case "closed":
-      return withNotice(
-        framed(
-          [
-            labelOverTime(
-              text(copy.NEXT_GAME, { style: "body.large.regular", color: "fg.secondary" }),
-              text(copy.REGISTRATION_CLOSED, { style: "title.medium.regular", color: "fg.primary" }),
-            ),
-          ],
-          "fg.tertiary",
-        ),
-        ui,
-      )
+      return withNotice(partyClock(heading(copy.NEXT_GAME, copy.REGISTRATION_CLOSED), { gamesLeft: slot.gamesToMembership, off: true }), ui)
 
-    // The pending card of the native app, with no Chat with players button.
-    // A row without fill centres the clock and the status as one unit.
-    case "pending":
-      return column(
+    // How long the chain still takes reports, and that the card turns into
+    // the results by itself. The game just played counts on the first circle.
+    case "pending": {
+      const resultsIn = slot.resultsAt !== undefined && nowSeconds < slot.resultsAt ? formatCountdown(slot.resultsAt, nowSeconds) : null
+      return column([partyClock(
         [
-          endedBox(
-            row(
-              [
-                image(PENDING_CLOCK.path, [width(PENDING_CLOCK.size), height(PENDING_CLOCK.size)], "fill"),
-                horizontalSpacer(6),
-                text(copy.RESULTS_PENDING, { style: "body.medium.regular", color: "fg.warning" }),
-              ],
-              "spaceBetween",
-              [],
-            ),
-            slot.endedAt,
-          ),
+          text(resultsIn === null ? copy.RESULTS_PENDING : copy.RESULTS_IN(resultsIn), { style: "title.medium.regular", color: "fg.primary" }),
+          spacer(4),
+          inline([
+            image(PENDING_CLOCK.path, [width(PENDING_CLOCK.size), height(PENDING_CLOCK.size)], "fill"),
+            horizontalSpacer(8),
+            text(copy.NOTHING_TO_DO, { style: "body.medium.regular", color: "fg.secondary" }),
+          ]),
         ],
-        frame,
-        { horizontalAlignment: "center" },
-      )
+        { gamesLeft: slot.gamesToMembership, counting: true },
+      )], frame)
+    }
 
     // Never registered and registered but no show read the same to the player.
     // Only a player whose report landed is told they played.
@@ -804,46 +730,127 @@ function claimStatus(claim: ClaimUi): RenderNode[] {
  * The label of the clear button over a pill.
  *
  * iOS takes a tap only where a clear button draws its label, so the label is
- * spaces as wide as the pill rather than nothing.
+ * spaces that cover most of the pill rather than nothing.
  */
 const TAP_AREA = " ".repeat(28)
+/** The same for the button across the slab, about 261pt of spaces, so the ends of a wider pill take no tap on iOS. */
+const ACTION_TAP_AREA = " ".repeat(60)
 
 /** The card shrinks to this pill over the last minute, as the design has it. */
 const LAST_MINUTE_S = 60
 
-/** The registered heading over a line, in the slab of a game the player is in. */
-function registeredSlab(line: RenderNode, foot?: RenderNode): RenderNode {
-  return nextFrame(
+/**
+ * The Party clock of the design: a nested card in a frame of the container
+ * colour, a circle for each game still between a candidate and membership
+ * along the top of the frame, and a line in its foot when there is one.
+ *
+ * The frame carries no state colour: the words and the button of the card
+ * do. A member, or a player whose games are unknown, gets no circles.
+ */
+function partyClock(
+  content: RenderNode[],
+  options: { gamesLeft?: number | null; counting?: boolean; off?: boolean; foot?: RenderNode | RenderNode[]; footPadding?: number } = {},
+): RenderNode {
+  const games = options.gamesLeft ? gamesRow(options.gamesLeft, options) : null
+  const slab = column(content, [fill, pad(16), background("bg.surface.nested", 20)], { horizontalAlignment: "start", verticalArrangement: "spaceBetween" })
+  const foot = options.foot ? column([options.foot].flat(), [fill, pad(options.footPadding ?? 12)], { horizontalAlignment: "start" }) : null
+  return column([games, slab, foot].filter((node) => node !== null), [fill, pad(4), background("bg.surface.container", 24)], {
+    horizontalAlignment: "start",
+    verticalArrangement: "spaceBetween",
+  })
+}
+
+/** The label over the big line of the card, a date, a countdown or a verdict. */
+function heading(label: string | RenderNode, line: string | RenderNode): RenderNode[] {
+  return [
+    typeof label === "string" ? text(label, { style: "body.large.regular", color: "fg.secondary" }) : label,
+    spacer(2),
+    typeof line === "string" ? text(line, { style: "title.medium.regular", color: "fg.primary" }) : line,
+  ]
+}
+
+/** The date of a game, in the size of every line under the label. */
+function dateLine(startAt: number, color: ColorToken = "fg.primary"): RenderNode {
+  return text(formatGameTime(startAt), { style: "title.medium.regular", color })
+}
+
+/**
+ * The circles of the games left, with how many in words at the right.
+ *
+ * While the results of a game are pending, its circle holds a dot and the
+ * words go, since the count changes once the results land.
+ */
+function gamesRow(gamesLeft: number, look: { counting?: boolean; off?: boolean }): RenderNode {
+  const ink: ColorToken = look.off ? "fg.tertiary" : "fg.secondary"
+  const circles = Array.from({ length: Math.min(gamesLeft, MAX_CIRCLES) }, (_, i) =>
+    look.counting && i === 0 ? circle("fg.warning", true) : circle(ink, false),
+  )
+  return row(
     [
-      labelOverTime(
-        inline([
-          text(copy.REGISTERED, { style: "body.large.regular", color: "fg.primary" }),
-          horizontalSpacer(6),
-          text(copy.SEPARATOR, { style: "body.large.regular", color: "fg.secondary" }),
-          horizontalSpacer(6),
-          text(copy.NEXT_GAME, { style: "body.large.regular", color: "fg.secondary" }),
-        ]),
-        line,
-      ),
+      inline(circles.flatMap((node, i) => (i === 0 ? [node] : [horizontalSpacer(CIRCLE_GAP), node]))),
+      ...(look.counting ? [] : [
+            flexibleSpacer(),
+            column([text(copy.GAMES_TO_MEMBERSHIP(gamesLeft), { style: "body.small.regular", color: ink })], [width(GAMES_CAPTION_WIDTH)], {
+              horizontalAlignment: "end",
+            }),
+          ]),
     ],
-    "bg.surface.container",
-    foot,
+    "start",
+    [fill, { tag: "padding", value: [4, 12, 6, 12] }],
   )
 }
 
 /**
- * The "Next game" slab of the design, a nested card in a 4px frame whose
- * colour is the state, with a line in the foot of the frame when there is one.
+ * A ring, with a dot in it when `dot`.
  *
- * The design keeps the line under the card inside the frame, 12px in from
- * it, so the card above it holds its shape whether or not it has one.
+ * The host draws a border outside the shape, so the ring is a padded circle
+ * in its colour around one in the colour of the frame.
  */
-function nextFrame(children: RenderNode[], frame: ColorToken, foot?: RenderNode | RenderNode[], footPadding = 12): RenderNode {
-  const slab = column(children, [fill, pad(16), background("bg.surface.nested", 20)], { horizontalAlignment: "start" })
-  return column(foot ? [slab, column([foot].flat(), [fill, pad(footPadding)], { horizontalAlignment: "start" })] : [slab], [fill, pad(4), background(frame, 24)], {
-    horizontalAlignment: "start",
-    verticalArrangement: "spaceBetween",
-  })
+function circle(ink: ColorToken, dot: boolean): RenderNode {
+  const hole = column(dot ? [filledDot(CIRCLE_DOT, ink)] : [spacer(CIRCLE_HOLE)], [
+    width(CIRCLE_HOLE),
+    height(CIRCLE_HOLE),
+    background("bg.surface.container", CIRCLE_HOLE / 2),
+  ])
+  return column([hole], [pad(CIRCLE_RING), background(ink, CIRCLE_HOLE / 2 + CIRCLE_RING)])
+}
+
+function filledDot(size: number, ink: ColorToken): RenderNode {
+  return column([spacer(size)], [width(size), height(size), background(ink, size / 2)])
+}
+
+/** The red dot and Live now, over the start of a game that has begun. */
+function liveNow(): RenderNode {
+  return inline([
+    filledDot(LIVE_DOT, "fg.error"),
+    horizontalSpacer(6),
+    text(copy.LIVE_NOW, { style: "body.large.regular", color: "fg.primary" }),
+  ])
+}
+
+function youreIn(): RenderNode {
+  return text(copy.YOURE_IN, { style: "body.large.regular", color: "fg.success" })
+}
+
+/**
+ * I'll be there, with the ring of the sign-up filling in its middle while it runs.
+ *
+ * A busy sign-up with no step yet, which is the ask for the camera, shows the
+ * spinner of the host there instead.
+ */
+function signUpButton(ui: CardUi): RenderNode {
+  if (!ui.busy) return actionPill(copy.ILL_BE_THERE, "fg.warning", "bg.surface.main", ACTION_REGISTER)
+  if (ui.progress === undefined) return actionPill(copy.ILL_BE_THERE, "fg.warning", "fg.warning", ACTION_REGISTER, { loading: true, enabled: false })
+  return box([actionPill(copy.ILL_BE_THERE, "fg.warning", "fg.warning"), progressRing(ui.progress)], [fill])
+}
+
+/** The baked ring nearest to `progress`, never empty and never full, since a full ring would say it is done. */
+function progressRing(progress: number): RenderNode {
+  const percent = progress * 100
+  const step = SIGNUP_RING.steps.reduce((best, candidate) =>
+    Math.abs(candidate.percent - percent) < Math.abs(best.percent - percent) ? candidate : best,
+  )
+  return image(step.path, [width(SIGNUP_RING.size), height(SIGNUP_RING.size)], "fill")
 }
 
 /** The line of the foot, 12px as the design has it. */
@@ -851,7 +858,7 @@ function footLine(line: string, ink: ColorToken): RenderNode {
   return text(line, { style: "body.medium.regular", color: ink })
 }
 function registerFoot(notice: NonNullable<CardUi["notice"]>): RenderNode {
-  if (!notice.status) return footLine(notice.text, "bg.surface.main")
+  if (!notice.status) return footLine(notice.text, notice.tone)
   return footRow(BELL_OFF, notice.text)
 }
 function cameraFoot(busy: boolean): RenderNode {
@@ -890,11 +897,17 @@ function footRow(picture: { path: string; size: number }, line: string, tap?: { 
  * 4px border of the design, since the host draws a border outside the shape.
  */
 function lastMinutePill(secondsLeft: number): RenderNode {
-  return column(
-    [column([pill(copy.GAME_STARTS_IN(secondsLeft), "fg.warning", "bg.surface.main")], [pad(4), background("bg.surface.container", 28)])],
-    [fill],
-    { horizontalAlignment: "center" },
+  const face = column(
+    [
+      inline([
+        text(copy.GAME_STARTS_IN, { style: "body.large.regular", color: "bg.surface.main" }),
+        horizontalSpacer(10),
+        text(String(secondsLeft), { style: "headline.large", color: "bg.surface.main" }),
+      ]),
+    ],
+    [{ tag: "padding", value: [6, 20, 6, 20] }, background("fg.warning", 24)],
   )
+  return column([column([face], [pad(4), background("bg.surface.container", 28)])], [fill], { horizontalAlignment: "center" })
 }
 
 /**
@@ -908,42 +921,20 @@ function inline(children: RenderNode[]): RenderNode {
 }
 
 /**
- * A pill with dark text that takes a tap, through a clear button laid over it.
+ * The button of the card, a pill across the slab, with dark text, that takes a
+ * tap through a clear button laid over it when given an action.
  *
  * While the button loads, the host draws its spinner in the middle of the
- * pill, and with a `progress` the ring of that step stands there instead. The
- * spinner is what a busy card with no step shows, which is the card during the
- * ask for the camera. The label takes the colour of the pill under either, so
- * the pill keeps its size.
+ * pill, and the label takes the colour of the pill so the pill keeps its size.
  */
-function pillButton(
-  label: string,
-  action: string,
-  fill: ColorToken,
-  width: number,
-  state: { enabled?: boolean; loading?: boolean; progress?: number } = {},
-  look?: PillLook,
-): RenderNode {
-  const { progress, ...buttonState } = state
-  const hidden = state.loading || progress !== undefined
-  return box([
-    fixedWidth(pill(label, fill, hidden ? fill : "bg.surface.main", look), width),
-    ...(progress === undefined ? [] : [progressRing(progress)]),
-    fixedWidth(compact(button(TAP_AREA, action, "text", buttonState)), width),
-  ])
+function actionPill(label: string, tone: ColorToken, ink: ColorToken, action?: string, state: { enabled?: boolean; loading?: boolean } = {}): RenderNode {
+  const face = pill(label, tone, ink)
+  if (!action) return face
+  return box([face, button(ACTION_TAP_AREA, action, "text", state)], [fill])
 }
 
-/** The baked ring nearest to `progress`, never empty and never full, since a full ring would say it is done. */
-function progressRing(progress: number): RenderNode {
-  const percent = progress * 100
-  const step = SIGNUP_RING.steps.reduce((best, candidate) =>
-    Math.abs(candidate.percent - percent) < Math.abs(best.percent - percent) ? candidate : best,
-  )
-  return image(step.path, [width(SIGNUP_RING.size), height(SIGNUP_RING.size)], "fill")
-}
-
-function pill(label: string, fill: ColorToken, ink: ColorToken, look: PillLook = DEFAULT_PILL): RenderNode {
-  return column([text(label, { style: "title.medium.regular", color: ink })], [{ tag: "padding", value: look.padding }, background(fill, 24)], {
+function pill(label: string, tone: ColorToken, ink: ColorToken): RenderNode {
+  return column([text(label, { style: "title.medium.regular", color: ink })], [fill, { tag: "padding", value: [12, 16, 12, 16] }, background(tone, 24)], {
     horizontalAlignment: "center",
   })
 }

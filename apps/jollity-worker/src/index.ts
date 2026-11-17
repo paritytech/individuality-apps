@@ -115,7 +115,7 @@ import {
   type SeenGame,
   type StoredOutcome,
 } from "./state"
-import { connect, connectAssetHub, playerAddress, readAttendance, readClaimed, readCollectables, readGame, readOutcome, readNameReady, readStanding, readEarned, readPastGames, readPrize, type ChainRead, type PastGames, type People, type RunningGame } from "./chain"
+import { connect, connectAssetHub, playerAddress, readAttendance, readClaimed, readCollectables, readGame, readOutcome, readNameReady, readStanding, readEarned, readPastGames, readPrize, type ChainRead, type Standing, type PastGames, type People, type RunningGame } from "./chain"
 import { decPayload, drawsSlideToConfirm, encPayload, toWire, type GameCardData, type IntroData } from "./renderer"
 import { runMigrations } from "./migrations"
 import { learnUsername, readNameSet } from "./username"
@@ -179,8 +179,8 @@ const PERMISSION_WAIT_MS = 30_000
 const BOOKING_RETRY_MS = 10 * 60_000
 const ANSWER_POLL_MS = 1_000
 let hostInfoReady: Promise<void> = Promise.resolve()
-// Register is a slide only once the host says it draws one, so a card drawn
-// before the answer, or for any older host, is the Register button.
+// The sign-up is a slide only once the host says it draws one, so a card drawn
+// before the answer, or for any older host, is the I'll be there button.
 let slideRegister = false
 const MALFORMED_FRAME_DETAIL_LIMIT = 5
 const malformedFrameCounts = new Map<string, number>()
@@ -237,7 +237,7 @@ export function endedCard(): RenderNode {
  */
 export function slotInputFor(
   data: GameCardData,
-  read: ChainRead | null,
+  read: (ChainRead & { gamesToMembership?: number | null }) | null,
   games: SeenGame[],
   outcome: StoredOutcome | null,
   seen: Seen,
@@ -254,6 +254,7 @@ export function slotInputFor(
     startAt: data.gamePlayTime,
   })
   const member = (known?.memberBefore ?? outcome?.memberBefore ?? read?.member) === true
+  const gamesToMembership = read?.gamesToMembership
 
   if (outcome) {
     return {
@@ -277,11 +278,11 @@ export function slotInputFor(
     // card already drew from an earlier read.
     const registered = running.registered === true || known?.registered === true || registeredBefore
     // The chain does not say when a draw starts taking entries, so a closed one
-    // holds Register at Opening soon with no time to open at, as native does.
+    // holds the sign-up at Opening soon with no time to open at, as native does.
     // A player already signed up is past that gate.
     const drawClosed = running.drawOpen === false && !registered
     const window = { opensAt: drawClosed ? Infinity : 0, closesAt: running.registrationEnds }
-    const base = { registered, results: null, member, nowSeconds, window }
+    const base = { registered, results: null, member, nowSeconds, window, gamesToMembership, resultsAt: running.reportingEnds }
     switch (running.phase) {
       case "registration":
       case "shuffle":
@@ -307,15 +308,16 @@ export function slotInputFor(
       results: null,
       member,
       nowSeconds,
+      gamesToMembership,
       window: { opensAt: upcoming.registrationStarts, closesAt: upcoming.registrationEnds },
     }
   }
 
   const registered = known?.registered === true
   if (data.gamePlayTime > nowSeconds) {
-    return { game: slotGame("scheduled"), registered, results: null, member, nowSeconds, cancelled: offTheSchedule(data.gamePlayTime, read, readBefore) }
+    return { game: slotGame("scheduled"), registered, results: null, member, nowSeconds, gamesToMembership, cancelled: offTheSchedule(data.gamePlayTime, read, readBefore) }
   }
-  return { game: slotGame("reporting"), registered, results: null, member, nowSeconds }
+  return { game: slotGame("reporting"), registered, results: null, member, nowSeconds, gamesToMembership }
 }
 
 /**
@@ -328,7 +330,7 @@ function offTheSchedule(gamePlayTime: number, read: ChainRead | null, readBefore
   return read !== null && readBefore !== null && !lists(read) && !lists(readBefore)
 }
 
-let latest: (ChainRead & { nameSet: boolean; nameReady: boolean; standing?: string | null }) | null = null
+let latest: (ChainRead & { nameSet: boolean; nameReady: boolean; standing?: Standing | null; gamesToMembership?: number | null }) | null = null
 let readBeforeLatest: ChainRead | null = null
 // A chain read can be consumed by the sign-up cleanup and the poll. Keep its
 // identity so those two paths cannot count one false result as two reads.
@@ -959,7 +961,7 @@ export async function tick(host: WorkerHost, autoClaim?: AutoClaim): Promise<voi
     stage = "settle"
     const stale = latest?.member == null || beat % MEMBER_EVERY_TICKS === 1
     const standing = address && stale ? await within(readStanding(people, address)) : (latest?.standing ?? null)
-    const member = isMemberStanding(standing)
+    const member = isMemberStanding(standing?.tag ?? null)
     const nameRead = !latest?.nameSet && member === true && stale ? await readNameSet(host, async () => people) : null
     const nameSet = latest?.nameSet === true || nameRead === true
     // Asked while the name is unclaimed: a new member's key waits in the
@@ -967,7 +969,8 @@ export async function tick(host: WorkerHost, autoClaim?: AutoClaim): Promise<voi
     const readyRead = address && nameRead === false && latest?.nameReady !== true ? await within(readNameReady(people, address)).catch(() => null) : null
     const nameReady = nameSet || (readyRead ?? latest?.nameReady ?? false)
     readBeforeLatest = latest
-    latest = { ...read, member, nameSet, nameReady, standing }
+    const gamesToMembership = standing ? standing.gamesToMembership : (latest?.gamesToMembership ?? null)
+    latest = { ...read, member, nameSet, nameReady, standing, gamesToMembership }
     latestObservation = ++readObservation
     firstPollDone = true
 
@@ -1003,9 +1006,9 @@ export async function tick(host: WorkerHost, autoClaim?: AutoClaim): Promise<voi
       // A member whose name could not be read waits for the next read, so the
       // news never offers a claim to someone who already has their name.
       // A new member hears of it with the name to claim, so the news waits for the ring too.
-      if (stale && standing !== null && (standingOf(standing) !== "member" || nameSet || (nameRead === false && nameReady))) {
+      if (stale && standing !== null && (standingOf(standing.tag) !== "member" || nameSet || (nameRead === false && nameReady))) {
         stage = "membership"
-        await postMembershipNews(host, address, standing, nameSet)
+        await postMembershipNews(host, address, standing.tag, nameSet)
       }
     }
   } catch (e) {
@@ -1178,7 +1181,7 @@ async function settleOutcome(
     outcome = {
       cancelled: true,
       results: null,
-      gamesToMembership: null,
+      gamesToMembership: latest?.gamesToMembership ?? null,
       gameIndex: game.index,
       registered: game.registered,
       memberBefore: game.memberBefore,

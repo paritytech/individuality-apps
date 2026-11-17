@@ -22,12 +22,6 @@ export function formatCountdown(untilUnixSeconds: number, nowUnixSeconds: number
     : `${minutes}:${String(seconds).padStart(2, "0")}`
 }
 
-/** A countdown in minutes and seconds, such as "4m 59s", as the native card writes it. */
-export function formatMinutesSeconds(untilUnixSeconds: number, nowUnixSeconds: number): string {
-  const total = Math.max(0, untilUnixSeconds - nowUnixSeconds)
-  return `${Math.floor(total / 60)}m ${total % 60}s`
-}
-
 /** The wall clock in the hour cycle of the phone, "16:00" or "4:00 PM". */
 export function formatClock(unixSeconds: number, locale?: string): string {
   const date = new Date(unixSeconds * 1000)
