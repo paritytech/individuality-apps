@@ -90,55 +90,6 @@
             {
               "tag": "FillHeight",
               "value": true
-            },
-            {
-              "tag": "Opacity",
-              "value": 89
-            }
-          ],
-          "props": {},
-          "children": [
-            {
-              "tag": "Effect",
-              "value": {
-                "props": {
-                  "effect": "Rainbow"
-                },
-                "children": [
-                  {
-                    "tag": "Box",
-                    "value": {
-                      "modifiers": [
-                        {
-                          "tag": "FillWidth",
-                          "value": true
-                        },
-                        {
-                          "tag": "FillHeight",
-                          "value": true
-                        }
-                      ],
-                      "props": {},
-                      "children": []
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      },
-      {
-        "tag": "Box",
-        "value": {
-          "modifiers": [
-            {
-              "tag": "FillWidth",
-              "value": true
-            },
-            {
-              "tag": "FillHeight",
-              "value": true
             }
           ],
           "props": {
