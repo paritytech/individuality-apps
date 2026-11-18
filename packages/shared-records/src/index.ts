@@ -13,5 +13,6 @@
  */
 export * from "./game-registration"
 export * from "./game-registration-store"
+export * from "./daily-dollar-scratch"
 export * from "./game-timing"
 export * from "./communication-key"

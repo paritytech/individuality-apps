@@ -41,6 +41,7 @@ import {
   type PeopleAirdropsStanding,
 } from "@parity/product-sdk-individuality"
 import type { AirdropStanding, Hex32, TickResult } from "@individuality/daily-dollar"
+import { dailyDollarScratchStore } from "@individuality/shared-records"
 import { bindTx, type SubmittableTx } from "@jollity/game-chain"
 import { chainGenesis, personhoodProduct } from "@jollity/protocol"
 import type { People } from "../chain"
@@ -309,6 +310,10 @@ export function createDailyDollar({ host, connect, now }: DailyDollarDeps): Dail
     return notifications
   }
 
+  const humanityScratches = dailyDollarScratchStore(async () => ({
+    readJSON: (key) => within(host.storage.readProductJSON<unknown>(personhoodProduct(), key)),
+  }))
+
   /** Copies Humanity's reveal stamps into this registry. Best effort: a refused read leaves it as it was. */
   async function mergeScratches(owner: string): Promise<void> {
     const raw = await host.storage
@@ -342,6 +347,11 @@ export function createDailyDollar({ host, connect, now }: DailyDollarDeps): Dail
       record = (await readRegistry(owner).catch(() => null))?.draws[card.eventId]
     }
     if (record?.scratchedAtSeconds != null) return "scratched"
+    const scratchedInHumanity = await humanityScratches.scratchedAt(card.eventId).catch((error: unknown) => {
+      logger.debug("Humanity's scratch record is unreadable: {error}", { error })
+      return null
+    })
+    if (scratchedInHumanity != null) return "scratched"
     return now() >= (record?.endTimeSeconds ?? card.drawTimeSeconds + CLAIM_WINDOW_SECONDS) ? "expired" : null
   }
 
