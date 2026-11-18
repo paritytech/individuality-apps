@@ -42,7 +42,9 @@ const DEG = Math.PI / 180
              multisampling — is the window's size, not the stage's. It grows
              if a solid ever spills out, and sleep() lets it all go (1×1)
              while nothing is shown. Off: include() does nothing and render()
-             is the composer's. Never with a margin. */
+             is the composer's. Never with a margin. It draws at
+             dpr × ss render px per css px (layout.js DPR_CAP), and the
+             browser scales the canvas down to its box */
 export function createGL(canvas, { fov: fovOf = () => 115, bloom: bloomOf = () => ({ intensity: 1, threshold: 0.2, radius: 0.5 }), alpha = false, margin: marginOf = () => 0, window: windowOf = null } = {}) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -136,7 +138,7 @@ export function createGL(canvas, { fov: fovOf = () => 115, bloom: bloomOf = () =
   /* ── the window ─────────────────────────────────────────────────────────── */
   const PAD = 1.5 // its half side, × the radius it is sized from: room for a lean, and a rim turned to you in perspective
   const STEP = 16 // device px its side is rounded up to
-  const win = { on: !!windowOf, x: 0, y: 0, w: 0, h: 0, W: 0, H: 0, side: 0, grown: 0, overflow: 0, most: 0, asleep: false }
+  const win = { on: !!windowOf, x: 0, y: 0, w: 0, h: 0, W: 0, H: 0, side: 0, grown: 0, overflow: 0, most: 0, asleep: false, k: 0 } // k, the render scale
   const included = []
   const centre = new THREE.Vector3()
   const corner = new THREE.Vector3()
@@ -149,7 +151,9 @@ export function createGL(canvas, { fov: fovOf = () => 115, bloom: bloomOf = () =
     return Math.max(1, w)
   }
   function fitWindow() {
-    const dpr = layout.dpr
+    const dpr = layout.dpr * layout.ss // render px per css px, ss× the device's
+    if (dpr !== win.k) win.grown = 0 // grown is in px of the old scale; follow() grows it again
+    win.k = dpr
     win.W = Math.max(1, Math.floor(layout.W * dpr))
     win.H = Math.max(1, Math.floor(layout.H * dpr))
     win.side = Math.max(Math.ceil((2 * PAD * Math.max(1, windowOf()) * layout.scale * dpr) / STEP) * STEP, win.grown)

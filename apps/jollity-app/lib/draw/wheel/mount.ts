@@ -160,15 +160,17 @@ export const WHEEL_PROGRESS_TIMEOUT_MS = WHEEL_KNOWN_RUN_MS * 2 + WHEEL_STARTUP_
 
 // ── the quality the stage draws at ─────────────────────────────────────────
 // The draw is GPU-bound on phones (A16: coin 21 fps with 4× MSAA, 60 without).
-// The stage starts at the level this device last held and steps down while
-// frames are slow, MSAA first, then density; never back up within a draw.
+// The stage starts at the level this device last held. The best is 2× supersampling
+// with no MSAA. While frames are slow, it steps down: to MSAA, then to less density.
+// It never steps back up within a draw.
 /** what the stage may draw with, best first (2×: the scene's own ceiling, DPR_CAP in ./proto/render-utils/layout.js) */
 const LEVELS = [
-  { dpr: 2, msaa: true },
-  { dpr: 2, msaa: false },
-  { dpr: 1.5, msaa: false },
-  { dpr: 1.25, msaa: false },
-  { dpr: 1, msaa: false },
+  { dpr: 2, ss: 2, msaa: false },
+  { dpr: 2, ss: 1, msaa: true },
+  { dpr: 2, ss: 1, msaa: false },
+  { dpr: 1.5, ss: 1, msaa: false },
+  { dpr: 1.25, ss: 1, msaa: false },
+  { dpr: 1, ss: 1, msaa: false },
 ] as const
 /** the median frame slower than this is a GPU that cannot keep up: under ~45 fps */
 const SLOW_FRAME_MS = 22
@@ -181,8 +183,9 @@ const SETTLE_FRAMES = 45
  *  or a face that loaded late */
 const HELD_SETTLE_FRAMES = 30
 /** per opening: a level held under the flip page, whose GL was the whole
- *  screen, says nothing about the slit's, a window the size of the coin */
-const LEVEL_KEY = "jollity.draw.level.slit"
+ *  screen, says nothing about the slit's, a window the size of the coin.
+ *  A new key when LEVELS change, so a stored index never points at another level */
+const LEVEL_KEY = "jollity.draw.level.slit.v2"
 
 function heldLevel(): number {
   try {
@@ -200,6 +203,7 @@ function qualityGovernor() {
   const apply = () => {
     DPR_CAP.max = LEVELS[level]!.dpr
     DPR_CAP.msaa = LEVELS[level]!.msaa
+    DPR_CAP.ss = LEVELS[level]!.ss
   }
   apply()
   let settle = SETTLE_FRAMES
@@ -214,7 +218,7 @@ function qualityGovernor() {
     const median = [...frames].sort((a, b) => a - b)[frames.length >> 1]!
     frames.length = 0
     if (median <= SLOW_FRAME_MS || level === LEVELS.length - 1) return
-    const was = LEVELS[level]!.dpr
+    const was = LEVELS[level]!
     level++
     apply()
     try {
@@ -223,8 +227,9 @@ function qualityGovernor() {
       // kept for this draw only
     }
     settle = SETTLE_FRAMES
-    // a new density: the stage re-measures on resize
-    if (LEVELS[level]!.dpr !== was) window.dispatchEvent(new Event("resize"))
+    // a new density or supersampling: the stage re-measures on resize
+    const now = LEVELS[level]!
+    if (now.dpr !== was.dpr || now.ss !== was.ss) window.dispatchEvent(new Event("resize"))
   }
 }
 
