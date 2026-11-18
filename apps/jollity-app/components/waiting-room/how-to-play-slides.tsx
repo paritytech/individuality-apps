@@ -6,7 +6,7 @@
 /**
  * HOW TO PLAY, INLINE: the waiting room is page -1, the two steps are pages 0
  * and 1. The pages move side by side, and the clock keeps running off screen.
- * The page dots and the footer stay in place while the pages move.
+ * The footer stays in place while the pages move.
  */
 import { useState, type CSSProperties } from "react"
 import { ArrowLeft, Info } from "lucide-react"
@@ -19,8 +19,6 @@ const STEPS = [
   { title: "Tap other players who also copy the gesture", img: "/how-to-play/step-2-vote.png", ratio: "338 / 278.83" },
 ] as const
 
-const PAGES: readonly HowToPlayStep[] = [-1, 0, 1]
-const EASE = "cubic-bezier(0.2, 0.8, 0.2, 1)"
 /** a page moves a little more than its own width, so a page off screen is fully off */
 const SLIDE_PCT = 108
 
@@ -35,21 +33,6 @@ const ROW_OUT = "translateY(calc(100% + max(39px, env(safe-area-inset-bottom))))
 /** where page `page` sits while `step` is open */
 export function slideStyle(page: HowToPlayStep, step: HowToPlayStep): CSSProperties {
   return { transform: `translateX(${(page - step) * SLIDE_PCT}%)` }
-}
-
-/** one dot a page, the clock page first; the open page's dot is long */
-export function PageDots({ step, className = "" }: { step: HowToPlayStep; className?: string }) {
-  return (
-    <div aria-hidden className={"flex justify-center gap-1.5 " + className}>
-      {PAGES.map((page) => (
-        <span
-          key={page}
-          className={"h-1.5 rounded-full " + (page === step ? "w-[18px] bg-foreground" : "w-1.5 bg-muted-foreground")}
-          style={{ transition: `width 320ms ${EASE}, background-color 320ms ease` }}
-        />
-      ))}
-    </div>
-  )
 }
 
 /** the two steps, over the waiting room's own page. The parent is the positioned stage. */
