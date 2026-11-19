@@ -11,7 +11,6 @@ import type {
     ButtonVariant,
     ColorToken,
     ContentAlignment,
-    Effect,
     HorizontalAlignment,
     ImageFit,
     ImageSource,
@@ -147,7 +146,3 @@ export function image(source: ImageSource, options: ImageOptions = {}): Renderer
     return { tag: "Image", value: { modifiers, props: defined({ source, ...props }) } };
 }
 
-/** Applies an effect to its children. The only node with no modifiers of its own. */
-export function effect(applied: Effect, children: RendererNode[]): RendererNode {
-    return { tag: "Effect", value: { props: { effect: applied }, children } };
-}

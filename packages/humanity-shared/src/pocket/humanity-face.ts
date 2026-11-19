@@ -48,7 +48,6 @@ import {
   background,
   border,
   box,
-  effect,
   fillHeight,
   fillWidth,
   height,
@@ -393,13 +392,6 @@ function tint(ink: Ink): RendererNode {
   return box([], { modifiers: [fillWidth(), fillHeight(), ...inkOpacity(ink), background(ink.color)] });
 }
 
-/** The rainbow effect over the whole face at `alpha`: foil on silver, holo on black. */
-function foil(alpha: number): RendererNode {
-  return box([effect("Rainbow", [box([], { modifiers: [fillWidth(), fillHeight()] })])], {
-    modifiers: [fillWidth(), fillHeight(), opacity(alphaOf(alpha))],
-  });
-}
-
 /**
  * `inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.15)`:
  * the hairlines that make the plastic read as an edge rather than a fill.
@@ -556,7 +548,6 @@ export function humanityFace({ name, state, fill }: PocketFace): RendererNode {
     [
       ramp(material),
       ...(material.tints ?? []).map(tint),
-      ...(material.foil === undefined ? [] : [foil(material.foil)]),
       ...hairlines(),
       layer(wordmark(material, candidate != null), "BottomStart"),
       layer(identity(name, state, material), "TopStart", [paddingEach({ top: TOP, end: EDGE, bottom: 0, start: EDGE })]),

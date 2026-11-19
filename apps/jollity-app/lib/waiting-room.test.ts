@@ -244,8 +244,8 @@ describe("howToPlay", () => {
 })
 
 describe("swipeStep", () => {
-  it("opens the next page on a left swipe and stops at the last step", () => {
-    expect(swipeStep(-1, -60, 5)).toBe(0)
+  it("opens the next step on a left swipe, stops at the last step, and does not open the steps from the clock page", () => {
+    expect(swipeStep(-1, -60, 5)).toBe(-1)
     expect(swipeStep(0, -60, 5)).toBe(1)
     expect(swipeStep(1, -60, 5)).toBe(1)
   })
