@@ -13,8 +13,8 @@
    them, contiguous, at every stopping point, with no exceptions. They differ
    only in the RADIUS, which is free.
 
-     one ring        every ticket on one circle. Gav's sketch. Readable to
-                     ~150, and the clearest statement of the rule there is.
+     one ring        every ticket on one circle. Readable to ~150,
+                     and the clearest statement of the rule there is.
      rings, spread   the visualisation's: L rings, discs per ring in
                      proportion to its circumference, and the slots dealt
                      out so each ring's discs sit as evenly round it as the
@@ -480,7 +480,7 @@ export function place({ kind = DEFAULT_PLACEMENT, n, rings = 1, hole = 0.62, gro
 
     /* the wedge, as a piece to paint: the winners' slice of the circle, and
        the radii that hold discs. The painter draws it as a pie slice from the
-       dead centre out past r1 (Gav's sketch); r0 and r1 are also where the
+       dead centre out past r1; r0 and r1 are also where the
        zoom finds the wedge's middle. */
     sectors({ winners, wedgeAngle }) {
       const w = span(winners)

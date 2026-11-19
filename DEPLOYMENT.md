@@ -86,12 +86,6 @@ requirement the network misses and stops:
 | The DotNS `storeFactory` and `reverseResolver` the name link is built with | the name link ([`DOTNS_CONTRACTS`](packages/individuality-name-link/src/dotns-names.ts)) | fixed in the code |
 | `NEXT_PUBLIC_LOCAL_APPROVED_COLLECTIONS` | the collectible collections the game accepts; no descriptor names them | set by you |
 
-On 15 November 2026 both `.dot` networks failed. Polkadot's People chain (runtime `people-polkadot`
-2005003) has none of the game's pallets. PCF Devnet's (`people-paseo` 2005005) has them, but both
-networks use `.dot` names and DotNS contracts of their own, and the app does not yet take those from
-the build. Humanity knows the two built-in networks only. `npm run deploy -- jollity <network>
---dry-run` checks again against the live network.
-
 ## What the command does
 
 **Jollity** (`scripts/deploy.mjs`):

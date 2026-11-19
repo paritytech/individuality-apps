@@ -55,13 +55,12 @@
    The host's card-opening spinner, redrawn (`LoadSpinner.tsx`): a Material 3
    indeterminate circle, the arc growing and shrinking as it turns. The circle
    is r=22 on a 48 box, so its stroke's outer edge fills the box as the
-   native one does (measured on a Pixel 10a: 125px at 2.625x), and its
-   length is about 138. */
+   native one does (125px at 2.625x), and its length is about 138. */
 /* The host centres its spinner in everything below the card, down to the
    screen edge behind its floating tab bar; the page ends above that bar, so
-   its centre sits higher. The offset is half the tab bar as measured on a
-   Pixel 10a (2026-10-09). It is a guess at the host's layout, so it only
-   moves the spinner, never the page. */
+   its centre sits higher. The offset is half the height of the tab bar. It
+   is a guess at the host's layout, so it only moves the spinner, never the
+   page. */
 .load-wait {
   flex: 1; display: flex; align-items: center; justify-content: center;
   transform: translateY(51px);

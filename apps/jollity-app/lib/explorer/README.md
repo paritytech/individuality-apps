@@ -82,7 +82,7 @@ tree, a shard that died, an out-of-date witness).
 
 ### Default bounds
 
-Measured on a shared 16-core server on 29 Oct 2026, with the room as it is now (no `dup`), on 7
+Measured on a shared 16-core server, with the room as it is now (no `dup`), on 7
 workers (7 x 1.5 GB heap, inside the 12 GB the box allows) and the default 30-minute budget. These
 runs predate the removal of Mesh's old decision path, when `--flag on|off|both` also searched that
 path's tree; "flag on" is the only tree now:
