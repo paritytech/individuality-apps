@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 name: Release
-# Promotes what <DOTNS_DOMAIN_JOLLITY>next.paseo has been serving onto
-# <DOTNS_DOMAIN_JOLLITY>.paseo, with DOTNS_DOMAIN_JOLLITY the bare label in the
+# Promotes what <JOLLITY_DOTNS_DOMAIN>next.paseo has been serving onto
+# <JOLLITY_DOTNS_DOMAIN>.paseo, with JOLLITY_DOTNS_DOMAIN the bare label in the
 # repository secret of that name.
 #
 # A release rebuilds nothing. deploy.yml already built the paseo artifacts for
@@ -28,9 +28,9 @@ name: Release
 # the commit first: the restore fails closed rather than releasing something
 # else.
 #
-# With product humanity, a dispatch promotes <DOTNS_DOMAIN_HUMANITY>next.paseo
-# onto <DOTNS_DOMAIN_HUMANITY>.paseo instead, and only that, with
-# DOTNS_DOMAIN_HUMANITY the bare label in the repository secret of that name.
+# With product humanity, a dispatch promotes <HUMANITY_DOTNS_DOMAIN>next.paseo
+# onto <HUMANITY_DOTNS_DOMAIN>.paseo instead, and only that, with
+# HUMANITY_DOTNS_DOMAIN the bare label in the repository secret of that name.
 # It reads the staged records live from the staging name, so it never expires,
 # and it tags humanity-v<version>.
 # Bump `version` in apps/humanity-app/package.json in a PR first, since it is
@@ -65,7 +65,7 @@ env:
   # bulletin-deploy calls the network `paseo-next-v2`, and the dotns CLI rejects
   # that name. Only dotns runs here.
   DOTNS_ENV: paseo-v2
-  CAN_WRITE_VERSION: ${{ secrets.GIST_TOKEN != '' && vars.VERSION_GIST_ID != '' }}
+  CAN_WRITE_VERSION: ${{ secrets.JOLLITY_GIST_TOKEN != '' && vars.JOLLITY_VERSION_GIST_ID != '' }}
 
 jobs:
   version:
@@ -124,22 +124,22 @@ jobs:
       - name: Resolve the released name
         id: name
         env:
-          DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN_JOLLITY }}
+          DOTNS_DOMAIN: ${{ secrets.JOLLITY_DOTNS_DOMAIN }}
         run: |
           if ! [[ "$DOTNS_DOMAIN" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
-            echo "::error title=DOTNS_DOMAIN_JOLLITY is not a DotNS label::Set the DOTNS_DOMAIN_JOLLITY secret to the bare label the product deploys under, without a TLD."
+            echo "::error title=JOLLITY_DOTNS_DOMAIN is not a DotNS label::Set the JOLLITY_DOTNS_DOMAIN secret to the bare label the product deploys under, without a TLD."
             exit 1
           fi
           echo "domain=${DOTNS_DOMAIN}.paseo" >> "$GITHUB_OUTPUT"
 
       # Validates the shape and exports nothing. The CLI reports a malformed
       # phrase only as "Unable to match provided value to a secret URI".
-      - name: Require the DOTNS_JOLLITY_MNEMONIC secret
+      - name: Require the JOLLITY_DOTNS_MNEMONIC secret
         env:
-          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_JOLLITY_MNEMONIC }}
+          DEPLOY_MNEMONIC: ${{ secrets.JOLLITY_DOTNS_MNEMONIC }}
         run: |
           if [ -z "$DEPLOY_MNEMONIC" ]; then
-            echo "::error title=DOTNS_JOLLITY_MNEMONIC secret missing::Add the DOTNS_JOLLITY_MNEMONIC repo secret, the seed of the account that owns the released name."
+            echo "::error title=JOLLITY_DOTNS_MNEMONIC secret missing::Add the JOLLITY_DOTNS_MNEMONIC repo secret, the seed of the account that owns the released name."
             exit 1
           fi
           WORDS=$(printf '%s' "$DEPLOY_MNEMONIC" | tr -d '\r' | wc -w | tr -d ' ')
@@ -206,9 +206,9 @@ jobs:
       # carries the same grants deploy.yml publishes on the staging name.
       - name: Point the released name at the staged CIDs
         env:
-          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_JOLLITY_MNEMONIC }}
-          DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN_JOLLITY }}
-          TRUSTED_PRODUCTS: ${{ vars.TRUSTED_PRODUCTS_JOLLITY }}
+          DEPLOY_MNEMONIC: ${{ secrets.JOLLITY_DOTNS_MNEMONIC }}
+          DOTNS_DOMAIN: ${{ secrets.JOLLITY_DOTNS_DOMAIN }}
+          TRUSTED_PRODUCTS: ${{ vars.JOLLITY_TRUSTED_PRODUCTS }}
           DOMAIN: ${{ steps.name.outputs.domain }}
           APP_CID: ${{ steps.cids.outputs.app }}
           WORKER_CID: ${{ steps.cids.outputs.worker }}
@@ -216,7 +216,7 @@ jobs:
           # The manifest is rewritten whole, so an unset variable would strip
           # every grant the released name holds. Write {} to grant nothing.
           if [ -z "$TRUSTED_PRODUCTS" ]; then
-            echo "::error title=TRUSTED_PRODUCTS_JOLLITY variable missing::Set the TRUSTED_PRODUCTS_JOLLITY repo variable to the grants of the released name, or {} for none."
+            echo "::error title=JOLLITY_TRUSTED_PRODUCTS variable missing::Set the JOLLITY_TRUSTED_PRODUCTS repo variable to the grants of the released name, or {} for none."
             exit 1
           fi
           DOTNS_MNEMONIC=$(printf '%s' "$DEPLOY_MNEMONIC" | tr -d '\r' \
@@ -251,9 +251,9 @@ jobs:
         if: env.CAN_WRITE_VERSION == 'true' && steps.cids.outputs.appversion != '' && steps.cids.outputs.apptime != ''
         continue-on-error: true
         env:
-          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
-          GIST_ID: ${{ vars.VERSION_GIST_ID }}
-          GIST_FILE: ${{ secrets.DOTNS_DOMAIN_JOLLITY }}-version.json
+          GIST_TOKEN: ${{ secrets.JOLLITY_GIST_TOKEN }}
+          GIST_ID: ${{ vars.JOLLITY_VERSION_GIST_ID }}
+          GIST_FILE: ${{ secrets.JOLLITY_DOTNS_DOMAIN }}-version.json
           KEY: ${{ steps.name.outputs.domain }}
           VERSION: ${{ steps.cids.outputs.appversion }}
           TIME: ${{ steps.cids.outputs.apptime }}
@@ -323,15 +323,15 @@ jobs:
       contents: write
       actions: read
     env:
-      LABEL: ${{ secrets.DOTNS_DOMAIN_HUMANITY }}
-      DOMAIN: ${{ secrets.DOTNS_DOMAIN_HUMANITY }}.paseo
-      STAGED: ${{ secrets.DOTNS_DOMAIN_HUMANITY }}next.paseo
+      LABEL: ${{ secrets.HUMANITY_DOTNS_DOMAIN }}
+      DOMAIN: ${{ secrets.HUMANITY_DOTNS_DOMAIN }}.paseo
+      STAGED: ${{ secrets.HUMANITY_DOTNS_DOMAIN }}next.paseo
       DOTNS_CLI_VERSION: 1.1.0
     steps:
-      - name: Require the DOTNS_DOMAIN_HUMANITY secret
+      - name: Require the HUMANITY_DOTNS_DOMAIN secret
         run: |
           if ! [[ "$LABEL" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
-            echo "::error title=DOTNS_DOMAIN_HUMANITY is not a DotNS label::Set the DOTNS_DOMAIN_HUMANITY secret to the bare label Humanity deploys under, without a TLD."
+            echo "::error title=HUMANITY_DOTNS_DOMAIN is not a DotNS label::Set the HUMANITY_DOTNS_DOMAIN secret to the bare label Humanity deploys under, without a TLD."
             exit 1
           fi
 
@@ -396,12 +396,12 @@ jobs:
           fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
-      - name: Require the DOTNS_HUMANITY_MNEMONIC secret
+      - name: Require the HUMANITY_DOTNS_MNEMONIC secret
         env:
-          MNEMONIC: ${{ secrets.DOTNS_HUMANITY_MNEMONIC }}
+          MNEMONIC: ${{ secrets.HUMANITY_DOTNS_MNEMONIC }}
         run: |
           if [ -z "$MNEMONIC" ]; then
-            echo "::error title=DOTNS_HUMANITY_MNEMONIC secret missing::Add the DOTNS_HUMANITY_MNEMONIC repo secret, the seed of the account that owns $DOMAIN and $STAGED."
+            echo "::error title=HUMANITY_DOTNS_MNEMONIC secret missing::Add the HUMANITY_DOTNS_MNEMONIC repo secret, the seed of the account that owns $DOMAIN and $STAGED."
             exit 1
           fi
           WORDS=$(printf '%s' "$MNEMONIC" | tr -d '\r' | wc -w | tr -d ' ')
@@ -491,7 +491,7 @@ jobs:
 
       - name: Point the released name at the staged records
         env:
-          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_HUMANITY_MNEMONIC }}
+          DEPLOY_MNEMONIC: ${{ secrets.HUMANITY_DOTNS_MNEMONIC }}
           APP_CID: ${{ steps.read.outputs.app }}
           WORKER_CID: ${{ steps.read.outputs.worker }}
         run: |

@@ -3,7 +3,7 @@
 
 // Which Humanity names a deploy.yml run publishes.
 //
-// Every name is the bare label in the DOTNS_DOMAIN_HUMANITY secret, <label>
+// Every name is the bare label in the HUMANITY_DOTNS_DOMAIN secret, <label>
 // below, with the suffix of its leg. A leg names no label, since GitHub drops a
 // job output that holds a secret, and the deploy job adds it. A push to main publishes <label>.testnet and the
 // paseo staging name <label>next.paseo when it changes what Humanity ships.
@@ -12,7 +12,7 @@
 // Humanity ships gets <label>-pr<N>-preview.testnet, still built for product
 // <label>, since a preview label would derive an empty product account. It
 // reads the game record from the Jollity sandbox of the same PR,
-// <DOTNS_DOMAIN_JOLLITY><sandbox-suffix>. A dispatch publishes what its inputs
+// <JOLLITY_DOTNS_DOMAIN><sandbox-suffix>. A dispatch publishes what its inputs
 // pick, and target release writes <label>.paseo itself.
 //
 // Usage: node scripts/ci/humanity-legs.mjs
