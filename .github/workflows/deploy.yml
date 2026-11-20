@@ -14,7 +14,7 @@ name: Deploy
 #   workflow_dispatch  the same as push main
 #
 # The humanity job publishes Humanity under the names that
-# scripts/ci/humanity-legs.mjs picks, signed with DOTNS_PEOPL_MNEMONIC.
+# scripts/ci/humanity-legs.mjs picks, signed with DOTNS_HUMANITY_MNEMONIC.
 #
 # The paseo staging name is built as <DOTNS_DOMAIN>.paseo, because release.yml
 # promotes its CIDs onto that name and the product name is compiled into the
@@ -128,13 +128,13 @@ jobs:
       # Validates only and exports nothing, so npm ci and the builds never hold
       # the seed. The CLI reports a malformed phrase only as "Unable to match
       # provided value to a secret URI", so the shape is checked here.
-      - name: Require the DOTNS_MNEMONIC secret
+      - name: Require the DOTNS_JOLLITY_MNEMONIC secret
         if: steps.gate.outputs.gate != 'skip'
         env:
-          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_MNEMONIC }}
+          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_JOLLITY_MNEMONIC }}
         run: |
           if [ -z "$DEPLOY_MNEMONIC" ]; then
-            echo "::error title=DOTNS_MNEMONIC secret missing::Add the DOTNS_MNEMONIC repo secret, the seed of the account that owns the deployed names."
+            echo "::error title=DOTNS_JOLLITY_MNEMONIC secret missing::Add the DOTNS_JOLLITY_MNEMONIC repo secret, the seed of the account that owns the deployed names."
             exit 1
           fi
           WORDS=$(printf '%s' "$DEPLOY_MNEMONIC" | tr -d '\r' | wc -w | tr -d ' ')
@@ -329,9 +329,9 @@ jobs:
               "${SIGNER_ARGS[@]}" \
               ./apps/jollity-app/out "$DOTNS" 2>&1 | tee deploy.log
         env:
-          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_MNEMONIC }}
+          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_JOLLITY_MNEMONIC }}
           DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN }}
-          TRUSTED_PRODUCTS: ${{ vars.TRUSTED_PRODUCTS }}
+          TRUSTED_PRODUCTS: ${{ vars.TRUSTED_PRODUCTS_JOLLITY }}
           DEPLOYER_PRODUCT_ID: ${{ steps.domain.outputs.staging == '1' && matrix.deployer-product-id || '' }}
           NODE_OPTIONS: "--max-old-space-size=8192"
           DEPLOY_ENV: ${{ matrix.env }}
@@ -513,12 +513,27 @@ jobs:
       VITE_DEBUG_PANEL: "true"
       VITE_LOG_LEVEL: debug
     steps:
-      - name: Require the DOTNS_PEOPL_MNEMONIC secret
+      - name: Require the DOTNS_HUMANITY_MNEMONIC secret
         env:
-          DOTNS_MNEMONIC: ${{ secrets.DOTNS_PEOPL_MNEMONIC }}
+          DOTNS_MNEMONIC: ${{ secrets.DOTNS_HUMANITY_MNEMONIC }}
         run: |
           if [ -z "$DOTNS_MNEMONIC" ]; then
-            echo "::error title=DOTNS_PEOPL_MNEMONIC secret missing::Add the DOTNS_PEOPL_MNEMONIC repo secret, the seed of the account that owns the peopl names."
+            echo "::error title=DOTNS_HUMANITY_MNEMONIC secret missing::Add the DOTNS_HUMANITY_MNEMONIC repo secret, the seed of the account that owns the peopl names."
+            exit 1
+          fi
+
+      # The manifest is rewritten whole on every publish, so a missing variable
+      # would drop the grants the name has on chain. The humanity-previewnet
+      # environment holds the grants of peopl.testnet, and the repo variable
+      # those of the paseo names. A pull request preview grants nothing.
+      - name: Require the TRUSTED_PRODUCTS_HUMANITY variable
+        if: ${{ !matrix.comment }}
+        env:
+          TRUSTED_PRODUCTS: ${{ vars.TRUSTED_PRODUCTS_HUMANITY }}
+          DOMAIN: ${{ matrix.domain }}
+        run: |
+          if [ -z "$TRUSTED_PRODUCTS" ]; then
+            echo "::error title=TRUSTED_PRODUCTS_HUMANITY variable missing::Set TRUSTED_PRODUCTS_HUMANITY to the grants of $DOMAIN, or {} for none."
             exit 1
           fi
 
@@ -548,7 +563,7 @@ jobs:
         run: npm run humanity:setup -- --env "$MATRIX_ENV" --product-label peopl --build-only
         env:
           MATRIX_ENV: ${{ matrix.env }}
-          DOTNS_MNEMONIC: ${{ secrets.DOTNS_PEOPL_MNEMONIC }}
+          DOTNS_MNEMONIC: ${{ secrets.DOTNS_HUMANITY_MNEMONIC }}
           VITE_GAME_STORAGE_LABEL: ${{ matrix.sandbox-suffix && format('{0}{1}', secrets.DOTNS_DOMAIN, matrix.sandbox-suffix) || '' }}
           VITE_SENTRY_DSN: ${{ vars.HUMANITY_SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ matrix.sentry && secrets.HUMANITY_SENTRY_AUTH_TOKEN || '' }}
@@ -566,7 +581,8 @@ jobs:
           done
         env:
           MATRIX_ENV: ${{ matrix.env }}
-          DOTNS_MNEMONIC: ${{ secrets.DOTNS_PEOPL_MNEMONIC }}
+          DOTNS_MNEMONIC: ${{ secrets.DOTNS_HUMANITY_MNEMONIC }}
+          HUMANITY_TRUSTED_PRODUCTS: ${{ !matrix.comment && vars.TRUSTED_PRODUCTS_HUMANITY || '' }}
           NODE_OPTIONS: "--max-old-space-size=8192"
 
       - name: Comment on the PR

@@ -132,12 +132,12 @@ jobs:
 
       # Validates the shape and exports nothing. The CLI reports a malformed
       # phrase only as "Unable to match provided value to a secret URI".
-      - name: Require the DOTNS_MNEMONIC secret
+      - name: Require the DOTNS_JOLLITY_MNEMONIC secret
         env:
-          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_MNEMONIC }}
+          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_JOLLITY_MNEMONIC }}
         run: |
           if [ -z "$DEPLOY_MNEMONIC" ]; then
-            echo "::error title=DOTNS_MNEMONIC secret missing::Add the DOTNS_MNEMONIC repo secret, the seed of the account that owns the released name."
+            echo "::error title=DOTNS_JOLLITY_MNEMONIC secret missing::Add the DOTNS_JOLLITY_MNEMONIC repo secret, the seed of the account that owns the released name."
             exit 1
           fi
           WORDS=$(printf '%s' "$DEPLOY_MNEMONIC" | tr -d '\r' | wc -w | tr -d ' ')
@@ -204,9 +204,9 @@ jobs:
       # carries the same grants deploy.yml publishes on the staging name.
       - name: Point the released name at the staged CIDs
         env:
-          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_MNEMONIC }}
+          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_JOLLITY_MNEMONIC }}
           DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN }}
-          TRUSTED_PRODUCTS: ${{ vars.TRUSTED_PRODUCTS }}
+          TRUSTED_PRODUCTS: ${{ vars.TRUSTED_PRODUCTS_JOLLITY }}
           DOMAIN: ${{ steps.name.outputs.domain }}
           APP_CID: ${{ steps.cids.outputs.app }}
           WORKER_CID: ${{ steps.cids.outputs.worker }}
@@ -214,7 +214,7 @@ jobs:
           # The manifest is rewritten whole, so an unset variable would strip
           # every grant the released name holds. Write {} to grant nothing.
           if [ -z "$TRUSTED_PRODUCTS" ]; then
-            echo "::error title=TRUSTED_PRODUCTS variable missing::Set the TRUSTED_PRODUCTS repo variable to the grants of the released name, or {} for none."
+            echo "::error title=TRUSTED_PRODUCTS_JOLLITY variable missing::Set the TRUSTED_PRODUCTS_JOLLITY repo variable to the grants of the released name, or {} for none."
             exit 1
           fi
           DOTNS_MNEMONIC=$(printf '%s' "$DEPLOY_MNEMONIC" | tr -d '\r' \
@@ -386,12 +386,12 @@ jobs:
           fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
-      - name: Require the DOTNS_PEOPL_MNEMONIC secret
+      - name: Require the DOTNS_HUMANITY_MNEMONIC secret
         env:
-          MNEMONIC: ${{ secrets.DOTNS_PEOPL_MNEMONIC }}
+          MNEMONIC: ${{ secrets.DOTNS_HUMANITY_MNEMONIC }}
         run: |
           if [ -z "$MNEMONIC" ]; then
-            echo "::error title=DOTNS_PEOPL_MNEMONIC secret missing::Add the DOTNS_PEOPL_MNEMONIC repo secret, the seed of the account that owns peopl.paseo and peoplnext.paseo."
+            echo "::error title=DOTNS_HUMANITY_MNEMONIC secret missing::Add the DOTNS_HUMANITY_MNEMONIC repo secret, the seed of the account that owns peopl.paseo and peoplnext.paseo."
             exit 1
           fi
           WORDS=$(printf '%s' "$MNEMONIC" | tr -d '\r' | wc -w | tr -d ' ')
@@ -481,7 +481,7 @@ jobs:
 
       - name: Point peopl.paseo at the staged records
         env:
-          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_PEOPL_MNEMONIC }}
+          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_HUMANITY_MNEMONIC }}
           APP_CID: ${{ steps.read.outputs.app }}
           WORKER_CID: ${{ steps.read.outputs.worker }}
         run: |
