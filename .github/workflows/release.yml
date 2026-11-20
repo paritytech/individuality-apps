@@ -65,7 +65,7 @@ env:
   # bulletin-deploy calls the network `paseo-next-v2`, and the dotns CLI rejects
   # that name. Only dotns runs here.
   DOTNS_ENV: paseo-v2
-  CAN_WRITE_VERSION: ${{ secrets.JOLLITY_GIST_TOKEN != '' && vars.JOLLITY_VERSION_GIST_ID != '' }}
+  CAN_WRITE_VERSION: ${{ secrets.GIST_TOKEN != '' && vars.JOLLITY_VERSION_GIST_ID != '' }}
 
 jobs:
   version:
@@ -251,7 +251,7 @@ jobs:
         if: env.CAN_WRITE_VERSION == 'true' && steps.cids.outputs.appversion != '' && steps.cids.outputs.apptime != ''
         continue-on-error: true
         env:
-          GIST_TOKEN: ${{ secrets.JOLLITY_GIST_TOKEN }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
           GIST_ID: ${{ vars.JOLLITY_VERSION_GIST_ID }}
           GIST_FILE: ${{ secrets.JOLLITY_DOTNS_DOMAIN }}-version.json
           KEY: ${{ steps.name.outputs.domain }}

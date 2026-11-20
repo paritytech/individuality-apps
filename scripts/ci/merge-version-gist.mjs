@@ -9,7 +9,7 @@
 // { "version": "<APP_VERSION>", "time": <commit time, unix seconds> }. Each leg
 // reads the file, sets only its own key and PATCHes it back, so the legs never
 // overwrite one another. Env: GIST_ID (the repo variable JOLLITY_VERSION_GIST_ID),
-// GIST_TOKEN (the secret JOLLITY_GIST_TOKEN), GIST_FILE, KEY (the name served),
+// GIST_TOKEN (the secret GIST_TOKEN), GIST_FILE, KEY (the name served),
 // VERSION, TIME.
 //
 // An API failure is a warning and exit 0: telling players about a release must

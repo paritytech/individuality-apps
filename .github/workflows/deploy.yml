@@ -87,7 +87,7 @@ jobs:
       # Empty on a PR sandbox or without the variables, which switches the
       # update check off.
       VERSION_URL: ${{ github.event_name != 'pull_request' && vars.JOLLITY_VERSION_GIST_ID && vars.JOLLITY_VERSION_GIST_OWNER && format('https://gist.githubusercontent.com/{0}/{1}/raw/{2}-version.json', vars.JOLLITY_VERSION_GIST_OWNER, vars.JOLLITY_VERSION_GIST_ID, secrets.JOLLITY_DOTNS_DOMAIN) || '' }}
-      CAN_WRITE_VERSION: ${{ github.event_name != 'pull_request' && secrets.JOLLITY_GIST_TOKEN != '' && vars.JOLLITY_VERSION_GIST_ID != '' }}
+      CAN_WRITE_VERSION: ${{ github.event_name != 'pull_request' && secrets.GIST_TOKEN != '' && vars.JOLLITY_VERSION_GIST_ID != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -182,8 +182,8 @@ jobs:
           DOTNS: ${{ steps.domain.outputs.dotns }}
           # Hashed and never echoed, so a rotated DSN cannot restore a bundle
           # built with the old one.
-          SENTRY_DSN: ${{ secrets.JOLLITY_SENTRY_DSN }}
-          SENTRY_DSN_TEST: ${{ secrets.JOLLITY_SENTRY_DSN_TEST }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SENTRY_DSN_TEST: ${{ secrets.SENTRY_DSN_TEST }}
           TELEMETRY_LOGS: ${{ matrix.env == 'preview' && '1' || vars.JOLLITY_NEXT_PUBLIC_TELEMETRY_LOGS || '0' }}
           # A PR preview is tied to its exact head, while main keeps reusing
           # bundles built from identical sources.
@@ -250,8 +250,8 @@ jobs:
           NEXT_PUBLIC_BUILD_COMMIT: ${{ steps.hash.outputs.commit_marker }}
           NEXT_PUBLIC_BUILD_TIME: ${{ steps.buildtime.outputs.time }}
           NEXT_PUBLIC_VERSION_URL: ${{ env.VERSION_URL }}
-          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.JOLLITY_SENTRY_DSN }}
-          NEXT_PUBLIC_SENTRY_DSN_TEST: ${{ secrets.JOLLITY_SENTRY_DSN_TEST }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          NEXT_PUBLIC_SENTRY_DSN_TEST: ${{ secrets.SENTRY_DSN_TEST }}
           NEXT_PUBLIC_TELEMETRY_LOGS: ${{ matrix.env == 'preview' && '1' || vars.JOLLITY_NEXT_PUBLIC_TELEMETRY_LOGS || '0' }}
           NEXT_PUBLIC_SENTRY_TAG: ""
         run: npm run build
@@ -261,8 +261,8 @@ jobs:
         env:
           PRODUCT_DOTNS: ${{ steps.domain.outputs.product }}
           NEXT_PUBLIC_NETWORK_NAME: ${{ matrix.network-name }}
-          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.JOLLITY_SENTRY_DSN }}
-          NEXT_PUBLIC_SENTRY_DSN_TEST: ${{ secrets.JOLLITY_SENTRY_DSN_TEST }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          NEXT_PUBLIC_SENTRY_DSN_TEST: ${{ secrets.SENTRY_DSN_TEST }}
           NEXT_PUBLIC_APP_VERSION: ${{ steps.hash.outputs.hash }}
         run: npm run build:chat
 
@@ -417,7 +417,7 @@ jobs:
         if: (env.CAN_WRITE_VERSION == 'true' && steps.result.outputs.app != '') && steps.gate.outputs.gate != 'skip'
         continue-on-error: true
         env:
-          GIST_TOKEN: ${{ secrets.JOLLITY_GIST_TOKEN }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
           GIST_ID: ${{ vars.JOLLITY_VERSION_GIST_ID }}
           GIST_FILE: ${{ secrets.JOLLITY_DOTNS_DOMAIN }}-version.json
           KEY: ${{ steps.domain.outputs.dotns }}
