@@ -3,18 +3,20 @@
 
 // Which Humanity names a deploy.yml run publishes.
 //
-// A push to main publishes peopl.testnet and the paseo staging name
-// peoplnext.paseo when it changes what Humanity ships. The staging name is
-// built for product peopl, so release.yml can copy its records onto
-// peopl.paseo. A same-repo pull request that changes what Humanity ships gets
-// peopl-pr<N>-preview.testnet, still built for product peopl, since a preview
-// label would derive an empty product account. It reads the game record from
-// the Jollity sandbox of the same PR, <DOTNS_DOMAIN><sandbox-suffix>. A
-// dispatch publishes what its inputs pick, and target release writes
-// peopl.paseo itself.
+// Every name is built from the bare label in the DOTNS_DOMAIN_HUMANITY repo
+// variable, <label> below. A push to main publishes <label>.testnet and the
+// paseo staging name <label>next.paseo when it changes what Humanity ships.
+// The staging name is built for product <label>, so release.yml can copy its
+// records onto <label>.paseo. A same-repo pull request that changes what
+// Humanity ships gets <label>-pr<N>-preview.testnet, still built for product
+// <label>, since a preview label would derive an empty product account. It
+// reads the game record from the Jollity sandbox of the same PR,
+// <DOTNS_DOMAIN_JOLLITY><sandbox-suffix>. A dispatch publishes what its inputs
+// pick, and target release writes <label>.paseo itself.
 //
 // Usage: node scripts/ci/humanity-legs.mjs
-//   reads the run from the environment and prints legs=<JSON> for $GITHUB_OUTPUT.
+//   reads the run and the label from the environment and prints legs=<JSON>
+//   for $GITHUB_OUTPUT.
 import { execFileSync } from "node:child_process"
 
 export const SOURCES =
@@ -35,20 +37,23 @@ const leg = (env, label, environment, { sandboxSuffix = "", comment = false, sen
   sentry,
 })
 
-export function planHumanityLegs({ event, action = "", network = "", target = "", pr = "", sameRepo = true, ref = "", changed }) {
+export function planHumanityLegs({ label, event, action = "", network = "", target = "", pr = "", sameRepo = true, ref = "", changed }) {
+  if (typeof label !== "string" || !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(label)) {
+    throw new Error(`DOTNS_DOMAIN_HUMANITY must be a bare DotNS label without a TLD, not ${JSON.stringify(label)}`)
+  }
   if (event === "pull_request") {
     if (action === "labeled" || !sameRepo || !changed) return []
-    return [leg("preview", `peopl-pr${pr}-preview`, "", { sandboxSuffix: `-pr${pr}-sandbox00`, comment: true })]
+    return [leg("preview", `${label}-pr${pr}-preview`, "", { sandboxSuffix: `-pr${pr}-sandbox00`, comment: true })]
   }
   if (event === "push" && !changed) return []
   const sentry = ref === "refs/heads/main"
   const legs = []
-  if (network !== "paseo-next-v2") legs.push(leg("preview", "peopl", "humanity-previewnet", { sentry }))
+  if (network !== "paseo-next-v2") legs.push(leg("preview", label, "humanity-previewnet", { sentry }))
   if (network !== "preview") {
     legs.push(
       target === "release"
-        ? leg("paseo-next-v2", "peopl", "humanity-paseo-next-v2", { sentry })
-        : leg("paseo-next-v2", "peoplnext", "", { sentry }),
+        ? leg("paseo-next-v2", label, "humanity-paseo-next-v2", { sentry })
+        : leg("paseo-next-v2", `${label}next`, "", { sentry }),
     )
   }
   return legs
@@ -68,6 +73,7 @@ function changedFiles({ event, before, sha, pr, repo }) {
 function main() {
   const env = process.env
   const run = {
+    label: env.LABEL,
     event: env.EVENT,
     action: env.ACTION,
     network: env.NETWORK,

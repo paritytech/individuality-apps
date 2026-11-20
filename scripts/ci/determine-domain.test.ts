@@ -70,7 +70,7 @@ describe("determine-domain", () => {
     }
   })
 
-  it("the deploy and release machinery take every name from DOTNS_DOMAIN", () => {
+  it("the deploy and release machinery take every name from DOTNS_DOMAIN_JOLLITY", () => {
     const root = join(__dirname, "../..")
     const files = [".github/workflows/deploy.yml", ".github/workflows/release.yml", "scripts/sync-manifest.mts", ...readdirSync(__dirname).filter((f) => !f.endsWith(".test.ts")).map((f) => `scripts/ci/${f}`)]
     for (const file of files) expect(readFileSync(join(root, file), "utf8"), file).not.toMatch(/dim2/i)
