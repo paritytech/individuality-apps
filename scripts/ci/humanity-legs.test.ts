@@ -6,8 +6,7 @@ import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { planHumanityLegs, shipsHumanity } from "./humanity-legs.mjs"
 
-const domains = (legs: Array<{ domain: string }>) => legs.map((l) => l.domain)
-const plan = (run: Record<string, unknown>) => planHumanityLegs({ label: "peopl", ...run })
+const domains = (legs: Array<{ suffix: string; tld: string }>) => legs.map((l) => `peopl${l.suffix}.${l.tld}`)
 
 describe("shipsHumanity", () => {
   it("counts the Humanity apps and the packages it is built on", () => {
@@ -43,7 +42,7 @@ describe("planHumanityLegs", () => {
     const run = { event: "push", ref: "refs/heads/main", changed: true }
 
     // When
-    const legs = plan(run)
+    const legs = planHumanityLegs(run)
 
     // Then
     expect(domains(legs)).toEqual(["peopl.testnet", "peoplnext.paseo"])
@@ -52,24 +51,24 @@ describe("planHumanityLegs", () => {
   })
 
   it("publishes nothing on a push that leaves Humanity alone", () => {
-    expect(plan({ event: "push", ref: "refs/heads/main", changed: false })).toEqual([])
+    expect(planHumanityLegs({ event: "push", ref: "refs/heads/main", changed: false })).toEqual([])
   })
 
   it("follows the dispatch inputs", () => {
     const dispatch = (network: string, target: string) =>
-      domains(plan({ event: "workflow_dispatch", ref: "refs/heads/main", network, target, changed: false }))
+      domains(planHumanityLegs({ event: "workflow_dispatch", ref: "refs/heads/main", network, target, changed: false }))
     expect(dispatch("all", "staging")).toEqual(["peopl.testnet", "peoplnext.paseo"])
     expect(dispatch("preview", "staging")).toEqual(["peopl.testnet"])
     expect(dispatch("paseo-next-v2", "release")).toEqual(["peopl.paseo"])
   })
 
   it("records the release name against its environment", () => {
-    const [released] = plan({ event: "workflow_dispatch", network: "paseo-next-v2", target: "release", changed: false })
+    const [released] = planHumanityLegs({ event: "workflow_dispatch", network: "paseo-next-v2", target: "release", changed: false })
     expect(released.environment).toBe("humanity-paseo-next-v2")
   })
 
   it("uploads no source maps from a branch other than main", () => {
-    const legs = plan({ event: "workflow_dispatch", ref: "refs/heads/feature", network: "all", changed: false })
+    const legs = planHumanityLegs({ event: "workflow_dispatch", ref: "refs/heads/feature", network: "all", changed: false })
     expect(legs.some((l) => l.sentry)).toBe(false)
   })
 
@@ -78,14 +77,15 @@ describe("planHumanityLegs", () => {
     const run = { event: "pull_request", action: "synchronize", pr: "42", sameRepo: true, changed: true }
 
     // When
-    const legs = plan(run)
+    const legs = planHumanityLegs(run)
 
     // Then
     expect(legs).toEqual([
       {
         env: "preview",
-        label: "peopl-pr42-preview",
-        domain: "peopl-pr42-preview.testnet",
+        name: "PR 42 preview",
+        suffix: "-pr42-preview",
+        tld: "testnet",
         environment: "",
         "sandbox-suffix": "-pr42-sandbox00",
         comment: true,
@@ -96,19 +96,15 @@ describe("planHumanityLegs", () => {
 
   it("gives no preview to a fork, a label or a pull request that leaves Humanity alone", () => {
     const pr = { event: "pull_request", pr: "42", sameRepo: true, changed: true }
-    expect(plan({ ...pr, sameRepo: false })).toEqual([])
-    expect(plan({ ...pr, action: "labeled" })).toEqual([])
-    expect(plan({ ...pr, changed: false })).toEqual([])
+    expect(planHumanityLegs({ ...pr, sameRepo: false })).toEqual([])
+    expect(planHumanityLegs({ ...pr, action: "labeled" })).toEqual([])
+    expect(planHumanityLegs({ ...pr, changed: false })).toEqual([])
   })
 
-  it("refuses a DOTNS_DOMAIN_HUMANITY that is not a bare label", () => {
-    for (const label of [undefined, "", "peopl.paseo", "Peopl", "-peopl"]) {
-      expect(() => planHumanityLegs({ label, event: "push", ref: "refs/heads/main", changed: true }), String(label)).toThrow(/DOTNS_DOMAIN_HUMANITY/)
-    }
-  })
-
-  it("builds every name from the label", () => {
-    expect(domains(planHumanityLegs({ label: "card", event: "workflow_dispatch", network: "all", changed: false }))).toEqual(["card.testnet", "cardnext.paseo"])
+  it("names the staging leg as release.yml looks it up", () => {
+    const [staging] = planHumanityLegs({ event: "workflow_dispatch", network: "paseo-next-v2", target: "staging", changed: false })
+    const release = readFileSync(join(__dirname, "../../.github/workflows/release.yml"), "utf8")
+    expect(release).toContain(`Humanity ${staging.name}`)
   })
 
   it("leaves no Humanity name in the deploy and release machinery", () => {

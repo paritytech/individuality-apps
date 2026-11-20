@@ -14,8 +14,8 @@ name: Deploy
 #   workflow_dispatch  the same as push main
 #
 # The humanity job publishes Humanity under the names that
-# scripts/ci/humanity-legs.mjs picks from the DOTNS_DOMAIN_HUMANITY variable,
-# signed with DOTNS_HUMANITY_MNEMONIC.
+# scripts/ci/humanity-legs.mjs picks, built from the DOTNS_DOMAIN_HUMANITY
+# secret and signed with DOTNS_HUMANITY_MNEMONIC.
 #
 # The paseo staging name is built as <DOTNS_DOMAIN_JOLLITY>.paseo, because release.yml
 # promotes its CIDs onto that name and the product name is compiled into the
@@ -492,14 +492,14 @@ jobs:
           SAME_REPO: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
           BEFORE: ${{ github.event.before }}
           REF: ${{ github.ref }}
-          LABEL: ${{ vars.DOTNS_DOMAIN_HUMANITY }}
         run: |
           set -o pipefail
           node scripts/ci/humanity-legs.mjs | tee -a "$GITHUB_OUTPUT"
 
   humanity:
-    # release.yml finds the staged commit by this name.
-    name: Humanity ${{ matrix.domain }}
+    # release.yml finds the staged commit by this name. A leg carries a
+    # suffix and no label, since GitHub drops a job output that holds a secret.
+    name: Humanity ${{ matrix.name }}
     needs: humanity-sources
     if: needs.humanity-sources.outputs.legs != '[]'
     runs-on: ubuntu-latest
@@ -510,12 +510,26 @@ jobs:
       matrix:
         include: ${{ fromJSON(needs.humanity-sources.outputs.legs) }}
     env:
-      DOTNS_LABEL: ${{ matrix.label }}
-      PRODUCT_LABEL: ${{ vars.DOTNS_DOMAIN_HUMANITY }}
       BULLETIN_DEPLOY_VERSION: ${{ vars.HUMANITY_BULLETIN_DEPLOY_VERSION || '0.25.0' }}
       VITE_DEBUG_PANEL: "true"
       VITE_LOG_LEVEL: debug
     steps:
+      - name: Name the leg
+        env:
+          PRODUCT_LABEL: ${{ secrets.DOTNS_DOMAIN_HUMANITY }}
+          SUFFIX: ${{ matrix.suffix }}
+          TLD: ${{ matrix.tld }}
+        run: |
+          if ! [[ "$PRODUCT_LABEL" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+            echo "::error title=DOTNS_DOMAIN_HUMANITY is not a DotNS label::Set the DOTNS_DOMAIN_HUMANITY secret to the bare label Humanity deploys under, without a TLD."
+            exit 1
+          fi
+          {
+            echo "PRODUCT_LABEL=${PRODUCT_LABEL}"
+            echo "DOTNS_LABEL=${PRODUCT_LABEL}${SUFFIX}"
+            echo "DOMAIN=${PRODUCT_LABEL}${SUFFIX}.${TLD}"
+          } >> "$GITHUB_ENV"
+
       - name: Require the DOTNS_HUMANITY_MNEMONIC secret
         env:
           DOTNS_MNEMONIC: ${{ secrets.DOTNS_HUMANITY_MNEMONIC }}
@@ -526,14 +540,12 @@ jobs:
           fi
 
       # The manifest is rewritten whole on every publish, so a missing variable
-      # would drop the grants the name has on chain. The humanity-previewnet
-      # environment holds the grants of <DOTNS_DOMAIN_HUMANITY>.testnet, and the
-      # repo variable those of the paseo names. A pull request preview grants nothing.
+      # would drop the grants the name has on chain. A pull request preview
+      # grants nothing.
       - name: Require the TRUSTED_PRODUCTS_HUMANITY variable
         if: ${{ !matrix.comment }}
         env:
           TRUSTED_PRODUCTS: ${{ vars.TRUSTED_PRODUCTS_HUMANITY }}
-          DOMAIN: ${{ matrix.domain }}
         run: |
           if [ -z "$TRUSTED_PRODUCTS" ]; then
             echo "::error title=TRUSTED_PRODUCTS_HUMANITY variable missing::Set TRUSTED_PRODUCTS_HUMANITY to the grants of $DOMAIN, or {} for none."

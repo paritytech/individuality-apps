@@ -28,13 +28,14 @@ name: Release
 # the commit first: the restore fails closed rather than releasing something
 # else.
 #
-# With product humanity, a dispatch promotes <DOTNS_DOMAIN_HUMANITY>next.paseo onto
-# <DOTNS_DOMAIN_HUMANITY>.paseo
-# instead, and only that. It reads the staged records live from
-# <DOTNS_DOMAIN_HUMANITY>next.paseo, so it never expires, and it tags humanity-v<version>.
+# With product humanity, a dispatch promotes <DOTNS_DOMAIN_HUMANITY>next.paseo
+# onto <DOTNS_DOMAIN_HUMANITY>.paseo instead, and only that, with
+# DOTNS_DOMAIN_HUMANITY the bare label in the repository secret of that name.
+# It reads the staged records live from the staging name, so it never expires,
+# and it tags humanity-v<version>.
 # Bump `version` in apps/humanity-app/package.json in a PR first, since it is
 # the appVersion the records carry.
-run-name: ${{ inputs.product == 'humanity' && format('Humanity Release {0} to {1}.paseo', inputs.version, vars.DOTNS_DOMAIN_HUMANITY) || format('Release {0}', inputs.version || (github.ref_type == 'tag' && github.ref_name) || 'next patch') }}
+run-name: ${{ inputs.product == 'humanity' && format('Humanity Release {0}', inputs.version) || format('Release {0}', inputs.version || (github.ref_type == 'tag' && github.ref_name) || 'next patch') }}
 
 on:
   push:
@@ -314,7 +315,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   humanity:
-    name: Promote to ${{ vars.DOTNS_DOMAIN_HUMANITY }}.paseo
+    name: Promote Humanity on paseo
     if: github.event_name == 'workflow_dispatch' && inputs.product == 'humanity'
     runs-on: ubuntu-latest
     environment: humanity-paseo-next-v2
@@ -322,15 +323,15 @@ jobs:
       contents: write
       actions: read
     env:
-      LABEL: ${{ vars.DOTNS_DOMAIN_HUMANITY }}
-      DOMAIN: ${{ vars.DOTNS_DOMAIN_HUMANITY }}.paseo
-      STAGED: ${{ vars.DOTNS_DOMAIN_HUMANITY }}next.paseo
+      LABEL: ${{ secrets.DOTNS_DOMAIN_HUMANITY }}
+      DOMAIN: ${{ secrets.DOTNS_DOMAIN_HUMANITY }}.paseo
+      STAGED: ${{ secrets.DOTNS_DOMAIN_HUMANITY }}next.paseo
       DOTNS_CLI_VERSION: 1.1.0
     steps:
-      - name: Require the DOTNS_DOMAIN_HUMANITY variable
+      - name: Require the DOTNS_DOMAIN_HUMANITY secret
         run: |
           if ! [[ "$LABEL" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
-            echo "::error title=DOTNS_DOMAIN_HUMANITY is not a DotNS label::Set the DOTNS_DOMAIN_HUMANITY repo variable to the bare label Humanity deploys under, without a TLD."
+            echo "::error title=DOTNS_DOMAIN_HUMANITY is not a DotNS label::Set the DOTNS_DOMAIN_HUMANITY secret to the bare label Humanity deploys under, without a TLD."
             exit 1
           fi
 
@@ -346,7 +347,7 @@ jobs:
           echo "tag=humanity-v${VERSION}" >> "$GITHUB_OUTPUT"
 
       # The staged records come from the last Deploy run on main whose
-      # "Humanity <staged name>" job passed, and that commit is what the
+      # "Humanity paseo staging" job passed, and that commit is what the
       # release tags. A run still publishing may be halfway through rewriting
       # the staged name, so the release refuses until it is done.
       - name: Find the staged commit
@@ -364,13 +365,13 @@ jobs:
           sha=""
           while read -r id status head; do
             if [ "$status" != "completed" ]; then
-              busy=$(jobs_of "$id" "[.jobs[] | select((.name == \"Humanity sources\" or .name == \"Humanity ${STAGED}\") and .status != \"completed\")] | length")
+              busy=$(jobs_of "$id" "[.jobs[] | select((.name == \"Humanity sources\" or .name == \"Humanity paseo staging\") and .status != \"completed\")] | length")
               if [ "$busy" != "0" ]; then
                 echo "::error title=Staging is being published::Deploy run $id on main may still be writing $STAGED. Wait for it, then run the release again."
                 exit 1
               fi
             fi
-            staged=$(jobs_of "$id" "[.jobs[] | select(.name == \"Humanity ${STAGED}\" and .conclusion == \"success\")] | length")
+            staged=$(jobs_of "$id" "[.jobs[] | select(.name == \"Humanity paseo staging\" and .conclusion == \"success\")] | length")
             if [ "$staged" != "0" ]; then
               sha=$head
               break
