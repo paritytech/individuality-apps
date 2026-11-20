@@ -4,7 +4,7 @@
 /**
  * The lite-ring probe, on the state that cost a three-agent investigation.
  *
- * The fixtures are previewnet at block #89396 on 2026-09-08, the block a
+ * The fixtures are previewnet at block #89396, the block a
  * weekly-game seat bind failed on: `PeopleLite.LitePeople` recorded the key
  * below, and `Members.Members(people-lite, key)` answered `Included { ring 1,
  * page 0, position 162 }` in a ring of 166 keys with all 166 in the root and
