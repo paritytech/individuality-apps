@@ -1,10 +1,12 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { planHumanityLegs, shipsHumanity } from "./humanity-legs.mjs"
 
-const domains = (legs: Array<{ domain: string }>) => legs.map((l) => l.domain)
+const domains = (legs: Array<{ suffix: string; tld: string }>) => legs.map((l) => `peopl${l.suffix}.${l.tld}`)
 
 describe("shipsHumanity", () => {
   it("counts the Humanity apps and the packages it is built on", () => {
@@ -81,8 +83,9 @@ describe("planHumanityLegs", () => {
     expect(legs).toEqual([
       {
         env: "preview",
-        label: "peopl-pr42-preview",
-        domain: "peopl-pr42-preview.testnet",
+        name: "PR 42 preview",
+        suffix: "-pr42-preview",
+        tld: "testnet",
         environment: "",
         "sandbox-suffix": "-pr42-sandbox00",
         comment: true,
@@ -96,5 +99,18 @@ describe("planHumanityLegs", () => {
     expect(planHumanityLegs({ ...pr, sameRepo: false })).toEqual([])
     expect(planHumanityLegs({ ...pr, action: "labeled" })).toEqual([])
     expect(planHumanityLegs({ ...pr, changed: false })).toEqual([])
+  })
+
+  it("names the staging leg as release.yml looks it up", () => {
+    const [staging] = planHumanityLegs({ event: "workflow_dispatch", network: "paseo-next-v2", target: "staging", changed: false })
+    const release = readFileSync(join(__dirname, "../../.github/workflows/release.yml"), "utf8")
+    expect(release).toContain(`Humanity ${staging.name}`)
+  })
+
+  it("leaves no Humanity name in the deploy and release machinery", () => {
+    const root = join(__dirname, "../..")
+    for (const file of [".github/workflows/deploy.yml", ".github/workflows/release.yml", "scripts/ci/humanity-legs.mjs"]) {
+      expect(readFileSync(join(root, file), "utf8"), file).not.toMatch(/\bpeopl(next)?\b/)
+    }
   })
 })

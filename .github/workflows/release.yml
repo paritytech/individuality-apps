@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 name: Release
-# Promotes what <DOTNS_DOMAIN>next.paseo has been serving onto
-# <DOTNS_DOMAIN>.paseo, with DOTNS_DOMAIN the bare label in the repository's
-# secret of that name.
+# Promotes what <JOLLITY_DOTNS_DOMAIN>next.paseo has been serving onto
+# <JOLLITY_DOTNS_DOMAIN>.paseo, with JOLLITY_DOTNS_DOMAIN the bare label in the
+# repository variable of that name.
 #
 # A release rebuilds nothing. deploy.yml already built the paseo artifacts for
 # the release name, published them at the staging name and cached their CIDs
@@ -28,12 +28,14 @@ name: Release
 # the commit first: the restore fails closed rather than releasing something
 # else.
 #
-# With product humanity, a dispatch promotes peoplnext.paseo onto peopl.paseo
-# instead, and only that. It reads the staged records live from
-# peoplnext.paseo, so it never expires, and it tags humanity-v<version>.
+# With product humanity, a dispatch promotes <HUMANITY_DOTNS_DOMAIN>next.paseo
+# onto <HUMANITY_DOTNS_DOMAIN>.paseo instead, and only that, with
+# HUMANITY_DOTNS_DOMAIN the bare label in the repository variable of that name.
+# It reads the staged records live from the staging name, so it never expires,
+# and it tags humanity-v<version>.
 # Bump `version` in apps/humanity-app/package.json in a PR first, since it is
 # the appVersion the records carry.
-run-name: ${{ inputs.product == 'humanity' && format('Humanity Release {0} to peopl.paseo', inputs.version) || format('Release {0}', inputs.version || (github.ref_type == 'tag' && github.ref_name) || 'next patch') }}
+run-name: ${{ inputs.product == 'humanity' && format('Humanity Release {0} to {1}.paseo', inputs.version, vars.HUMANITY_DOTNS_DOMAIN) || format('Release {0}', inputs.version || (github.ref_type == 'tag' && github.ref_name) || 'next patch') }}
 
 on:
   push:
@@ -63,7 +65,7 @@ env:
   # bulletin-deploy calls the network `paseo-next-v2`, and the dotns CLI rejects
   # that name. Only dotns runs here.
   DOTNS_ENV: paseo-v2
-  CAN_WRITE_VERSION: ${{ secrets.GIST_TOKEN != '' && vars.VERSION_GIST_ID != '' }}
+  CAN_WRITE_VERSION: ${{ secrets.GIST_TOKEN != '' && vars.JOLLITY_VERSION_GIST_ID != '' }}
 
 jobs:
   version:
@@ -122,22 +124,22 @@ jobs:
       - name: Resolve the released name
         id: name
         env:
-          DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN }}
+          DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
         run: |
           if ! [[ "$DOTNS_DOMAIN" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
-            echo "::error title=DOTNS_DOMAIN is not a DotNS label::Set the DOTNS_DOMAIN secret to the bare label the product deploys under, without a TLD."
+            echo "::error title=JOLLITY_DOTNS_DOMAIN is not a DotNS label::Set the JOLLITY_DOTNS_DOMAIN repo variable to the bare label the product deploys under, without a TLD."
             exit 1
           fi
           echo "domain=${DOTNS_DOMAIN}.paseo" >> "$GITHUB_OUTPUT"
 
       # Validates the shape and exports nothing. The CLI reports a malformed
       # phrase only as "Unable to match provided value to a secret URI".
-      - name: Require the DOTNS_MNEMONIC secret
+      - name: Require the JOLLITY_DOTNS_MNEMONIC secret
         env:
-          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_MNEMONIC }}
+          DEPLOY_MNEMONIC: ${{ secrets.JOLLITY_DOTNS_MNEMONIC }}
         run: |
           if [ -z "$DEPLOY_MNEMONIC" ]; then
-            echo "::error title=DOTNS_MNEMONIC secret missing::Add the DOTNS_MNEMONIC repo secret, the seed of the account that owns the released name."
+            echo "::error title=JOLLITY_DOTNS_MNEMONIC secret missing::Add the JOLLITY_DOTNS_MNEMONIC repo secret, the seed of the account that owns the released name."
             exit 1
           fi
           WORDS=$(printf '%s' "$DEPLOY_MNEMONIC" | tr -d '\r' | wc -w | tr -d ' ')
@@ -204,9 +206,9 @@ jobs:
       # carries the same grants deploy.yml publishes on the staging name.
       - name: Point the released name at the staged CIDs
         env:
-          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_MNEMONIC }}
-          DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN }}
-          TRUSTED_PRODUCTS: ${{ vars.TRUSTED_PRODUCTS }}
+          DEPLOY_MNEMONIC: ${{ secrets.JOLLITY_DOTNS_MNEMONIC }}
+          DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
+          TRUSTED_PRODUCTS: ${{ vars.JOLLITY_TRUSTED_PRODUCTS }}
           DOMAIN: ${{ steps.name.outputs.domain }}
           APP_CID: ${{ steps.cids.outputs.app }}
           WORKER_CID: ${{ steps.cids.outputs.worker }}
@@ -214,7 +216,7 @@ jobs:
           # The manifest is rewritten whole, so an unset variable would strip
           # every grant the released name holds. Write {} to grant nothing.
           if [ -z "$TRUSTED_PRODUCTS" ]; then
-            echo "::error title=TRUSTED_PRODUCTS variable missing::Set the TRUSTED_PRODUCTS repo variable to the grants of the released name, or {} for none."
+            echo "::error title=JOLLITY_TRUSTED_PRODUCTS variable missing::Set the JOLLITY_TRUSTED_PRODUCTS repo variable to the grants of the released name, or {} for none."
             exit 1
           fi
           DOTNS_MNEMONIC=$(printf '%s' "$DEPLOY_MNEMONIC" | tr -d '\r' \
@@ -250,8 +252,8 @@ jobs:
         continue-on-error: true
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
-          GIST_ID: ${{ vars.VERSION_GIST_ID }}
-          GIST_FILE: ${{ secrets.DOTNS_DOMAIN }}-version.json
+          GIST_ID: ${{ vars.JOLLITY_VERSION_GIST_ID }}
+          GIST_FILE: ${{ vars.JOLLITY_DOTNS_DOMAIN }}-version.json
           KEY: ${{ steps.name.outputs.domain }}
           VERSION: ${{ steps.cids.outputs.appversion }}
           TIME: ${{ steps.cids.outputs.apptime }}
@@ -313,7 +315,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   humanity:
-    name: Promote to peopl.paseo
+    name: Promote to ${{ vars.HUMANITY_DOTNS_DOMAIN }}.paseo
     if: github.event_name == 'workflow_dispatch' && inputs.product == 'humanity'
     runs-on: ubuntu-latest
     environment: humanity-paseo-next-v2
@@ -321,10 +323,18 @@ jobs:
       contents: write
       actions: read
     env:
-      DOMAIN: peopl.paseo
-      STAGED: peoplnext.paseo
+      LABEL: ${{ vars.HUMANITY_DOTNS_DOMAIN }}
+      DOMAIN: ${{ vars.HUMANITY_DOTNS_DOMAIN }}.paseo
+      STAGED: ${{ vars.HUMANITY_DOTNS_DOMAIN }}next.paseo
       DOTNS_CLI_VERSION: 1.1.0
     steps:
+      - name: Require the HUMANITY_DOTNS_DOMAIN variable
+        run: |
+          if ! [[ "$LABEL" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+            echo "::error title=HUMANITY_DOTNS_DOMAIN is not a DotNS label::Set the HUMANITY_DOTNS_DOMAIN repo variable to the bare label Humanity deploys under, without a TLD."
+            exit 1
+          fi
+
       - name: Resolve the version
         id: version
         env:
@@ -337,9 +347,9 @@ jobs:
           echo "tag=humanity-v${VERSION}" >> "$GITHUB_OUTPUT"
 
       # The staged records come from the last Deploy run on main whose
-      # "Humanity peoplnext.paseo" job passed, and that commit is what the
+      # "Humanity paseo staging" job passed, and that commit is what the
       # release tags. A run still publishing may be halfway through rewriting
-      # peoplnext.paseo, so the release refuses until it is done.
+      # the staged name, so the release refuses until it is done.
       - name: Find the staged commit
         id: staged
         env:
@@ -355,13 +365,13 @@ jobs:
           sha=""
           while read -r id status head; do
             if [ "$status" != "completed" ]; then
-              busy=$(jobs_of "$id" '[.jobs[] | select((.name == "Humanity sources" or .name == "Humanity peoplnext.paseo") and .status != "completed")] | length')
+              busy=$(jobs_of "$id" "[.jobs[] | select((.name == \"Humanity sources\" or .name == \"Humanity paseo staging\") and .status != \"completed\")] | length")
               if [ "$busy" != "0" ]; then
-                echo "::error title=Staging is being published::Deploy run $id on main may still be writing peoplnext.paseo. Wait for it, then run the release again."
+                echo "::error title=Staging is being published::Deploy run $id on main may still be writing $STAGED. Wait for it, then run the release again."
                 exit 1
               fi
             fi
-            staged=$(jobs_of "$id" '[.jobs[] | select(.name == "Humanity peoplnext.paseo" and .conclusion == "success")] | length')
+            staged=$(jobs_of "$id" "[.jobs[] | select(.name == \"Humanity paseo staging\" and .conclusion == \"success\")] | length")
             if [ "$staged" != "0" ]; then
               sha=$head
               break
@@ -369,12 +379,12 @@ jobs:
           done < <(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy.yml/runs?branch=main&per_page=100" \
             --jq '.workflow_runs[] | "\(.id) \(.status) \(.head_sha)"')
           if [ -z "$sha" ]; then
-            echo "::error title=Nothing staged::No Deploy run on main has published peoplnext.paseo in its last 100 runs."
+            echo "::error title=Nothing staged::No Deploy run on main has published $STAGED in its last 100 runs."
             exit 1
           fi
           echo "Staged from $sha"
           # main requires no checks, so a red merge still stages, and it must
-          # not reach peopl.paseo.
+          # not reach the released name.
           green=0
           for run in $(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${sha}&per_page=20" --jq '.workflow_runs[].id'); do
             n=$(jobs_of "$run" '[.jobs[] | select(.name == "Humanity" and .conclusion == "success")] | length')
@@ -386,12 +396,12 @@ jobs:
           fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
-      - name: Require the DOTNS_PEOPL_MNEMONIC secret
+      - name: Require the HUMANITY_DOTNS_MNEMONIC secret
         env:
-          MNEMONIC: ${{ secrets.DOTNS_PEOPL_MNEMONIC }}
+          MNEMONIC: ${{ secrets.HUMANITY_DOTNS_MNEMONIC }}
         run: |
           if [ -z "$MNEMONIC" ]; then
-            echo "::error title=DOTNS_PEOPL_MNEMONIC secret missing::Add the DOTNS_PEOPL_MNEMONIC repo secret, the seed of the account that owns peopl.paseo and peoplnext.paseo."
+            echo "::error title=HUMANITY_DOTNS_MNEMONIC secret missing::Add the HUMANITY_DOTNS_MNEMONIC repo secret, the seed of the account that owns $DOMAIN and $STAGED."
             exit 1
           fi
           WORDS=$(printf '%s' "$MNEMONIC" | tr -d '\r' | wc -w | tr -d ' ')
@@ -413,7 +423,7 @@ jobs:
         run: npm install -g "@parity/dotns-cli@${DOTNS_CLI_VERSION}"
 
       # Every record is read before anything is written, with what
-      # peopl.paseo held before, which is the rollback.
+      # the released name held before, which is the rollback.
       - name: Read the staged and the current records
         id: read
         run: |
@@ -479,9 +489,9 @@ jobs:
             else plan "$DOMAIN manifest" "$(text "$STAGED" manifest | jq -c .trustedProducts)" "$(text "$DOMAIN" manifest | jq -c .trustedProducts)"; fi
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Point peopl.paseo at the staged records
+      - name: Point the released name at the staged records
         env:
-          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_PEOPL_MNEMONIC }}
+          DEPLOY_MNEMONIC: ${{ secrets.HUMANITY_DOTNS_MNEMONIC }}
           APP_CID: ${{ steps.read.outputs.app }}
           WORKER_CID: ${{ steps.read.outputs.worker }}
         run: |
@@ -508,7 +518,7 @@ jobs:
           dotns content set "app.$DOMAIN" "$APP_CID" --env "$DOTNS_ENV"
           dotns content set "$DOMAIN" "$APP_CID" --env "$DOTNS_ENV"
 
-      - name: Verify peopl.paseo
+      - name: Verify the released name
         env:
           APP_CID: ${{ steps.read.outputs.app }}
           WORKER_CID: ${{ steps.read.outputs.worker }}
@@ -557,10 +567,10 @@ jobs:
           | Worker CID | \`${WORKER_CID}\` |
           | Previous app CID | \`${PREV_APP}\` |
           | Previous worker CID | \`${PREV_WORKER}\` |
-          | Browser | https://peopl.paseo.li |
+          | Browser | https://${DOMAIN}.li |
 
-          Open \`peopl.paseo\` in the Polkadot app. To roll back, \`dotns content set\`
-          \`app.peopl.paseo\`, \`peopl.paseo\` and \`worker.peopl.paseo\` to the previous CIDs.
+          Open \`${DOMAIN}\` in the Polkadot app. To roll back, \`dotns content set\`
+          \`app.${DOMAIN}\`, \`${DOMAIN}\` and \`worker.${DOMAIN}\` to the previous CIDs.
 
           ### Changes${PREV_TAG:+ since ${PREV_TAG}}
 

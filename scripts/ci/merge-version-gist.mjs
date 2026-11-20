@@ -8,7 +8,7 @@
 // The gist file GIST_FILE holds one key per leg, each
 // { "version": "<APP_VERSION>", "time": <commit time, unix seconds> }. Each leg
 // reads the file, sets only its own key and PATCHes it back, so the legs never
-// overwrite one another. Env: GIST_ID (the repo variable VERSION_GIST_ID),
+// overwrite one another. Env: GIST_ID (the repo variable JOLLITY_VERSION_GIST_ID),
 // GIST_TOKEN (the secret GIST_TOKEN), GIST_FILE, KEY (the name served),
 // VERSION, TIME.
 //

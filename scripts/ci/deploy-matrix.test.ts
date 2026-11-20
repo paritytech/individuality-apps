@@ -218,7 +218,7 @@ describe("the Previewnet gate", () => {
     const UNGATED = ["Record the skipped preview", "Upload the deployment result"]
     expect(at).toBe(1)
     expect(steps[0].uses).toBe("actions/checkout@v7")
-    expect(steps[at + 1].name).toBe("Require the DOTNS_MNEMONIC secret")
+    expect(steps[at + 1].name).toBe("Require the JOLLITY_DOTNS_MNEMONIC secret")
     for (const [i, s] of steps.entries()) {
       if (i === 0 || s === gate || UNGATED.includes(title(s))) continue
       expect(i, title(s)).toBeGreaterThan(at)
@@ -315,7 +315,7 @@ describe("deploy.yml wiring", () => {
     expect(wf).not.toContain("matrix.target.")
   })
   it("enables Logs on previewnet but holds Paseo releases off by default", () => {
-    const decision = "${{ matrix.env == 'preview' && '1' || vars.NEXT_PUBLIC_TELEMETRY_LOGS || '0' }}"
+    const decision = "${{ matrix.env == 'preview' && '1' || vars.JOLLITY_NEXT_PUBLIC_TELEMETRY_LOGS || '0' }}"
     expect(wf).toContain(`NEXT_PUBLIC_TELEMETRY_LOGS: ${decision}`)
     expect(wf).toContain(`TELEMETRY_LOGS: ${decision}`)
     expect(wf).toContain('"$TELEMETRY_LOGS"')
