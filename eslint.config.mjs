@@ -85,6 +85,10 @@ const eslintConfig = defineConfig([
       "architecture/no-chain-in-chest-ui": ["error", { allowlist }],
     },
   },
+  {
+    files: ["apps/jollity-app/lab/**/*.ts", "apps/jollity-app/lab.opening.config.ts", "apps/jollity-app/scripts/lab/**/*.mts", "apps/jollity-app/tests/lab/**/*.ts"],
+    rules: { "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }] },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next, at the Next app:
@@ -95,6 +99,10 @@ const eslintConfig = defineConfig([
     "apps/jollity-app/next-env.d.ts",
     // The worker's build output (git-ignored), written by `npm run build:chat`.
     "apps/jollity-worker/dist/**",
+    // The lab's local forks, caches and reports, written at run time.
+    "apps/jollity-app/.product-lab/**",
+    // The lab has its own Node/TypeScript lint, chained by the root lint script.
+    "lab/**",
     // Humanity: its own workspaces and eslint configs (`npm run humanity:lint`).
     "apps/humanity-app/**",
     "apps/humanity-worker/**",

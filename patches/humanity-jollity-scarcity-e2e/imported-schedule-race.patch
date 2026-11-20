@@ -1,0 +1,30 @@
+--- a/apps/humanity-app/lab/flows/upstream/lab/steps/humanity/bootstrap/imported-games.ts
++++ b/apps/humanity-app/lab/flows/upstream/lab/steps/humanity/bootstrap/imported-games.ts
+@@ -7 +7 @@
+-import { verifySudoKey } from "../../../chain/sudo.ts";
++import { SudoDispatchValidator, verifySudoKey } from "../../../chain/sudo.ts";
+@@ -92 +92 @@
+-      const reason = !imported.game || !WAITABLE_STATES.includes(imported.game.state.type)
++      const reason = imported.game && !WAITABLE_STATES.includes(imported.game.state.type)
+@@ -94 +94 @@
+-        : game.index !== imported.game.index + 1 ? `expected next index #${imported.game.index + 1}`
++        : imported.game && game.index !== imported.game.index + 1 ? `expected next index #${imported.game.index + 1}`
+@@ -148 +148 @@
+-  const submit = async (label: string, call: Parameters<typeof chain.api.tx.Sudo.sudo>[0]["call"]) => {
++  const submit = async (label: string, call: Parameters<typeof chain.api.tx.Sudo.sudo>[0]["call"], validator?: SudoDispatchValidator) => {
+@@ -152 +152 @@
+-    await transactions.submit(label, chain.api.tx.Sudo.sudo({ call }), root.signer);
++    await transactions.submit(label, chain.api.tx.Sudo.sudo({ call }), root.signer, validator);
+@@ -172 +172,11 @@
+-      chain.api.tx.Game.remove_scheduled_game({ game_play_time: schedule.game_play_time }).decodedCall);
++      chain.api.tx.Game.remove_scheduled_game({ game_play_time: schedule.game_play_time }).decodedCall,
++      new SudoDispatchValidator(async (error, receipt) => {
++        // on_poll consumes a schedule as soon as Game is absent, even before its play date.
++        // A finalized snapshot can therefore name a schedule already consumed at dispatch.
++        const module = error as { type?: string; value?: { type?: string; value?: { type?: string } } };
++        if (module?.type !== "Module" || module.value?.type !== "Game" || module.value.value?.type !== "NoSuchGameScheduled") return false;
++        const remaining = await chain.access.storage("Game", "GameSchedules", [], receipt.block.hash) as { game_play_time: number }[];
++        if (!Array.isArray(remaining) || remaining.some(s => s.game_play_time === schedule.game_play_time)) return false;
++        record({ kind: "imported-schedule-runtime-consumed", schedule: schedule.game_play_time, at: receipt.block, error });
++        return true;
++      }));

@@ -1,0 +1,7 @@
+# DIM2 source opening support
+
+`app.ts` declares an owned webpack Next server and source provenance. `session.ts` owns one new CLI-host person, its browser and cleanup. `fixture.ts` derives its empty-game play time from the complete configured setup window, then schedules it on the owned Paseo fork (or Previewnet from genesis) and retains labelled public Sudo receipts in sanitized reports before validating them. On Previewnet from genesis, `app.ts` builds DIM2 for its `local` network instead, `collection.ts` first makes one claimable Scarcity collection for it, `fixture.ts` schedules the same game there, and `session.ts` gives the CLI host `peopl.testnet.product-config.json`, Humanity's grant to DIM2, which a genesis DotNS lacks. `gate.ts` follows the ordinary permission screen. `proof.ts` reads a lite proof from that same DIM2 host in a separate process. `bundle.ts` discards only this opening's private fork bundles before and after every run.
+
+The config and wrapper are the only consumers. Nothing in the app imports this folder. Tests are in `../../tests/lab`; commands and limits are in `../../docs/lab.md`. Origin and adaptations are in `IMPORTED.json`. The host lock is a copy of Humanity's 0.27.0 lock, checked against the digest in `IMPORTED.json`; Humanity's own lock has since moved to 0.31.0. There are no upstream patches or patch manifest entries in this change.
+
+Loopback route validation and aggregate cleanup are shared with Humanity through `../../../../lab/shared/host.ts`. The root kit and selector are documented in `../README.md`.

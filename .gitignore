@@ -85,3 +85,13 @@ __pycache__/
 # the state-machine explorer's mutants: sibling copies written at run time (lib/explorer/mutants/load.ts)
 apps/jollity-app/lib/**/*.mutant-*.ts
 
+
+# Product lab: local forks, identities, caches and sanitized reports, all made at run time
+.product-lab/
+lab.lock.json
+lab/.product-lab/
+apps/humanity-app/.product-lab/
+apps/humanity-app/lab.lock.json
+apps/jollity-app/.product-lab/
+apps/jollity-app/lab.lock.json
+apps/jollity-app/.next-host-productlab-*

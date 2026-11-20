@@ -1,0 +1,12 @@
+--- a/suites/humanity/lab/steps/dim2/results.ts
++++ b/suites/humanity/lab/steps/dim2/results.ts
+@@ -62,0 +63,2 @@
++  /** Lab timing mark immediately before a successful trusted exit control. No app behavior changes. */
++  readonly onControl?: (control: { at: number; path: string; name: string }) => void;
+@@ -77 +79 @@
+-export function returnFromDim2(page: LocatorRoot, returned: () => boolean | Promise<boolean>, ui?: AppSurface, options: { timeoutMs?: number } = {}): Promise<DrawEvidence> {
++export function returnFromDim2(page: LocatorRoot, returned: () => boolean | Promise<boolean>, ui?: AppSurface, options: Pick<JourneyOptions, 'timeoutMs' | 'onControl'> = {}): Promise<DrawEvidence> {
+@@ -129,0 +132 @@
++      const at = Date.now();
+@@ -138,0 +142 @@
++        options.onControl?.({ at, path: current, name: found.name });

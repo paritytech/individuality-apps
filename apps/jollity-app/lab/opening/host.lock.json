@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "official": {
+    "version": "0.27.0",
+    "release": "@parity/truapi@0.27.0",
+    "archives": {
+      "aarch64-apple-darwin": "8fd9ef465c568ee61cee20c578c430814221a441810402f0fb4c75bf84d863fe",
+      "x86_64-unknown-linux-musl": "62875ef629e11b17bdde15585bbe5ee99604aee7b16731bf350c771a29e91c94"
+    },
+    "provides": [
+      "localNetwork"
+    ]
+  },
+  "patched": {
+    "repository": "https://github.com/paritytech/trinity-user-agents",
+    "base": "11e93cb58ff738861bf03cf99432f9a91a38cbd7",
+    "baseVersion": "0.27.0",
+    "patches": [],
+    "patchset": "01bfd7fadb7a",
+    "archives": {}
+  }
+}

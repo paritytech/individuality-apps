@@ -1,0 +1,939 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Humanity local fork opening
+
+# Not a required check: spot runners and an unmeasured Linux runtime must not
+# block merging. Pull requests run the positive opening only; the
+# negative_control runs by dispatch. Scenarios A run beside the opening, one
+# fresh Paseo copy per leg; their A5-control runs only by dispatch.
+on:
+  # Humanity CI's paths without the root lock: a Jollity dependency bump does
+  # not boot a Humanity fork. The `sources` job below makes the final call.
+  pull_request:
+    branches: [main]
+    paths:
+      - "lab/**"
+      - "lab.config.ts"
+      # the root lab check also dry-runs Jollity's lab configs
+      - "apps/jollity-app/lab/**"
+      - "apps/jollity-app/lab.*.config.ts"
+      - "apps/jollity-app/e2e/dim2-opening*.feature"
+      - "apps/humanity-app/**"
+      - "apps/humanity-worker/**"
+      - "packages/humanity-shared/**"
+      - "packages/shared-records/**"
+      - "packages/individuality-*/**"
+      - "package.json"
+      - ".nvmrc"
+      - ".github/workflows/humanity-*.yml"
+      - ".github/lab-scenario-summary.mts"
+  workflow_dispatch:
+    inputs:
+      negative_control:
+        description: Expect the new person's Member-card check to fail
+        type: boolean
+        default: false
+      scenarios:
+        description: Run Humanity scenarios A1-A6, one fresh Paseo copy per leg
+        type: boolean
+        default: true
+      a5_control:
+        description: Also run A5-control, which must fail at the attendance row
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  # The same answer as Humanity CI's preview gate (humanity-ci.yml `sources`),
+  # plus the opening's own inputs: a lab-only change ships nothing, but it is
+  # exactly what this opening tests.
+  sources:
+    name: Humanity sources or opening changed
+    if: github.event_name == 'pull_request'
+    concurrency:
+      # The opening's group: a newer push's sources cancel an older opening in push order.
+      group: humanity-lab-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'dispatch' }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      changed: ${{ steps.files.outputs.changed }}
+    steps:
+      - id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          files=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR}/files" --jq '.[].filename')
+          # Flow-only configs belong to the play-through, not this opening.
+          files=$(grep -vE '^apps/humanity-app/(lab\.flow\.config\.ts|tsconfig\.flow\.json)$' <<<"$files" || true)
+          lab='^lab/|^lab\.config\.ts$|^apps/humanity-app/(lab/|e2e/|tests/|scripts/lab/|lab\.(opening|flow)\.config\.ts$|tsconfig\.(lab|flow)\.json$|eslint\.config\.mjs$|docs/lab[^/]*$)'
+          sources=$(grep -vE "$lab" <<<"$files" || true)
+          if grep -qE '^(apps/humanity-app|apps/humanity-worker|packages/humanity-shared|packages/shared-records|packages/individuality-[^/]+)/|^\.github/workflows/humanity-(ci|deploy)\.yml$' <<<"$sources" \
+            || grep -qE "$lab|^\.github/workflows/humanity-lab\.yml\$|^\.github/lab-scenario-summary\.mts\$" <<<"$files"; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  opening:
+    name: Humanity fork opening
+    needs: [sources]
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && needs.sources.outputs.changed == 'true')) }}
+    concurrency:
+      # PR-scoped for pull_request: a new push cancels the PR's in-flight opening.
+      # Dispatched runs queue behind each other and are never cancelled.
+      group: humanity-lab-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'dispatch' }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    runs-on: ${{ vars.HUMANITY_LAB_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 75
+    outputs:
+      scenarios: ${{ steps.comment_summary.outputs.scenarios }}
+      demo: ${{ steps.upload_demo.outputs.artifact-url }}
+      videos: ${{ steps.upload_videos.outputs.artifact-url }}
+      results: ${{ steps.upload_results.outputs.artifact-url }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+      PRODUCT_LAB_FORK_BUNDLE: fresh
+      # The runner's observed ephemeral range starts at 15000.
+      PRODUCT_LAB_FORK_PORT_BASE: "10000"
+      NEGATIVE_CONTROL: ${{ github.event_name == 'workflow_dispatch' && inputs.negative_control }}
+      PRODUCT_LAB_RECORDINGS_DIR: ${{ github.workspace }}/artifacts/humanity-lab-recordings
+      HUMANITY_LAB_DEMO_DIR: ${{ github.workspace }}/artifacts/humanity-lab-demo
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Set up Bun for host scripts
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+      - name: Record capacity
+        run: |
+          df -h
+          free -m
+          cat /proc/sys/net/ipv4/ip_local_port_range || true
+          cat /sys/fs/cgroup/memory.events || true
+      - run: /usr/bin/time -v npm ci
+      - run: /usr/bin/time -v npm run humanity:lab:check
+      - run: /usr/bin/time -v npm run humanity:lab:prepare -- --engine locked
+      - name: Start capacity sampler
+        id: capacity
+        continue-on-error: true
+        run: |
+          reports=apps/humanity-app/.product-lab/opening-reports/sanitized
+          mkdir -p "$reports"
+          nproc > "$reports/nproc.txt" 2>&1 || true
+          if command -v vmstat >/dev/null; then
+            vmstat -t 5 > "$reports/vmstat.log" 2>&1 &
+            pid=$!
+            trap 'kill -KILL "$pid" 2>/dev/null || true' EXIT
+            started=$(awk '{print $22}' "/proc/$pid/stat")
+            printf 'pid=%s\nstarted=%s\n' "$pid" "$started" >> "$GITHUB_OUTPUT"
+            trap - EXIT
+          fi
+      - name: Open Humanity source
+        id: opening
+        run: |
+          if [ "$NEGATIVE_CONTROL" = true ]; then
+            npm run humanity:e2e:opening -- --fresh --negative-control
+          else
+            npm run humanity:e2e:opening -- --fresh
+          fi
+      - name: Stop capacity sampler
+        if: always()
+        continue-on-error: true
+        env:
+          SAMPLER_PID: ${{ steps.capacity.outputs.pid }}
+          SAMPLER_STARTED: ${{ steps.capacity.outputs.started }}
+        run: |
+          if [[ "$SAMPLER_PID" =~ ^[0-9]+$ ]] && (( SAMPLER_PID > 1 )) && [[ -n "$SAMPLER_STARTED" ]]; then
+            started=$(awk '{print $22}' "/proc/$SAMPLER_PID/stat" 2>/dev/null) || exit 0
+            if [[ "$started" == "$SAMPLER_STARTED" ]]; then
+              kill -KILL "$SAMPLER_PID" 2>/dev/null || true
+            fi
+          fi
+      - name: Clean up owned processes
+        if: always()
+        run: |
+          if [ -x node_modules/.bin/tsx ]; then
+            node_modules/.bin/tsx apps/humanity-app/scripts/lab/opening.mts cleanup
+          fi
+          df -h
+          free -m
+          cat /sys/fs/cgroup/memory.events || true
+      - name: Install demo tools when absent
+        timeout-minutes: 5
+        if: always()
+        continue-on-error: true
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ffmpeg
+          fi
+      - name: Cut the opening demo
+        id: demo
+        if: always()
+        continue-on-error: true
+        env:
+          OPENING_OUTCOME: ${{ steps.opening.outcome }}
+        run: |
+          args=()
+          if [ "$OPENING_OUTCOME" != success ] || [ "$NEGATIVE_CONTROL" = true ]; then
+            args+=(--failed)
+          fi
+          node_modules/.bin/tsx apps/humanity-app/scripts/lab/opening.mts demo "${args[@]}"
+      - name: Upload the opening demo
+        id: upload_demo
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: humanity-lab-demo
+          path: artifacts/humanity-lab-demo/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Upload the raw opening videos
+        id: upload_videos
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: humanity-lab-videos
+          path: artifacts/humanity-lab-recordings/**/videos/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Retain sanitized results
+        id: upload_results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: humanity-opening-${{ github.run_id }}
+          path: apps/humanity-app/.product-lab/opening-reports/sanitized/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Read sanitized scenario steps
+        id: comment_summary
+        if: always()
+        continue-on-error: true
+        run: |
+          node <<'NODE'
+          const { appendFileSync, readFileSync } = require('node:fs');
+          let scenarios = [];
+          try {
+            const text = readFileSync('apps/humanity-app/.product-lab/opening-reports/sanitized/scenario-steps.json', 'utf8');
+            if (text.length <= 40000) scenarios = JSON.parse(text);
+          } catch { /* No scenario report is available. */ }
+          appendFileSync(process.env.GITHUB_OUTPUT, `scenarios=${JSON.stringify(scenarios)}\n`);
+          NODE
+
+  comment:
+    name: Update opening comment
+    needs: [opening]
+    if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.opening.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    continue-on-error: true
+    permissions:
+      pull-requests: write
+    concurrency:
+      # Shared by all three lab workflows: serialize comment creation and updates.
+      group: lab-opening-comment-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Create or update the opening comment
+        continue-on-error: true
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          WORKFLOW: humanity
+          RESULT: ${{ needs.opening.result }}
+          SCENARIOS: ${{ needs.opening.outputs.scenarios }}
+          DEMO_URL: ${{ needs.opening.outputs.demo }}
+          VIDEOS_URL: ${{ needs.opening.outputs.videos }}
+          RESULTS_URL: ${{ needs.opening.outputs.results }}
+        with:
+          script: |
+            const marker = '<!-- lab-opening-comment:v1 -->';
+            const key = process.env.WORKFLOW;
+            const title = { humanity: 'Humanity', jollity: 'Jollity', flow: 'DIM2 play-through' }[key];
+            if (!title) throw new Error('Unknown opening workflow');
+            const begin = `<!-- lab-opening:${key}:start -->`;
+            const end = `<!-- lab-opening:${key}:end -->`;
+            const run = String(context.runId);
+            const attempt = process.env.GITHUB_RUN_ATTEMPT || '1';
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${run}`;
+            const escape = (value) => String(value).slice(0, 300).replace(/[&<>@\[\]()*_`#|\r\n:~$!\\]/g, (char) => `&#${char.charCodeAt(0)};`);
+            const lookup = (table, value) => (typeof value === 'string' && Object.hasOwn(table, value) ? table[value] : 'UNAVAILABLE');
+            const verdict = (value) => lookup({ passed: 'PASS', failed: 'FAIL', 'not-run': 'NOT RUN', skipped: 'SKIPPED', pending: 'PENDING', undefined: 'UNDEFINED', ambiguous: 'AMBIGUOUS' }, value);
+            const isObject = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
+            function buildSection() {
+              let scenarios = [];
+              try { scenarios = JSON.parse(process.env.SCENARIOS || '[]'); } catch { /* unavailable */ }
+              const notRun = key === 'flow' && Array.isArray(scenarios) && scenarios.some((scenario) => isObject(scenario) && ['not-run', 'failed'].includes(scenario.status) && scenario.reason === 'not run: imported game in Reporting');
+              const teardownFailed = notRun && scenarios.some((scenario) => isObject(scenario) && scenario.status === 'failed' && scenario.reason === 'not run: imported game in Reporting');
+              const result = teardownFailed ? 'FAIL (not run: imported game in Reporting)' : notRun ? 'NOT RUN: imported game in Reporting' : lookup({ success: 'PASS', failure: 'FAIL', cancelled: 'CANCELLED', skipped: 'SKIPPED' }, process.env.RESULT);
+              const lines = [begin, `<!-- lab-opening:${key}:run:${run}:${attempt} -->`, `## ${title}${key === 'flow' ? '' : ' opening'}`, '', `[Run ${run}, attempt ${attempt}](${runUrl}) · Result: **${result}**`, ''];
+              if (key === 'flow') {
+                const suffix = process.env.DEMO_URL?.startsWith(`${runUrl}/artifacts/`) ? process.env.DEMO_URL.slice(`${runUrl}/artifacts/`.length) : '';
+                const demo = process.env.DEMO_STATUS === 'produced' && /^\d+$/.test(suffix) ? 'produced' : 'not produced';
+                lines.push(`Demo: **${demo}**`, '');
+              }
+              if (!Array.isArray(scenarios) || !scenarios.some(isObject)) {
+                lines.push('Scenario steps unavailable (the opening may have stopped before reporting).', '');
+              } else {
+                for (const scenario of scenarios.filter(isObject).slice(0, 1)) {
+                  const status = key === 'flow' && scenario.status === 'not-run' && scenario.reason === 'not run: imported game in Reporting' ? 'NOT RUN: imported game in Reporting' : verdict(scenario.status);
+                  lines.push(`### ${escape(scenario.name)} · ${status}`, '', '| Step | Result |', '| --- | --- |');
+                  for (const step of (Array.isArray(scenario.steps) ? scenario.steps : []).filter(isObject).slice(0, 100)) {
+                    lines.push(`| ${escape(step.name)} | ${verdict(step.status)} |`);
+                  }
+                  lines.push('');
+                }
+              }
+              for (const [label, value] of [['Demo', process.env.DEMO_URL], ['Videos', process.env.VIDEOS_URL], ['Results', process.env.RESULTS_URL]]) {
+                // Only upload-artifact links from this exact run are usable.
+                const suffix = value?.startsWith(`${runUrl}/artifacts/`) ? value.slice(`${runUrl}/artifacts/`.length) : '';
+                lines.push(/^\d+$/.test(suffix) ? `- [${label}](${value})` : `- ${label}: unavailable`);
+              }
+              lines.push('', end);
+              return lines.join('\n');
+            }
+            function updateSection(body, section) {
+              if (!body) return `${marker}\n\n# Local fork openings\n\n${section}\n`;
+              const start = body.indexOf(begin);
+              const stop = body.indexOf(end);
+              if (start < 0 && stop < 0) return `${body.trimEnd()}\n\n${section}\n`;
+              if (start < 0 || stop < start || body.indexOf(begin, start + begin.length) >= 0 || body.indexOf(end, stop + end.length) >= 0) throw new Error('Invalid opening section');
+              const current = body.slice(start, stop + end.length);
+              const previous = new RegExp(`<!-- lab-opening:${key}:run:(\\d+):(\\d+) -->`).exec(current);
+              // A delayed older run must not replace a newer run or rerun.
+              if (previous && (BigInt(previous[1]) > BigInt(run) || (previous[1] === run && BigInt(previous[2]) > BigInt(attempt)))) return body;
+              return body.slice(0, start) + section + body.slice(stop + end.length);
+            }
+            // Publish only through the job token; no checkout or personal credential.
+            const section = buildSection();
+            const target = { ...context.repo, issue_number: context.issue.number };
+            for (let retry = 0; retry < 3; retry++) {
+              try {
+                const comments = await github.paginate(github.rest.issues.listComments, { ...target, per_page: 100 });
+                const found = comments.find((comment) => comment.user?.login === 'github-actions[bot]' && comment.user?.type === 'Bot' && comment.body?.startsWith(marker));
+                if (found) {
+                  // Re-read inside the shared concurrency group immediately before merging.
+                  const { data: fresh } = await github.rest.issues.getComment({ ...context.repo, comment_id: found.id });
+                  if (!fresh.body?.startsWith(marker)) throw new Error('Opening marker changed');
+                  const body = updateSection(fresh.body, section);
+                  if (body === fresh.body) break;
+                  await github.rest.issues.updateComment({ ...context.repo, comment_id: found.id, body });
+                  const { data: saved } = await github.rest.issues.getComment({ ...context.repo, comment_id: found.id });
+                  if (saved.body === body) break;
+                } else {
+                  await github.rest.issues.createComment({ ...target, body: updateSection('', section) });
+                  break;
+                }
+              } catch { /* Re-list and re-read on transient failures, including ambiguous creates. */ }
+              if (retry === 2) core.warning('Opening comment unavailable; the opening result is unchanged.');
+            }
+
+  # Scenarios A beside the opening: the same gate, one leg per runner, each on its own fresh Paseo copy.
+  scenario-legs:
+    name: Plan Humanity scenario legs
+    needs: [sources]
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && needs.sources.outputs.changed == 'true')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      legs: ${{ steps.plan.outputs.legs }}
+      skipped: ${{ steps.plan.outputs.skipped }}
+    steps:
+      - id: plan
+        env:
+          SCENARIOS: ${{ github.event_name != 'workflow_dispatch' || inputs.scenarios }}
+          # Never on pull requests: the control runs only by dispatch.
+          A5_CONTROL: ${{ github.event_name == 'workflow_dispatch' && inputs.a5_control }}
+        run: |
+          set -euo pipefail
+          # A5's examples run one per leg, selected by their Examples line; the leg refuses a moved row.
+          # A leg with a "skip" reason is planned but not run; the run and the lab comment show it as SKIPPED with
+          # that reason. Remove the field to run the leg again.
+          legs='[
+            {"id": "a1-a2", "name": "A1+A2", "title": "A registration made on chain shows in Humanity as Registered; after a game ends, Humanity shows results, then the right next game (A1+A2)", "kind": "passed", "scenarios": ["A1", "A2"], "tags": "@A1 or @A2"},
+            {"id": "a3", "name": "A3", "title": "Two attended games promote Ada and give her the full name (A3)", "kind": "passed", "scenarios": ["A3"], "tags": "@A3"},
+            {"id": "a4", "name": "A4", "title": "Missed games warn Ada, then suspend her membership (A4)", "kind": "passed", "scenarios": ["A4"], "tags": "@A4"},
+            {"id": "a5-aaamm", "name": "A5 AAAMM", "title": "The attendance row shows exactly what the chain recorded: AAAMM (A5)", "kind": "passed", "scenarios": ["A5 AAAMM"], "feature": "lab/scenarios/a5-attendance.feature", "line": 18, "example": "AAAMM"},
+            {"id": "a5-mmaaa", "name": "A5 MMAAA", "title": "The attendance row shows exactly what the chain recorded: MMAAA (A5)", "kind": "passed", "scenarios": ["A5 MMAAA"], "feature": "lab/scenarios/a5-attendance.feature", "line": 19, "example": "MMAAA"},
+            {"id": "a5-amama", "name": "A5 AMAMA", "title": "The attendance row shows exactly what the chain recorded: AMAMA (A5)", "kind": "passed", "scenarios": ["A5 AMAMA"], "feature": "lab/scenarios/a5-attendance.feature", "line": 20, "example": "AMAMA"},
+            {"id": "a6", "name": "A6", "title": "The daily scratch pays into the Coinage purse (A6)", "kind": "a6", "scenarios": ["A6"], "tags": "@A6"}
+          ]'
+          control='{"id": "a5-control", "name": "A5-control", "title": "A wrong attendance row must fail at the row (A5-control)", "kind": "negative", "scenarios": ["A5-control"], "feature": "lab/scenarios/wrong-attendance.feature"}'
+          if [ "$SCENARIOS" != true ]; then legs='[]'; fi
+          if [ "$A5_CONTROL" = true ]; then legs=$(jq --argjson control "$control" '. + [$control]' <<<"$legs"); fi
+          skipped=$(jq -c '[.[] | select(has("skip"))]' <<<"$legs")
+          # Workflow-command escaping: % and line breaks in the message; also : and , in the title property.
+          jq -r 'def data: gsub("%"; "%25") | gsub("\r"; "%0D") | gsub("\n"; "%0A"); def prop: data | gsub(":"; "%3A") | gsub(","; "%2C");
+            .[] | "::notice title=\(.name + " SKIPPED" | prop)::\(.skip | data)"' <<<"$skipped"
+          echo "legs=$(jq -c '[.[] | select(has("skip") | not)]' <<<"$legs")" >> "$GITHUB_OUTPUT"
+          echo "skipped=$skipped" >> "$GITHUB_OUTPUT"
+
+  # Every leg starts its own copy from this one bundle. Engine publishes a single rolling tarball (no separate manifest
+  # asset), so this job looks up the asset's SHA-256 first and downloads the 1.3 GB bundle only when no cache entry holds
+  # that asset yet; it pins the bundle by its manifest SHA-256. The entries stay for re-runs and later pushes of this
+  # ref, and `scenario-bundle-cleanup` prunes the ref's entries for older assets.
+  scenario-bundle:
+    name: Pin the Paseo bundle for the scenario legs
+    needs: [scenario-legs]
+    if: ${{ !cancelled() && needs.scenario-legs.result == 'success' && needs.scenario-legs.outputs.legs != '[]' }}
+    concurrency:
+      group: humanity-scenarios-bundle-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'dispatch' }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    runs-on: ${{ vars.HUMANITY_LAB_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 45
+    outputs:
+      manifest-sha256: ${{ steps.pin.outputs.manifest-sha256 }}
+      asset-key: ${{ steps.lookup.outputs.asset-key }}
+      source: ${{ steps.pin.outputs.source }}
+      bitten-at: ${{ steps.pin.outputs.bitten-at }}
+      seconds: ${{ steps.pin.outputs.seconds }}
+      cached: ${{ steps.pin.outputs.cached }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+      PRODUCT_LAB_FORK_BUNDLE: fresh
+      PRODUCT_LAB_FORK_PORT_BASE: "10000"
+      PRODUCT_LAB_CACHE_DIR: ${{ github.workspace }}/apps/humanity-app/.product-lab/cache
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Set up Bun for host scripts
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+      - run: /usr/bin/time -v npm ci
+      - run: /usr/bin/time -v npm run humanity:lab:prepare -- --engine locked
+      - name: Look up the published bundle's asset
+        id: lookup
+        run: node_modules/.bin/tsx apps/humanity-app/scripts/lab/scenarios-ci.mts bundle-lookup
+      - name: Restore this asset's pin
+        id: pin_cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: humanity-paseo-bundle-pin-${{ steps.lookup.outputs.asset-key }}
+          path: apps/humanity-app/.product-lab/paseo-bundle-pin
+      - name: Check for this asset's cached bundle
+        id: bundle_cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: humanity-paseo-bundle-${{ steps.lookup.outputs.asset-key }}
+          path: apps/humanity-app/.product-lab/paseo-bundle
+          lookup-only: true
+      - name: Pin the published bundle, downloading it only on a cache miss
+        id: pin
+        env:
+          ASSET_KEY: ${{ steps.lookup.outputs.asset-key }}
+          CACHED: ${{ steps.pin_cache.outputs.cache-hit == 'true' && steps.bundle_cache.outputs.cache-hit == 'true' }}
+        run: node_modules/.bin/tsx apps/humanity-app/scripts/lab/scenarios-ci.mts bundle-pin apps/humanity-app/.product-lab/paseo-bundle apps/humanity-app/.product-lab/paseo-bundle-pin
+      - name: Save the pinned bundle for every leg
+        if: steps.pin.outputs.cached == 'false'
+        # A path inside the workspace: the cache stores it relative to the workspace on every runner layout.
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: humanity-paseo-bundle-${{ steps.lookup.outputs.asset-key }}
+          path: apps/humanity-app/.product-lab/paseo-bundle
+      - name: Save the bundle's pin
+        if: steps.pin.outputs.cached == 'false'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: humanity-paseo-bundle-pin-${{ steps.lookup.outputs.asset-key }}
+          path: apps/humanity-app/.product-lab/paseo-bundle-pin
+
+  scenarios:
+    name: "Humanity scenario: ${{ matrix.title }}"
+    needs: [scenario-legs, scenario-bundle]
+    if: ${{ !cancelled() && needs.scenario-legs.result == 'success' && needs.scenario-legs.outputs.legs != '[]' && needs.scenario-bundle.result == 'success' }}
+    concurrency:
+      # One group per leg, apart from the opening's: neither cancels the other. A new push cancels
+      # the PR's older leg. Dispatched legs never cancel a running leg, but GitHub keeps one pending
+      # leg per group, so a third dispatch replaces the second one's pending leg.
+      group: humanity-scenarios-${{ matrix.id }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'dispatch' }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    runs-on: ${{ vars.HUMANITY_LAB_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.scenario-legs.outputs.legs) }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+      PRODUCT_LAB_FORK_BUNDLE: fresh
+      # The runner's observed ephemeral range starts at 15000.
+      PRODUCT_LAB_FORK_PORT_BASE: "10000"
+      PRODUCT_LAB_CACHE_DIR: ${{ github.workspace }}/apps/humanity-app/.product-lab/cache
+      HUMANITY_SCENARIOS_FORK_DIRECTORY: ${{ github.workspace }}/apps/humanity-app/.product-lab/scenarios-engine
+      HUMANITY_SCENARIOS_IMPORTED_GAME_WAIT_MS: "180000"
+      # Pull requests take the fast setup (inclusion waits and one finality checkpoint per setup run, the member
+      # fixture, the batched drain). Dispatched runs and the nightly keep the full real setup, which still covers the
+      # Game report path in A4-A6.
+      HUMANITY_SCENARIOS_SETUP: ${{ github.event_name == 'pull_request' && 'fast' || 'full' }}
+      # Each page's video at 640x360 instead of the viewport scaled into 800x800: less encoding on a shared runner.
+      HUMANITY_SCENARIOS_VIDEO_SIZE: "640x360"
+      PRODUCT_LAB_RECORDINGS: frames
+      PRODUCT_LAB_RECORDINGS_DIR: ${{ github.workspace }}/artifacts/humanity-scenarios-recordings
+      PRODUCT_LAB_RECORDINGS_HOST_LOGS: "off"
+      LEG: ${{ toJSON(matrix) }}
+      LEG_KIND: ${{ matrix.kind }}
+      LEG_REPORTS: ${{ github.workspace }}/apps/humanity-app/.product-lab/scenario-reports/${{ matrix.id }}
+      LEG_METRICS: ${{ github.workspace }}/apps/humanity-app/.product-lab/scenario-metrics/${{ matrix.id }}
+      SAMPLER_INTERVAL: "5"
+      # The run's one pinned bundle; a leg re-fetches only on a cache miss, and uses that bundle only if it is the pin.
+      BUNDLE_SHA256: ${{ needs.scenario-bundle.outputs.manifest-sha256 }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Start the leg's resource sampler
+        id: sampler
+        continue-on-error: true
+        run: |
+          # Whole-runner CPU and memory every SAMPLER_INTERVAL seconds for the rest of the leg; one vmstat process.
+          mkdir -p "$LEG_METRICS"
+          nproc > "$LEG_METRICS/nproc.txt" 2>&1 || true
+          grep MemTotal /proc/meminfo > "$LEG_METRICS/meminfo.txt" 2>&1 || true
+          df -h
+          free -m
+          cat /proc/sys/net/ipv4/ip_local_port_range || true
+          cat /sys/fs/cgroup/memory.events || true
+          if command -v vmstat >/dev/null; then
+            vmstat -n "$SAMPLER_INTERVAL" > "$LEG_METRICS/vmstat.log" 2>&1 &
+            pid=$!
+            trap 'kill -KILL "$pid" 2>/dev/null || true' EXIT
+            started=$(awk '{print $22}' "/proc/$pid/stat")
+            printf 'pid=%s\nstarted=%s\n' "$pid" "$started" >> "$GITHUB_OUTPUT"
+            trap - EXIT
+          fi
+          # The workspace file system (the Paseo copy, the bundle and the recordings): used and available KiB.
+          (while :; do df -Pk "$GITHUB_WORKSPACE" | awk -v now="$(date +%s)" 'NR == 2 { print now, $3, $4 }'; sleep "$SAMPLER_INTERVAL"; done) > "$LEG_METRICS/disk.log" 2>/dev/null &
+          disk=$!
+          printf 'disk_pid=%s\ndisk_started=%s\n' "$disk" "$(awk '{print $22}' "/proc/$disk/stat")" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Set up Bun for host scripts
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+      - name: Install dependencies
+        run: |
+          started=$(date +%s)
+          /usr/bin/time -v npm ci
+          echo "npm ci=$(( $(date +%s) - started ))" >> "$LEG_METRICS/phases.txt"
+      - name: Select the leg's scenarios
+        env:
+          LEG_TAGS: ${{ matrix.tags }}
+          LEG_FEATURE: ${{ matrix.feature }}
+          LEG_LINE: ${{ matrix.line }}
+          LEG_EXAMPLE: ${{ matrix.example }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [ -n "$LEG_FEATURE" ]; then
+            feature="apps/humanity-app/$LEG_FEATURE"
+            if [ -n "$LEG_EXAMPLE" ]; then
+              [[ "$LEG_LINE" =~ ^[0-9]+$ ]] || { echo "::error::No Examples line for $LEG_EXAMPLE"; exit 1; }
+              # The line selects one Examples row; refuse it if the row moved.
+              sed -n "${LEG_LINE}p" "$feature" | grep -qE "^[[:space:]]*\|[[:space:]]*${LEG_EXAMPLE}[[:space:]]*\|" \
+                || { echo "::error::$LEG_FEATURE:$LEG_LINE is not the $LEG_EXAMPLE example"; exit 1; }
+              feature="$feature:$LEG_LINE"
+            fi
+            args+=("$feature")
+          fi
+          if [ -n "$LEG_TAGS" ]; then args+=(--tags "$LEG_TAGS"); fi
+          if [ "$LEG_KIND" = negative ]; then args+=(--negative-control); fi
+          printf '%s\n' "${args[@]}" > "$RUNNER_TEMP/leg-selection"
+          cat "$RUNNER_TEMP/leg-selection"
+      - name: Plan the leg offline
+        env:
+          PRODUCT_LAB_FORK_BUNDLE: keep
+        run: |
+          set -euo pipefail
+          selection=()
+          while IFS= read -r arg; do selection+=("$arg"); done < "$RUNNER_TEMP/leg-selection"
+          node_modules/.bin/product-lab test "${selection[@]}" --config apps/humanity-app/lab.scenarios.config.ts --dry-run --report-dir "$RUNNER_TEMP/leg-plan"
+          node_modules/.bin/tsx apps/humanity-app/scripts/lab/scenarios-ci.mts plan "$RUNNER_TEMP/leg-plan/product-lab-test.json"
+      - name: Prepare the Engine
+        run: |
+          started=$(date +%s)
+          /usr/bin/time -v npm run humanity:lab:prepare -- --engine locked
+          echo "prepare=$(( $(date +%s) - started ))" >> "$LEG_METRICS/phases.txt"
+      - name: Start the bundle restore clock
+        run: echo "BUNDLE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+      - name: Restore the run's pinned Paseo bundle
+        id: bundle_cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          # Only the pinned asset's entry, never a prefix: a miss (an evicted or pruned entry, as when the runner bot
+          # re-runs failed legs) re-fetches below and is used only if its manifest is the pin.
+          key: humanity-paseo-bundle-${{ needs.scenario-bundle.outputs.asset-key }}
+          path: apps/humanity-app/.product-lab/paseo-bundle
+      - name: Verify and install the pinned bundle
+        id: bundle
+        env:
+          BUNDLE_CACHE_HIT: ${{ steps.bundle_cache.outputs.cache-hit }}
+        run: node_modules/.bin/tsx apps/humanity-app/scripts/lab/scenarios-ci.mts bundle-install apps/humanity-app/.product-lab/paseo-bundle
+      - name: Run the leg on its own fresh Paseo copy
+        id: leg
+        env:
+          PRODUCT_LAB_FORK_BUNDLE: keep
+        run: |
+          selection=()
+          while IFS= read -r arg; do selection+=("$arg"); done < "$RUNNER_TEMP/leg-selection"
+          started=$(date +%s)
+          set +e
+          node_modules/.bin/product-lab test "${selection[@]}" --config apps/humanity-app/lab.scenarios.config.ts --own-lab --video --report-dir "$LEG_REPORTS" 2>&1 | tee "$LEG_METRICS/product-lab.out"
+          raw=${PIPESTATUS[0]}
+          set -e
+          printf 'raw=%s\nseconds=%s\n' "$raw" "$(( $(date +%s) - started ))" >> "$GITHUB_OUTPUT"
+          echo "product-lab test=$(( $(date +%s) - started ))" >> "$LEG_METRICS/phases.txt"
+          echo "product-lab test exit $raw; the classifier decides the leg"
+      - name: Classify the report
+        id: classify
+        if: always() && steps.leg.outcome == 'success'
+        run: |
+          set +e
+          node_modules/.bin/tsx apps/humanity-app/scripts/lab/scenarios-report.mts "$LEG_KIND" "$LEG_REPORTS/product-lab-test.json"
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+      - name: Run the real-browser guard tests
+        id: guard
+        # One leg is their CI home: the lab's Chromium and the cached host container exist only on a lab runner, and
+        # Humanity CI's unit job skips them. A skipped test fails this step, so a missing browser cannot pass silently.
+        if: always() && matrix.id == 'a1-a2' && steps.leg.outcome == 'success'
+        working-directory: apps/humanity-app
+        run: |
+          set -euo pipefail
+          # The leg's own cached truapi-cli host (product-lab's hosts cache under PRODUCT_LAB_CACHE_DIR).
+          HUMANITY_SCENARIOS_HOST_CONTAINER=$(find "$PRODUCT_LAB_CACHE_DIR/hosts/truapi-cli" -path '*/bin/sandbox-assets/container.js' -print -quit 2>/dev/null || true)
+          export HUMANITY_SCENARIOS_HOST_CONTAINER
+          ../../node_modules/.bin/vitest run tests/scenarios/network.test.ts tests/scenarios/network-video.test.ts tests/scenarios/host-channel.test.ts tests/scenarios/browser-bodies.test.ts \
+            --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/guard-tests.json"
+          node - "$RUNNER_TEMP/guard-tests.json" <<'NODE'
+          const result = require(process.argv[2]);
+          const skipped = result.numPendingTests + result.numTodoTests;
+          console.log(`guard tests: ${result.numPassedTests} passed, ${result.numFailedTests} failed, ${skipped} skipped`);
+          if (result.numFailedTests || skipped || !result.numPassedTests) process.exit(1);
+          NODE
+      - name: Clean up owned processes
+        if: always()
+        run: |
+          if [ -x node_modules/.bin/tsx ]; then
+            node_modules/.bin/tsx apps/humanity-app/scripts/lab/opening.mts cleanup
+          fi
+          df -h
+          free -m
+          cat /sys/fs/cgroup/memory.events || true
+      - name: Stop the leg's resource sampler
+        if: always()
+        continue-on-error: true
+        env:
+          SAMPLER_PID: ${{ steps.sampler.outputs.pid }}
+          SAMPLER_STARTED: ${{ steps.sampler.outputs.started }}
+          DISK_PID: ${{ steps.sampler.outputs.disk_pid }}
+          DISK_STARTED: ${{ steps.sampler.outputs.disk_started }}
+        run: |
+          # Only the recorded process, checked by its start time; a reused pid is left alone.
+          if [[ "$DISK_PID" =~ ^[0-9]+$ ]] && (( DISK_PID > 1 )) && [[ -n "$DISK_STARTED" ]]; then
+            if [[ "$(awk '{print $22}' "/proc/$DISK_PID/stat" 2>/dev/null)" == "$DISK_STARTED" ]]; then
+              kill -KILL "$DISK_PID" 2>/dev/null || true
+            fi
+          fi
+          if [[ "$SAMPLER_PID" =~ ^[0-9]+$ ]] && (( SAMPLER_PID > 1 )) && [[ -n "$SAMPLER_STARTED" ]]; then
+            started=$(awk '{print $22}' "/proc/$SAMPLER_PID/stat" 2>/dev/null) || exit 0
+            if [[ "$started" == "$SAMPLER_STARTED" ]]; then
+              # The sampler's own CPU time, for its overhead.
+              echo "cpu_ticks=$(awk '{print $14 + $15}' "/proc/$SAMPLER_PID/stat") clk_tck=$(getconf CLK_TCK)" > "$LEG_METRICS/sampler.txt" || true
+              kill -KILL "$SAMPLER_PID" 2>/dev/null || true
+            fi
+          fi
+      - name: Measure the leg
+        if: always()
+        continue-on-error: true
+        env:
+          BUNDLE_CACHE_HIT: ${{ steps.bundle_cache.outputs.cache-hit }}
+          BUNDLE_SECONDS: ${{ steps.bundle.outputs.seconds }}
+        run: |
+          mkdir -p "$LEG_METRICS"
+          node_modules/.bin/tsx apps/humanity-app/scripts/lab/scenarios-ci.mts metrics
+      - name: Withhold key material from the report
+        if: always()
+        run: |
+          for file in "$LEG_REPORTS"/product-lab-test.json "$LEG_REPORTS"/junit.xml "$LEG_REPORTS"/report.html "$LEG_REPORTS"/cucumber.log; do
+            if [ -f "$file" ] && grep -qE -- '-----BEGIN [A-Z ]*PRIVATE KEY-----' "$file"; then
+              rm -f -- "$file"
+              echo "::warning::Withheld $(basename "$file"): it contains private key material"
+            fi
+          done
+      - name: Upload the leg's videos
+        id: upload_videos
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: humanity-scenarios-${{ matrix.id }}-videos
+          path: artifacts/humanity-scenarios-recordings/**/videos/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Upload the leg's report
+        id: upload_report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: humanity-scenarios-${{ matrix.id }}-report
+          path: |
+            apps/humanity-app/.product-lab/scenario-reports/${{ matrix.id }}/product-lab-test.json
+            apps/humanity-app/.product-lab/scenario-reports/${{ matrix.id }}/junit.xml
+            apps/humanity-app/.product-lab/scenario-reports/${{ matrix.id }}/report.html
+            apps/humanity-app/.product-lab/scenario-reports/${{ matrix.id }}/cucumber.log
+            apps/humanity-app/.product-lab/scenario-metrics/${{ matrix.id }}/metrics.json
+            apps/humanity-app/.product-lab/scenario-metrics/${{ matrix.id }}/metrics.md
+            apps/humanity-app/.product-lab/scenario-metrics/${{ matrix.id }}/vmstat.log
+            apps/humanity-app/.product-lab/scenario-metrics/${{ matrix.id }}/disk.log
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Summarize the leg
+        id: summary
+        if: always()
+        env:
+          RAW_EXIT: ${{ steps.leg.outputs.raw }}
+          LEG_SECONDS: ${{ steps.leg.outputs.seconds }}
+          CLASSIFIER_EXIT: ${{ steps.classify.outputs.exit }}
+          VIDEOS_URL: ${{ steps.upload_videos.outputs.artifact-url }}
+          REPORT_URL: ${{ steps.upload_report.outputs.artifact-url }}
+          BUNDLE_CACHE_HIT: ${{ steps.bundle_cache.outputs.cache-hit }}
+          BUNDLE_SECONDS: ${{ steps.bundle.outputs.seconds }}
+          # The guard tests' leg: its summary fails, and names them, when they fail or never ran.
+          GUARD_TESTS_EXPECTED: ${{ matrix.id == 'a1-a2' }}
+          GUARD_TESTS: ${{ steps.guard.outcome }}
+          SUMMARY_FILE: ${{ github.workspace }}/artifacts/humanity-scenarios-summary/${{ matrix.id }}.json
+        run: node_modules/.bin/tsx apps/humanity-app/scripts/lab/scenarios-ci.mts summary
+      - name: Upload the leg summary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: humanity-scenarios-${{ matrix.id }}-summary
+          path: artifacts/humanity-scenarios-summary/${{ matrix.id }}.json
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Leg verdict
+        if: always()
+        env:
+          VERDICT: ${{ steps.summary.outputs.verdict }}
+        run: |
+          case "$VERDICT" in
+            pass) echo "The leg passed" ;;
+            pending) echo "The leg's chain steps passed; its declared purse step is pending" ;;
+            *) echo "::error::The leg's result is ${VERDICT:-unavailable}"; exit 1 ;;
+          esac
+
+  # The pinned bundle is 1.2-1.3 GB. The current asset's entries stay (re-runs and later pushes restore them); this ref's
+  # entries for other assets, including the older per-run ones, go once unused for six hours. Other refs are left alone:
+  # each pull request that ran keeps about one bundle until its next run, or until GitHub evicts it 7 days unused, so a
+  # few active pull requests hold several GB of the 10 GB limit. An evicted entry costs a leg one verified re-fetch.
+  # A failed delete leaves its entry to GitHub's eviction.
+  scenario-bundle-cleanup:
+    name: Prune older Paseo bundle caches
+    needs: [scenario-bundle, scenarios]
+    if: ${{ always() && needs.scenario-bundle.outputs.asset-key != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    continue-on-error: true
+    permissions:
+      actions: write
+    steps:
+      - name: Delete this ref's bundle entries for other assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP: humanity-paseo-bundle-${{ needs.scenario-bundle.outputs.asset-key }}
+          KEEP_PIN: humanity-paseo-bundle-pin-${{ needs.scenario-bundle.outputs.asset-key }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          cutoff=$(date -u -d '6 hours ago' +%s)
+          gh cache list --repo "$GITHUB_REPOSITORY" --ref "$REF" --key humanity-paseo-bundle- --limit 100 --json key,lastAccessedAt \
+            --jq '.[] | [.key, .lastAccessedAt] | @tsv' | while IFS=$'\t' read -r key accessed; do
+              if [ "$key" = "$KEEP" ] || [ "$key" = "$KEEP_PIN" ]; then continue; fi
+              if [ "$(date -u -d "$accessed" +%s)" -ge "$cutoff" ]; then continue; fi
+              gh cache delete "$key" --repo "$GITHUB_REPOSITORY" || echo "::warning::Older bundle cache entry not deleted"
+            done
+
+  scenarios-comment:
+    name: Update scenarios comment
+    needs: [scenario-legs, scenario-bundle, scenarios]
+    # Whenever legs were planned, so a failed bundle pin replaces an older run's section instead of leaving it.
+    if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.scenario-legs.result == 'success' && needs.scenario-legs.outputs.legs != '[]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    continue-on-error: true
+    permissions:
+      pull-requests: write
+    concurrency:
+      # The shared lab comment group: serialize comment creation and updates.
+      group: lab-opening-comment-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Download the leg summaries
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: humanity-scenarios-*-summary
+          path: ${{ runner.temp }}/scenario-summaries
+          merge-multiple: true
+      - name: Update the scenarios section of the lab comment
+        continue-on-error: true
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          RESULT: ${{ needs.scenarios.result }}
+          BUNDLE_RESULT: ${{ needs.scenario-bundle.result }}
+          LEGS: ${{ needs.scenario-legs.outputs.legs }}
+          SKIPPED: ${{ needs.scenario-legs.outputs.skipped }}
+          SUMMARIES: ${{ runner.temp }}/scenario-summaries
+          BUNDLE_SHA256: ${{ needs.scenario-bundle.outputs.manifest-sha256 }}
+          BUNDLE_SOURCE: ${{ needs.scenario-bundle.outputs.source }}
+          BUNDLE_BITTEN_AT: ${{ needs.scenario-bundle.outputs.bitten-at }}
+          BUNDLE_SECONDS: ${{ needs.scenario-bundle.outputs.seconds }}
+          BUNDLE_CACHED: ${{ needs.scenario-bundle.outputs.cached }}
+          SETUP: ${{ github.event_name == 'pull_request' && 'fast' || 'full' }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const marker = '<!-- lab-opening-comment:v1 -->';
+            const key = 'humanity-scenarios';
+            const begin = `<!-- lab-opening:${key}:start -->`;
+            const end = `<!-- lab-opening:${key}:end -->`;
+            const run = String(context.runId);
+            const attempt = process.env.GITHUB_RUN_ATTEMPT || '1';
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${run}`;
+            const escape = (value) => String(value).slice(0, 300).replace(/[&<>@\[\]()*_`#|\r\n:~$!\\]/g, (char) => `&#${char.charCodeAt(0)};`);
+            const lookup = (table, value) => (typeof value === 'string' && Object.hasOwn(table, value) ? table[value] : 'UNAVAILABLE');
+            const verdict = (value) => lookup({ pass: 'PASS', fail: 'FAIL', pending: 'PENDING', 'not-run': 'NOT RUN' }, value);
+            const isObject = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
+            const count = (value) => (Number.isSafeInteger(value) && value >= 0 ? String(value) : 'unavailable');
+            const duration = (value) => (Number.isSafeInteger(value) && value >= 0 ? `${Math.floor(value / 60)} min ${String(value % 60).padStart(2, '0')} s` : 'unavailable');
+            const parse = (text, fallback) => { try { return JSON.parse(text); } catch { return fallback; } };
+            // A leg can fail on its guard tests while every scenario row passes, so a failed leg names them.
+            const guardNotes = { fail: 'guard tests failed', 'not-run': 'guard tests did not run' };
+            const guardNote = (summary) => (summary?.verdict === 'fail' && typeof summary.guardTests === 'string' && Object.hasOwn(guardNotes, summary.guardTests) ? guardNotes[summary.guardTests] : '');
+            // Only upload-artifact links from this exact run are usable.
+            const link = (label, value) => {
+              const suffix = typeof value === 'string' && value.startsWith(`${runUrl}/artifacts/`) ? value.slice(`${runUrl}/artifacts/`.length) : '';
+              return /^\d+$/.test(suffix) ? `[${label}](${value})` : 'unavailable';
+            };
+            function summaryOf(id) {
+              if (typeof id !== 'string' || !/^[a-z0-9-]+$/.test(id)) return undefined;
+              let text = '';
+              try { text = fs.readFileSync(path.join(process.env.SUMMARIES || '', `${id}.json`), 'utf8'); } catch { return undefined; }
+              const summary = text.length <= 40000 ? parse(text, undefined) : undefined;
+              return isObject(summary) && summary.id === id ? summary : undefined;
+            }
+            function buildSection() {
+              const pin = /^[0-9a-f]{64}$/.test(process.env.BUNDLE_SHA256 || '') ? process.env.BUNDLE_SHA256 : '';
+              const fetched = /^\d+$/.test(process.env.BUNDLE_SECONDS || '') ? Number(process.env.BUNDLE_SECONDS) : undefined;
+              const legs = parse(process.env.LEGS || '[]', []);
+              const scenarioRows = [];
+              const legRows = [];
+              const outsideRows = [];
+              const guarded = [];
+              let pending = 0;
+              for (const leg of (Array.isArray(legs) ? legs : []).filter(isObject).slice(0, 20)) {
+                const summary = summaryOf(leg.id);
+                const reported = summary && Array.isArray(summary.scenarios) ? summary.scenarios.filter(isObject).slice(0, 20) : [];
+                const expected = Array.isArray(leg.scenarios) ? leg.scenarios.filter((label) => typeof label === 'string').slice(0, 20) : [];
+                const labels = [...expected, ...reported.map((entry) => entry.label).filter((label) => typeof label === 'string' && !expected.includes(label))];
+                for (const label of labels) {
+                  // An expected scenario without a reported result did not run.
+                  const scenario = reported.find((entry) => entry.label === label);
+                  if (scenario?.result === 'pending') pending++;
+                  scenarioRows.push(`| ${escape(label)} | ${scenario ? verdict(scenario.result) : 'NOT RUN'} | ${duration(scenario?.seconds)} | ${link('Video', summary?.videos)} |`);
+                }
+                const bundle = isObject(summary?.bundle) ? summary.bundle : {};
+                const cache = bundle.cacheHit === true ? 'hit' : bundle.cacheHit === false ? 'miss' : 'unavailable';
+                const same = typeof bundle.used !== 'string' || !pin ? 'unavailable' : bundle.used === pin ? 'yes' : 'NO';
+                const note = guardNote(summary);
+                if (note) guarded.push(`${escape(leg.name)} ${note}`);
+                legRows.push(`| ${escape(leg.name)} | ${summary ? verdict(summary.verdict) : 'UNAVAILABLE'}${note ? `: ${note}` : ''} | ${duration(summary?.seconds)} | ${cache} | ${duration(bundle.restoreSeconds)} | ${same} | ${link('Report', summary?.report)} |`);
+                const outside = isObject(summary?.outside) ? summary.outside : {};
+                const counts = ['attempted', 'blocked', 'sentryLocal', 'pending', 'notBlocked', 'socketFrameViolations'].map((name) => count(outside[name]));
+                outsideRows.push(`| ${escape(leg.name)} | ${counts.join(' | ')} |`);
+              }
+              // A skipped leg did not run on purpose; its rows give the plan's reason instead of NOT RUN.
+              const skipped = parse(process.env.SKIPPED || '[]', []);
+              const skippedNames = [];
+              for (const leg of (Array.isArray(skipped) ? skipped : []).filter(isObject).slice(0, 20)) {
+                const reason = typeof leg.skip === 'string' ? escape(leg.skip) : 'no reason given';
+                skippedNames.push(escape(leg.name));
+                for (const label of (Array.isArray(leg.scenarios) ? leg.scenarios : []).filter((label) => typeof label === 'string').slice(0, 20)) {
+                  scenarioRows.push(`| ${escape(label)} | SKIPPED: ${reason} | not run | none |`);
+                }
+                legRows.push(`| ${escape(leg.name)} | SKIPPED | not run | not run | not run | not run | none |`);
+              }
+              // Without a pinned bundle no leg runs; the section says so rather than SKIPPED.
+              const pinFailed = process.env.BUNDLE_RESULT !== 'success';
+              const result = pinFailed && process.env.RESULT === 'skipped' ? lookup({ failure: 'FAIL', cancelled: 'CANCELLED' }, process.env.BUNDLE_RESULT) : lookup({ success: 'PASS', failure: 'FAIL', cancelled: 'CANCELLED', skipped: 'SKIPPED' }, process.env.RESULT);
+              const lines = [begin, `<!-- lab-opening:${key}:run:${run}:${attempt} -->`, '## Humanity scenarios A', '', `[Run ${run}, attempt ${attempt}](${runUrl}) · Result: **${result}**${guarded.map((entry) => ` · ${entry}`).join('')}${pending ? ` · ${pending} PENDING` : ''}${skippedNames.length ? ` · SKIPPED: ${skippedNames.join(', ')}` : ''}`, ''];
+              if (pinFailed) lines.push(`Paseo bundle: the pin job ${lookup({ failure: 'failed', cancelled: 'was cancelled', skipped: 'was skipped' }, process.env.BUNDLE_RESULT).toLowerCase()}, so no leg ran.`, '');
+              else lines.push(pin ? `Paseo bundle: manifest SHA-256 \`${pin}\` (${escape(process.env.BUNDLE_SOURCE || 'source unavailable')}, bitten ${escape(process.env.BUNDLE_BITTEN_AT || 'unavailable')}), ${process.env.BUNDLE_CACHED === 'true' ? 'already cached for this asset, so not downloaded' : `downloaded once by the setup job in ${duration(fetched)}`}; every leg uses only this bundle.` : 'Paseo bundle: unavailable (no pinned manifest).', '');
+              lines.push(process.env.SETUP === 'fast' ? 'Chain setup: **fast** (inclusion waits with one finality checkpoint per setup run, forced-attendance member fixture, one-batch drain). The nightly full setup covers the Game report path in A4-A6.' : 'Chain setup: **full** (every lab transaction finalized, real member games, sequential drain).', '');
+              if (!scenarioRows.length) {
+                lines.push('Scenario legs unavailable.', '');
+              } else {
+                lines.push('| Scenario | Result | Duration | Video |', '| --- | --- | --- | --- |', ...scenarioRows, '');
+                lines.push('| Leg | Leg result | Wall time | Bundle cache | Bundle restore | Pinned bundle | Report |', '| --- | --- | --- | --- | --- | --- | --- |', ...legRows, '');
+                lines.push('Outside requests per leg, counted from the browser guard\'s records:', '');
+                lines.push('| Leg | Attempted | Blocked | Sentry handled locally | Pending | Not blocked | Outside socket frame violations |', '| --- | --- | --- | --- | --- | --- | --- |', ...outsideRows, '');
+                lines.push('These counts cover Chromium page, worker and deny-proxy traffic only. Native processes (fork nodes, host, app server and the lab itself) are outside them, and requests after the last snapshot are blocked but not counted. They are not a statement that nothing left the machine.', '');
+              }
+              lines.push(end);
+              return lines.join('\n');
+            }
+            function updateSection(body, section) {
+              if (!body) return `${marker}\n\n# Local fork openings\n\n${section}\n`;
+              const start = body.indexOf(begin);
+              const stop = body.indexOf(end);
+              if (start < 0 && stop < 0) return `${body.trimEnd()}\n\n${section}\n`;
+              if (start < 0 || stop < start || body.indexOf(begin, start + begin.length) >= 0 || body.indexOf(end, stop + end.length) >= 0) throw new Error('Invalid scenarios section');
+              const current = body.slice(start, stop + end.length);
+              const previous = new RegExp(`<!-- lab-opening:${key}:run:(\\d+):(\\d+) -->`).exec(current);
+              // A delayed older run must not replace a newer run or rerun.
+              if (previous && (BigInt(previous[1]) > BigInt(run) || (previous[1] === run && BigInt(previous[2]) > BigInt(attempt)))) return body;
+              return body.slice(0, start) + section + body.slice(stop + end.length);
+            }
+            // Publish only through the job token; no checkout or personal credential.
+            const section = buildSection();
+            const target = { ...context.repo, issue_number: context.issue.number };
+            for (let retry = 0; retry < 3; retry++) {
+              try {
+                const comments = await github.paginate(github.rest.issues.listComments, { ...target, per_page: 100 });
+                const found = comments.find((comment) => comment.user?.login === 'github-actions[bot]' && comment.user?.type === 'Bot' && comment.body?.startsWith(marker));
+                if (found) {
+                  // Re-read inside the shared concurrency group immediately before merging.
+                  const { data: fresh } = await github.rest.issues.getComment({ ...context.repo, comment_id: found.id });
+                  if (!fresh.body?.startsWith(marker)) throw new Error('Opening marker changed');
+                  const body = updateSection(fresh.body, section);
+                  if (body === fresh.body) break;
+                  await github.rest.issues.updateComment({ ...context.repo, comment_id: found.id, body });
+                  const { data: saved } = await github.rest.issues.getComment({ ...context.repo, comment_id: found.id });
+                  if (saved.body === body) break;
+                } else {
+                  await github.rest.issues.createComment({ ...target, body: updateSection('', section) });
+                  break;
+                }
+              } catch { /* Re-list and re-read on transient failures, including ambiguous creates. */ }
+              if (retry === 2) core.warning('Scenarios comment unavailable; the scenario results are unchanged.');
+            }

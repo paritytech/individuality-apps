@@ -1,0 +1,58 @@
+{
+  "repository": "https://github.com/paritytech/humanity-jollity-scarcity-e2e",
+  "commit": "645e7e152cbe0f7e71a29ae23da96515c80cac75",
+  "recordedAt": "2026-11-03T21:42:20.017597+00:00",
+  "files": [
+    {
+      "sourcePath": "suites/humanity/lab/steps/dim2/app.ts",
+      "sourceSha256": "7f39db21622e6e41275820a1e7aeaee34e868adc3a924a3d5a31199632a8c1cb",
+      "destination": "lab/opening/app.ts",
+      "adaptation": "Use the current npm workspace, hoisted Next, isolated webpack output and root lock digest. No submodule, prepared checkout, deployed launcher or route interception."
+    },
+    {
+      "sourcePath": "suites/humanity/lab/steps/dim2/session.ts",
+      "sourceSha256": "b963cf9c9fa876f6d0f6a21c4a35098a3ac74d7b9c8da30e039a6989f5dacb96",
+      "destination": "lab/opening/session.ts",
+      "adaptation": "Use the public CLI provider from the Humanity opening; one new person and host account index 1. Reload verifies fresh host account reads."
+    },
+    {
+      "sourcePath": "suites/humanity/lab/steps/dim2/opening.ts",
+      "sourceSha256": "949dc76fff3d48d4efc2456a56de274216763dcedc51e694c4c53dbb8afa6d7c",
+      "destination": "lab/opening/gate.ts",
+      "adaptation": "Traverse the ordinary permission gate, wait for a settled host home and refuse the real update screen."
+    }
+  ],
+  "localPattern": {
+    "commit": "c1a9e9e5914af65196c1bb694225fbf5e38f19cc",
+    "paths": [
+      "apps/humanity-app/lab/opening/session.ts",
+      "apps/humanity-app/scripts/lab/opening.mts",
+      "apps/humanity-app/lab.opening.config.ts",
+      ".github/workflows/humanity-lab.yml"
+    ],
+    "adaptation": "Independent DIM2 opening and exact wrong-state validator, with the same host acquisition, frame/video recording, cleanup and 14-day artifacts."
+  },
+  "hostLock": {
+    "sourcePath": "apps/humanity-app/lab/opening/host.lock.json",
+    "sourceCommit": "c1a9e9e5914af65196c1bb694225fbf5e38f19cc",
+    "sha256": "137c2f5490c56ad053a0f41c46ecc91672ad9439cdc768be72b39c62dd1b84f0",
+    "destination": "lab/opening/host.lock.json",
+    "validation": "The wrapper compares the copy with this digest before every check, preparation or run."
+  },
+  "newCode": "Opening assertions, isolated source evidence, owned-fork empty game fixture and read-only lite-proof probe. No product source or saved players copied. No framework files modified.",
+  "runtimeSchedulingRule": {
+    "repository": "https://github.com/paritytech/individuality-community",
+    "commit": "9c6f1faa4b3f3a14ee092793b7d19b66ceb2f898",
+    "files": [
+      {
+        "path": "pallets/game/src/lib.rs",
+        "sha256": "1b57c25621c98a0dd586b0b32bf7ea85c76da7eb3d075ce56941cb30516a0065"
+      },
+      {
+        "path": "pallets/game/src/types.rs",
+        "sha256": "a98bad6eb44e7bd88a5b673722dbeda83db5bd347c3e15bcdf81691b24bec077"
+      }
+    ],
+    "adaptation": "Derive local fixture lead time from all configured pre-play phases plus inclusion slack; no runtime code or storage edits."
+  }
+}

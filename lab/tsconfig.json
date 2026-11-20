@@ -1,0 +1,12 @@
+{
+  "extends": "../apps/humanity-app/tsconfig.flow.json",
+  "include": [
+    "../lab.config.ts",
+    "**/*.ts",
+    "**/*.mts",
+    "../apps/humanity-app/vite-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

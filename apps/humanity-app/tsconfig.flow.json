@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.lab.json",
+  "compilerOptions": { "lib": ["DOM", "DOM.Iterable", "ES2024"], "noUnusedLocals": true, "noUnusedParameters": true, "noUncheckedIndexedAccess": false },
+  "include": ["lab.flow.config.ts", "lab/flows/**/*.ts", "scripts/lab/flow.mts", "tests/flow/**/*.ts", "tests/flow/*.test.mts"],
+  "exclude": ["node_modules", "dist"]
+}
