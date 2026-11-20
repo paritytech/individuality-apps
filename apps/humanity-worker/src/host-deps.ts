@@ -28,6 +28,7 @@ import type { PocketFaceState } from "@humanity/shared/pocket/humanity-face.ts";
 import { pocketFaceOf } from "@humanity/shared/pocket/pocket-face-state.ts";
 import { loggerFor } from "@humanity/shared/logging/logger.ts";
 import { withTimeout } from "@humanity/shared/utils/with-timeout.ts";
+import { setIdentityContext } from "@humanity/shared/telemetry/app-context.ts";
 
 import type { PocketCardDeps } from "./pocket-card.ts";
 
@@ -122,6 +123,7 @@ export function createPocketCardDeps(): PocketCardDeps {
         resolveAirdropAccount(),
         loadFaceCard(),
       ]);
+      if (identity != null) setIdentityContext(identity);
       const address = account?.address ?? null;
       const state = card.state;
       const name =

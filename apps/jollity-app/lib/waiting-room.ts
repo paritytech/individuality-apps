@@ -250,8 +250,9 @@ export const howToPlay = {
 export const SWIPE_MIN_PX = 48
 
 /** The page after a swipe of (dx, dy) px: a left swipe opens the next page, a
- *  right swipe the one before. A short or mostly vertical move keeps the page. */
+ *  right swipe the one before. A short or mostly vertical move keeps the page.
+ *  The waiting room page does not turn on a swipe. */
 export function swipeStep(step: HowToPlayStep, dx: number, dy: number): HowToPlayStep {
-  if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) <= Math.abs(dy)) return step
+  if (step === -1 || Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) <= Math.abs(dy)) return step
   return dx < 0 ? (Math.min(step + 1, 1) as HowToPlayStep) : (Math.max(step - 1, -1) as HowToPlayStep)
 }

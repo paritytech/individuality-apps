@@ -13,7 +13,12 @@
  *  Keyed by event id, which encodes game index + airdrop index: a new airdrop
  *  (tomorrow) or a new game yields a new id, hence a new card. Backed by host
  *  key-value storage, so it survives reloads. */
+import { dailyDollarScratchStore } from "@individuality/shared-records";
+
+import { getHostLocalStorage } from "@humanity/shared/chain/host-api.ts";
 import { getLocalKvStore } from "@humanity/shared/storage/local-kv.ts";
+
+const sharedScratches = dailyDollarScratchStore(getHostLocalStorage);
 
 const LOG_PREFIX = "daily-scratch";
 
@@ -53,9 +58,12 @@ export async function recordDailyScratch(
   eventId: string,
 ): Promise<void> {
   if (accountAddress.length === 0 || !isEventId(eventId)) return;
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  // Jollity's chat reads this to grey its Scratch button; a failed write must not lose the local log.
+  await sharedScratches.markScratched(eventId, nowSeconds).catch(() => undefined);
   const log = await readLog(accountAddress);
   if (log[eventId] != null) return;
-  log[eventId] = Math.floor(Date.now() / 1000);
+  log[eventId] = nowSeconds;
   const store = await getLocalKvStore();
   await store.setJSON(logKey(accountAddress), log);
 }

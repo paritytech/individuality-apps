@@ -8,6 +8,7 @@ import type { WorkerHost } from "../host"
 import { decPayload } from "../renderer"
 import { ROOM_ID } from "../state"
 import type { ChatLine, DailyDollarRegistry } from "./registry"
+import { DAILY_DOLLAR_SCRATCH_KEY } from "@individuality/shared-records"
 import { HUMANITY_REGISTRY_KEY_PREFIX, MESSAGE_DAILY_DOLLAR, REGISTRY_KEY_PREFIX, createDailyDollar, humanityPocketLink, scratchLink } from "./worker"
 
 const CONTEXT = `0x${"c0".repeat(32)}`
@@ -218,9 +219,9 @@ describe("the Daily Dollar in the Jollity chat", () => {
     return found
   }
 
-  async function renderTicket(now: number, scratched: boolean) {
+  async function renderTicket(now: number, scratched: boolean, humanity: Record<string, unknown> = {}) {
     const { people } = fakePeople({ bound: true })
-    const { host, raw, store } = fakeHost()
+    const { host, raw, store } = fakeHost(humanity)
     await createDailyDollar({ host, connect: async () => people, now: () => NOW }).tick()
     const [key, ours] = [...store.entries()].find(([k]) => k.startsWith(REGISTRY_KEY_PREFIX))!
     if (scratched) {
@@ -235,7 +236,7 @@ describe("the Daily Dollar in the Jollity chat", () => {
       press = (id) => cb(id, undefined)
       return () => {}
     })
-    await vi.waitFor(() => expect(sent.mock.calls.length).toBeGreaterThan(scratched || now >= 2_000 + 86_400 ? 1 : 0))
+    await vi.waitFor(() => expect(sent.mock.calls.length).toBeGreaterThan(scratched || DAILY_DOLLAR_SCRATCH_KEY in humanity || now >= 2_000 + 86_400 ? 1 : 0))
     await new Promise((resolve) => setTimeout(resolve, 10))
     return { sent, press: press!, raw }
   }
@@ -248,6 +249,13 @@ describe("the Daily Dollar in the Jollity chat", () => {
 
   it("greys the button out as Scratched, and ignores taps, once the ticket is scratched", async () => {
     const { sent, press, raw } = await renderTicket(NOW, true)
+    expect(lastButtons(sent)).toEqual(["Scratched (done pill)"])
+    press("open-card")
+    expect(raw.navigate).not.toHaveBeenCalled()
+  })
+
+  it("greys the button out once Humanity's shared scratch record names the draw, with no registry entry for it", async () => {
+    const { sent, press, raw } = await renderTicket(NOW, false, { [DAILY_DOLLAR_SCRATCH_KEY]: { [WON.toUpperCase().replace("0X", "0x")]: NOW + 1 } })
     expect(lastButtons(sent)).toEqual(["Scratched (done pill)"])
     press("open-card")
     expect(raw.navigate).not.toHaveBeenCalled()

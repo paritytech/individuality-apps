@@ -6,10 +6,11 @@
 /**
  * THE WAITING ROOM: one screen on two routes (lib/waiting-room.ts). The home
  * shows it until the handover, and /game shows it until the tiles move in.
- * Top to bottom: the page dots, "Game starting" and the kickoff time, the
- * clock, the connection footer, and "How to play", whose steps slide in over
- * the same screen. The route gives the clock, so the time left does not jump at
- * the handover. The room comes in on the home and goes out on /game.
+ * Top to bottom: "Game starting" and the kickoff time, the clock, the
+ * connection footer, and "How to play". Only that button opens the steps, which
+ * slide in over the same screen. The route gives the clock, so the time left
+ * does not jump at the handover. The room comes in on the home and goes out on
+ * /game.
  */
 import { createElement, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { DIAL_ENDS_BEFORE, DIAL_WINDOW } from "@jollity/game-chain/game"
@@ -22,7 +23,7 @@ import { DIAL_SIZE, DIAL_WHITE, DIGIT_FONT, DIGIT_TRACKING } from "@/lib/waiting
 import { clockFace, howToPlay, swipeStep, type HowToPlayStep, type WaitingClock, type WaitingFooter, type WaitingPeer } from "@/lib/waiting-room"
 import { CameraCard } from "./camera-card"
 import { ConnectionFooter } from "./connection-footer"
-import { HowToPlayFooter, HowToPlaySlides, PageDots, SLIDE_CLASS, slideStyle } from "./how-to-play-slides"
+import { HowToPlayFooter, HowToPlaySlides, SLIDE_CLASS, slideStyle } from "./how-to-play-slides"
 
 /** run: digits or dial; exit: the room goes out before the tiles move in */
 type Stage = "run" | "exit"
@@ -85,10 +86,11 @@ export function WaitingRoom(props: {
     >
       {cameraHelp ? <CameraCard help={cameraHelp} hidden={step !== -1} className={sideMotion} /> : null}
       <div className={"flex flex-1 flex-col " + blockMotion}>
-        <PageDots step={step} className={cameraHelp ? "mt-[25.5px]" : "mt-[9.5px]"} />
-        {/* the stage: the room's page in the flow, the steps over it; a horizontal swipe turns the page */}
+        {/* the stage: the room's page in the flow, the steps over it; a horizontal swipe
+            turns the page between the steps and back to the room */}
+        {/* the top margin keeps the title in its place */}
         <div
-          className="relative mt-4 flex flex-1 flex-col"
+          className={"relative flex flex-1 flex-col " + (cameraHelp ? "mt-[47.5px]" : "mt-[31.5px]")}
           style={{ touchAction: "pan-y" }}
           onPointerDown={(e) => {
             if (e.isPrimary && stage === "run") swipe.current = { id: e.pointerId, x: e.clientX, y: e.clientY }

@@ -3,21 +3,25 @@
 
 name: Deploy
 # Publishes the app and its chat worker to Bulletin and DotNS, with a product
-# manifest, on both networks at once. Every name comes from the DOTNS_DOMAIN
-# secret, a bare label such as `my-game`:
+# manifest, on both networks at once. Every name comes from the
+# JOLLITY_DOTNS_DOMAIN repo variable, a bare label such as `my-game`:
 #
-#   push main          <DOTNS_DOMAIN>.testnet + <DOTNS_DOMAIN>next.paseo
-#   pull_request       <DOTNS_DOMAIN>-pr<N>-sandbox00 on previewnet, only when
+#   push main          <JOLLITY_DOTNS_DOMAIN>.testnet + <JOLLITY_DOTNS_DOMAIN>next.paseo
+#   pull_request       <JOLLITY_DOTNS_DOMAIN>-pr<N>-sandbox00 on previewnet, only when
 #                      deployed sources changed (scripts/ci/changes.mjs) or the
 #                      PR has the deploy-preview label. Paseo only with the
 #                      deploy-paseo label.
 #   workflow_dispatch  the same as push main
 #
-# The paseo staging name is built as <DOTNS_DOMAIN>.paseo, because release.yml
+# The humanity job publishes Humanity under the names that
+# scripts/ci/humanity-legs.mjs picks, built from the HUMANITY_DOTNS_DOMAIN
+# repo variable and signed with HUMANITY_DOTNS_MNEMONIC.
+#
+# The paseo staging name is built as <JOLLITY_DOTNS_DOMAIN>.paseo, because release.yml
 # promotes its CIDs onto that name and the product name is compiled into the
 # bytes: a bundle built for the staging name would derive the wrong product
 # account once promoted. The previewnet PR leg is built as
-# <DOTNS_DOMAIN>.testnet for the same reason, since only that name is
+# <JOLLITY_DOTNS_DOMAIN>.testnet for the same reason, since only that name is
 # allowlisted for lite proofs. Both legs therefore waive the manifest's
 # worker-name guard, which exists to catch a stale dist, and they build the
 # worker in this same job.
@@ -30,19 +34,11 @@ run-name: Deploy ${{ github.event_name == 'pull_request' && format('PR {0}', git
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "apps/humanity-app/**"
-      - "apps/humanity-worker/**"
-      - "packages/humanity-shared/**"
   pull_request:
     branches: [main]
     # `labeled`, so deploy-preview and deploy-paseo deploy at once. Any other
     # label makes the deploy job's `if` false and it shows skipped.
     types: [opened, synchronize, reopened, labeled]
-    paths-ignore:
-      - "apps/humanity-app/**"
-      - "apps/humanity-worker/**"
-      - "packages/humanity-shared/**"
   workflow_dispatch:
     inputs:
       network:
@@ -55,7 +51,7 @@ on:
         type: boolean
         default: false
       target:
-        description: "Paseo name to publish under. staging: <DOTNS_DOMAIN>next (previewnet always gets <DOTNS_DOMAIN>). release: <DOTNS_DOMAIN> itself, restored in full after a wipe, unlike release.yml."
+        description: "Paseo name to publish under. staging: <JOLLITY_DOTNS_DOMAIN>next (previewnet always gets <JOLLITY_DOTNS_DOMAIN>). release: <JOLLITY_DOTNS_DOMAIN> itself, restored in full after a wipe, unlike release.yml."
         type: choice
         default: staging
         options: [staging, release]
@@ -90,8 +86,8 @@ jobs:
       # Where running apps read which build is current (apps/jollity-app/lib/release).
       # Empty on a PR sandbox or without the variables, which switches the
       # update check off.
-      VERSION_URL: ${{ github.event_name != 'pull_request' && vars.VERSION_GIST_ID && vars.VERSION_GIST_OWNER && format('https://gist.githubusercontent.com/{0}/{1}/raw/{2}-version.json', vars.VERSION_GIST_OWNER, vars.VERSION_GIST_ID, secrets.DOTNS_DOMAIN) || '' }}
-      CAN_WRITE_VERSION: ${{ github.event_name != 'pull_request' && secrets.GIST_TOKEN != '' && vars.VERSION_GIST_ID != '' }}
+      VERSION_URL: ${{ github.event_name != 'pull_request' && vars.JOLLITY_VERSION_GIST_ID && vars.JOLLITY_VERSION_GIST_OWNER && format('https://gist.githubusercontent.com/{0}/{1}/raw/{2}-version.json', vars.JOLLITY_VERSION_GIST_OWNER, vars.JOLLITY_VERSION_GIST_ID, vars.JOLLITY_DOTNS_DOMAIN) || '' }}
+      CAN_WRITE_VERSION: ${{ github.event_name != 'pull_request' && secrets.GIST_TOKEN != '' && vars.JOLLITY_VERSION_GIST_ID != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -133,13 +129,13 @@ jobs:
       # Validates only and exports nothing, so npm ci and the builds never hold
       # the seed. The CLI reports a malformed phrase only as "Unable to match
       # provided value to a secret URI", so the shape is checked here.
-      - name: Require the DOTNS_MNEMONIC secret
+      - name: Require the JOLLITY_DOTNS_MNEMONIC secret
         if: steps.gate.outputs.gate != 'skip'
         env:
-          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_MNEMONIC }}
+          DEPLOY_MNEMONIC: ${{ secrets.JOLLITY_DOTNS_MNEMONIC }}
         run: |
           if [ -z "$DEPLOY_MNEMONIC" ]; then
-            echo "::error title=DOTNS_MNEMONIC secret missing::Add the DOTNS_MNEMONIC repo secret, the seed of the account that owns the deployed names."
+            echo "::error title=JOLLITY_DOTNS_MNEMONIC secret missing::Add the JOLLITY_DOTNS_MNEMONIC repo secret, the seed of the account that owns the deployed names."
             exit 1
           fi
           WORDS=$(printf '%s' "$DEPLOY_MNEMONIC" | tr -d '\r' | wc -w | tr -d ' ')
@@ -162,7 +158,7 @@ jobs:
         if: steps.gate.outputs.gate != 'skip'
         id: domain
         env:
-          DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN }}
+          DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
           EVENT: ${{ github.event_name }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           SUFFIX: ${{ matrix.suffix }}
@@ -188,7 +184,7 @@ jobs:
           # built with the old one.
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_DSN_TEST: ${{ secrets.SENTRY_DSN_TEST }}
-          TELEMETRY_LOGS: ${{ matrix.env == 'preview' && '1' || vars.NEXT_PUBLIC_TELEMETRY_LOGS || '0' }}
+          TELEMETRY_LOGS: ${{ matrix.env == 'preview' && '1' || vars.JOLLITY_NEXT_PUBLIC_TELEMETRY_LOGS || '0' }}
           # A PR preview is tied to its exact head, while main keeps reusing
           # bundles built from identical sources.
           COMMIT_KEY: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
@@ -256,7 +252,7 @@ jobs:
           NEXT_PUBLIC_VERSION_URL: ${{ env.VERSION_URL }}
           NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           NEXT_PUBLIC_SENTRY_DSN_TEST: ${{ secrets.SENTRY_DSN_TEST }}
-          NEXT_PUBLIC_TELEMETRY_LOGS: ${{ matrix.env == 'preview' && '1' || vars.NEXT_PUBLIC_TELEMETRY_LOGS || '0' }}
+          NEXT_PUBLIC_TELEMETRY_LOGS: ${{ matrix.env == 'preview' && '1' || vars.JOLLITY_NEXT_PUBLIC_TELEMETRY_LOGS || '0' }}
           NEXT_PUBLIC_SENTRY_TAG: ""
         run: npm run build
 
@@ -334,9 +330,9 @@ jobs:
               "${SIGNER_ARGS[@]}" \
               ./apps/jollity-app/out "$DOTNS" 2>&1 | tee deploy.log
         env:
-          DEPLOY_MNEMONIC: ${{ secrets.DOTNS_MNEMONIC }}
-          DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN }}
-          TRUSTED_PRODUCTS: ${{ vars.TRUSTED_PRODUCTS }}
+          DEPLOY_MNEMONIC: ${{ secrets.JOLLITY_DOTNS_MNEMONIC }}
+          DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
+          TRUSTED_PRODUCTS: ${{ vars.JOLLITY_TRUSTED_PRODUCTS }}
           DEPLOYER_PRODUCT_ID: ${{ steps.domain.outputs.staging == '1' && matrix.deployer-product-id || '' }}
           NODE_OPTIONS: "--max-old-space-size=8192"
           DEPLOY_ENV: ${{ matrix.env }}
@@ -345,7 +341,7 @@ jobs:
           # argument verbatim.
           DEPLOY_DOMAIN: ${{ steps.domain.outputs.dotns }}
           SKIP_WORKER_NAME_CHECK: ${{ steps.guard.outputs.skip }}
-          BULLETIN_DEPLOY_SPEC: ${{ vars.BULLETIN_DEPLOY_SPEC || 'bulletin-deploy@0.25.0' }}
+          BULLETIN_DEPLOY_SPEC: ${{ vars.JOLLITY_BULLETIN_DEPLOY_SPEC || 'bulletin-deploy@0.25.0' }}
 
       - name: Read the published CIDs
         id: cids
@@ -422,8 +418,8 @@ jobs:
         continue-on-error: true
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
-          GIST_ID: ${{ vars.VERSION_GIST_ID }}
-          GIST_FILE: ${{ secrets.DOTNS_DOMAIN }}-version.json
+          GIST_ID: ${{ vars.JOLLITY_VERSION_GIST_ID }}
+          GIST_FILE: ${{ vars.JOLLITY_DOTNS_DOMAIN }}-version.json
           KEY: ${{ steps.domain.outputs.dotns }}
           VERSION: ${{ steps.hash.outputs.hash }}
           TIME: ${{ steps.buildtime.outputs.time }}
@@ -476,6 +472,145 @@ jobs:
             echo "Open \`${DOMAIN}\` in the Polkadot app. The gateway link is for a browser."
           } >> "$GITHUB_STEP_SUMMARY"
 
+  humanity-sources:
+    name: Humanity sources
+    runs-on: ubuntu-latest
+    outputs:
+      legs: ${{ steps.plan.outputs.legs }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Pick the Humanity names to publish
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          NETWORK: ${{ inputs.network }}
+          TARGET: ${{ inputs.target }}
+          PR: ${{ github.event.pull_request.number }}
+          SAME_REPO: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+          BEFORE: ${{ github.event.before }}
+          REF: ${{ github.ref }}
+        run: |
+          set -o pipefail
+          node scripts/ci/humanity-legs.mjs | tee -a "$GITHUB_OUTPUT"
+
+  humanity:
+    # release.yml finds the staged commit by this name.
+    name: Humanity ${{ matrix.name }}
+    needs: humanity-sources
+    if: needs.humanity-sources.outputs.legs != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: ${{ matrix.environment }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.humanity-sources.outputs.legs) }}
+    env:
+      BULLETIN_DEPLOY_VERSION: ${{ vars.HUMANITY_BULLETIN_DEPLOY_VERSION || '0.25.0' }}
+      VITE_DEBUG_PANEL: "true"
+      VITE_LOG_LEVEL: debug
+    steps:
+      - name: Name the leg
+        env:
+          PRODUCT_LABEL: ${{ vars.HUMANITY_DOTNS_DOMAIN }}
+          SUFFIX: ${{ matrix.suffix }}
+          TLD: ${{ matrix.tld }}
+        run: |
+          if ! [[ "$PRODUCT_LABEL" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+            echo "::error title=HUMANITY_DOTNS_DOMAIN is not a DotNS label::Set the HUMANITY_DOTNS_DOMAIN repo variable to the bare label Humanity deploys under, without a TLD."
+            exit 1
+          fi
+          {
+            echo "PRODUCT_LABEL=${PRODUCT_LABEL}"
+            echo "DOTNS_LABEL=${PRODUCT_LABEL}${SUFFIX}"
+            echo "DOMAIN=${PRODUCT_LABEL}${SUFFIX}.${TLD}"
+          } >> "$GITHUB_ENV"
+
+      - name: Require the HUMANITY_DOTNS_MNEMONIC secret
+        env:
+          DOTNS_MNEMONIC: ${{ secrets.HUMANITY_DOTNS_MNEMONIC }}
+        run: |
+          if [ -z "$DOTNS_MNEMONIC" ]; then
+            echo "::error title=HUMANITY_DOTNS_MNEMONIC secret missing::Add the HUMANITY_DOTNS_MNEMONIC repo secret, the seed of the account that owns the Humanity names."
+            exit 1
+          fi
+
+      # The manifest is rewritten whole on every publish, so a missing variable
+      # would drop the grants the name has on chain. A pull request preview
+      # grants nothing.
+      - name: Require the HUMANITY_TRUSTED_PRODUCTS variable
+        if: ${{ !matrix.comment }}
+        env:
+          TRUSTED_PRODUCTS: ${{ vars.HUMANITY_TRUSTED_PRODUCTS }}
+        run: |
+          if [ -z "$TRUSTED_PRODUCTS" ]; then
+            echo "::error title=HUMANITY_TRUSTED_PRODUCTS variable missing::Set HUMANITY_TRUSTED_PRODUCTS to the grants of $DOMAIN, or {} for none."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # A dependency published minutes before the install can 404 until the
+      # registry has it everywhere.
+      - name: Install bulletin-deploy
+        run: |
+          for attempt in 1 2 3; do
+            npm install -g "bulletin-deploy@${BULLETIN_DEPLOY_VERSION}" && break
+            [ "$attempt" = 3 ] && exit 1
+            sleep 60
+          done
+          bulletin-deploy --version
+
+      - name: Build the app and the worker
+        run: npm run humanity:setup -- --env "$MATRIX_ENV" --product-label "$PRODUCT_LABEL" --build-only
+        env:
+          MATRIX_ENV: ${{ matrix.env }}
+          DOTNS_MNEMONIC: ${{ secrets.HUMANITY_DOTNS_MNEMONIC }}
+          VITE_GAME_STORAGE_LABEL: ${{ matrix.sandbox-suffix && format('{0}{1}', vars.JOLLITY_DOTNS_DOMAIN, matrix.sandbox-suffix) || '' }}
+          VITE_SENTRY_DSN: ${{ vars.HUMANITY_SENTRY_DSN }}
+          SENTRY_AUTH_TOKEN: ${{ matrix.sentry && secrets.HUMANITY_SENTRY_AUTH_TOKEN || '' }}
+          SENTRY_ORG: ${{ matrix.sentry && vars.HUMANITY_SENTRY_ORG || '' }}
+          SENTRY_PROJECT: ${{ matrix.sentry && vars.HUMANITY_SENTRY_PROJECT || '' }}
+          SENTRY_CLI_NO_TELEMETRY: "1"
+
+      - name: Publish to Bulletin and DotNS
+        id: deploy
+        run: |
+          for attempt in 1 2 3; do
+            timeout 20m npm run humanity:setup -- --env "$MATRIX_ENV" --product-label "$PRODUCT_LABEL" --skip-build && break
+            [ "$attempt" = 3 ] && exit 1
+            sleep 30
+          done
+        env:
+          MATRIX_ENV: ${{ matrix.env }}
+          DOTNS_MNEMONIC: ${{ secrets.HUMANITY_DOTNS_MNEMONIC }}
+          HUMANITY_TRUSTED_PRODUCTS: ${{ !matrix.comment && vars.HUMANITY_TRUSTED_PRODUCTS || '' }}
+          NODE_OPTIONS: "--max-old-space-size=8192"
+
+      - name: Comment on the PR
+        if: matrix.comment
+        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
+        with:
+          header: humanity-preview-${{ matrix.env }}
+          message: |
+            **Preview: `${{ steps.deploy.outputs.domain }}`** (app + worker) · [logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ${{ steps.deploy.outputs.url }}
+
+            Open `${{ steps.deploy.outputs.domain }}` in a host that boots product workers (Polkadot Desktop on the matching network) to try the worker.
+
   comment:
     name: Comment
     # always(), so one network failing still leaves the other's link on the PR.
@@ -509,7 +644,7 @@ jobs:
 
       - uses: actions/github-script@v7
         env:
-          DOTNS_DOMAIN: ${{ secrets.DOTNS_DOMAIN }}
+          DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
         with:
           script: |
             const fs = require('node:fs');
