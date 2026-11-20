@@ -4,7 +4,7 @@
 name: Release
 # Promotes what <JOLLITY_DOTNS_DOMAIN>next.paseo has been serving onto
 # <JOLLITY_DOTNS_DOMAIN>.paseo, with JOLLITY_DOTNS_DOMAIN the bare label in the
-# repository secret of that name.
+# repository variable of that name.
 #
 # A release rebuilds nothing. deploy.yml already built the paseo artifacts for
 # the release name, published them at the staging name and cached their CIDs
@@ -30,12 +30,12 @@ name: Release
 #
 # With product humanity, a dispatch promotes <HUMANITY_DOTNS_DOMAIN>next.paseo
 # onto <HUMANITY_DOTNS_DOMAIN>.paseo instead, and only that, with
-# HUMANITY_DOTNS_DOMAIN the bare label in the repository secret of that name.
+# HUMANITY_DOTNS_DOMAIN the bare label in the repository variable of that name.
 # It reads the staged records live from the staging name, so it never expires,
 # and it tags humanity-v<version>.
 # Bump `version` in apps/humanity-app/package.json in a PR first, since it is
 # the appVersion the records carry.
-run-name: ${{ inputs.product == 'humanity' && format('Humanity Release {0}', inputs.version) || format('Release {0}', inputs.version || (github.ref_type == 'tag' && github.ref_name) || 'next patch') }}
+run-name: ${{ inputs.product == 'humanity' && format('Humanity Release {0} to {1}.paseo', inputs.version, vars.HUMANITY_DOTNS_DOMAIN) || format('Release {0}', inputs.version || (github.ref_type == 'tag' && github.ref_name) || 'next patch') }}
 
 on:
   push:
@@ -124,10 +124,10 @@ jobs:
       - name: Resolve the released name
         id: name
         env:
-          DOTNS_DOMAIN: ${{ secrets.JOLLITY_DOTNS_DOMAIN }}
+          DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
         run: |
           if ! [[ "$DOTNS_DOMAIN" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
-            echo "::error title=JOLLITY_DOTNS_DOMAIN is not a DotNS label::Set the JOLLITY_DOTNS_DOMAIN secret to the bare label the product deploys under, without a TLD."
+            echo "::error title=JOLLITY_DOTNS_DOMAIN is not a DotNS label::Set the JOLLITY_DOTNS_DOMAIN repo variable to the bare label the product deploys under, without a TLD."
             exit 1
           fi
           echo "domain=${DOTNS_DOMAIN}.paseo" >> "$GITHUB_OUTPUT"
@@ -207,7 +207,7 @@ jobs:
       - name: Point the released name at the staged CIDs
         env:
           DEPLOY_MNEMONIC: ${{ secrets.JOLLITY_DOTNS_MNEMONIC }}
-          DOTNS_DOMAIN: ${{ secrets.JOLLITY_DOTNS_DOMAIN }}
+          DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
           TRUSTED_PRODUCTS: ${{ vars.JOLLITY_TRUSTED_PRODUCTS }}
           DOMAIN: ${{ steps.name.outputs.domain }}
           APP_CID: ${{ steps.cids.outputs.app }}
@@ -253,7 +253,7 @@ jobs:
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
           GIST_ID: ${{ vars.JOLLITY_VERSION_GIST_ID }}
-          GIST_FILE: ${{ secrets.JOLLITY_DOTNS_DOMAIN }}-version.json
+          GIST_FILE: ${{ vars.JOLLITY_DOTNS_DOMAIN }}-version.json
           KEY: ${{ steps.name.outputs.domain }}
           VERSION: ${{ steps.cids.outputs.appversion }}
           TIME: ${{ steps.cids.outputs.apptime }}
@@ -315,7 +315,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   humanity:
-    name: Promote Humanity on paseo
+    name: Promote to ${{ vars.HUMANITY_DOTNS_DOMAIN }}.paseo
     if: github.event_name == 'workflow_dispatch' && inputs.product == 'humanity'
     runs-on: ubuntu-latest
     environment: humanity-paseo-next-v2
@@ -323,15 +323,15 @@ jobs:
       contents: write
       actions: read
     env:
-      LABEL: ${{ secrets.HUMANITY_DOTNS_DOMAIN }}
-      DOMAIN: ${{ secrets.HUMANITY_DOTNS_DOMAIN }}.paseo
-      STAGED: ${{ secrets.HUMANITY_DOTNS_DOMAIN }}next.paseo
+      LABEL: ${{ vars.HUMANITY_DOTNS_DOMAIN }}
+      DOMAIN: ${{ vars.HUMANITY_DOTNS_DOMAIN }}.paseo
+      STAGED: ${{ vars.HUMANITY_DOTNS_DOMAIN }}next.paseo
       DOTNS_CLI_VERSION: 1.1.0
     steps:
-      - name: Require the HUMANITY_DOTNS_DOMAIN secret
+      - name: Require the HUMANITY_DOTNS_DOMAIN variable
         run: |
           if ! [[ "$LABEL" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
-            echo "::error title=HUMANITY_DOTNS_DOMAIN is not a DotNS label::Set the HUMANITY_DOTNS_DOMAIN secret to the bare label Humanity deploys under, without a TLD."
+            echo "::error title=HUMANITY_DOTNS_DOMAIN is not a DotNS label::Set the HUMANITY_DOTNS_DOMAIN repo variable to the bare label Humanity deploys under, without a TLD."
             exit 1
           fi
 

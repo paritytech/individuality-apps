@@ -4,7 +4,7 @@
 name: Deploy
 # Publishes the app and its chat worker to Bulletin and DotNS, with a product
 # manifest, on both networks at once. Every name comes from the
-# JOLLITY_DOTNS_DOMAIN secret, a bare label such as `my-game`:
+# JOLLITY_DOTNS_DOMAIN repo variable, a bare label such as `my-game`:
 #
 #   push main          <JOLLITY_DOTNS_DOMAIN>.testnet + <JOLLITY_DOTNS_DOMAIN>next.paseo
 #   pull_request       <JOLLITY_DOTNS_DOMAIN>-pr<N>-sandbox00 on previewnet, only when
@@ -15,7 +15,7 @@ name: Deploy
 #
 # The humanity job publishes Humanity under the names that
 # scripts/ci/humanity-legs.mjs picks, built from the HUMANITY_DOTNS_DOMAIN
-# secret and signed with HUMANITY_DOTNS_MNEMONIC.
+# repo variable and signed with HUMANITY_DOTNS_MNEMONIC.
 #
 # The paseo staging name is built as <JOLLITY_DOTNS_DOMAIN>.paseo, because release.yml
 # promotes its CIDs onto that name and the product name is compiled into the
@@ -86,7 +86,7 @@ jobs:
       # Where running apps read which build is current (apps/jollity-app/lib/release).
       # Empty on a PR sandbox or without the variables, which switches the
       # update check off.
-      VERSION_URL: ${{ github.event_name != 'pull_request' && vars.JOLLITY_VERSION_GIST_ID && vars.JOLLITY_VERSION_GIST_OWNER && format('https://gist.githubusercontent.com/{0}/{1}/raw/{2}-version.json', vars.JOLLITY_VERSION_GIST_OWNER, vars.JOLLITY_VERSION_GIST_ID, secrets.JOLLITY_DOTNS_DOMAIN) || '' }}
+      VERSION_URL: ${{ github.event_name != 'pull_request' && vars.JOLLITY_VERSION_GIST_ID && vars.JOLLITY_VERSION_GIST_OWNER && format('https://gist.githubusercontent.com/{0}/{1}/raw/{2}-version.json', vars.JOLLITY_VERSION_GIST_OWNER, vars.JOLLITY_VERSION_GIST_ID, vars.JOLLITY_DOTNS_DOMAIN) || '' }}
       CAN_WRITE_VERSION: ${{ github.event_name != 'pull_request' && secrets.GIST_TOKEN != '' && vars.JOLLITY_VERSION_GIST_ID != '' }}
     strategy:
       fail-fast: false
@@ -158,7 +158,7 @@ jobs:
         if: steps.gate.outputs.gate != 'skip'
         id: domain
         env:
-          DOTNS_DOMAIN: ${{ secrets.JOLLITY_DOTNS_DOMAIN }}
+          DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
           EVENT: ${{ github.event_name }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           SUFFIX: ${{ matrix.suffix }}
@@ -331,7 +331,7 @@ jobs:
               ./apps/jollity-app/out "$DOTNS" 2>&1 | tee deploy.log
         env:
           DEPLOY_MNEMONIC: ${{ secrets.JOLLITY_DOTNS_MNEMONIC }}
-          DOTNS_DOMAIN: ${{ secrets.JOLLITY_DOTNS_DOMAIN }}
+          DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
           TRUSTED_PRODUCTS: ${{ vars.JOLLITY_TRUSTED_PRODUCTS }}
           DEPLOYER_PRODUCT_ID: ${{ steps.domain.outputs.staging == '1' && matrix.deployer-product-id || '' }}
           NODE_OPTIONS: "--max-old-space-size=8192"
@@ -419,7 +419,7 @@ jobs:
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
           GIST_ID: ${{ vars.JOLLITY_VERSION_GIST_ID }}
-          GIST_FILE: ${{ secrets.JOLLITY_DOTNS_DOMAIN }}-version.json
+          GIST_FILE: ${{ vars.JOLLITY_DOTNS_DOMAIN }}-version.json
           KEY: ${{ steps.domain.outputs.dotns }}
           VERSION: ${{ steps.hash.outputs.hash }}
           TIME: ${{ steps.buildtime.outputs.time }}
@@ -497,8 +497,7 @@ jobs:
           node scripts/ci/humanity-legs.mjs | tee -a "$GITHUB_OUTPUT"
 
   humanity:
-    # release.yml finds the staged commit by this name. A leg carries a
-    # suffix and no label, since GitHub drops a job output that holds a secret.
+    # release.yml finds the staged commit by this name.
     name: Humanity ${{ matrix.name }}
     needs: humanity-sources
     if: needs.humanity-sources.outputs.legs != '[]'
@@ -516,12 +515,12 @@ jobs:
     steps:
       - name: Name the leg
         env:
-          PRODUCT_LABEL: ${{ secrets.HUMANITY_DOTNS_DOMAIN }}
+          PRODUCT_LABEL: ${{ vars.HUMANITY_DOTNS_DOMAIN }}
           SUFFIX: ${{ matrix.suffix }}
           TLD: ${{ matrix.tld }}
         run: |
           if ! [[ "$PRODUCT_LABEL" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
-            echo "::error title=HUMANITY_DOTNS_DOMAIN is not a DotNS label::Set the HUMANITY_DOTNS_DOMAIN secret to the bare label Humanity deploys under, without a TLD."
+            echo "::error title=HUMANITY_DOTNS_DOMAIN is not a DotNS label::Set the HUMANITY_DOTNS_DOMAIN repo variable to the bare label Humanity deploys under, without a TLD."
             exit 1
           fi
           {
@@ -579,7 +578,7 @@ jobs:
         env:
           MATRIX_ENV: ${{ matrix.env }}
           DOTNS_MNEMONIC: ${{ secrets.HUMANITY_DOTNS_MNEMONIC }}
-          VITE_GAME_STORAGE_LABEL: ${{ matrix.sandbox-suffix && format('{0}{1}', secrets.JOLLITY_DOTNS_DOMAIN, matrix.sandbox-suffix) || '' }}
+          VITE_GAME_STORAGE_LABEL: ${{ matrix.sandbox-suffix && format('{0}{1}', vars.JOLLITY_DOTNS_DOMAIN, matrix.sandbox-suffix) || '' }}
           VITE_SENTRY_DSN: ${{ vars.HUMANITY_SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ matrix.sentry && secrets.HUMANITY_SENTRY_AUTH_TOKEN || '' }}
           SENTRY_ORG: ${{ matrix.sentry && vars.HUMANITY_SENTRY_ORG || '' }}
@@ -645,7 +644,7 @@ jobs:
 
       - uses: actions/github-script@v7
         env:
-          DOTNS_DOMAIN: ${{ secrets.JOLLITY_DOTNS_DOMAIN }}
+          DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
         with:
           script: |
             const fs = require('node:fs');

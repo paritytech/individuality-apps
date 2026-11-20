@@ -3,10 +3,9 @@
 
 // Which Humanity names a deploy.yml run publishes.
 //
-// Every name is the bare label in the HUMANITY_DOTNS_DOMAIN secret, <label>
-// below, with the suffix of its leg. A leg names no label, since GitHub drops a
-// job output that holds a secret, and the deploy job adds it. A push to main publishes <label>.testnet and the
-// paseo staging name <label>next.paseo when it changes what Humanity ships.
+// Every name is the bare label in the HUMANITY_DOTNS_DOMAIN repo variable,
+// <label> below, with the suffix of its leg, and the deploy job joins the two.
+// A push to main publishes <label>.testnet and the paseo staging name <label>next.paseo when it changes what Humanity ships.
 // The staging name is built for product <label>, so release.yml can copy its
 // records onto <label>.paseo. A same-repo pull request that changes what
 // Humanity ships gets <label>-pr<N>-preview.testnet, still built for product

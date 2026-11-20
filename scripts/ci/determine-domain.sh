@@ -15,7 +15,7 @@
 set -euo pipefail
 
 if ! [[ "$DOTNS_DOMAIN" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
-  echo "::error title=JOLLITY_DOTNS_DOMAIN is not a DotNS label::Set the JOLLITY_DOTNS_DOMAIN secret to the bare label the product deploys under, without a TLD." >&2
+  echo "::error title=JOLLITY_DOTNS_DOMAIN is not a DotNS label::Set the JOLLITY_DOTNS_DOMAIN repo variable to the bare label the product deploys under, without a TLD." >&2
   exit 1
 fi
 
