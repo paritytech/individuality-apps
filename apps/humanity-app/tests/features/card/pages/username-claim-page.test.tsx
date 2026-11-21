@@ -102,6 +102,7 @@ describe("UsernameClaimPage", () => {
     mocks.upgrade = offer({ confirmed: true });
     const view = render(<UsernameClaimPage />);
     expect(screen.getByRole("heading", { name: "Your name is marlow" })).toBeTruthy();
+    expect(screen.getByText("It's yours. Your card will show it shortly.")).toBeTruthy();
 
     // The card now carries the bare name: the target is claimed, and the
     // form's action has gone away.
@@ -109,6 +110,7 @@ describe("UsernameClaimPage", () => {
     mocks.upgrade = { target: { kind: "already-claimed" }, action: undefined };
     view.rerender(<UsernameClaimPage />);
     expect(screen.getByRole("heading", { name: "Your name is marlow" })).toBeTruthy();
+    expect(screen.getByText("It's on your card now.")).toBeTruthy();
     expect(screen.queryByText("Choose your name")).toBeNull();
     expect(screen.queryByText(/no numbers to drop/)).toBeNull();
     expect(screen.getByRole("button", { name: "Back to your card" })).toBeTruthy();
