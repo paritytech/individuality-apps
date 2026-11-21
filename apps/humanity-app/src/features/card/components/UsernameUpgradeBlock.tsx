@@ -73,12 +73,24 @@ export function availabilityLine(
       };
     case "checking":
       return { text: "Checking availability", tone: "quiet" };
+    case "clearing":
+      return {
+        text: `Clearing old reservations on ${availability.name}. This can take a minute.`,
+        tone: "quiet",
+      };
     case "available":
       return { text: `${availability.name} is available`, tone: "ok" };
     case "taken":
       return { text: `${availability.name} is taken`, tone: "warn" };
     case "error":
-      return { text: "Couldn't check availability.", tone: "warn", retry: availability.retry };
+      return {
+        text:
+          availability.cleanup === true
+            ? `Couldn't clear old reservations on ${availability.name}.`
+            : "Couldn't check availability.",
+        tone: "warn",
+        retry: availability.retry,
+      };
   }
 }
 

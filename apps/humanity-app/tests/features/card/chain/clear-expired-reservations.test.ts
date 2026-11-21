@@ -4,7 +4,8 @@
 /** The cleanup reads the queue, the duration and the chain's clock, removes
  *  each expired entry ahead of the person with its own unsigned authorized
  *  transaction through the product account, in queue order, and stops at the
- *  first one that does not settle — never touching the person's own entry. */
+ *  first one that does not settle while its entry is still queued — never
+ *  touching the person's own entry. */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type * as HostApi from "@humanity/shared/chain/host-api.ts";
@@ -136,6 +137,34 @@ describe("clearExpiredReservations", () => {
     expect(mocks.watch).toHaveBeenCalledTimes(1);
     // Logged at error: the only path by which an unconfirmed removal files an issue.
     expect(log.error).toHaveBeenCalledOnce();
+  });
+
+  it("reads the queue at the best block, so a run after a reload sees what the last one removed", async () => {
+    await clearExpiredReservations("carol", ME);
+    for (const [, options] of mocks.queue.mock.calls) expect(options).toEqual({ at: "best" });
+  });
+
+  it("carries on past a removal it could not confirm when the entry is gone from the queue", async () => {
+    const full = await mocks.queue();
+    mocks.queue.mockReset().mockResolvedValueOnce(full).mockResolvedValue(full.slice(1));
+    mocks.watch
+      .mockResolvedValueOnce({ status: "unknown", txHash: "0xmaybe", detail: "host link reset" })
+      .mockResolvedValueOnce({ status: "included", txHash: "0x2" });
+
+    await expect(clearExpiredReservations("carol", ME)).resolves.toEqual({ status: "cleared", removed: 2 });
+    expect(mocks.remove.mock.calls.map(([args]) => args.account)).toEqual(["5First", "5Second"]);
+    expect(log.error).not.toHaveBeenCalled();
+  });
+
+  it("carries on past a removal the chain refuses because the entry is already gone", async () => {
+    const full = await mocks.queue();
+    mocks.queue.mockReset().mockResolvedValueOnce(full).mockResolvedValue(full.slice(1));
+    mocks.watch
+      .mockRejectedValueOnce(new Error("Invalid.Custom 222"))
+      .mockResolvedValueOnce({ status: "included", txHash: "0x2" });
+
+    await expect(clearExpiredReservations("carol", ME)).resolves.toEqual({ status: "cleared", removed: 2 });
+    expect(log.error).not.toHaveBeenCalled();
   });
 
   it("fails without submitting outside a host", async () => {
