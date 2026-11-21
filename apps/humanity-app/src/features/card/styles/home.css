@@ -131,7 +131,10 @@
 }
 .name-screen { position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .name-screen .pellet { position: absolute; width: 7px; height: 7px; border-radius: 50%; pointer-events: none; z-index: 30; }
-.name-form .cta-pill.is-armed { background: var(--fg-primary); }
+/* Armed, the pill takes the theme's own text colour as its ground, so its
+   label takes that colour's inverse: the pinned ink of --fg-inverted is the
+   same black as --fg-primary on a light theme. */
+.name-form .cta-pill.is-armed { background: var(--fg-primary); color: var(--ds-fg-primary-inverted); }
 .name-warn { transition: color 0.2s ease; }
 
 /* ---------- rows ---------- */
