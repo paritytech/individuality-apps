@@ -262,6 +262,10 @@ export function beginJoin(start: { cameraWarm: boolean }): void {
   const warm = start.cameraWarm ? "true" : "false"
   trace.join = startJourney("join", { "camera.warm": warm, ...connectionAttrs() }, { ownsLifecycle: true })
   trace.camera = trace.join.step("camera.acquire", { "camera.warm": warm })
+  // a miss of the player's own key that came before this join opened
+  const held = heldOwnKeyMiss
+  heldOwnKeyMiss = null
+  if (held) claimOwnKeyMiss(trace.join, held.miss, held.signup)
   trace.stopIce = observeIce(iceStep)
   installPagehide()
   noteSessionChange()
@@ -393,14 +397,36 @@ export function signallingKeyLookedUp(found: boolean, outcome?: OwnKeyOutcome): 
   live(trace.game)?.set(attrs)
 }
 
+/** a miss that came while no join or game was open: held for the next join,
+ *  which claims it, so a later `beginJoin` cannot make it a second event */
+let heldOwnKeyMiss: { miss: OwnKeyMiss; signup: Promise<SignUpFacts | null> } | null = null
+
 /** The `own-key-missing` failure, at most once per join, on the first miss
  *  whose cause is not a read that gave no answer (a hung host read is not this
- *  bug, and the next try may well find the key). The values ride the event's
- *  context, never its message, so each cause is one issue. `signup` is the
- *  sign-up surface read for the game (point 3), when it is known. */
-export function ownKeyMissed(miss: OwnKeyMiss, signup: SignUpFacts | null): void {
-  if (miss.cause === "no-answer" || trace.ownKeyReported) return
+ *  bug, and the next try may well find the key). The join is claimed, and its
+ *  span captured, at the miss; the event goes to that span once `signup`, the
+ *  sign-up surface read for the game, is back. A miss with no join or game
+ *  open waits for the next join. The values ride the event's context, never
+ *  its message, so each cause is one issue. Never throws. */
+export function ownKeyMissed(miss: OwnKeyMiss, signup: Promise<SignUpFacts | null>): void {
+  if (miss.cause === "no-answer") return
+  const journey = live(trace.join) ?? live(trace.game)
+  if (!journey) {
+    heldOwnKeyMiss ??= { miss, signup }
+    return
+  }
+  claimOwnKeyMiss(journey, miss, signup)
+}
+
+function claimOwnKeyMiss(journey: Journey, miss: OwnKeyMiss, signup: Promise<SignUpFacts | null>): void {
+  if (trace.ownKeyReported) return
   trace.ownKeyReported = true
+  void signup
+    .catch(() => null)
+    .then((facts) => sendOwnKeyMissing(journey, miss, facts))
+}
+
+function sendOwnKeyMissing(journey: Journey, miss: OwnKeyMiss, signup: SignUpFacts | null): void {
   const context: Record<string, string> = { humanity_product: miss.humanityProduct }
   if (miss.reads) {
     context.own_read = miss.reads.own
@@ -411,7 +437,13 @@ export function ownKeyMissed(miss: OwnKeyMiss, signup: SignUpFacts | null): void
     context["signup.surface"] = signup.surface
     context["signup.humanity_read"] = signup.humanityRead
   }
-  reportFailure("own-key-missing", { reason: miss.cause, context }, live(trace.join) ?? live(trace.game) ?? undefined)
+  reportFailure("own-key-missing", { reason: miss.cause, context }, journey)
+}
+
+/** The game this trace is in, once the session has said (`noteGame`): what
+ *  the sign-up surface is read for, without a chain read of its own. */
+export function currentGameIndex(): number | null {
+  return trace.gameIndex
 }
 
 function iceStep(event: IceEvent): void {
@@ -1439,6 +1471,7 @@ export function resetGameTraceForTests(): void {
   statementsOpenedAt = null
   statementsDone = false
   signUpSurface = null
+  heldOwnKeyMiss = null
   startRtcGame()
   resetPaths()
   resetDecoders()

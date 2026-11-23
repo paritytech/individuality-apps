@@ -73,13 +73,14 @@ import {
 } from "@individuality/game-outcome"
 import { playerStatementStore, signerOfPlayer } from "./host/statement-store"
 import { isHostChannelInterruption, retrySafeHostRead, safeHostReadWhenConnected, type HostConnectionSource } from "./host/safe-call"
-import { noteSignUpSurface, ownKeyMissed, signalSubmit, signallingKeyLookedUp, statementsFirstPage, statementsInterrupted, statementsResubscribed, statementsSubscribed } from "./journeys/game-trace"
+import { signalSubmit, statementsFirstPage, statementsInterrupted, statementsResubscribed, statementsSubscribed } from "./journeys/game-trace"
 import { signUpCapabilities } from "./host/sign-up"
 import { describeError } from "./host/error-detail"
 import { knownDisplayName } from "./host/identity"
 import { holdGameReminder, reminderForSignup } from "./host/game-reminder"
-import { communicationIdentifier, lookUpSignallingSecret, type OwnKeyLookup } from "./host/communication-key"
-import { humanityProduct, readGameRegistration, readSignUpSurface, recordSignUp, type SignUpSurfaceFacts } from "./host/game-registration"
+import { communicationIdentifier } from "./host/communication-key"
+import { ownKeySecret } from "./own-key"
+import { readGameRegistration, recordSignUp } from "./host/game-registration"
 import { sweepClaimedPrizes } from "./prize-sweep"
 import { devLog } from "./debug/log-store"
 import { warnThrottled } from "./debug/warn-throttled"
@@ -2699,17 +2700,6 @@ async function resolveSource(): Promise<GameSource | null> {
                 onResubscribed: statementsResubscribed,
               })
             : Promise.resolve(null)
-        // which surface signed this player up for the game being joined, on
-        // the join and the game spans: read once per game, beside the first
-        // key lookup, and never in its way
-        let signUpRead: { game: number | null; facts: Promise<SignUpSurfaceFacts> } | undefined
-        const signUpSurface = async (): Promise<SignUpSurfaceFacts> => {
-          const game = (await withTimeout(engine.game(), GAME_READ_TIMEOUT_MS).catch(() => null))?.index ?? null
-          if (!signUpRead || signUpRead.game !== game) signUpRead = { game, facts: readSignUpSurface(game) }
-          const facts = await signUpRead.facts
-          noteSignUpSurface(game, facts)
-          return facts
-        }
         const signalling = statementTransport({
           resolveStore,
           // the peer TTL and the stats on the step-free device clock; the
@@ -2747,25 +2737,8 @@ async function resolveSource(): Promise<GameSource | null> {
           // registered secret, and nothing directed goes in the clear (since
           // v4: a v3 build sent them in the clear)
           keys: {
-            secret: async () => {
-              const surface = signUpSurface()
-              // a lookup that threw (a chain read that failed) gave no answer;
-              // no player is no identifier
-              let lookup: OwnKeyLookup = { secret: null, cause: player ? "no-answer" : "no-identifier" }
-              try {
-                if (player) lookup = await lookUpSignallingSecret(player, engine)
-                return lookup.secret
-              } finally {
-                // to the trace, a read that failed included: a miss means this player links with nobody
-                signallingKeyLookedUp(!!lookup.secret, lookup)
-                // and once per join the failure, with the sign-up surface once it is read
-                const { cause, reads, refusal } = lookup
-                if (cause !== "found")
-                  void surface
-                    .catch(() => null)
-                    .then((signup) => ownKeyMissed({ cause, reads, refusal, humanityProduct: humanityProduct() }, signup))
-              }
-            },
+            // this player's own key, and what each lookup tells the trace (lib/own-key.ts)
+            secret: ownKeySecret(player, engine),
             peerIdentifier: (peer) => engine.communicationIdentifier(peer),
           },
           // a submit that backed off, waited for a slot or failed, to the trace per pair

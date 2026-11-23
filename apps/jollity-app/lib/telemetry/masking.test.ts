@@ -62,6 +62,7 @@ describe("masking-safe sealed signalling vocabulary", () => {
     "rtc.no_signalling_key",
     "ownKeyMissing",
     "ownKeyFound",
+    "ownKeyHung",
     // the own-key-missing failure (lib/journeys/game-trace.ts ownKeyMissed) and the join's own-key attributes
     "own-key-missing", "rtc.own_key.cause", "rtc.own_key.source", "rtc.own_key.recovered",
     "found", "no-identifier", "read-refused", "no-match", "no-answer",
