@@ -510,6 +510,7 @@ jobs:
         include: ${{ fromJSON(needs.humanity-sources.outputs.legs) }}
     env:
       BULLETIN_DEPLOY_VERSION: ${{ vars.HUMANITY_BULLETIN_DEPLOY_VERSION || '0.25.0' }}
+      DOTNS_CLI_VERSION: 1.1.0
       VITE_DEBUG_PANEL: "true"
       VITE_LOG_LEVEL: debug
     steps:
@@ -598,6 +599,34 @@ jobs:
           DOTNS_MNEMONIC: ${{ secrets.HUMANITY_DOTNS_MNEMONIC }}
           HUMANITY_TRUSTED_PRODUCTS: ${{ !matrix.comment && vars.HUMANITY_TRUSTED_PRODUCTS || '' }}
           NODE_OPTIONS: "--max-old-space-size=8192"
+
+      # The publish rewrites the whole manifest, so read the grants back the
+      # way a host reads them. Wrong grants fail this job, and release.yml only
+      # promotes a commit whose staging job passed, so they never reach the
+      # released name. Anything that stops the read (the registry, a slow RPC)
+      # only warns: the release checks the staged grants again before it
+      # writes anything. Grants found wrong are read again 45 s later, since
+      # the RPC node may not have the publish yet. Paseo only, since the
+      # previewnet name is not promoted anywhere.
+      - name: Install the dotns CLI ${{ env.DOTNS_CLI_VERSION }}
+        id: dotns-cli
+        if: ${{ matrix.tld == 'paseo' && !matrix.comment }}
+        run: |
+          for attempt in 1 2 3; do
+            if npm install -g "@parity/dotns-cli@${DOTNS_CLI_VERSION}"; then
+              echo "installed=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            [ "$attempt" = 3 ] || sleep 20
+          done
+          echo "::warning title=Could not check the grants of ${DOMAIN}::The dotns CLI ${DOTNS_CLI_VERSION} did not install, so the published grants were not read. The release checks the staged grants before it writes."
+
+      - name: Read back the published grants
+        if: ${{ matrix.tld == 'paseo' && !matrix.comment && steps.dotns-cli.outputs.installed == 'true' }}
+        env:
+          HUMANITY_TRUSTED_PRODUCTS: ${{ vars.HUMANITY_TRUSTED_PRODUCTS }}
+          JOLLITY_DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
+        run: node scripts/ci/check-grants.mjs --env paseo-v2 --unchecked-warns --confirm-wrong "$DOMAIN"
 
       - name: Comment on the PR
         if: matrix.comment

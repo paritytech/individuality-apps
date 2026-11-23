@@ -1,0 +1,299 @@
+// Copyright 2026 Parity Technologies (UK) Ltd.
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+// Reads the grants a Humanity name publishes and checks them.
+//
+// The grants are the trustedProducts of the name's manifest text record:
+// which other products the host lets use Humanity's account and storage
+// without a prompt. Jollity's sign-up and its chat worker need them, so a
+// name whose grants drift breaks Jollity with no Humanity release (#40).
+//
+// A name passes when its grants equal the HUMANITY_TRUSTED_PRODUCTS variable,
+// each list sorted and de-duplicated as release.yml's "Check the staged
+// grants" compares them, and when Jollity's label (JOLLITY_DOTNS_DOMAIN) holds
+// at least context and storage, so emptying the variable cannot pass either.
+//
+// Each name ends in one of three outcomes:
+//   ok         the grants are right;
+//   wrong      the read worked, and the grants are wrong or missing;
+//   unchecked  the read failed or timed out, so nothing is known about them.
+// A failed read is never reported as missing grants. Paseo's RPC can take
+// about 20 s to open a websocket, so each read is tried a few times first.
+//
+// The read is `dotns text view <name> manifest --json` with no key: the CLI's
+// key variables are removed from its environment, so it can only read.
+//
+// Usage: node scripts/ci/check-grants.mjs --env paseo-v2 [--unchecked-warns] [--confirm-wrong] <name>...
+//   reads HUMANITY_TRUSTED_PRODUCTS and JOLLITY_DOTNS_DOMAIN from the
+//   environment, prints one ::error or ::notice line per name, writes
+//   outcome=ok|wrong|unchecked to $GITHUB_OUTPUT, and exits 0 (ok),
+//   1 (any name wrong) or 2 (none wrong, but some could not be checked).
+//   With --unchecked-warns, a name that could not be checked is a warning
+//   and exits 0, for a job that must not fail on a slow RPC.
+//   With --confirm-wrong, grants found wrong are read again after
+//   GRANTS_CONFIRM_DELAY_SECONDS (45), and only that second read counts: a
+//   read right after a publish can reach an RPC node that is a block behind
+//   and still serves the old manifest. If the second read fails, the name is
+//   unchecked.
+//   Anything that crashes the checker is reported as unchecked too, never
+//   as exit 1, which means wrong grants.
+//   DOTNS_BIN overrides the CLI (default `dotns` on PATH);
+//   GRANTS_READ_ATTEMPTS, GRANTS_READ_TIMEOUT_SECONDS and
+//   GRANTS_READ_DELAY_SECONDS tune the retries (3 reads, 90 s each, 15 s apart).
+import { spawn } from "node:child_process"
+import { appendFileSync } from "node:fs"
+import { setTimeout as sleep } from "node:timers/promises"
+
+/** What Jollity's label needs at least: game-registration.ts reads storage and signs as Humanity. */
+export const FLOOR = ["context", "storage"]
+
+export const EXIT = { ok: 0, wrong: 1, unchecked: 2 }
+
+const LABEL = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
+
+
+/** Each list sorted and de-duplicated, keys sorted: jq -S 'map_values(unique)'. */
+export function normalize(grants) {
+  const out = {}
+  for (const key of Object.keys(grants).sort()) out[key] = [...new Set(grants[key])].sort()
+  return out
+}
+
+export const show = (grants) => JSON.stringify(normalize(grants))
+
+/** The grants the repository intends, from HUMANITY_TRUSTED_PRODUCTS. Throws on a value release.yml would refuse. */
+export function expectedGrants(raw) {
+  if (raw === undefined || raw.trim() === "") throw new Error("HUMANITY_TRUSTED_PRODUCTS is not set")
+  let parsed
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    throw new Error("HUMANITY_TRUSTED_PRODUCTS is not valid JSON")
+  }
+  if (!isGrants(parsed)) throw new Error("HUMANITY_TRUSTED_PRODUCTS is not an object of label to grant list")
+  return normalize(parsed)
+}
+
+function isGrants(value) {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.values(value).every((list) => Array.isArray(list) && list.every((g) => typeof g === "string"))
+  )
+}
+
+/**
+ * The grants in one `dotns text view <name> manifest --json` answer, or null
+ * when the name has no manifest. Throws when the answer is not the CLI's
+ * JSON, which means the read itself failed.
+ */
+export function grantsFromRead(stdout) {
+  let record
+  try {
+    record = JSON.parse(stdout)
+  } catch {
+    throw new Error(`the CLI printed no JSON: ${stdout.trim().slice(0, 200) || "(nothing)"}`)
+  }
+  if (record === null || typeof record !== "object" || typeof record.exists !== "boolean") {
+    throw new Error(`the CLI's answer has no exists field: ${stdout.trim().slice(0, 200)}`)
+  }
+  if (!record.exists || record.value === null || record.value === undefined || record.value === "") return null
+  return { manifest: record.value }
+}
+
+/** What is wrong with the grants a name publishes, or [] when nothing is. */
+export function grantProblems({ manifest, want, floorLabel }) {
+  if (manifest === null) return ["it has no manifest, so it grants nothing"]
+  let parsed
+  try {
+    parsed = JSON.parse(manifest)
+  } catch {
+    return ["its manifest is not JSON, so a host reads no grants from it"]
+  }
+  const raw = parsed?.trustedProducts
+  if (raw === undefined) return ["its manifest has no trustedProducts, so it grants nothing"]
+  if (!isGrants(raw)) return [`its trustedProducts is not an object of label to grant list: ${JSON.stringify(raw)}`]
+  const got = normalize(raw)
+  const problems = []
+  if (JSON.stringify(got) !== JSON.stringify(want)) {
+    problems.push(`it grants ${JSON.stringify(got)} but HUMANITY_TRUSTED_PRODUCTS is ${JSON.stringify(want)}`)
+  }
+  const lacking = FLOOR.filter((g) => !(got[floorLabel] ?? []).includes(g))
+  if (lacking.length > 0) {
+    problems.push(`${floorLabel} lacks ${lacking.join(" and ")}, which Jollity needs`)
+  }
+  return problems
+}
+
+/** Reads a name's manifest with the dotns CLI, with no key, and kills it after timeoutMs. */
+export function readManifest(name, env, { bin = "dotns", timeoutMs = 90_000 } = {}) {
+  const childEnv = { ...process.env }
+  for (const key of ["DOTNS_MNEMONIC", "DOTNS_KEY_URI", "DOTNS_KEYSTORE_PASSWORD", "DOTNS_KEYSTORE_PATH", "DOTNS_SIGNER"]) {
+    delete childEnv[key]
+  }
+  return new Promise((resolve, reject) => {
+    const child = spawn(bin, ["text", "view", name, "manifest", "--env", env, "--json"], {
+      env: childEnv,
+      stdio: ["ignore", "pipe", "pipe"],
+    })
+    let stdout = ""
+    let stderr = ""
+    child.stdout.on("data", (d) => (stdout += d))
+    child.stderr.on("data", (d) => (stderr += d))
+    // The CLI keeps reconnecting to an RPC that is down, so it never exits by itself.
+    const timer = setTimeout(() => child.kill("SIGKILL"), timeoutMs)
+    child.on("error", (error) => {
+      clearTimeout(timer)
+      reject(new Error(`could not start ${bin}: ${error.message}`))
+    })
+    child.on("close", (code, signal) => {
+      clearTimeout(timer)
+      if (signal === "SIGKILL") reject(new Error(`no answer within ${Math.round(timeoutMs / 1000)} s`))
+      else if (code !== 0) reject(new Error(`${bin} exited ${code}: ${(stderr || stdout).trim().slice(0, 300)}`))
+      else resolve(stdout)
+    })
+  })
+}
+
+/**
+ * Checks one name. `read(name)` resolves to the CLI's stdout; it is tried up
+ * to `attempts` times, `delayMs` apart, before the name counts as unchecked.
+ * With `confirmWrongMs`, a wrong result is read again that long after, and
+ * the second result is the one returned.
+ */
+export async function checkName({ name, want, floorLabel, read, attempts = 3, delayMs = 15_000, confirmWrongMs }) {
+  const first = await checkOnce({ name, want, floorLabel, read, attempts, delayMs })
+  if (first.outcome !== "wrong" || confirmWrongMs === undefined) return first
+  await sleep(confirmWrongMs)
+  const second = await checkOnce({ name, want, floorLabel, read, attempts, delayMs })
+  const wait = `${Math.round(confirmWrongMs / 1000)} s`
+  if (second.outcome === "ok") return { ...second, detail: `${second.detail} (a read ${wait} earlier saw old grants)` }
+  if (second.outcome === "wrong") return { ...second, detail: `${second.detail} (the same again ${wait} later)` }
+  return { ...second, detail: `a first read found wrong grants (${first.detail}), and the read ${wait} later to confirm it failed: ${second.detail}` }
+}
+
+async function checkOnce({ name, want, floorLabel, read, attempts, delayMs }) {
+  const failures = []
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    let found
+    try {
+      found = grantsFromRead(await read(name))
+    } catch (error) {
+      failures.push(`attempt ${attempt}: ${error.message}`)
+      if (attempt < attempts) await sleep(delayMs)
+      continue
+    }
+    const problems = grantProblems({ manifest: found?.manifest ?? null, want, floorLabel })
+    return problems.length === 0
+      ? { name, outcome: "ok", detail: `grants ${show(want)}, as HUMANITY_TRUSTED_PRODUCTS says` }
+      : { name, outcome: "wrong", detail: problems.join("; ") }
+  }
+  return { name, outcome: "unchecked", detail: failures.join("; ") }
+}
+
+/** The run's outcome: wrong before unchecked, since a known break matters more than an unknown. */
+export function overall(results) {
+  if (results.some((r) => r.outcome === "wrong")) return "wrong"
+  if (results.some((r) => r.outcome === "unchecked")) return "unchecked"
+  return "ok"
+}
+
+/** A workflow command's message, with the characters GitHub reads as markup escaped. */
+const escapeData = (text) => text.replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")
+
+/** The GitHub annotation for one result. */
+export function annotation({ name, outcome, detail }, { uncheckedWarns = false } = {}) {
+  const line = (level, title, message) => `::${level} title=${title}::${escapeData(message)}`
+  if (outcome === "ok") return line("notice", `Grants right on ${name}`, `${detail}.`)
+  if (outcome === "wrong") {
+    return line(
+      "error",
+      `Grants wrong on ${name}`,
+      `${detail}. Jollity cannot use Humanity's account or storage while this lasts. Publish the name again with the right HUMANITY_TRUSTED_PRODUCTS, or fix the variable.`,
+    )
+  }
+  return line(
+    uncheckedWarns ? "warning" : "error",
+    `Could not check the grants of ${name}`,
+    `The manifest could not be read, so the grants are unknown, not missing (${detail}). Usually the Paseo RPC is slow or down. Run the check again.`,
+  )
+}
+
+function parseArgs(argv) {
+  const names = []
+  let env = ""
+  let confirmWrong = false
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--env") env = argv[++i] ?? ""
+    else if (argv[i] === "--unchecked-warns") continue
+    else if (argv[i] === "--confirm-wrong") confirmWrong = true
+    else names.push(argv[i])
+  }
+  if (!env || names.length === 0) throw new Error("usage: check-grants.mjs --env <dotns env> [--unchecked-warns] [--confirm-wrong] <name>...")
+  return { env, names, confirmWrong }
+}
+
+/** Read apart from the other flags, so a crash in parsing them still honours it. */
+const uncheckedWarns = process.argv.includes("--unchecked-warns")
+
+/** Writes to $GITHUB_OUTPUT. A file that cannot be written is a warning: the exit code still carries the outcome. */
+function output(line) {
+  try {
+    if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${line}\n`)
+  } catch (error) {
+    console.log(`::warning title=No step output::${escapeData(String(error))}`)
+  }
+}
+
+async function main() {
+  const { env, names, confirmWrong } = parseArgs(process.argv.slice(2))
+  const floorLabel = process.env.JOLLITY_DOTNS_DOMAIN ?? ""
+  let want
+  try {
+    if (!LABEL.test(floorLabel)) throw new Error("JOLLITY_DOTNS_DOMAIN is not a bare DotNS label")
+    want = expectedGrants(process.env.HUMANITY_TRUSTED_PRODUCTS)
+  } catch (error) {
+    // Nothing was compared, so the grants are unknown, not wrong.
+    console.log(`::${uncheckedWarns ? "warning" : "error"} title=Could not check the grants::${error.message}. Set the repo variable, then run the check again.`)
+    output("outcome=unchecked")
+    process.exit(uncheckedWarns ? EXIT.ok : EXIT.unchecked)
+  }
+  const attempts = Number(process.env.GRANTS_READ_ATTEMPTS || 3)
+  const timeoutMs = Number(process.env.GRANTS_READ_TIMEOUT_SECONDS || 90) * 1000
+  const delayMs = Number(process.env.GRANTS_READ_DELAY_SECONDS ?? 15) * 1000
+  const confirmWrongMs = confirmWrong ? Number(process.env.GRANTS_CONFIRM_DELAY_SECONDS ?? 45) * 1000 : undefined
+  const bin = process.env.DOTNS_BIN || "dotns"
+  const results = []
+  for (const name of names) {
+    const read = (n) => readManifest(n, env, { bin, timeoutMs })
+    const result = await checkName({ name, want, floorLabel, attempts, delayMs, confirmWrongMs, read })
+    console.log(annotation(result, { uncheckedWarns }))
+    results.push(result)
+  }
+  const outcome = overall(results)
+  output(`outcome=${outcome}`)
+  // The summary is a courtesy: failing to write it must not hide the outcome.
+  try {
+    if (process.env.GITHUB_STEP_SUMMARY) {
+      const rows = results.map((r) => `| \`${r.name}\` | ${r.outcome} | ${r.detail.replaceAll("|", "\\|")} |`)
+      appendFileSync(process.env.GITHUB_STEP_SUMMARY, ["### Humanity grants", "", "| Name | Outcome | Detail |", "|---|---|---|", ...rows, ""].join("\n") + "\n")
+    }
+  } catch (error) {
+    console.log(`::warning title=No grants summary::${escapeData(String(error))}`)
+  }
+  process.exit(uncheckedWarns && outcome === "unchecked" ? EXIT.ok : EXIT[outcome])
+}
+
+/** A crash means the grants are unknown, so it must never exit 1, which says they are wrong. */
+function crashed(error) {
+  const message = escapeData(`The checker stopped, so the grants are unknown: ${error?.stack ?? error}`)
+  console.log(`::${uncheckedWarns ? "warning" : "error"} title=Could not check the grants::${message}`)
+  output("outcome=unchecked")
+  process.exit(uncheckedWarns ? EXIT.ok : EXIT.unchecked)
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  process.on("uncaughtException", crashed)
+  main().catch(crashed)
+}

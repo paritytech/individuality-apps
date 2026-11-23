@@ -514,10 +514,13 @@ jobs:
 
       # The grants decide which products may use Humanity's keys and storage,
       # so they must be the ones the repository intends before anything is
-      # written.
+      # written, and Jollity must keep context and storage, which it signs up
+      # and reads the Daily Dollar registry with. scripts/ci/check-grants.mjs
+      # checks the same on the staging and the live names.
       - name: Check the staged grants
         env:
           EXPECTED: ${{ vars.HUMANITY_TRUSTED_PRODUCTS }}
+          JOLLITY: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
         run: |
           set -euo pipefail
           if [ -z "$EXPECTED" ] || ! jq -e 'type == "object"' >/dev/null 2>&1 <<<"$EXPECTED"; then
@@ -530,6 +533,10 @@ jobs:
           got=$(jq -r '.value // ""' "records/$STAGED.manifest.json" | jq -cS '.trustedProducts // {} | map_values(unique)')
           if [ "$got" != "$want" ]; then
             echo "::error title=Staged grants differ::$STAGED grants $got but HUMANITY_TRUSTED_PRODUCTS is $want. Run Deploy on main, or fix the variable, then release again. A grant to ${LABEL}next cannot pass, since the staging name never lists itself. Nothing was written."
+            exit 1
+          fi
+          if ! jq -e --arg jollity "$JOLLITY" '(.[$jollity] // []) as $g | ($g | index("context")) != null and ($g | index("storage")) != null' >/dev/null <<<"$got"; then
+            echo "::error title=Staged grants leave Jollity out::$STAGED grants $got, and ${JOLLITY:-(JOLLITY_DOTNS_DOMAIN unset)} lacks context or storage, which Jollity needs. Fix HUMANITY_TRUSTED_PRODUCTS, run Deploy on main, then release again. Nothing was written."
             exit 1
           fi
           echo "$STAGED grants $got, as HUMANITY_TRUSTED_PRODUCTS says."

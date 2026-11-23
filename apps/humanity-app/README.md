@@ -331,6 +331,51 @@ manifest, so they take effect on the next deploy of each network (on paseo, the 
 through a Humanity release; its `manifest` scope copies only the grants) and need a host on truapi 0.17
 or newer. Keys are bare labels — never `dim2.paseo`.
 
+#### Grants checks
+
+Jollity's sign-up and its chat worker stop working when `dim2` loses `context` or `storage`, and a
+name's grants can change with no Humanity release. Three checks hold them to
+`HUMANITY_TRUSTED_PRODUCTS`, each list sorted and de-duplicated, and require `context` and `storage`
+for Jollity's label (`JOLLITY_DOTNS_DOMAIN`) even if the variable drops them:
+
+- **Release** (`release.yml`, "Check the staged grants") compares the staged name's grants before
+  anything is written to `<label>.paseo`.
+- **Staging deploy** (`deploy.yml`, "Read back the published grants") reads the paseo name it just
+  published back from the chain. Grants found wrong are read again 45 s later (`--confirm-wrong`),
+  since the RPC node may not have the publish yet, and if they are still wrong the leg fails; a
+  release only takes a commit whose "Humanity paseo staging" leg passed. A CLI that will not install
+  or a read that fails only warns there, since the release checks again.
+- **Every hour** (`humanity-grants.yml`) reads `<label>.paseo` and `<label>next.paseo`. Run it by
+  hand from the Actions tab after changing the variable or a grant.
+
+The last two share [`scripts/ci/check-grants.mjs`](../../scripts/ci/check-grants.mjs), which reads
+the manifest with `dotns text view <name> manifest --json` (dotns-cli 1.1.0, no key) and ends in one
+of three outcomes:
+
+| Outcome | Annotation | Exit |
+| :-- | :-- | :-- |
+| The grants are right | `Grants right on <name>` | 0 |
+| The read worked and the grants are wrong or missing | `Grants wrong on <name>` | 1 |
+| The read failed or timed out, so nothing is known | `Could not check the grants of <name>` | 2 |
+
+A failed read never counts as missing grants. Each read is tried 3 times, 90 s each and 15 s apart,
+because a Paseo RPC can take about 20 s to open. To run it yourself:
+
+```sh
+npm install -g @parity/dotns-cli@1.1.0
+HUMANITY_TRUSTED_PRODUCTS="$(gh variable get HUMANITY_TRUSTED_PRODUCTS)" JOLLITY_DOTNS_DOMAIN=dim2 \
+  node scripts/ci/check-grants.mjs --env paseo-v2 peopl.paseo peoplnext.paseo
+```
+
+The hourly run goes red on both failures and tells the Sentry cron monitor `humanity-grants`
+(environment `paseo`) through the repo's `SENTRY_DSN` secret: `in_progress` when it starts, then
+`ok` or `error`. That is Jollity's Sentry project, on purpose: wrong grants break Jollity's sign-up
+and chat worker, so the alert belongs with Jollity's.
+[`scripts/ci/sentry-checkin.mjs`](../../scripts/ci/sentry-checkin.mjs) sends the monitor's schedule
+with each start, so the first run creates the monitor in that project. Sentry opens an issue on
+`error` or a missed hour, but who hears of it is a cron monitor alert a Sentry admin sets on
+`humanity-grants`: a DSN cannot create one.
+
 The app icon exists twice, on purpose. `apps/humanity-app/deploy/icon.png` is the **square** one the manifest
 publishes: hosts apply their own platform mask (iOS squircle, Android adaptive), so a pre-rounded
 icon would be masked twice. `apps/humanity-app/assets/app-icon.png` is the same artwork **pre-masked** as a squircle,

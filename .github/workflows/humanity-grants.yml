@@ -1,0 +1,114 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Humanity grants
+
+# Every hour, reads the grants <HUMANITY_DOTNS_DOMAIN>.paseo and its staging
+# name <HUMANITY_DOTNS_DOMAIN>next.paseo publish, and checks them with
+# scripts/ci/check-grants.mjs: equal to HUMANITY_TRUSTED_PRODUCTS, and
+# context and storage for Jollity's label (JOLLITY_DOTNS_DOMAIN). A name's
+# grants can change with no Humanity release (#40), and Jollity's sign-up and
+# its chat worker break when they do.
+#
+# The run goes red when a grant is wrong ("Grants wrong on <name>") and when a
+# name could not be read ("Could not check the grants of <name>"), and tells
+# the Sentry cron monitor humanity-grants, through the SENTRY_DSN secret:
+# in_progress when it starts, then ok or error. Sentry raises an issue on
+# error and on a missed hour. The alert rule on that issue is set in Sentry
+# (see the Humanity README, "Grants checks").
+#
+# The monitor lives in Jollity's Sentry project, through the repo-level
+# SENTRY_DSN secret, and not in Humanity's: wrong grants break Jollity's
+# sign-up and chat worker, so Jollity's players are the ones who notice, and
+# Jollity's alerts are where it should land.
+#
+# Reads need no key, so the job holds none.
+
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: humanity-grants
+  cancel-in-progress: false
+
+jobs:
+  grants:
+    name: Humanity live grants
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DOTNS_CLI_VERSION: 1.1.0
+      LABEL: ${{ vars.HUMANITY_DOTNS_DOMAIN }}
+      MONITOR_SLUG: humanity-grants
+      SENTRY_ENVIRONMENT: paseo
+      # Sent with every in_progress check-in, so Sentry creates the monitor on
+      # the first run and keeps it as written here. The schedule matches the
+      # cron above. GitHub can start a scheduled run late, hence the margin.
+      MONITOR_CONFIG: >-
+        {"schedule":{"type":"crontab","value":"23 * * * *"},"timezone":"UTC",
+        "checkin_margin":45,"max_runtime":20,
+        "failure_issue_threshold":1,"recovery_threshold":1}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/ci
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+
+      - name: Tell Sentry the check started
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          CHECK_IN_ID=$(cat /proc/sys/kernel/random/uuid | tr -d -)
+          CHECK_IN_STARTED=$(date +%s)
+          export CHECK_IN_ID CHECK_IN_STARTED
+          {
+            echo "CHECK_IN_ID=$CHECK_IN_ID"
+            echo "CHECK_IN_STARTED=$CHECK_IN_STARTED"
+          } >> "$GITHUB_ENV"
+          node scripts/ci/sentry-checkin.mjs "$MONITOR_SLUG" in_progress
+
+      - name: Require the HUMANITY_DOTNS_DOMAIN variable
+        run: |
+          if ! [[ "$LABEL" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+            echo "::error title=Could not check the grants::Set the HUMANITY_DOTNS_DOMAIN repo variable to the bare label Humanity deploys under, without a TLD."
+            exit 1
+          fi
+
+      # A registry that is slow to serve the package is not a grant problem.
+      - name: Install the dotns CLI ${{ env.DOTNS_CLI_VERSION }}
+        run: |
+          for attempt in 1 2 3; do
+            npm install -g "@parity/dotns-cli@${DOTNS_CLI_VERSION}" && break
+            [ "$attempt" = 3 ] && exit 1
+            sleep 20
+          done
+
+      - name: Read the live grants
+        id: check
+        env:
+          HUMANITY_TRUSTED_PRODUCTS: ${{ vars.HUMANITY_TRUSTED_PRODUCTS }}
+          JOLLITY_DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
+        run: node scripts/ci/check-grants.mjs --env paseo-v2 "${LABEL}.paseo" "${LABEL}next.paseo"
+
+      # Any step that failed before the read leaves no outcome, and that is a
+      # check that did not happen.
+      - name: Tell Sentry how the check ended
+        if: always()
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          OUTCOME: ${{ steps.check.outputs.outcome }}
+        run: |
+          if [ "$OUTCOME" = "ok" ]; then status=ok; else status=error; fi
+          if [ -z "$OUTCOME" ]; then
+            echo "::error title=Could not check the grants::The check stopped before it read the names. See the failed step."
+          fi
+          node scripts/ci/sentry-checkin.mjs "$MONITOR_SLUG" "$status"
