@@ -98,6 +98,12 @@ const protocolEnv = [
   "NEXT_PUBLIC_PRIZE_UNIT",
 ]
 
+// GESTURE_MODE picks how the worker slider follows the finger on a host that
+// draws it (src/gesture-slider.ts): host-driven (the default), where the host
+// moves the thumb, or every-move, where the worker answers paced moves.
+const gestureMode = process.env.GESTURE_MODE ?? "host-driven"
+if (!["host-driven", "every-move"].includes(gestureMode)) throw new Error("GESTURE_MODE must be host-driven or every-move")
+
 await build({
   entryPoints: [resolve(import.meta.dirname, "../src/index.ts")],
   outfile: resolve(import.meta.dirname, "../dist/index.js"),
@@ -105,6 +111,7 @@ await build({
   format: "esm",
   charset: "ascii",
   define: {
+    __GESTURE_MODE__: JSON.stringify(gestureMode),
     __PRODUCT_DOTNS__: JSON.stringify(productDotns),
     __BOT_ICON__: JSON.stringify(botIconDataUrl),
     __ROOM_ICON__: JSON.stringify(roomIconDataUrl),

@@ -39,7 +39,7 @@ import type {
   Modifier,
   RenderNode,
   Shape,
-  SlideVariant,
+  SliderProps,
   Typography,
   VerticalAlignment,
 } from "./card"
@@ -126,103 +126,6 @@ function toWireModifier(modifier: Modifier): WireModifier {
 }
 
 /**
- * The SlideToConfirm node of the renderer protocol, which truapi 0.32.0, the
- * one this worker ships with, does not carry. truapi writes it as renderer
- * variant 12, after Materials, once a release carries it.
- *
- * The names follow the Android host's `SlideToConfirmProps`
- * (trinity-user-agents, branch feat/renderer-slide-to-confirm,
- * rust/crates/truapi/src/v01/renderer.rs) until the renderer RFC settles
- * them. They live here alone, so a rename is this type and `toWireSlide`.
- * Once truapi carries the node, its own type replaces this one.
- */
-type WireSlideToConfirm = {
-  tag: "SlideToConfirm"
-  value: {
-    modifiers: WireModifier[]
-    props: {
-      text: string
-      secondaryText: string | undefined
-      confirmedText: string | undefined
-      variant: "Thumb" | "Reveal" | undefined
-      accent: WireColorToken | undefined
-      enabled: boolean | undefined
-      loading: boolean | undefined
-      confirmed: boolean | undefined
-      confirmAction: string | undefined
-    }
-  }
-}
-
-const SLIDE_VARIANT: Record<SlideVariant, WireSlideToConfirm["value"]["props"]["variant"]> = {
-  thumb: "Thumb",
-  reveal: "Reveal",
-}
-
-function toWireSlide(node: Extract<RenderNode, { tag: "SlideToConfirm" }>): WireSlideToConfirm {
-  const { text, secondaryText, confirmedText, variant, accent, enabled, loading, confirmed, confirmAction } = node.value.props
-  return {
-    tag: "SlideToConfirm",
-    value: {
-      modifiers: node.value.modifiers.map(toWireModifier),
-      props: {
-        text,
-        secondaryText,
-        confirmedText,
-        variant: variant && SLIDE_VARIANT[variant],
-        accent: accent && COLOR[accent],
-        enabled,
-        loading,
-        confirmed,
-        confirmAction,
-      },
-    },
-  }
-}
-
-/**
- * The hosts that draw a SlideToConfirm, by the platform they report, each with
- * the first truapi release whose runtime carries the node.
- *
- * Only Android draws one so far, and no truapi release carries it yet, so no
- * host is listed and every host gets the Register button. When truapi
- * releases the node, its version goes here, and iOS joins once it draws one.
- */
-export const SLIDE_TO_CONFIRM_SINCE: Readonly<Partial<Record<string, string>>> = {}
-
-let slideEncodes: boolean | undefined
-
-/** Whether the truapi codec this worker is built with can write the node at all. */
-function codecWritesSlide(): boolean {
-  if (slideEncodes === undefined) {
-    const probe: WireSlideToConfirm = {
-      tag: "SlideToConfirm",
-      value: {
-        modifiers: [],
-        props: {
-          text: "",
-          secondaryText: undefined,
-          confirmedText: undefined,
-          variant: undefined,
-          accent: undefined,
-          enabled: undefined,
-          loading: undefined,
-          confirmed: undefined,
-          confirmAction: undefined,
-        },
-      },
-    }
-    try {
-      RendererNodeCodec.enc(probe as unknown as RendererNode)
-      slideEncodes = true
-    } catch {
-      slideEncodes = false
-    }
-  }
-  return slideEncodes
-}
-
-/**
  * "1.2.3" against "1.2.0", by number, and `undefined` for anything that is not
  * three whole numbers. A prerelease ("0.32.0-rc.1") is below its release, since
  * it may predate what the release carries.
@@ -240,17 +143,15 @@ function atLeast(version: string, since: string): boolean | undefined {
 }
 
 /**
- * Whether this host draws a SlideToConfirm, which is the fallback rule of the
- * Register card: a slide only where the codec of the worker writes the node,
- * the host says which platform and truapi it runs, and that truapi carries
- * the node on a platform that draws it. Anything unknown is a Register button,
- * which sends the same action, since a host that cannot decode the node shows
- * no card at all.
+ * Whether the host carries a node: only where the codec of the worker writes
+ * it, the host says which platform and truapi it runs, and that truapi carries
+ * the node on a platform listed in `since`. Anything unknown is no, since a
+ * host that cannot decode a node shows no card at all.
  */
-export function drawsSlideToConfirm(
+function hostCarries(
   info: WorkerHostInfo | null,
-  since: Readonly<Partial<Record<string, string>>> = SLIDE_TO_CONFIRM_SINCE,
-  writes: () => boolean = codecWritesSlide,
+  since: Readonly<Partial<Record<string, string>>>,
+  writes: () => boolean,
 ): boolean {
   if (!info?.platform || !info.truapiVersion) return false
   const first = Object.hasOwn(since, info.platform) ? since[info.platform] : undefined
@@ -258,8 +159,53 @@ export function drawsSlideToConfirm(
   return writes()
 }
 
+/**
+ * The hosts that draw the generic Gesture node, by the platform they report,
+ * each with the first truapi release whose runtime carries it with the
+ * styling the worker slider uses (font, fill, shadow, shimmer, fade with the
+ * pan, spin and the gesture's feel). No truapi release carries them yet, so
+ * no host is listed and every host keeps the Register button.
+ */
+export const GESTURE_SINCE: Readonly<Partial<Record<string, string>>> = {}
+
+let gestureEncodes: boolean | undefined
+
+/** Whether the truapi codec this worker is built with can write a Gesture node at all. */
+function codecWritesGesture(): boolean {
+  if (gestureEncodes === undefined) {
+    const probe = {
+      tag: "Gesture",
+      value: { modifiers: [], props: { pan: { axis: "Horizontal", startAction: "", endAction: "" } }, children: [] },
+    }
+    try {
+      RendererNodeCodec.enc(probe as unknown as RendererNode)
+      gestureEncodes = true
+    } catch {
+      gestureEncodes = false
+    }
+  }
+  return gestureEncodes
+}
+
+/**
+ * Whether this host draws the worker's own slider on its Gesture node: only
+ * where the worker's codec writes the node and the host's platform and truapi
+ * are listed in `since`.
+ */
+export function drawsGestureSlider(
+  info: WorkerHostInfo | null,
+  since: Readonly<Partial<Record<string, string>>> = GESTURE_SINCE,
+  writes: () => boolean = codecWritesGesture,
+): boolean {
+  return hostCarries(info, since, writes)
+}
+
+/** Draws a `Slider` of the card vocabulary on the host's own nodes, inside its frame's modifiers. */
+export type DrawSlider = (props: SliderProps, frame: WireModifier[]) => RendererNode
+
 /** A card in the vocabulary of src/card, as the host takes it. */
-export function toWire(node: RenderNode): RendererNode {
+export function toWire(node: RenderNode, drawSlider?: DrawSlider): RendererNode {
+  const child = (node: RenderNode) => toWire(node, drawSlider)
   switch (node.tag) {
     case "Nil":
       return { tag: "Nil" }
@@ -277,7 +223,7 @@ export function toWire(node: RenderNode): RendererNode {
             horizontalAlignment: horizontalAlignment && HORIZONTAL[horizontalAlignment],
             verticalArrangement: verticalArrangement && ARRANGEMENT[verticalArrangement],
           },
-          children: node.value.children.map(toWire),
+          children: node.value.children.map(child),
         },
       }
     }
@@ -291,7 +237,7 @@ export function toWire(node: RenderNode): RendererNode {
             verticalAlignment: verticalAlignment && VERTICAL[verticalAlignment],
             horizontalArrangement: horizontalArrangement && ARRANGEMENT[horizontalArrangement],
           },
-          children: node.value.children.map(toWire),
+          children: node.value.children.map(child),
         },
       }
     }
@@ -301,7 +247,7 @@ export function toWire(node: RenderNode): RendererNode {
         value: {
           modifiers: node.value.modifiers.map(toWireModifier),
           props: { contentAlignment: node.value.props.contentAlignment && CONTENT[node.value.props.contentAlignment] },
-          children: node.value.children.map(toWire),
+          children: node.value.children.map(child),
         },
       }
     case "Text": {
@@ -311,7 +257,7 @@ export function toWire(node: RenderNode): RendererNode {
         value: {
           modifiers: node.value.modifiers.map(toWireModifier),
           props: { style: style && TYPOGRAPHY[style], color: color && COLOR[color] },
-          children: node.value.children.map(toWire),
+          children: node.value.children.map(child),
         },
       }
     }
@@ -326,9 +272,10 @@ export function toWire(node: RenderNode): RendererNode {
         },
       }
     }
-    case "SlideToConfirm":
-      // Sent only to a host `drawsSlideToConfirm` admits, whose truapi has the node this type lacks.
-      return toWireSlide(node) as unknown as RendererNode
+    case "Slider":
+      // A card holds one only for a host `drawsGestureSlider` admits, drawn with that host's nodes.
+      if (!drawSlider) throw new Error("a Slider is drawn only with the host's Gesture node")
+      return drawSlider(node.value.props, node.value.modifiers.map(toWireModifier))
     case "Image": {
       const { source, fit } = node.value.props
       return {

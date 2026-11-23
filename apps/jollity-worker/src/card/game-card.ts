@@ -43,7 +43,7 @@ import {
   nil,
   pad,
   row,
-  slideToConfirm,
+  slider,
   spacer,
   text,
   width,
@@ -218,13 +218,16 @@ export interface CardOptions {
   /** Whether the host docks the card in the footer of the room, whose own padding takes the place of the gap under a card in the feed. */
   docked?: boolean
   /**
-   * Whether the host draws a slide to confirm, so I'll be there is a slide
-   * rather than a tap. The worker sets it only for a host it knows draws one
-   * (`drawsSlideToConfirm` in src/renderer.ts); every other host gets the
-   * I'll be there button, which sends the same action.
+   * Whether I'll be there is the worker's own slider rather than a tap. The
+   * worker sets it only for a card docked on a host that draws the Gesture node
+   * (`drawsGestureSlider` in src/renderer.ts); every other card gets the I'll be
+   * there button, which sends the same action.
    */
   slide?: boolean
 }
+
+/** The slider docked in the footer with nothing under it: the 80 pill, 8 from each side of the footer. */
+const DOCKED_SLIDER: Modifier[] = [fill, height(80), { tag: "padding", value: [0, 8, 0, 8] }]
 
 /** The 24 under a card in the feed, the gap of the native results card. */
 const FEED_GAP: Modifier = { tag: "padding", value: [0, 0, 24, 0] }
@@ -255,22 +258,22 @@ export function gameCardNode(slot: GameSlot, ui: CardUi, nowSeconds: number, opt
       const off = Boolean(ui.notice?.registerOff)
       const notice = ui.notice ? registerFoot(ui.notice) : undefined
       const date = options.registerCountdown ? formatCountdown(slot.startAt, nowSeconds) : formatGameTime(slot.startAt)
-      // The slide stands in for the label, the time and the button: it says the
+      // The slider stands in for the label, the time and the button: it says the
       // time on its second line. A blocked or greyed-out sign-up keeps the
-      // button, whose look carries why, and the slide shows no fill of progress,
-      // only the loading state of the host.
-      if (options.slide === true && !blocked && !off)
+      // button, whose look carries why, and the slider shows no fill of progress,
+      // only its spinner while the sign-up works.
+      if (options.slide === true && !blocked && !off) {
+        // Docked with nothing under it, the slider is the footer itself: the pill alone, 80 tall and 8 from
+        // each side of the footer.
+        if (options.docked === true && !notice)
+          return slider(copy.SLIDE_TO_REGISTER, ACTION_REGISTER, { secondaryText: date, loading: ui.busy, modifiers: DOCKED_SLIDER })
         return partyClock(
           [
-            slideToConfirm(copy.SLIDE_TO_REGISTER, ACTION_REGISTER, {
-              secondaryText: date,
-              confirmedText: copy.REGISTERED,
-              accent: "fg.warning",
-              loading: ui.busy,
-            }),
+            slider(copy.SLIDE_TO_REGISTER, ACTION_REGISTER, { secondaryText: date, loading: ui.busy }),
           ],
           { gamesLeft: slot.gamesToMembership, counting: slot.counting, foot: notice },
         )
+      }
       // The tap shows Left to join at once, and a sign-up that fails puts Register back with its notice.
       if (ui.busy && !blocked && !off) return withNotice(leftToJoin(slot.startAt, nowSeconds, { gamesLeft: slot.gamesToMembership, counting: slot.counting }), ui)
       return partyClock(

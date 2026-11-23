@@ -117,7 +117,9 @@ import {
   type StoredOutcome,
 } from "./state"
 import { connect, connectAssetHub, playerAddress, readAttendance, readClaimed, readCollectables, readGame, readOutcome, readNameReady, readStanding, readEarned, readPastGames, readPrize, type ChainRead, type Standing, type PastGames, type People, type RunningGame } from "./chain"
-import { decPayload, drawsSlideToConfirm, encPayload, toWire, type GameCardData, type IntroData } from "./renderer"
+import { decPayload, drawsGestureSlider, encPayload, toWire, type GameCardData, type IntroData } from "./renderer"
+import { GESTURE_END, GESTURE_MOVE, GESTURE_START, drawGestureSlider, initialSliderPosition, moveSlider, thumbOffset, type GestureMode } from "./gesture-slider"
+import { newestOnly } from "./newest-only"
 import { runMigrations } from "./migrations"
 import { learnUsername, readNameSet } from "./username"
 import { createSignup, reportInterruptedSignup, signupEngine, type Signup, type SignupEngine, type SignupNeed, type SignupState } from "./signup"
@@ -180,9 +182,10 @@ const PERMISSION_WAIT_MS = 30_000
 const BOOKING_RETRY_MS = 10 * 60_000
 const ANSWER_POLL_MS = 1_000
 let hostInfoReady: Promise<void> = Promise.resolve()
-// The sign-up is a slide only once the host says it draws one, so a card drawn
-// before the answer, or for any older host, is the I'll be there button.
-let slideRegister = false
+// Where the host draws the Gesture node, the docked Register is the slider
+// this worker draws on it (src/gesture-slider.ts). A card drawn before the
+// host's answer, or for any older host, is the I'll be there button.
+let gestureSlider = false
 const MALFORMED_FRAME_DETAIL_LIMIT = 5
 const malformedFrameCounts = new Map<string, number>()
 
@@ -497,6 +500,13 @@ function renderGameCardHandler(
   let cameraRead = false
   let cameraReading = false
   let ticks = 0
+  const docked = req.messageId === footerMessageId(ROOM_ID)
+  const gestureMode: GestureMode = typeof __GESTURE_MODE__ === "undefined" ? "host-driven" : __GESTURE_MODE__
+  let sliderPosition = initialSliderPosition()
+  const offsetMoves = docked && gestureMode === "every-move"
+  // Where the last tree drew the thumb; between trees, offsets move it from there.
+  let thumbDrawnAt = 0
+  let dragging = false
   // A finished card drawn before its stored outcome is read would flash missed.
   let synced = false
   let disposed = false
@@ -562,21 +572,29 @@ function renderGameCardHandler(
     }
     const ui = signupUiWithHumanity(state, humanity, index, slot.kind, nameGateFor(host).unowned())
     const shown = ui.notice || openFailed === null ? ui : { ...ui, notice: { text: openFailed, tone: "fg.error" as const } }
-    const node = toWire(
-      gameCardNode(slot, { ...shown, busy: shown.busy || cameraAsk !== undefined, camera }, deviceNowSeconds(), {
-        docked: req.messageId === footerMessageId(ROOM_ID),
-        slide: slideRegister,
-        nameSet: latest?.nameSet ?? false,
-        nameReady: latest?.nameReady ?? false,
-        claim: {
-          busy: claim?.kind === "busy",
-          failure: claim?.kind === "failed" ? claim.failure : null,
-          ...(claim?.kind === "failed" ? { refusal: claim.detail } : {}),
-        },
-      }),
-    )
-    const encoded = JSON.stringify(node)
+    const cardNode = gameCardNode(slot, { ...shown, busy: shown.busy || cameraAsk !== undefined, camera }, deviceNowSeconds(), {
+      docked,
+      slide: docked && gestureSlider,
+      nameSet: latest?.nameSet ?? false,
+      nameReady: latest?.nameReady ?? false,
+      claim: {
+        busy: claim?.kind === "busy",
+        failure: claim?.kind === "failed" ? claim.failure : null,
+        ...(claim?.kind === "failed" ? { refusal: claim.detail } : {}),
+      },
+    })
+    const drawThumbAt = (x: number) =>
+      toWire(cardNode, (props, frame) => drawGestureSlider(props, frame, { ...sliderPosition, x }, gestureMode))
+    // With offset moves, a move alone is no reason for a tree: it is compared with the thumb where the last tree put it.
+    let node = drawThumbAt(offsetMoves ? thumbDrawnAt : sliderPosition.x)
+    let encoded = JSON.stringify(node)
     if (encoded === lastSent) return
+    if (offsetMoves && thumbDrawnAt !== sliderPosition.x) {
+      // The tree draws the thumb's margin in whole points; offsets count from there.
+      thumbDrawnAt = Math.round(sliderPosition.x)
+      node = drawThumbAt(thumbDrawnAt)
+      encoded = JSON.stringify(node)
+    }
     lastSent = encoded
     if (!firstDrawReported) {
       firstDrawReported = true
@@ -671,7 +689,7 @@ function renderGameCardHandler(
     return cameraAsk
   }
 
-  const unsubscribeActions = onAction((actionId) => {
+  const handleAction = (actionId: string) => {
     const index = indexOf()
     switch (actionId) {
       case ACTION_REGISTER:
@@ -695,6 +713,35 @@ function renderGameCardHandler(
         opening(navigate(host, humanityPocketLink(), "the member name on the Humanity card", "peopl"), cardCopy.openFailed("Peopl"))
         return
     }
+  }
+  // every-move: only the newest move is answered, with an offset for the thumb rather than a tree.
+  const answerMove = newestOnly<Uint8Array>((payload) => {
+    if (disposed || !dragging) return
+    sliderPosition = moveSlider(sliderPosition, GESTURE_MOVE, payload).state
+    send(thumbOffset(sliderPosition.x, thumbDrawnAt))
+  })
+  const unsubscribeActions = onAction((actionId, payload) => {
+    if (offsetMoves && actionId === GESTURE_MOVE && payload) {
+      answerMove.offer(payload)
+      return
+    }
+    const gesture = moveSlider(sliderPosition, actionId, payload)
+    if (!gesture.handled) {
+      handleAction(actionId)
+      return
+    }
+    if (actionId === GESTURE_START) dragging = true
+    sliderPosition = gesture.state
+    if (actionId === GESTURE_END) {
+      dragging = false
+      if (offsetMoves) {
+        answerMove.drop()
+        // The end always draws a tree, which replaces the offsets the drag set.
+        lastSent = ""
+      }
+    }
+    draw()
+    if (gesture.confirm) handleAction(ACTION_REGISTER)
   })
 
   const unsubscribeSignup = signup.subscribe(draw)
@@ -2813,7 +2860,7 @@ export async function main(host: WorkerHost): Promise<void> {
       .hostInfo()
       .then(({ info, failed }) => {
         setChatHost(info, failed)
-        slideRegister = drawsSlideToConfirm(info)
+        gestureSlider = drawsGestureSlider(info)
       })
       .catch(() => setChatHost(null, true))
   } else {

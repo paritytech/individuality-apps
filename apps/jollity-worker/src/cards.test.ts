@@ -786,8 +786,8 @@ describe("finding an intro rule by its picture works", () => {
   })
 })
 
-describe("the slide of Register works", () => {
-  type Slide = Extract<RenderNode, { tag: "SlideToConfirm" }>
+describe("the slider of Register works", () => {
+  type Slide = Extract<RenderNode, { tag: "Slider" }>
   const slot = { kind: "register" as const, startAt: PLAY, closesAt: PLAY - 90 }
   const now = PLAY - 3600
 
@@ -796,41 +796,51 @@ describe("the slide of Register works", () => {
     return [...(node.tag === tag ? [node] : []), ...node.value.children.flatMap((child) => find(child, tag))]
   }
 
-  it("asks a host that draws one for a slide, with the time on its second line, in place of the Register pill", () => {
+  it("draws the worker's own slider, with the time on its second line, in place of the Register pill", () => {
     // When
     const node = gameCardNode(slot, IDLE_UI, now, { slide: true })
 
     // Then
-    const [slide] = find(node, "SlideToConfirm") as Slide[]
+    const [slide] = find(node, "Slider") as Slide[]
     expect(find(node, "Button")).toEqual([])
     expect(slide!.value.props).toEqual({
       text: cardCopy.SLIDE_TO_REGISTER,
       secondaryText: strings(gameCardNode(slot, IDLE_UI, now))[1],
-      confirmedText: cardCopy.REGISTERED,
-      variant: undefined,
-      accent: "fg.warning",
       enabled: true,
       loading: false,
       confirmed: false,
-      confirmAction: ACTION_REGISTER,
+      action: ACTION_REGISTER,
     })
+  })
+
+  it("docked with nothing under it, is the footer itself: the slider alone, 80 tall and 8 from each side", () => {
+    // When
+    const node = gameCardNode(slot, IDLE_UI, now, { slide: true, docked: true })
+
+    // Then
+    expect(node.tag).toBe("Slider")
+    expect(node.tag === "Slider" && node.value.modifiers).toEqual([
+      { tag: "fillWidth", value: true },
+      { tag: "height", value: 80 },
+      { tag: "padding", value: [0, 8, 0, 8] },
+    ])
   })
 
   it("sends the same action as the Register button it falls back to", () => {
     // When
     const [pill] = find(gameCardNode(slot, IDLE_UI, now), "Button")
-    const [slide] = find(gameCardNode(slot, IDLE_UI, now, { slide: true }), "SlideToConfirm") as Slide[]
+    const [slide] = find(gameCardNode(slot, IDLE_UI, now, { slide: true }), "Slider") as Slide[]
 
     // Then
-    expect(pill!.tag === "Button" && pill!.value.props.clickAction).toBe(slide!.value.props.confirmAction)
+    expect(pill!.tag === "Button" && pill!.value.props.clickAction).toBe(slide!.value.props.action)
   })
 
   it("loads and takes no slide while the sign-up is busy", () => {
     // When
-    const [slide] = find(gameCardNode(slot, { busy: true, notice: null }, now, { slide: true }), "SlideToConfirm") as Slide[]
+    const [slide] = find(gameCardNode(slot, { busy: true, notice: null }, now, { slide: true }), "Slider") as Slide[]
 
     // Then
-    expect(slide!.value.props).toMatchObject({ loading: true, confirmAction: undefined })
+    expect(slide!.value.props).toMatchObject({ loading: true, action: undefined })
   })
 
   it("keeps the pill where Register is off or blocked, whose look says why", () => {
@@ -840,7 +850,7 @@ describe("the slide of Register works", () => {
 
     // When / Then
     for (const ui of [off, blocked]) {
-      expect(find(gameCardNode(slot, ui, now, { slide: true }), "SlideToConfirm")).toEqual([])
+      expect(find(gameCardNode(slot, ui, now, { slide: true }), "Slider")).toEqual([])
       expect(gameCardNode(slot, ui, now, { slide: true })).toEqual(gameCardNode(slot, ui, now))
     }
   })

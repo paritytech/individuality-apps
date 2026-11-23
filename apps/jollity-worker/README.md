@@ -50,6 +50,9 @@ NEXT_PUBLIC_NETWORK_NAME=paseo PRODUCT_DOTNS=my-game.paseo npm run build:chat
   (`NEXT_PUBLIC_DEVICE_UNIQUENESS_BACKEND_URL`,
   `NEXT_PUBLIC_SIGNUP_ACCOUNT_INDEX` and others listed in `scripts/build.mjs`)
   in the shell too.
+- `GESTURE_MODE` picks how the docked Register slider this worker draws
+  follows the finger on a host that draws the Gesture node
+  (`src/gesture-slider.ts`): `host-driven` (the default) or `every-move`.
 
 The build writes `dist/index.js` (esbuild, ASCII output, since the host reads
 worker code as Latin-1) and copies the card pictures it names from

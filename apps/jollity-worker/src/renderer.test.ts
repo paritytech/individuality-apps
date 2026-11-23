@@ -8,10 +8,9 @@
  * wrong mapping onto the PascalCase shape of truapi would hide here until a
  * card rendered wrong on a phone.
  */
-import { RendererNode as RendererNodeCodec, type RendererNode } from "@parity/truapi"
 import { describe, expect, it } from "vitest"
-import { background, border, box, button, card, column, image, pad, row, slideToConfirm, spacer, text, type RenderNode } from "./card"
-import { decPayload, drawsSlideToConfirm, encPayload, SLIDE_TO_CONFIRM_SINCE, toWire, type GameCardData, type WelcomeData } from "./renderer"
+import { background, border, box, button, card, column, image, pad, row, slider, spacer, text, type RenderNode } from "./card"
+import { decPayload, drawsGestureSlider, encPayload, GESTURE_SINCE, toWire, type GameCardData, type WelcomeData } from "./renderer"
 
 type WireButton = { value: { props: { variant?: string } } }
 
@@ -189,94 +188,64 @@ describe("toWire works", () => {
   })
 })
 
-describe("the slide to confirm goes out only where a host draws it", () => {
-  it("maps a slide onto the SlideToConfirm of the renderer protocol, with no children", () => {
+describe("a slider is drawn with the drawing the worker gives it", () => {
+  it("hands the slider's props and its frame, as the host's modifiers, to the drawing", () => {
     // Given
-    const node = slideToConfirm("Slide to register", "register", {
-      secondaryText: "Oct 7 at 4:00 PM",
-      confirmedText: "Registered",
-      variant: "reveal",
-      accent: "fg.warning",
-    })
+    const node = column([slider("Slide to register", "register", { secondaryText: "Oct 7 at 4:00 PM" })])
+    const drawn: unknown[] = []
 
     // When
-    const wire = toWire(node) as unknown
+    const wire = toWire(node, (props, frame) => {
+      drawn.push({ props, frame })
+      return { tag: "Spacer", value: { modifiers: frame } }
+    })
 
     // Then
-    expect(wire).toEqual({
-      tag: "SlideToConfirm",
-      value: {
-        modifiers: [{ tag: "FillWidth", value: true }],
-        props: {
-          text: "Slide to register",
-          secondaryText: "Oct 7 at 4:00 PM",
-          confirmedText: "Registered",
-          variant: "Reveal",
-          accent: "FgWarning",
-          enabled: true,
-          loading: false,
-          confirmed: false,
-          confirmAction: "register",
-        },
+    expect(drawn).toEqual([
+      {
+        props: { text: "Slide to register", secondaryText: "Oct 7 at 4:00 PM", enabled: true, loading: false, confirmed: false, action: "register" },
+        frame: [{ tag: "FillWidth", value: true }],
       },
-    })
+    ])
+    expect(wire.tag === "Column" && wire.value.children).toEqual([{ tag: "Spacer", value: { modifiers: [{ tag: "FillWidth", value: true }] } }])
   })
 
-  // The truapi this worker is built with predates the node, and no release
-  // carries it yet, so today every host gets the Register button.
-  it("lists no host yet, so every host gets the Register button", () => {
-    expect(SLIDE_TO_CONFIRM_SINCE).toEqual({})
-    expect(drawsSlideToConfirm({ name: "Polkadot", version: "2.0.0", platform: "Android", truapiVersion: "9.0.0" })).toBe(false)
+  it("refuses a slider with no drawing, rather than send a tree no host reads", () => {
+    expect(() => toWire(column([slider("Slide to register", "register")]))).toThrow()
   })
+})
 
-  it("admits a host on a listed platform whose truapi carries the node, and only while the worker can write it", () => {
-    // Given
-    const since = { Android: "0.32.0" }
-    const writes = () => true
-    const android = (truapiVersion: string) => ({ name: "Polkadot", version: "2.0.0", platform: "Android", truapiVersion })
+describe("the worker slider goes out only where a host draws the Gesture node", () => {
+  const ios = (truapiVersion: string) => ({ name: "Polkadot", version: "2.0.0", platform: "Ios", truapiVersion })
 
-    // When / Then
-    expect(drawsSlideToConfirm(android("0.32.0"), since, writes)).toBe(true)
-    expect(drawsSlideToConfirm(android("0.33.1"), since, writes)).toBe(true)
-    expect(drawsSlideToConfirm(android("1.0.0"), since, writes)).toBe(true)
-    expect(drawsSlideToConfirm(android("0.32.1-rc.1"), since, writes)).toBe(true)
-    expect(drawsSlideToConfirm(android("0.32.0"), since, () => false)).toBe(false)
+  it("lists no host until a truapi release carries the node", () => {
+    expect(GESTURE_SINCE).toEqual({})
+    expect(drawsGestureSlider(ios("9.0.0"))).toBe(false)
   })
 
   it("falls back to the button for an older, unknown or other host", () => {
     // Given
-    const since = { Android: "0.32.0" }
+    const since = { Ios: "0.33.0" }
     const writes = () => true
 
     // When / Then
-    expect(drawsSlideToConfirm(null, since, writes)).toBe(false)
-    expect(drawsSlideToConfirm({ name: "", version: "older than truapi 0.27" }, since, writes)).toBe(false)
-    expect(drawsSlideToConfirm({ name: "Polkadot", version: "2.0.0", platform: "Android", truapiVersion: "0.31.9" }, since, writes)).toBe(false)
-    expect(drawsSlideToConfirm({ name: "Polkadot", version: "2.0.0", platform: "Android", truapiVersion: "" }, since, writes)).toBe(false)
-    expect(drawsSlideToConfirm({ name: "Polkadot", version: "2.0.0", platform: "Android", truapiVersion: "next" }, since, writes)).toBe(false)
+    expect(drawsGestureSlider({ name: "", version: "older than truapi 0.27" }, since, writes)).toBe(false)
+    expect(drawsGestureSlider(ios(""), since, writes)).toBe(false)
+    expect(drawsGestureSlider(ios("next"), since, writes)).toBe(false)
     // A prerelease of the first release may predate the node.
-    expect(drawsSlideToConfirm({ name: "Polkadot", version: "2.0.0", platform: "Android", truapiVersion: "0.32.0-rc.1" }, since, writes)).toBe(false)
-    expect(drawsSlideToConfirm({ name: "Polkadot", version: "2.0.0", platform: "Ios", truapiVersion: "0.40.0" }, since, writes)).toBe(false)
-    expect(drawsSlideToConfirm({ name: "Polkadot", version: "2.0.0", platform: "toString", truapiVersion: "0.40.0" }, since, writes)).toBe(false)
+    expect(drawsGestureSlider(ios("0.33.0-rc.1"), since, writes)).toBe(false)
+    expect(drawsGestureSlider({ name: "Polkadot", version: "2.0.0", platform: "Android", truapiVersion: "0.40.0" }, since, writes)).toBe(false)
+    expect(drawsGestureSlider({ name: "Polkadot", version: "2.0.0", platform: "toString", truapiVersion: "0.40.0" }, since, writes)).toBe(false)
   })
 
-  // The codec of the worker is the last guard. A node it cannot write would
-  // fail the whole card, not just the slide. truapi 0.32.0 cannot write it, and
-  // a truapi that carries the node writes it as renderer variant 12.
-  it("admits the slide only where the truapi codec the worker is built with writes the node", () => {
+  it("admits a listed host whose truapi carries the node, and only while the worker can write it", () => {
     // Given
-    const probe = { tag: "SlideToConfirm", value: { modifiers: [], props: { text: "" } } }
-    let writes: boolean
-    try {
-      writes = RendererNodeCodec.enc(probe as unknown as RendererNode)[0] === 12
-    } catch {
-      writes = false
-    }
-
-    // When
-    const admitted = drawsSlideToConfirm({ name: "Polkadot", version: "2.0.0", platform: "Android", truapiVersion: "0.32.0" }, { Android: "0.32.0" })
+    const since = { Ios: "0.33.0" }
 
     // Then
-    expect(admitted).toBe(writes)
+    expect(drawsGestureSlider(ios("0.33.0"), since, () => true)).toBe(true)
+    expect(drawsGestureSlider(ios("0.32.9"), since, () => true)).toBe(false)
+    expect(drawsGestureSlider(ios("0.33.0"), since, () => false)).toBe(false)
+    expect(drawsGestureSlider(null, since, () => true)).toBe(false)
   })
 })
