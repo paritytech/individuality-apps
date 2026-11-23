@@ -7,7 +7,8 @@
  *  never "available" and can be tried again, and a name is taken when owned
  *  or reserved by anyone but this lite identity at the front of the queue.
  *  When only expired entries stand ahead of this lite identity's own, they
- *  are removed in the background, once, and the name is read again. */
+ *  are removed in the background and the name is read again; a cleanup that
+ *  stops short is an error to retry, never a taken name. */
 import { createElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
@@ -169,14 +170,14 @@ describe("useUsernameAvailability", () => {
     const view = mount("marlow");
 
     await waitFor(() => expect(cleanup_.clear).toHaveBeenCalledWith("marlow", LITE));
-    expect(view.result.current).toEqual({ status: "checking", name: "marlow" });
+    expect(view.result.current).toEqual({ status: "clearing", name: "marlow" });
 
     act(() => finish());
     await waitFor(() => expect(view.result.current).toEqual({ status: "available", name: "marlow" }));
     expect(cleanup_.clear).toHaveBeenCalledTimes(1);
   });
 
-  it("starts the cleanup once even when the queue is still stuck after it", async () => {
+  it("offers the cleanup again when it stopped short, instead of calling the name taken", async () => {
     reads.queue.mockResolvedValue([
       { account: OTHER, joined_at: 1n },
       { account: LITE, joined_at: 9_999_000n },
@@ -185,9 +186,53 @@ describe("useUsernameAvailability", () => {
     cleanup_.clear.mockResolvedValue({ status: "failed", removed: 0, detail: "refused" });
     const view = mount("marlow");
 
-    await waitFor(() => expect(view.result.current).toEqual({ status: "taken", name: "marlow" }));
+    await waitFor(() => expect(view.result.current).toMatchObject({ status: "error", name: "marlow", cleanup: true }));
+    expect(cleanup_.clear).toHaveBeenCalledTimes(1);
+
+    cleanup_.clear.mockResolvedValue({ status: "cleared", removed: 1 });
+    reads.queue.mockResolvedValue([{ account: LITE, joined_at: 9_999_000n }]);
+    const failed = view.result.current;
+    if (failed.status !== "error") throw new Error("expected an error");
+    act(() => failed.retry());
+    await waitFor(() => expect(view.result.current).toEqual({ status: "available", name: "marlow" }));
+    expect(cleanup_.clear).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not start a failed cleanup again by itself", async () => {
+    reads.queue.mockResolvedValue([
+      { account: OTHER, joined_at: 1n },
+      { account: LITE, joined_at: 9_999_000n },
+    ]);
+    reads.duration.mockResolvedValue(0n);
+    cleanup_.clear.mockResolvedValue({ status: "failed", removed: 0, detail: "refused" });
+    const view = mount("marlow");
+    await waitFor(() => expect(view.result.current.status).toBe("error"));
+    view.unmount();
+
+    const again = mount("marlow");
+    await waitFor(() => expect(again.result.current.status).toBe("error"));
     expect(cleanup_.clear).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps saying it is clearing until the finalized queue shows the cleanup", async () => {
+    const stuck = [
+      { account: OTHER, joined_at: 1n },
+      { account: LITE, joined_at: 9_999_000n },
+    ];
+    reads.queue.mockResolvedValue(stuck);
+    reads.duration.mockResolvedValue(0n);
+    const view = mount("marlow");
+
+    await waitFor(() => expect(cleanup_.clear).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(reads.queue.mock.calls.length).toBeGreaterThanOrEqual(2));
+    expect(view.result.current).toEqual({ status: "clearing", name: "marlow" });
+
+    reads.queue.mockResolvedValue([{ account: LITE, joined_at: 9_999_000n }]);
+    await waitFor(() => expect(view.result.current).toEqual({ status: "available", name: "marlow" }), {
+      timeout: 6_000,
+    });
+    expect(cleanup_.clear).toHaveBeenCalledTimes(1);
+  }, 10_000);
 
   it("leaves a reservation younger than 30 days alone even when People sets no duration", async () => {
     reads.queue.mockResolvedValue([

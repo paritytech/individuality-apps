@@ -16,11 +16,16 @@
  * The runtime never drops an expired entry by itself, so an own reservation
  * can sit behind entries that lapsed long ago. When every entry it waits
  * behind could be removed (`domain/expired-reservations.ts`), the hook removes
- * them in the background (`chain/clear-expired-reservations.ts`), once per
- * name and lite identity, and reads the name again: it shows `checking`
- * meanwhile, and whatever the queue then says.
+ * them in the background (`chain/clear-expired-reservations.ts`) and reads
+ * the name again: it shows `clearing` meanwhile, and whatever the queue then
+ * says. It starts by itself once per name and lite identity. A cleanup that
+ * stops short is never read as `taken`, because the name is still the
+ * person's to claim: it is an `error` whose retry runs the cleanup again. The
+ * cleanup settles at the best block and this read is finalized, so after a
+ * cleanup the name is read every few seconds, still as `clearing`, until
+ * finality shows the queue it left.
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Binary } from "polkadot-api";
 
@@ -37,11 +42,17 @@ export type UsernameAvailability =
   | { status: "idle" }
   | { status: "invalid" }
   | { status: "checking"; name: string }
+  /** Removing expired reservations ahead of this lite identity's own. */
+  | { status: "clearing"; name: string }
   | { status: "available"; name: string }
   | { status: "taken"; name: string }
-  | { status: "error"; name: string; retry: () => void };
+  /** `cleanup`: the read answered, but the expired reservations ahead could
+   *  not all be removed. */
+  | { status: "error"; name: string; retry: () => void; cleanup?: true };
 
 const DEBOUNCE_MS = 400;
+/** How often the name is read again while finality catches up with a cleanup. */
+const AFTER_CLEANUP_POLL_MS = 3_000;
 
 /** The query key for one name's answer, so a rejected claim can drop it. */
 export const usernameAvailabilityKey = (name?: string) =>
@@ -76,32 +87,46 @@ async function readAvailability(
   return { taken: true, clearable: expired.length === position };
 }
 
-/** Name and lite identity pairs a cleanup was started for, this session. */
-const cleanupsStarted = new Set<string>();
+/** Where the cleanup of each name and lite identity pair stands, this session. */
+const cleanups = new Map<string, "running" | "failed" | "done">();
+const cleanupPair = (name: string, liteAddress: string) => `${name}\u0000${liteAddress}`;
 
 export function resetReservationCleanupsForTests(): void {
-  cleanupsStarted.clear();
+  cleanups.clear();
 }
 
 /**
  * Start the cleanup of `name`'s expired entries ahead of `liteAddress` when
- * `clearable`, once per pair, and read the name again when it settles.
- * True while it runs.
+ * `clearable`, by itself once per pair, and read the name again when it
+ * settles. `retry` starts it again after one that stopped short.
  */
-function useExpiredReservationCleanup(name: string, liteAddress: string, clearable: boolean): boolean {
+function useExpiredReservationCleanup(
+  name: string,
+  liteAddress: string,
+  clearable: boolean,
+): { phase: "running" | "failed" | "done" | undefined; retry: () => void } {
   const queryClient = useQueryClient();
-  const [running, setRunning] = useState<string | null>(null);
-  const pair = `${name}\u0000${liteAddress}`;
+  const [, rerender] = useReducer((count: number) => count + 1, 0);
+  const pair = cleanupPair(name, liteAddress);
+  const start = useCallback(() => {
+    if (cleanups.get(pair) === "running") return;
+    cleanups.set(pair, "running");
+    rerender();
+    void clearExpiredReservations(name, liteAddress)
+      .then(
+        (outcome) => outcome.status !== "failed",
+        () => false,
+      )
+      .then((ok) => {
+        cleanups.set(pair, ok ? "done" : "failed");
+        rerender();
+        void queryClient.invalidateQueries({ queryKey: usernameAvailabilityKey(name) });
+      });
+  }, [pair, name, liteAddress, queryClient]);
   useEffect(() => {
-    if (!clearable || cleanupsStarted.has(pair)) return;
-    cleanupsStarted.add(pair);
-    setRunning(pair);
-    void clearExpiredReservations(name, liteAddress).finally(() => {
-      setRunning((current) => (current === pair ? null : current));
-      void queryClient.invalidateQueries({ queryKey: usernameAvailabilityKey(name) });
-    });
-  }, [clearable, pair, name, liteAddress, queryClient]);
-  return running === pair;
+    if (clearable && !cleanups.has(pair)) start();
+  }, [clearable, pair, start]);
+  return { phase: cleanups.get(pair), retry: start };
 }
 
 /** Debounce a value: the last one typed, once typing pauses. */
@@ -123,28 +148,35 @@ export function useUsernameAvailability(
 ): UsernameAvailability {
   const settled = useSettled(name, DEBOUNCE_MS);
   const valid = FULL_USERNAME.test(name);
-  const query = useQuery({
+  const query = useQuery<AvailabilityRead>({
     queryKey: [...usernameAvailabilityKey(settled), liteAddress],
     enabled: enabled && FULL_USERNAME.test(settled),
     retry: false,
     staleTime: 15_000,
+    refetchInterval: (current) =>
+      current.state.data?.clearable === true && cleanups.get(cleanupPair(settled, liteAddress)) === "done"
+        ? AFTER_CLEANUP_POLL_MS
+        : false,
     queryFn: ({ signal }) =>
       runBoundedChainRead(signal, (childSignal) =>
         readAvailability(settled, liteAddress, childSignal),
       ),
   });
-  const clearing = useExpiredReservationCleanup(
-    settled,
-    liteAddress,
-    enabled && query.data?.clearable === true,
-  );
+  const clearable = enabled && query.data?.clearable === true;
+  const cleanup = useExpiredReservationCleanup(settled, liteAddress, clearable);
 
   if (name === "") return { status: "idle" };
   if (!valid) return { status: "invalid" };
   if (!enabled) return { status: "idle" };
-  if (settled !== name || query.isPending || clearing) return { status: "checking", name };
+  if (settled !== name || query.isPending) return { status: "checking", name };
+  if (cleanup.phase === "running" || (clearable && cleanup.phase === "done")) {
+    return { status: "clearing", name };
+  }
   if (query.error != null) {
     return { status: "error", name, retry: () => void query.refetch() };
+  }
+  if (clearable && cleanup.phase === "failed") {
+    return { status: "error", name, retry: cleanup.retry, cleanup: true };
   }
   return query.data?.taken === true ? { status: "taken", name } : { status: "available", name };
 }

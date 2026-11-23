@@ -17,6 +17,12 @@
  * `RESERVATION_FLOOR_SECS` are picked. The runtime re-checks each one when
  * the transaction is validated, so a stale read here costs a refused
  * transaction, never a wrong removal.
+ *
+ * The queue is read at the best block, and a removal that fails or cannot be
+ * confirmed is checked against that queue before it stops the run: an entry
+ * that is no longer there is done, whoever removed it. A run that starts over
+ * after a reload therefore picks up where the last one got to instead of
+ * resending removals the chain now refuses.
  */
 import { Binary } from "polkadot-api";
 
@@ -68,9 +74,17 @@ async function runCleanup(
     flow.stage("read");
     const { api, client } = await withTimeout(getPeopleClient(), CHAIN_TIMEOUT_MS, "People did not respond in time.");
     const key = Binary.fromText(name);
+    const readQueue = () =>
+      withTimeout(
+        api.query.Resources.UsernameReservationQueue.getValue(key, { at: "best" }),
+        CHAIN_TIMEOUT_MS,
+        "People did not respond in time.",
+      );
+    const stillQueued = async (account: string): Promise<boolean> =>
+      (await readQueue())?.some((entry) => entry.account === account) === true;
     const [queue, duration, now] = await withTimeout(
       Promise.all([
-        api.query.Resources.UsernameReservationQueue.getValue(key),
+        api.query.Resources.UsernameReservationQueue.getValue(key, { at: "best" }),
         api.query.Resources.UsernameReservationDuration.getValue(),
         api.query.Timestamp.Now.getValue(),
       ]),
@@ -114,17 +128,29 @@ async function runCleanup(
         "People did not respond in time.",
       );
       const tx = api.tx.Resources.remove_expired_username_reservation({ username: key, account });
-      const result = await watchTransactionSubmission(
-        tx,
-        signer,
-        { at: mortalityStart.hash, mortality: { mortal: true, period: REMOVAL_MORTALITY_PERIOD } },
-        {
-          signingFailureMessage: SIGNING_FAILURE_MESSAGE,
-          finalityFailureMessage: FINALITY_FAILURE_MESSAGE,
-          settleOn: "bestBlock",
-          onBroadcast: (txHash) => recordMutation(REMOVE_EXPIRED, "submitted", `${name} ${account} ${txHash}`),
-        },
-      );
+      let result;
+      try {
+        result = await watchTransactionSubmission(
+          tx,
+          signer,
+          { at: mortalityStart.hash, mortality: { mortal: true, period: REMOVAL_MORTALITY_PERIOD } },
+          {
+            signingFailureMessage: SIGNING_FAILURE_MESSAGE,
+            finalityFailureMessage: FINALITY_FAILURE_MESSAGE,
+            settleOn: "bestBlock",
+            onBroadcast: (txHash) => recordMutation(REMOVE_EXPIRED, "submitted", `${name} ${account} ${txHash}`),
+          },
+        );
+      } catch (error) {
+        if (await stillQueued(account)) throw error;
+        result = null;
+      }
+      if (result == null || (result.status === "unknown" && !(await stillQueued(account)))) {
+        removed += 1;
+        recordMutation(REMOVE_EXPIRED, "finalized", `${name} ${account} already removed`);
+        logger.info("expired reservation of {account} on {name} is already gone", { account, name });
+        continue;
+      }
       if (result.status === "unknown") {
         recordMutation(REMOVE_EXPIRED, "unknown", `${result.txHash} broadcast, unconfirmed`);
         logger.error("expired reservation removal of {account} from {name} unconfirmed, tx {txHash}: {detail}", {
