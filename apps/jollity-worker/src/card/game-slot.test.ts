@@ -1051,6 +1051,17 @@ describe("game card before the game works", () => {
     expect(images(busy)).toEqual([])
   })
 
+  it("counts one game left in the singular on Left to join", () => {
+    // Given
+    const register = { kind: "register" as const, startAt: START, closesAt: START - 300, gamesToMembership: 1 }
+
+    // When
+    const busy = gameCardNode(register, { busy: true, notice: null }, START - 1200)
+
+    // Then
+    expect(strings(busy)[0]).toBe("1 game left")
+  })
+
   it("says Live now over its start once the game has started, with the way in", () => {
     // Given
     const starting = { kind: "starting" as const, startAt: START }

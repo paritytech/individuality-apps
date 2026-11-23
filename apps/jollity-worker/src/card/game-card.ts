@@ -240,7 +240,6 @@ export interface ClaimUi {
 export function gameCardNode(slot: GameSlot, ui: CardUi, nowSeconds: number, options: CardOptions = {}): RenderNode {
   const frame = cardFrame(options.docked)
   switch (slot.kind) {
-    // A game that is not coming, in the clock it would have shown, its circles greyed out.
     case "cancelled":
       return column([endedBox(copy.GAME_CANCELLED, slot.startAt)], frame, { horizontalAlignment: "center" })
 

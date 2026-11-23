@@ -80,6 +80,7 @@ import {
   type HostReminder,
   type HostReminderStore,
 } from "@individuality/sign-up"
+import { HOST_PILL_LEAD_S, JOIN_LEAD_S, hostPillUp } from "@individuality/sign-up/reminder"
 import { GAME_REGISTRATION_KEY, liveGameRegistration } from "@individuality/shared-records"
 import {
   spaPage,
@@ -367,6 +368,8 @@ let readObservation = 0
 let latestObservation: number | undefined
 // The votes on the player in the game the chain still holds, from the last attendance read that answered.
 let pendingVotes: { gameIndex: number; votes: Votes } | null = null
+// The game whose reminder the host holds, whose pill takes the place of its docked card.
+let hostRemindedGame: number | null = null
 // The index of the game a sign-up from the chat is under way for, which the
 // polls take as registered so they keep the reminders the sign-up asked for.
 let joiningGame: number | null = null
@@ -847,6 +850,9 @@ function pollOutcome(failed: { stage: string; reason: string; error?: string } |
 let roomRegistered = false
 /** When the game whose card this run docked in the footer of the room starts. */
 let dockedGame: number | null = null
+/** Whether the footer is empty under the pill of the host though the docked game is still the one the chat is about. */
+let dockUnderPill = false
+let pillEdge: ReturnType<typeof setTimeout> | undefined
 let footerFailures = 0
 let footerCardUnsupported = false
 
@@ -896,6 +902,7 @@ async function dockGameCard(host: WorkerHost, game: GameCardData | null, announc
   const outcome: string = await within(host.chat.setRoomFooter(ROOM_ID, gamePlayTime === null ? "Empty" : gameFooter(gamePlayTime))).catch(() => "no-answer")
   if (outcome === "set") {
     dockedGame = gamePlayTime
+    dockUnderPill = false
     footerFailures = 0
     await tryWriteJSON(host, DOCKED_KEY, gamePlayTime)
   } else if (gamePlayTime !== null && (outcome === "unsupported" || outcome === "no-answer" || ++footerFailures >= FOOTER_FAILURES_BEFORE_FEED)) {
@@ -913,14 +920,84 @@ async function dockGameCard(host: WorkerHost, game: GameCardData | null, announc
   return posted
 }
 
-/** The footer a fresh run shows before its first poll, which is the card the last run docked while the feed lacks it. */
+const underHostPill = (gamePlayTime: number) => hostRemindedGame === gamePlayTime && hostPillUp(gamePlayTime, deviceNowSeconds())
+
+/**
+ * Empties the footer while the pill of the host counts down to the join of the docked game, and docks the card again at the join.
+ *
+ * The pill is then the one countdown on screen. The game stays the docked
+ * one, so it is neither posted to the feed nor recorded as announced, and a
+ * refused call leaves the footer for the next poll without moving the card
+ * to the feed. Answers whether the footer fits the pill.
+ */
+async function fitDockToPill(host: WorkerHost): Promise<boolean> {
+  const game = dockedGame
+  if (game === null || liveCardInFeed()) return false
+  const hide = underHostPill(game)
+  if (hide === dockUnderPill) return true
+  const outcome: string = await within(host.chat.setRoomFooter(ROOM_ID, hide ? "Empty" : gameFooter(game))).catch(() => "no-answer")
+  if (outcome === "set" && dockedGame === game) dockUnderPill = hide
+  chatCount("chat.footer.pill", { outcome, hide: String(hide) }, { key: outcome })
+  logFooter(host, hide ? `Emptying the footer under the pill of the game at ${game}` : `Docking the game at ${game} after its pill`, outcome)
+  return outcome === "set"
+}
+
+/**
+ * Fits the footer again at the next edge of the pill, which falls between two polls.
+ *
+ * An empty footer waits for the join, even one already past, and a docked
+ * card for the start of the pill. A refused fit arms nothing, so a host that
+ * keeps refusing is asked once a poll.
+ */
+function wakeAtPillEdge(host: WorkerHost): void {
+  clearTimeout(pillEdge)
+  const game = dockedGame
+  if (game === null || hostRemindedGame !== game) return
+  const joinAtMs = (game - JOIN_LEAD_S) * 1000
+  const edgeMs = dockUnderPill ? joinAtMs : joinAtMs - HOST_PILL_LEAD_S * 1000
+  if (!dockUnderPill && edgeMs <= Date.now()) return
+  pillEdge = setTimeout(() => fitBetweenPolls(host), Math.max(0, edgeMs - Date.now()))
+}
+
+function fitBetweenPolls(host: WorkerHost): void {
+  if (ticking) pillEdge = setTimeout(() => fitBetweenPolls(host), ANSWER_POLL_MS)
+  else void fitDockToPill(host).then((fits) => fits && wakeAtPillEdge(host))
+}
+
+/** Empties the footer under the pill once a sign-up from the chat lands, rather than at the next poll. */
+async function fitDockAfterSignup(host: WorkerHost, gameIndex: number): Promise<void> {
+  const game = latest?.running?.index === gameIndex ? latest.running.gamePlayTime : null
+  if (game === null || game !== dockedGame || !(await heldPillUp(host, game))) return
+  hostRemindedGame = game
+  clearTimeout(pillEdge)
+  fitBetweenPolls(host)
+}
+
+async function heldPillUp(host: WorkerHost, gamePlayTime: number): Promise<boolean> {
+  const reminder = await readJSON<HostReminder>(host, HOST_REMINDER_KEY)
+  return reminder?.outcome === "held" && reminder.gamePlayTime === gamePlayTime && hostPillUp(gamePlayTime, deviceNowSeconds())
+}
+
+/**
+ * The footer a fresh run shows before its first poll, which is the card the last run docked while the feed lacks it.
+ *
+ * The footer is empty instead while the pill of the host counts down to the join of that game.
+ */
 async function bootFooter(host: WorkerHost): Promise<string> {
   const stored = await readJSON<number>(host, DOCKED_KEY)
   const announced = typeof stored === "number" ? await readJSON<number | number[]>(host, ANNOUNCED_KEY) : undefined
   if (typeof stored === "number" && announced !== undefined && !announcedTimes(announced).includes(stored)) {
-    const outcome = await host.chat.setRoomFooter(ROOM_ID, gameFooter(stored))
-    logFooter(host, `Docking the game at ${stored}`, outcome)
-    if (outcome === "set") dockedGame = stored
+    const hide = await heldPillUp(host, stored)
+    const outcome = await host.chat.setRoomFooter(ROOM_ID, hide ? "Empty" : gameFooter(stored))
+    logFooter(host, hide ? `Emptying the footer under the pill of the game at ${stored}` : `Docking the game at ${stored}`, outcome)
+    if (outcome === "set" && dockedGame === null) {
+      dockedGame = stored
+      dockUnderPill = hide
+      if (hide) {
+        hostRemindedGame = stored
+        wakeAtPillEdge(host)
+      }
+    }
     if (dockedGame !== null) return outcome
   }
   const outcome = await host.chat.setRoomFooter(ROOM_ID, "Empty")
@@ -1021,8 +1098,10 @@ export async function tick(host: WorkerHost, autoClaim?: AutoClaim): Promise<voi
       const current = latest!
       const { view, sentPastItsLifetime } = await signUpView(host, current, joiningGame !== null && current.running?.index === joiningGame)
       const hostReminds = await keepReminder(host, view, false, latestObservation)
+      hostRemindedGame = hostReminds ? (view.running?.gamePlayTime ?? null) : null
       await bookReminders(host, view, hostReminds, false, sentPastItsLifetime)
     })
+    if (await fitDockToPill(host)) wakeAtPillEdge(host)
 
     void keepTurnPass(host, latest)
     // the name link runs ahead of Register, whenever there is a game to sign up for
@@ -2750,6 +2829,7 @@ export async function main(host: WorkerHost): Promise<void> {
   signup.subscribe(() => {
     const state = signup.state()
     joiningGame = state.kind === "busy" || state.kind === "sent" ? state.gameIndex : null
+    if (state.kind === "sent") void fitDockAfterSignup(host, state.gameIndex)
     // The host was asked before the sign-up, so a sign-up that ends without
     // reaching the wire drops the alarm now rather than two polls later. A
     // hand-off keeps it: the app takes the sign-up over under the same record,
