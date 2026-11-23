@@ -149,6 +149,7 @@ import {
   standingOf,
 } from "./membership/chat"
 import { DAILY_DOLLAR_TICK_MS, MESSAGE_DAILY_DOLLAR, createDailyDollar, humanityPocketLink, type DailyDollar } from "./daily-dollar/worker"
+import { MESSAGE_DD_SCRATCH, createWorkerScratchCard } from "./daily-dollar/scratch-worker"
 import { artWellFor } from "./host-art-well"
 import {
   createWorkerHost,
@@ -2825,6 +2826,7 @@ export async function main(host: WorkerHost): Promise<void> {
   const autoClaim = autoClaimFor(claims)
   artWellFor(host)
   const dailyDollar = createDailyDollar({ host, connect: () => connect(host), now: () => Math.floor(Date.now() / 1000) })
+  const workerScratch = createWorkerScratchCard(host)
   let joined: number | null = null
   signup.subscribe(() => {
     const state = signup.state()
@@ -2863,6 +2865,10 @@ export async function main(host: WorkerHost): Promise<void> {
       void reportStart(host, String(status), footer)
       // The first card of a game comes after the rules, as the chat design has it.
       await deliverIntro(host).catch((error) => console.error(TAG, "The rules could not be posted.", error))
+      // Only a DD_SCRATCH=worker build posts the scratch card this worker draws; its ticket and claim are stand-ins.
+      if (typeof __DD_SCRATCH__ !== "undefined" && __DD_SCRATCH__ === "worker") {
+        await workerScratch.post().catch((error) => console.error(TAG, "The Daily Dollar scratch card could not be posted.", error))
+      }
       // A prompt nobody answers must not hold back the poll that every card
       // waits for.
       await requestNotificationPermission(host)
@@ -2887,6 +2893,7 @@ export async function main(host: WorkerHost): Promise<void> {
       return renderGameCardHandler(host, signup, claims, req, send, onAction)
     }
     if (req.messageType === MESSAGE_DAILY_DOLLAR) return dailyDollar.render(req.payload, send, onAction)
+    if (req.messageType === MESSAGE_DD_SCRATCH) return workerScratch.render(req, send, onAction)
     if (req.messageType === MESSAGE_MEMBERSHIP) return renderMembershipHandler(host, req, send, onAction)
     send({ tag: "Nil" })
     return undefined

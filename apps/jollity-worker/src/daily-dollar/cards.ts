@@ -17,7 +17,7 @@ import type { ChatButton, ChatLine, DailyDollarCard } from "./registry"
 const GAP = 12
 
 /** The ticket pictures, one per kind of line. */
-const DAILY_DOLLAR_ART: Record<DailyDollarCard["kind"], string> = {
+export const DAILY_DOLLAR_ART: Record<DailyDollarCard["kind"], string> = {
   ticket: "chat-card/dd-scratch.png",
   won: "chat-card/dd-won.png",
   miss: "chat-card/dd-miss.png",

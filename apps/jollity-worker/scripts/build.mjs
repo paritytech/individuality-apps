@@ -98,6 +98,12 @@ const protocolEnv = [
   "NEXT_PUBLIC_PRIZE_UNIT",
 ]
 
+// DD_SCRATCH=worker builds a worker that posts the Daily Dollar scratch card it
+// draws itself (src/daily-dollar/scratch-worker.ts). Its ticket and claim are
+// stand-ins, so the default posts none.
+const ddScratch = process.env.DD_SCRATCH ?? "none"
+if (!["worker", "none"].includes(ddScratch)) throw new Error("DD_SCRATCH must be worker or none")
+
 await build({
   entryPoints: [resolve(import.meta.dirname, "../src/index.ts")],
   outfile: resolve(import.meta.dirname, "../dist/index.js"),
@@ -105,6 +111,7 @@ await build({
   format: "esm",
   charset: "ascii",
   define: {
+    __DD_SCRATCH__: JSON.stringify(ddScratch),
     __PRODUCT_DOTNS__: JSON.stringify(productDotns),
     __BOT_ICON__: JSON.stringify(botIconDataUrl),
     __ROOM_ICON__: JSON.stringify(roomIconDataUrl),
