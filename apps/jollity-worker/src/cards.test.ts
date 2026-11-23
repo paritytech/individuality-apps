@@ -11,7 +11,7 @@
  * code, but its boot guard skips `main()` under vitest.
  */
 import { describe, expect, it } from "vitest"
-import { ACTION_REGISTER, cardCopy, gameCardNode, gameSlot, IDLE_UI, INTRO, introRuleByPicture, SIGNUP_PROGRESS, type GameResults, type RenderNode, type SignupStep } from "./card"
+import { ACTION_REGISTER, cardCopy, gameCardNode, gameSlot, IDLE_UI, INTRO, introRuleByPicture, type GameResults, type RenderNode } from "./card"
 import { backfillOutcome, endedCard, humanitySignup, mergePrize, settledCard, signupUi, signupUiWithHumanity, slotInputFor, welcomeCard } from "./index"
 import type { ChainRead, RunningGame } from "./chain"
 import { UNSEEN, type Seen, type SeenGame, type StoredOutcome } from "./state"
@@ -119,12 +119,12 @@ describe("humanitySignup works", () => {
     expect(humanitySignup(record("sent"), undefined)).toBeNull()
   })
 
-  it("spins Register while Humanity signs up, and leaves the chat's own sign-up its say", () => {
+  it("marks Register busy while Humanity signs up, and leaves the chat's own sign-up its say", () => {
     expect(signupUiWithHumanity({ kind: "idle" }, "registering", 7, "register")).toEqual({ busy: true, notice: null })
     expect(signupUiWithHumanity({ kind: "idle" }, "registered", 7, "register")).toBe(IDLE_UI)
     expect(signupUiWithHumanity({ kind: "idle" }, null, 7, "register")).toBe(IDLE_UI)
     const busy = signupUiWithHumanity({ kind: "busy", gameIndex: 7, step: "sign" }, "registering", 7, "register")
-    expect(busy).toEqual({ busy: true, notice: null, progress: SIGNUP_PROGRESS.sign })
+    expect(busy).toEqual({ busy: true, notice: null })
     const failed = signupUiWithHumanity({ kind: "failed", gameIndex: 7, notice: "no" }, "registering", 7, "register")
     expect(failed.busy).toBe(false)
     expect(failed.notice?.text).toBe("no")
@@ -143,6 +143,47 @@ describe("slotInputFor before the game works", () => {
     // Then
     expect(whileOpen).toEqual({ kind: "register", startAt: PLAY, closesAt: PLAY - 90 })
     expect(afterItCloses).toEqual({ kind: "closed", startAt: PLAY })
+  })
+
+  it("hands the closed card the next game on the schedule", () => {
+    // Given
+    const after = { gamePlayTime: PLAY + 86_400, registrationStarts: PLAY + 600, registrationEnds: PLAY + 86_310, reportingEnds: PLAY + 87_000 }
+    const scheduled = read({ upcoming: [after] })
+
+    // When
+    const closed = slot(scheduled, at(60))
+    const open = slot(scheduled, at(7200))
+
+    // Then
+    expect(closed).toEqual({ kind: "closed", startAt: PLAY, nextStartAt: PLAY + 86_400 })
+    expect(open).toEqual({ kind: "register", startAt: PLAY, closesAt: PLAY - 90 })
+  })
+
+  it("tells the card of the next game that the game before waits for results", () => {
+    // Given
+    const before = PLAY - 86_400
+    const upcoming = [{ gamePlayTime: PLAY, registrationStarts: PLAY - 7200, registrationEnds: PLAY - 90, reportingEnds: PLAY + 600 }]
+    const played = (overrides: Partial<RunningGame>) =>
+      read({ running: running({ index: 6, gamePlayTime: before, playEnds: before + 144, reportingEnds: before + 600, registered: true, ...overrides }), upcoming })
+    const nowMs = (before + 300) * 1000
+
+    // When
+    const settling = gameSlot(slotInputFor({ gamePlayTime: PLAY }, played({ phase: "settling" }), [], null, UNSEEN, nowMs))
+    const reporting = gameSlot(slotInputFor({ gamePlayTime: PLAY }, played({ phase: "reporting" }), [], null, UNSEEN, nowMs))
+    const stillPlaying = gameSlot(slotInputFor({ gamePlayTime: PLAY }, played({ phase: "reporting" }), [], null, UNSEEN, (before + 100) * 1000))
+    const notSignedUp = gameSlot(slotInputFor({ gamePlayTime: PLAY }, played({ phase: "settling", registered: false }), [], null, UNSEEN, nowMs))
+    const seenSignedUp = gameSlot(
+      slotInputFor({ gamePlayTime: PLAY }, played({ phase: "settling", registered: null }), [known({ index: 6, gamePlayTime: before })], null, UNSEEN, nowMs),
+    )
+
+    // Then
+    expect([settling, reporting, stillPlaying, notSignedUp, seenSignedUp].map((face) => "counting" in face && face.counting === true)).toEqual([
+      true,
+      true,
+      false,
+      false,
+      true,
+    ])
   })
 
   it("holds Register at Opening soon while the prize draw takes no entries", () => {
@@ -619,20 +660,7 @@ describe("prize merging works", () => {
 })
 
 describe("sign-up on the card works", () => {
-  it("fills the ring further at every step of a sign-up, and never to full", () => {
-    // Given
-    const steps: SignupStep[] = ["reminders", "name", "signer", "route", "bind", "draws", "sign"]
-
-    // When
-    const progress = steps.map((step) => SIGNUP_PROGRESS[step])
-
-    // Then
-    expect(Object.keys(SIGNUP_PROGRESS)).toEqual(steps)
-    expect(progress.every((value, index) => index === 0 || value > progress[index - 1]!)).toBe(true)
-    expect(Math.max(...progress)).toBeLessThan(1)
-  })
-
-  it("fills the ring of Register as the sign-up goes and says what failed, on the card of that game alone", () => {
+  it("marks Register busy while the sign-up goes and says what failed, on the card of that game alone", () => {
     // Given
     // When
     const busy = signupUi({ kind: "busy", gameIndex: 7, step: "route" }, 7)
@@ -640,13 +668,13 @@ describe("sign-up on the card works", () => {
     const quiet = [signupUi({ kind: "busy", gameIndex: 7, step: "route" }, 8), signupUi({ kind: "sent", gameIndex: 7 }, 7), signupUi({ kind: "idle" }, 7)]
 
     // Then
-    expect(busy).toEqual({ busy: true, notice: null, progress: 0.4 })
+    expect(busy).toEqual({ busy: true, notice: null })
     expect(failed).toEqual({ busy: false, notice: { text: "Couldn't sign you up.", tone: "fg.error" } })
     expect(quiet).toEqual([IDLE_UI, IDLE_UI, IDLE_UI])
   })
 })
 
-describe("the Not registered face of a blocked sign-up works", () => {
+describe("the face of a blocked sign-up works", () => {
   it("is drawn from what the sign-up needs, and not from the words of its notice", () => {
     // Given
     const notice = cardCopy.NOTIFICATIONS_REQUIRED
@@ -656,7 +684,7 @@ describe("the Not registered face of a blocked sign-up works", () => {
     const plain = signupUi({ kind: "failed", gameIndex: 7, notice }, 7, "register")
 
     // Then
-    expect(needing.notice).toEqual({ text: notice, status: cardCopy.NOT_REGISTERED, tone: "fg.error" })
+    expect(needing.notice).toEqual({ text: notice, blocked: true, tone: "fg.error" })
     expect(plain.notice).toEqual({ text: notice, tone: "fg.error" })
   })
 
@@ -675,7 +703,7 @@ describe("the Not registered face of a blocked sign-up works", () => {
 
     // Then
     expect(outdated.notice).toEqual({ text: cardCopy.REMINDERS_UNSUPPORTED, tone: "fg.error", registerOff: true })
-    expect(cardCopy.REMINDERS_UNSUPPORTED).toBe("Update to new version to register.")
+    expect(cardCopy.REMINDERS_UNSUPPORTED).toBe("Update to new version to join game.")
   })
 
   it("keeps Register to tap again after a sign-up that failed with nothing to wait on", () => {
@@ -799,7 +827,7 @@ describe("the slide of Register works", () => {
 
   it("loads and takes no slide while the sign-up is busy", () => {
     // When
-    const [slide] = find(gameCardNode(slot, { busy: true, notice: null, progress: 0.4 }, now, { slide: true }), "SlideToConfirm") as Slide[]
+    const [slide] = find(gameCardNode(slot, { busy: true, notice: null }, now, { slide: true }), "SlideToConfirm") as Slide[]
 
     // Then
     expect(slide!.value.props).toMatchObject({ loading: true, confirmAction: undefined })
@@ -808,7 +836,7 @@ describe("the slide of Register works", () => {
   it("keeps the pill where Register is off or blocked, whose look says why", () => {
     // Given
     const off = { busy: false, notice: { text: cardCopy.NAME_UNOWNED, tone: "fg.error" as const, registerOff: true } }
-    const blocked = { busy: false, notice: { text: cardCopy.NOTIFICATIONS_REQUIRED, status: cardCopy.NOT_REGISTERED, tone: "fg.error" as const } }
+    const blocked = { busy: false, notice: { text: cardCopy.NOTIFICATIONS_REQUIRED, blocked: true as const, tone: "fg.error" as const } }
 
     // When / Then
     for (const ui of [off, blocked]) {

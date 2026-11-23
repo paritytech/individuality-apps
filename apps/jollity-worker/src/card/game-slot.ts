@@ -124,10 +124,21 @@ export interface SlotInput {
   /** The report of the player landed, by `jollity.seen:<game>` of the app or the stored outcome of the chain. */
   reported?: boolean
   earned?: number
+  /** When the game after this one starts, which a card whose sign-up has closed shows instead. */
+  nextGameAt?: number
+  /** The votes on the player in a game that has been played, and the most that can come, both weights. */
+  votes?: Votes
+  /** The game before this one has been played and waits for its results, which its first circle counts. */
+  previousPending?: boolean
+}
+
+export interface Votes {
+  received: number
+  most: number
 }
 
 /** The games still between a candidate and membership, which the cards of a game ahead count down. Absent or null when unknown, or for a member. */
-type Progress = { gamesToMembership?: number | null }
+type Progress = { gamesToMembership?: number | null; counting?: true }
 
 export type GameSlot =
   | { kind: "none" }
@@ -136,8 +147,8 @@ export type GameSlot =
   | ({ kind: "register"; startAt: number; closesAt: number } & Progress)
   | ({ kind: "registered"; startAt: number } & Progress)
   | ({ kind: "starting"; startAt: number } & Progress)
-  | ({ kind: "closed"; startAt: number } & Progress)
-  | ({ kind: "pending"; endedAt: number; resultsAt?: number } & Progress)
+  | ({ kind: "closed"; startAt: number; nextStartAt?: number } & Progress)
+  | ({ kind: "pending"; endedAt: number; resultsAt?: number; votes?: Votes } & Progress)
   | { kind: "results"; results: GameResults }
   | {
       kind: "missed"
@@ -163,6 +174,12 @@ export function gameSlot(input: SlotInput): GameSlot {
     case "missed":
     case "results":
       return slot
+    case "next":
+    case "register":
+    case "registered":
+    case "starting":
+    case "closed":
+      return { ...slot, ...progress, ...(input.previousPending ? { counting: true as const } : {}) }
     default:
       return { ...slot, ...progress }
   }
@@ -184,20 +201,29 @@ function baseSlot(input: SlotInput): GameSlot {
           : { kind: "starting", startAt: game.startAt }
       return nowSeconds < closesAt
         ? { kind: "register", startAt: game.startAt, closesAt }
-        : { kind: "closed", startAt: game.startAt }
+        : closed(game.startAt, input.nextGameAt)
     }
     case "active":
       // A registered player can join a running game at any turn (lib/late-join.ts,
       // #699), so the way in stays.
-      return registered ? { kind: "starting", startAt: game.startAt } : { kind: "closed", startAt: game.startAt }
+      return registered ? { kind: "starting", startAt: game.startAt } : closed(game.startAt, input.nextGameAt)
     case "reporting":
       if (!registered) return missed({ ...input, gamesToMembership: null }, "never-registered")
-      return { kind: "pending", endedAt: game.startAt, ...(input.resultsAt === undefined ? {} : { resultsAt: input.resultsAt }) }
+      return {
+        kind: "pending",
+        endedAt: game.startAt,
+        ...(input.resultsAt === undefined ? {} : { resultsAt: input.resultsAt }),
+        ...(input.votes === undefined ? {} : { votes: input.votes }),
+      }
     case "finished":
       if (!registered && !input.reported) return missed(input, "never-registered")
       if (results) return { kind: "results", results: { ...results, endedAt: game.startAt } }
       return missed(input, input.reported ? "not-passed" : "no-show")
   }
+}
+
+function closed(startAt: number, nextStartAt: number | undefined): GameSlot {
+  return { kind: "closed", startAt, ...(nextStartAt === undefined ? {} : { nextStartAt }) }
 }
 
 function missed(input: SlotInput, reason: MissedReason): GameSlot {

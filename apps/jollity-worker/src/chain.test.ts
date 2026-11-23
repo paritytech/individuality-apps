@@ -1062,16 +1062,16 @@ describe("early verdict reading works", () => {
     expect(getValue).toHaveBeenCalledWith({ type: "Account", value: ADDRESS }, { at: "best" })
   })
 
-  it("is pending while the votes still to come can swing it", async () => {
+  it("is pending while the votes still to come can swing it, with the votes so far of either kind and the most that can come", async () => {
     // Given
     const chain = await import("./chain")
-    const { reads } = peopleWithRow(row())
+    const { reads } = peopleWithRow(row({ yes_person: 1, no_not_person: 2, expected_max_vote_weight: 8 }))
 
     // When
     const view = await chain.readAttendance(reads, ADDRESS, running)
 
     // Then
-    expect(view).toMatchObject({ verdict: "pending", final: false })
+    expect(view).toMatchObject({ verdict: "pending", final: false, votes: { received: 3, most: 8 } })
   })
 
   it("reads nothing before the game reports, and says a failed read is unknown", async () => {

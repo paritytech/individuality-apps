@@ -39,7 +39,6 @@ import {
   MESSAGE_GAME_CARD,
   MESSAGE_INTRO,
   MESSAGE_WELCOME,
-  SIGNUP_PROGRESS,
   button,
   card,
   cardCopy,
@@ -57,6 +56,7 @@ import {
   type SlotGame,
   type SlotInput,
   type SlotPrize,
+  type Votes,
 } from "./card"
 import {
   HOST_REMINDER_KEY,
@@ -282,7 +282,17 @@ export function slotInputFor(
     // A player already signed up is past that gate.
     const drawClosed = running.drawOpen === false && !registered
     const window = { opensAt: drawClosed ? Infinity : 0, closesAt: running.registrationEnds }
-    const base = { registered, results: null, member, nowSeconds, window, gamesToMembership, resultsAt: running.reportingEnds }
+    const gameAfter = read?.upcoming[0]?.gamePlayTime
+    const base = {
+      registered,
+      results: null,
+      member,
+      nowSeconds,
+      window,
+      gamesToMembership,
+      resultsAt: running.reportingEnds,
+      ...(gameAfter !== undefined && gameAfter > data.gamePlayTime ? { nextGameAt: gameAfter } : {}),
+    }
     switch (running.phase) {
       case "registration":
       case "shuffle":
@@ -300,6 +310,7 @@ export function slotInputFor(
     }
   }
 
+  const counting = previousPending(read, games, data.gamePlayTime, nowSeconds) ? { previousPending: true } : {}
   const upcoming = read?.upcoming.find((game) => game.gamePlayTime === data.gamePlayTime)
   if (upcoming) {
     return {
@@ -310,14 +321,32 @@ export function slotInputFor(
       nowSeconds,
       gamesToMembership,
       window: { opensAt: upcoming.registrationStarts, closesAt: upcoming.registrationEnds },
+      ...counting,
     }
   }
 
   const registered = known?.registered === true
   if (data.gamePlayTime > nowSeconds) {
-    return { game: slotGame("scheduled"), registered, results: null, member, nowSeconds, gamesToMembership, cancelled: offTheSchedule(data.gamePlayTime, read, readBefore) }
+    return {
+      game: slotGame("scheduled"),
+      registered,
+      results: null,
+      member,
+      nowSeconds,
+      gamesToMembership,
+      cancelled: offTheSchedule(data.gamePlayTime, read, readBefore),
+      ...counting,
+    }
   }
   return { game: slotGame("reporting"), registered, results: null, member, nowSeconds, gamesToMembership }
+}
+
+function previousPending(read: ChainRead | null, games: SeenGame[], gamePlayTime: number, nowSeconds: number): boolean {
+  const running = read?.running
+  if (!running || running.gamePlayTime === gamePlayTime) return false
+  const registered = running.registered === true || games.some((game) => game.gamePlayTime === running.gamePlayTime && game.registered === true)
+  const played = running.phase === "settling" || (running.phase === "reporting" && nowSeconds >= running.playEnds)
+  return registered && played
 }
 
 /**
@@ -336,8 +365,8 @@ let readBeforeLatest: ChainRead | null = null
 // identity so those two paths cannot count one false result as two reads.
 let readObservation = 0
 let latestObservation: number | undefined
-// The game whose reminder the host holds, which docks the pill of its last five minutes.
-let hostRemindedGame: number | null = null
+// The votes on the player in the game the chain still holds, from the last attendance read that answered.
+let pendingVotes: { gameIndex: number; votes: Votes } | null = null
 // The index of the game a sign-up from the chat is under way for, which the
 // polls take as registered so they keep the reminders the sign-up asked for.
 let joiningGame: number | null = null
@@ -419,7 +448,7 @@ export function signupUi(state: SignupState, gameIndex: number | undefined, slot
   if (state.kind === "failed" && slotKind === "closed" && state.needs) return IDLE_UI
   switch (state.kind) {
     case "busy":
-      return { busy: true, notice: null, progress: SIGNUP_PROGRESS[state.step] }
+      return { busy: true, notice: null }
     case "sent":
       return IDLE_UI
     case "failed":
@@ -428,7 +457,7 @@ export function signupUi(state: SignupState, gameIndex: number | undefined, slot
         notice: {
           text: state.notice,
           tone: "fg.error",
-          ...(state.needs === "notifications" && { status: cardCopy.NOT_REGISTERED }),
+          ...(state.needs === "notifications" && { blocked: true as const }),
           ...((state.needs === "username" || state.needs === "update") && { registerOff: true }),
         },
       }
@@ -512,7 +541,11 @@ function renderGameCardHandler(
     // state is optimistic UI and must disappear again if the transaction
     // fails before the chain observes the seat.
     if (latest?.running?.gamePlayTime === data.gamePlayTime && latest.running.registered === true) registeredOnCard = true
-    const input = { ...slotInputFor(data, latest, games, outcome, seen, Date.now(), registeredOnCard, readBeforeLatest), ...(sent ? { registered: true } : {}) }
+    const input = {
+      ...slotInputFor(data, latest, games, outcome, seen, Date.now(), registeredOnCard, readBeforeLatest),
+      ...(sent ? { registered: true } : {}),
+      ...(pendingVotes && pendingVotes.gameIndex === index ? { votes: pendingVotes.votes } : {}),
+    }
     const claim = index === undefined ? undefined : claims.state(index)
     const slot = claimedSlot(gameSlot(input), claim?.kind === "claimed")
     // A face that can draw the camera line would flash without it before its first read.
@@ -528,7 +561,6 @@ function renderGameCardHandler(
     const shown = ui.notice || openFailed === null ? ui : { ...ui, notice: { text: openFailed, tone: "fg.error" as const } }
     const node = toWire(
       gameCardNode(slot, { ...shown, busy: shown.busy || cameraAsk !== undefined, camera }, deviceNowSeconds(), {
-        hostPill: hostRemindedGame === data.gamePlayTime,
         docked: req.messageId === footerMessageId(ROOM_ID),
         slide: slideRegister,
         nameSet: latest?.nameSet ?? false,
@@ -989,7 +1021,6 @@ export async function tick(host: WorkerHost, autoClaim?: AutoClaim): Promise<voi
       const current = latest!
       const { view, sentPastItsLifetime } = await signUpView(host, current, joiningGame !== null && current.running?.index === joiningGame)
       const hostReminds = await keepReminder(host, view, false, latestObservation)
-      hostRemindedGame = hostReminds ? (view.running?.gamePlayTime ?? null) : null
       await bookReminders(host, view, hostReminds, false, sentPastItsLifetime)
     })
 
@@ -1190,6 +1221,7 @@ async function settleOutcome(
     // the verdict before the settle, once the chain has applied it
     if (!game.registered) return
     attendance = await within(readAttendance(people, address, running))
+    if (attendance) pendingVotes = { gameIndex: game.index, votes: attendance.votes }
     if (attendance?.reported && !game.reported) await rememberReported(host, game)
     if (!attendance?.final) return
     const early = await readOutcomeCounted(people, address, game)

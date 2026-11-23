@@ -705,6 +705,39 @@ describe("game slot before the game works", () => {
     expect(afterClosingSlot).toEqual({ kind: "closed", startAt: START })
   })
 
+  it("hands a closed sign-up the game after, where the source knows one", () => {
+    // Given
+    const nextGameAt = START + 86_400
+
+    // When
+    const scheduled = gameSlot({ game, registered: false, results: null, nowSeconds: START - 100, window, nextGameAt })
+    const running = gameSlot({ game: { ...game, status: "active" }, registered: false, results: null, nowSeconds: START + 30, nextGameAt })
+
+    // Then
+    expect(scheduled).toEqual({ kind: "closed", startAt: START, nextStartAt: nextGameAt })
+    expect(running).toEqual({ kind: "closed", startAt: START, nextStartAt: nextGameAt })
+  })
+
+  it("marks the first circle of the next game while the results of the game before are pending", () => {
+    // Given
+    const counted = { game, results: null, window, gamesToMembership: 3, previousPending: true }
+
+    // When
+    const faces = [START - 9000, START - 5000, START - 100].map((nowSeconds) => gameSlot({ ...counted, registered: false, nowSeconds }))
+    const registered = [START - 5000, START - 200].map((nowSeconds) => gameSlot({ ...counted, registered: true, nowSeconds }))
+    const uncounted = gameSlot({ ...counted, previousPending: undefined, registered: false, nowSeconds: START - 5000 })
+
+    // Then
+    expect([...faces, ...registered].map((slot) => [slot.kind, "counting" in slot && slot.counting])).toEqual([
+      ["next", true],
+      ["register", true],
+      ["closed", true],
+      ["registered", true],
+      ["starting", true],
+    ])
+    expect(uncounted).toEqual({ kind: "register", startAt: START, closesAt: START - 120, gamesToMembership: 3 })
+  })
+
   it("counts a registered player down over the last five minutes", () => {
     // Given
     const registered = true
@@ -775,8 +808,7 @@ describe("game slot before the game works", () => {
 
 describe("game card before the game works", () => {
   const START = 2_000_000
-  const card = (slot: Parameters<typeof gameCardNode>[0], hostPill?: boolean) =>
-    gameCardNode(slot, IDLE_UI, START - 200, { hostPill })
+  const card = (slot: Parameters<typeof gameCardNode>[0]) => gameCardNode(slot, IDLE_UI, START - 200)
 
   it("draws nothing before the first game", () => {
     // Given
@@ -830,8 +862,8 @@ describe("game card before the game works", () => {
       expect(column.value.children[1]).toMatchObject({ tag: "Spacer", value: { modifiers: [{ tag: "height", value: 2 }] } })
       expect(column.value.children[2]).toMatchObject({ tag: "Text", value: { props: { style: "title.medium.regular" } } })
     }
-    expect(strings(registeredSlab.value.children[0]!)).toEqual(["You're in"])
-    expect(propsOf(registeredSlab, "You're in")).toEqual({ style: "body.large.regular", color: "fg.success" })
+    expect(strings(registeredSlab.value.children[0]!)).toEqual(["Left to join"])
+    expect(propsOf(registeredSlab, "Left to join")).toEqual({ style: "body.large.regular", color: "fg.secondary" })
   })
 
   it("draws a circle for each game a candidate has left, with the count in words, and none for a member", () => {
@@ -867,7 +899,7 @@ describe("game card before the game works", () => {
     expect(strings(member)[0]).toBe("Next game")
   })
 
-  it("draws the circles of a candidate on every face that carries the count, with the words on all but pending", () => {
+  it("draws the circles of a candidate with the count in words on every face before the game, and none on the pending card", () => {
     // Given
     const progress = { gamesToMembership: 3 }
     const faces: Parameters<typeof gameCardNode>[0][] = [
@@ -876,18 +908,21 @@ describe("game card before the game works", () => {
       { kind: "registered", startAt: START, ...progress },
       { kind: "starting", startAt: START, ...progress },
       { kind: "closed", startAt: START, ...progress },
-      { kind: "pending", endedAt: START, resultsAt: START + 600, ...progress },
       { kind: "cancelled", startAt: START, ...progress },
     ]
+    const pending = { kind: "pending" as const, endedAt: START, resultsAt: START + 600, ...progress }
 
     // When
     const drawn = faces.map((slot) => [slot.kind, JSON.stringify(card(slot))] as const)
+    const pendingJson = JSON.stringify(card(pending))
 
     // Then
     for (const [kind, json] of drawn) {
       expect({ kind, circles: json.split('"tag":"padding","value":[2,2,2,2]').length - 1 }).toEqual({ kind, circles: 3 })
-      expect({ kind, caption: json.includes("3 games to Membership") }).toEqual({ kind, caption: kind !== "pending" })
+      expect({ kind, caption: json.includes("3 games to Membership") }).toEqual({ kind, caption: true })
     }
+    expect(pendingJson).not.toContain('"tag":"padding","value":[2,2,2,2]')
+    expect(pendingJson).not.toContain("to Membership")
   })
 
   it("says Opening soon where I'll be there will be, with nothing to tap, until registration opens", () => {
@@ -909,7 +944,6 @@ describe("game card before the game works", () => {
       card({ kind: "next", startAt: START, opensAt: START - 3600 }),
       card(register),
       gameCardNode(register, { busy: true, notice: null }, START - 200),
-      gameCardNode(register, { busy: true, notice: null, progress: 0.5 }, START - 200),
       gameCardNode({ kind: "starting", startAt: START }, IDLE_UI, START + 5),
     ]
     const fills = (node: RenderNode) => node.tag !== "String" && node.tag !== "Nil" && node.value.modifiers.some((modifier) => modifier.tag === "fillWidth")
@@ -938,16 +972,15 @@ describe("game card before the game works", () => {
     expect(drawn).toEqual([
       { pills: [pill], taps: [] },
       { pills: [pill], taps: [tap] },
-      { pills: [pill], taps: [tap] },
-      { pills: [pill], taps: [] },
+      { pills: [], taps: [] },
       { pills: [pill], taps: [tap] },
     ])
   })
 
-  it("keeps the label of the pill, and the ring of a running sign-up, in the middle of the slab", () => {
+  it("keeps the label of the pill in the middle of the slab", () => {
     // Given
     const register = { kind: "register" as const, startAt: START, closesAt: START - 90 }
-    const faces = [card(register), gameCardNode(register, { busy: true, notice: null, progress: 0.5 }, START - 200)]
+    const faces = [card(register)]
     const boxes = (node: RenderNode): Extract<RenderNode, { tag: "Box" }>[] =>
       node.tag === "String" || node.tag === "Nil" ? [] : [...(node.tag === "Box" ? [node] : []), ...node.value.children.flatMap(boxes)]
     const centredColumns = (node: RenderNode): boolean =>
@@ -957,46 +990,36 @@ describe("game card before the game works", () => {
     const drawn = faces.map((face) => boxes(face).map((box) => ({ alignment: box.value.props.contentAlignment, fills: box.value.modifiers.some((modifier) => modifier.tag === "fillWidth"), centred: box.value.children.every(centredColumns) })))
 
     // Then
-    expect(drawn).toEqual([
-      [{ alignment: "center", fills: true, centred: true }],
-      [{ alignment: "center", fills: true, centred: true }],
-    ])
+    expect(drawn).toEqual([[{ alignment: "center", fills: true, centred: true }]])
   })
 
-  it("counts down the time left to join, a minute ahead of the start, with no button, as the native card does, unless the host docks a pill", () => {
+  it("counts a registered player down to the join, a minute ahead of the start, with no button, from an hour out to the last minute", () => {
     // Given
-    const starting = { kind: "starting" as const, startAt: START }
-
-    // When
-    const own = card(starting)
-    const docked = card(starting, true)
-
-    // Then
-    expect(strings(own)).toEqual(["Left to join", "2:20"])
-    expect(actions(own)).toEqual([])
-    expect(strings(docked)).toEqual(["You're in", "Game starting soon"])
-    expect(propsOf(docked, "You're in")).toEqual({ style: "body.large.regular", color: "fg.success" })
-    expect(actions(docked)).toEqual([])
-  })
-
-  it("says Game starting soon for the whole five minutes the pill of the host counts, and the date before them", () => {
-    // Given: the pill comes up five minutes before the join, a minute before the card turns to starting
     const registered = { kind: "registered" as const, startAt: START }
-    const pillUp = START - 60 - 300
-    const face = (nowSeconds: number, hostPill: boolean) => strings(gameCardNode(registered, IDLE_UI, nowSeconds, { hostPill })).at(-1)
+    const starting = { kind: "starting" as const, startAt: START }
+
+    // When
+    const hourOut = gameCardNode(registered, IDLE_UI, START - 60 - 3600)
+    const lastFive = gameCardNode(starting, IDLE_UI, START - 200)
+    const lastMinute = gameCardNode(starting, IDLE_UI, START - 60 - 13)
 
     // Then
-    expect(face(pillUp, true)).toBe("Game starting soon")
-    expect(face(pillUp - 1, true)).not.toBe("Game starting soon")
-    expect(face(pillUp, false)).not.toBe("Game starting soon")
+    expect(strings(hourOut)).toEqual(["Left to join", "1:00:00"])
+    expect(strings(lastFive)).toEqual(["Left to join", "2:20"])
+    expect(strings(lastMinute)).toEqual(["Left to join", "0:13"])
+    expect(propsOf(lastMinute, "0:13")).toEqual({ style: "title.medium.regular", color: "fg.primary" })
+    for (const face of [hourOut, lastFive, lastMinute]) {
+      expect(actions(face)).toEqual([])
+      expect(images(face)).toEqual([])
+    }
   })
 
-  it("brings Start playing back under the pill of the host once the game starts, since the host drops its pill then", () => {
+  it("brings Start playing in at the join", () => {
     // Given
     const starting = { kind: "starting" as const, startAt: START }
 
     // When
-    const started = gameCardNode(starting, IDLE_UI, START + 5, { hostPill: true })
+    const started = gameCardNode(starting, IDLE_UI, START - 60)
 
     // Then
     expect(strings(started)).toContain("Start playing")
@@ -1015,53 +1038,17 @@ describe("game card before the game works", () => {
     expect(strings(withNotice)).toEqual(expect.arrayContaining(["Start playing", "The Polkadot app couldn't open Jollity. Update it to the latest version."]))
   })
 
-  it("spins I'll be there while a sign-up of no known step is on its way", () => {
+  it("draws Left to join at once while the sign-up runs, with no button and no picture", () => {
     // Given
-    const register = { kind: "register" as const, startAt: START, closesAt: START - 300 }
+    const register = { kind: "register" as const, startAt: START, closesAt: START - 300, gamesToMembership: 2 }
 
     // When
     const busy = gameCardNode(register, { busy: true, notice: null }, START - 1200)
 
     // Then
-    expect(strings(busy)).toEqual(["Next game", formatGameTime(START), "I'll be there"])
-    expect(buttons(busy)).toEqual([expect.objectContaining({ clickAction: ACTION_REGISTER, loading: true, enabled: false })])
-    expect(propsOf(busy, "I'll be there")).toEqual({ style: "title.medium.regular", color: "fg.warning" })
+    expect(strings(busy)).toEqual(["2 games to Membership", "Left to join", "19:00"])
+    expect(buttons(busy)).toEqual([])
     expect(images(busy)).toEqual([])
-  })
-
-  it("fills a ring in the middle of I'll be there as the sign-up goes, short of full, with nothing to tap", () => {
-    // Given
-    const register = { kind: "register" as const, startAt: START, closesAt: START - 300 }
-    const at = (progress: number) => gameCardNode(register, { busy: true, notice: null, progress }, START - 1200)
-
-    // When
-    const rings = [0, 0.25, 0.6, 0.8, 1].map((progress) => images(at(progress)).map((node) => node.value.props.source.value))
-
-    // Then
-    expect(rings).toEqual([
-      ["chat-card/signup-ring-10.png"],
-      ["chat-card/signup-ring-20.png"],
-      ["chat-card/signup-ring-60.png"],
-      ["chat-card/signup-ring-80.png"],
-      ["chat-card/signup-ring-90.png"],
-    ])
-    expect(propsOf(at(0.6), "I'll be there")).toEqual({ style: "title.medium.regular", color: "fg.warning" })
-    expect(actions(at(0.6))).toEqual([])
-  })
-
-  it("shrinks to a pill with the seconds left over the last minute before the join", () => {
-    // Given
-    const starting = { kind: "starting" as const, startAt: START }
-
-    // When
-    const lastMinute = gameCardNode(starting, IDLE_UI, START - 60 - 13)
-    const beforeIt = gameCardNode(starting, IDLE_UI, START - 60 - 61)
-
-    // Then
-    expect(strings(lastMinute)).toEqual(["Game starts in", "13"])
-    expect(propsOf(lastMinute, "13")).toEqual({ style: "headline.large", color: "bg.surface.main" })
-    expect(actions(lastMinute)).toEqual([])
-    expect(strings(beforeIt)).toEqual(["Left to join", "1:01"])
   })
 
   it("says Live now over its start once the game has started, with the way in", () => {
@@ -1078,33 +1065,33 @@ describe("game card before the game works", () => {
     expect(actions(live)).toEqual([ACTION_OPEN_GAME])
   })
 
-  it("spins I'll be there while a sign-up is on its way, and says under it when one failed", () => {
+  it("puts I'll be there back with the notice under it once a sign-up failed", () => {
     // Given
     const register = { kind: "register" as const, startAt: START, closesAt: START - 90 }
 
     // When
-    const busy = gameCardNode(register, { busy: true, notice: null }, START - 200)
     const failed = gameCardNode(register, { busy: false, notice: { text: "Couldn't sign you up.", tone: "fg.error" } }, START - 200)
 
     // Then
-    expect(strings(busy)).toContain("I'll be there")
-    expect(actions(busy)).toEqual([])
     expect(strings(failed)).toEqual(expect.arrayContaining(["I'll be there", "Couldn't sign you up."]))
     expect(propsOf(failed, "Couldn't sign you up.")).toEqual({ style: "body.medium.regular", color: "fg.error" })
     expect(actions(failed)).toEqual([ACTION_REGISTER])
   })
 
-  it("says Not registered in the warning colour where Next game was, with I'll be there live and the notifications line in the foot", () => {
+  it("keeps Next game over the date, with I'll be there live and the notifications line in the foot", () => {
     // Given
     const register = { kind: "register" as const, startAt: START, closesAt: START - 90 }
-    const notice = "Enable notifications to register."
+    const notice = "Enable notifications to join game."
+    const warningTexts = (node: RenderNode): string[] =>
+      node.tag === "Text" ? (node.value.props.color === "fg.warning" ? strings(node) : []) : node.tag === "String" || node.tag === "Nil" ? [] : node.value.children.flatMap(warningTexts)
 
     // When
-    const blocked = gameCardNode(register, { busy: false, notice: { text: notice, status: "Not registered", tone: "fg.error" } }, START - 200)
+    const blocked = gameCardNode(register, { busy: false, notice: { text: notice, blocked: true, tone: "fg.error" } }, START - 200)
 
     // Then
-    expect(strings(blocked)).toEqual(["Not registered", formatGameTime(START), "I'll be there", notice])
-    expect(propsOf(blocked, "Not registered")).toEqual({ style: "body.large.regular", color: "fg.warning" })
+    expect(strings(blocked)).toEqual(["Next game", formatGameTime(START), "I'll be there", notice])
+    expect(propsOf(blocked, "Next game")).toEqual({ style: "body.large.regular", color: "fg.secondary" })
+    expect(warningTexts(blocked)).toEqual([])
     expect(propsOf(blocked, notice)).toEqual({ style: "body.small.regular", color: "fg.secondary" })
     expect(propsOf(blocked, "I'll be there")).toEqual({ style: "title.medium.regular", color: "bg.surface.main" })
     expect(actions(blocked)).toEqual([ACTION_REGISTER])
@@ -1144,7 +1131,7 @@ describe("game card before the game works", () => {
     expect(actions(asking)).not.toContain(ACTION_TURN_ON_CAMERA)
   })
 
-  const notifications = { text: cardCopy.NOTIFICATIONS_REQUIRED, status: cardCopy.NOT_REGISTERED, tone: "fg.error" as const }
+  const notifications = { text: cardCopy.NOTIFICATIONS_REQUIRED, blocked: true as const, tone: "fg.error" as const }
   const footRows = {
     "Turn on on the Register face": {
       label: "Turn on",
@@ -1193,7 +1180,36 @@ describe("game card before the game works", () => {
     expect(strings(card)).toEqual(["Next game", "Registration closed", line])
   })
 
-  it("keeps Next game over a plain failure notice, which has no status", () => {
+  it("shows the game after, as Opening soon, where sign-up has closed", () => {
+    // Given
+    const nextStartAt = START + 86_400
+    const closed = { kind: "closed" as const, startAt: START, nextStartAt, gamesToMembership: 3 }
+
+    // When
+    const card = gameCardNode(closed, IDLE_UI, START - 60)
+
+    // Then
+    expect(strings(card)).toEqual(["3 games to Membership", "Next game", formatGameTime(nextStartAt), "Opening soon"])
+    expect(propsOf(card, "3 games to Membership")).toEqual({ style: "body.small.regular", color: "fg.secondary" })
+    expect(propsOf(card, "Opening soon")).toEqual({ style: "title.medium.regular", color: "fg.tertiary" })
+    expect(actions(card)).toEqual([])
+  })
+
+  it("marks the first circle and drops the count in words on a face before the game while the game before waits for results", () => {
+    // Given
+    const register = { kind: "register" as const, startAt: START, closesAt: START - 90, gamesToMembership: 3 }
+
+    // When
+    const counting = JSON.stringify(card({ ...register, counting: true }))
+    const plain = JSON.stringify(card(register))
+
+    // Then
+    expect(counting.split('"color":"fg.warning"').length - 1).toBe(plain.split('"color":"fg.warning"').length - 1 + 2)
+    expect(counting).not.toContain("to Membership")
+    expect(plain).toContain("3 games to Membership")
+  })
+
+  it("keeps Next game over a plain failure notice, which does not block", () => {
     // Given
     const register = { kind: "register" as const, startAt: START, closesAt: START - 90 }
 
@@ -1205,20 +1221,20 @@ describe("game card before the game works", () => {
     expect(propsOf(failed, "Next game")).toEqual({ style: "body.large.regular", color: "fg.secondary" })
   })
 
-  it("adds the camera line under the notifications line of Not registered when the camera is off", () => {
+  it("adds the camera line under the notifications line of a blocked sign-up when the camera is off", () => {
     // Given
     const register = { kind: "register" as const, startAt: START, closesAt: START - 90 }
-    const notice = { text: "Enable notifications to register.", status: "Not registered", tone: "fg.error" as const }
+    const notice = { text: "Enable notifications to join game.", blocked: true as const, tone: "fg.error" as const }
 
     // When
     const blocked = gameCardNode(register, { busy: false, notice, camera: "off" }, START - 200)
 
     // Then
     expect(strings(blocked)).toEqual([
-      "Not registered",
+      "Next game",
       formatGameTime(START),
       "I'll be there",
-      "Enable notifications to register.",
+      "Enable notifications to join game.",
       "Camera is off. Turn it on to play.",
       "Turn on",
     ])
@@ -1234,7 +1250,7 @@ describe("game card before the game works", () => {
     const off = gameCardNode(registered, { busy: false, notice: null, camera: "off" }, START - 200)
 
     // Then
-    expect(strings(off)).toEqual(["You're in", formatGameTime(START), "Camera is off. Turn it on to play.", "Turn on"])
+    expect(strings(off)).toEqual(["Left to join", "2:20", "Camera is off. Turn it on to play.", "Turn on"])
     expect(propsOf(off, "Camera is off. Turn it on to play.")).toEqual({ style: "body.small.regular", color: "fg.secondary" })
     expect(propsOf(off, "Turn on")).toEqual({ style: "body.large.regular", color: "fg.warning" })
     expect(actions(off)).toEqual([ACTION_TURN_ON_CAMERA])
@@ -1419,32 +1435,35 @@ describe("missed card works", () => {
 })
 
 describe("pending card works", () => {
-  it("counts down to the end of the reports, says there is nothing to do, and marks the game on its circle", () => {
+  const ticks = (node: RenderNode) => images(node).filter((image) => image.value.props.source.value === "chat-card/vote-tick.png")
+  const votes = (node: RenderNode) => JSON.stringify(node).split('"tag":"padding","value":[2,2,2,2]').length - 1 + ticks(node).length
+
+  it("says it waits for the votes, ticks a circle for each tenth that is in, and counts to the end of voting", () => {
     // Given
     const endedAt = 2_000_150
     const pending = { kind: "pending" as const, endedAt, resultsAt: endedAt + 754, gamesToMembership: 2 }
 
     // When
-    const card = gameCardNode(pending, IDLE_UI, endedAt + 4)
+    const card = gameCardNode({ ...pending, votes: { received: 3, most: 10 } }, IDLE_UI, endedAt + 4)
+    const none = gameCardNode({ ...pending, votes: { received: 0, most: 0 } }, IDLE_UI, endedAt + 4)
+    const all = gameCardNode({ ...pending, votes: { received: 12, most: 10 } }, IDLE_UI, endedAt + 4)
+    const share = gameCardNode({ ...pending, votes: { received: 5, most: 8 } }, IDLE_UI, endedAt + 4)
 
     // Then
-    expect(strings(card)).toEqual(["Results in 12:30", "Nothing to do. Your results will show here."])
-    expect(propsOf(card, "Results in 12:30")).toEqual({ style: "title.medium.regular", color: "fg.primary" })
-    expect(images(card).map((node) => node.value.props.source)).toEqual([{ tag: "archive", value: "chat-card/pending-clock.png" }])
-    expect(JSON.stringify(card).split('"color":"fg.warning"').length - 1).toBe(2)
-    const rows = (node: RenderNode): Extract<RenderNode, { tag: "Row" }>[] =>
-      node.tag === "String" || node.tag === "Nil" ? [] : [...(node.tag === "Row" ? [node] : []), ...node.value.children.flatMap(rows)]
-    const circles = rows(card)[0]?.value.children[0]
-    const [first, , second] = circles && circles.tag === "Row" ? circles.value.children : []
-    expect(JSON.stringify(first)).toContain('"color":"fg.warning"')
-    expect(JSON.stringify(second)).not.toContain('"color":"fg.warning"')
+    expect(strings(card)).toEqual(["We are still waiting for the votes on you.", "Voting ends in 12:30"])
+    expect(propsOf(card, "We are still waiting for the votes on you.")).toEqual({ style: "body.large.regular", color: "fg.primary" })
+    expect(propsOf(card, "Voting ends in 12:30")).toEqual({ style: "body.large.regular", color: "fg.secondary" })
+    expect([ticks(card).length, ticks(none).length, ticks(all).length, ticks(share).length]).toEqual([3, 0, 10, 6])
+    expect([votes(card), votes(none), votes(all), votes(share)]).toEqual([10, 10, 10, 10])
+    expect(ticks(card).map(outerSize)).toEqual(Array(3).fill({ width: 16, height: 16 }))
     expect(actions(card)).toEqual([])
+    expect(JSON.stringify(card)).not.toContain("to Membership")
   })
 
-  it("says the results are pending once the reports have closed, or when the chain gives no time", () => {
+  it("drops the countdown once voting has closed or the chain gives no time, and the circles while the votes are unread", () => {
     // Given
     const endedAt = 2_000_150
-    const closed = { kind: "pending" as const, endedAt, resultsAt: endedAt + 600 }
+    const closed = { kind: "pending" as const, endedAt, resultsAt: endedAt + 600, votes: { received: 5, most: 10 } }
     const untimed = { kind: "pending" as const, endedAt }
 
     // When
@@ -1452,8 +1471,10 @@ describe("pending card works", () => {
     const withoutTime = gameCardNode(untimed, IDLE_UI, endedAt + 60)
 
     // Then
-    expect(strings(afterClosing)[0]).toBe("Game Results Pending")
-    expect(strings(withoutTime)[0]).toBe("Game Results Pending")
+    expect(strings(afterClosing)).toEqual(["We are still waiting for the votes on you."])
+    expect(ticks(afterClosing)).toHaveLength(5)
+    expect(strings(withoutTime)).toEqual(["We are still waiting for the votes on you."])
+    expect(votes(withoutTime)).toBe(0)
   })
 })
 

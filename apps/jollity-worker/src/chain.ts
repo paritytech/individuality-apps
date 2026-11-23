@@ -37,7 +37,7 @@ import {
   type PrizeStatusChain,
 } from "@parity/product-sdk-individuality"
 import type { NftsChain, NftsCreditsChain } from "@parity/product-sdk-nfts"
-import type { SlotCollectable, SlotPrize } from "./card"
+import type { SlotCollectable, SlotPrize, Votes } from "./card"
 import { chainGenesis, productAccount, signupAccountIndex, stashProduct } from "@jollity/protocol"
 import {
   JOLLITY_PICKS_KEY,
@@ -471,15 +471,19 @@ export async function readNameReady(people: People, address: string): Promise<bo
  * `Game.Players` row at the best block (@individuality/game-outcome's
  * `deriveAttendance`, the read the app makes before the settle). `final` once
  * the pallet applied it early (#1096), when `Score.Participants` already holds
- * the game. Null while the row holds no verdict for it, undefined when the
- * read fails.
+ * the game. The votes on the player so far come with it, Person and NotPerson
+ * alike, and the most that can come. Null while the row holds no verdict for
+ * it, undefined when the read fails.
  */
-export async function readAttendance(people: People, address: string, running: RunningGame): Promise<AttendanceView | null | undefined> {
+export async function readAttendance(people: People, address: string, running: RunningGame): Promise<(AttendanceView & { votes: Votes }) | null | undefined> {
   if (running.phase !== "reporting" && running.phase !== "settling") return null
   try {
     const raw = (await people.api.query.Game?.Players?.getValue(Enum("Account", address), { at: "best" })) as RawAttendanceRow | undefined
     const slot = { index: running.index, state: { type: running.phase === "settling" ? "PlayerProcess" : "Reporting" } }
-    return deriveAttendance(running.index, slot, raw && attendanceRow(raw))
+    const row = raw && attendanceRow(raw)
+    const view = deriveAttendance(running.index, slot, row)
+    if (!view || !row) return null
+    return { ...view, votes: { received: row.yes_person + row.no_not_person, most: row.expected_max_vote_weight } }
   } catch {
     return undefined
   }

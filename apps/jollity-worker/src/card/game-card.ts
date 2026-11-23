@@ -11,11 +11,12 @@
  *
  * The faces come in two families, deliberately different.
  *
- * Before the game, and while its results are pending, the card is the Party
- * clock of DIM2: a nested card in a frame of the container colour, with a
- * circle for each game left to membership along the top. The words and the
- * button carry the state. Before the window opens the button is there in
- * grey, so the card holds its shape when it goes live.
+ * Before the game, the card is the Party clock of DIM2: a nested card in a
+ * frame of the container colour, with a circle for each game left to
+ * membership along the top. The words, and the button where there is one,
+ * carry the state. Before the window opens the button is there in grey, so the
+ * card holds its shape when it goes live. While the results are pending, the
+ * same frame holds the votes on the player, with no circles.
  *
  * After the game, the card is the results in the words of the native results
  * card. A new member gets the moment of the design. Everyone else gets the
@@ -63,20 +64,19 @@ import { formatCountdown, formatGameDate, formatGameTime, formatPrize, formatPri
 import { payoff, type GameResults, type GameSlot, type Payoff, type SlotCollectable } from "./game-slot"
 import { claimRefusalWords } from "@jollity/protocol"
 import { type ClaimFailure } from "@individuality/prize"
-import { hostPillUp, JOIN_LEAD_S } from "@individuality/sign-up/reminder"
+import { JOIN_LEAD_S } from "@individuality/sign-up/reminder"
 
 /** The transient state of a card, whether a tap is in flight and the notice under it. */
 export interface CardUi {
   busy: boolean
   notice: {
     text: string
-    status?: string
+    /** The host or the phone refuses the reminders of the game, which draws the bell line in the foot. */
+    blocked?: true
     tone: "fg.secondary" | "fg.warning" | "fg.error"
     /** I'll be there stays greyed out and takes no tap while the notice holds */
     registerOff?: boolean
   } | null
-  /** How far a busy sign-up got, from 0 to 1, which I'll be there shows as a ring that fills. */
-  progress?: number
   /** Set when the stored answer is a refusal, which draws the camera line. */
   camera?: "off"
 }
@@ -84,7 +84,7 @@ export interface CardUi {
 export const IDLE_UI: CardUi = { busy: false, notice: null }
 
 /**
- * The steps of a sign-up from the chat as the card shows them, in order.
+ * The steps of a sign-up from the chat, in order.
  *
  * The name is the wait on the name link (./name-gate.ts), usually done before
  * the tap. The bind comes only for a lite person who needs one. The draws are the wait
@@ -92,14 +92,6 @@ export const IDLE_UI: CardUi = { busy: false, notice: null }
  * the sign is the proof and the signature the host asks for.
  */
 export type SignupStep = "reminders" | "name" | "signer" | "route" | "bind" | "draws" | "sign"
-
-/**
- * How far along each step leaves the ring of I'll be there.
- *
- * The ring stops short of full until the card turns registered. The steps are
- * declared in the order a sign-up takes them.
- */
-export const SIGNUP_PROGRESS: Record<SignupStep, number> = { reminders: 0.1, name: 0.18, signer: 0.25, route: 0.4, bind: 0.5, draws: 0.6, sign: 0.8 }
 
 // The tiles of the collectables card of the design. The host has no
 // proportional width, so every row is pinned to GALLERY_WIDTH, three small
@@ -129,32 +121,16 @@ const LARGE_TILE = {
 // rare tile are pictures of the CSS of the design, at the size of each tile
 // with its corners, laid over the tile in a Box.
 const RARE_BADGE = { path: "chat-card/rare-badge.png", size: 24 }
-// The clock of the pending status in the native results card, its own PDF
-// rasterised in its own colour, since the host draws no icon.
-const PENDING_CLOCK = { path: "chat-card/pending-clock.png", size: 16 }
 const BELL_OFF = { path: "chat-card/bell-off.png", size: 16 }
 const CAMERA_OFF = { path: "chat-card/camera-off.png", size: 16 }
 // The ticket of a won draw is the rainbow of the design with a notch cut out
 // of each side, baked by apps/jollity-app/scripts/bake-prize-ticket.mjs at the width of the
 // card of the design and stretched to the width of this one.
 const TICKET = { path: "chat-card/prize-ticket.png", height: 136 }
-// The host draws no arc, so the ring that fills on I'll be there is one picture
-// a step, baked by scripts/bake-signup-ring.mjs. Each path is spelled out,
-// since the build ships only the pictures the bundle names whole.
-const SIGNUP_RING = {
-  size: 22,
-  steps: [
-    { percent: 10, path: "chat-card/signup-ring-10.png" },
-    { percent: 20, path: "chat-card/signup-ring-20.png" },
-    { percent: 30, path: "chat-card/signup-ring-30.png" },
-    { percent: 40, path: "chat-card/signup-ring-40.png" },
-    { percent: 50, path: "chat-card/signup-ring-50.png" },
-    { percent: 60, path: "chat-card/signup-ring-60.png" },
-    { percent: 70, path: "chat-card/signup-ring-70.png" },
-    { percent: 80, path: "chat-card/signup-ring-80.png" },
-    { percent: 90, path: "chat-card/signup-ring-90.png" },
-  ],
-}
+// The host draws no icon, so the tick of a vote that is in is a picture,
+// baked by apps/jollity-app/scripts/bake-vote-tick.mjs in the ink of the main
+// surface, which does not follow a light theme.
+const VOTE_TICK = { path: "chat-card/vote-tick.png", size: 16 }
 // The CASH wordmark beside a won amount, as the app draws it (#431): the host
 // draws text in its own typeface only, so it is baked by
 // apps/jollity-app/scripts/bake-cash-wordmark.mjs as one line of the amount, and centred in
@@ -176,6 +152,10 @@ const MAX_CIRCLES = 6
 // 133 with one digit and 141 with two, for the same reason as FOOT_LINE_WIDTH.
 const GAMES_CAPTION_WIDTH = 168
 const LIVE_DOT = 8
+// The votes on the player show as tenths of the most that can come, so vote weights read as a share.
+const VOTES_OF = 10
+const VOTE_CIRCLE = 26
+const VOTE_RING = 2
 
 /**
  * A button beside a label rather than under it.
@@ -228,14 +208,6 @@ export interface CardOptions {
    * never sets it.
    */
   registerCountdown?: boolean
-  /**
-   * Whether the host docks the pill of the last five minutes over the thread,
-   * so the card shows the registered face until the join, with "Game starting
-   * soon" for the date while the pill counts. iOS and Android
-   * dock one for the game whose reminder they hold. Without it the card
-   * carries the countdown and the way in itself.
-   */
-  hostPill?: boolean
   /** Where the claim of the prize of a results card stands. The worker sends
    *  it by itself, so the card has no Claim button and only says how it went. */
   claim?: ClaimUi
@@ -277,13 +249,10 @@ export function gameCardNode(slot: GameSlot, ui: CardUi, nowSeconds: number, opt
       return nil()
 
     case "next":
-      return partyClock(
-        [...heading(copy.NEXT_GAME, dateLine(slot.startAt)), spacer(12), actionPill(copy.OPENING_SOON, "bg.surface.container", "fg.tertiary")],
-        { gamesLeft: slot.gamesToMembership },
-      )
+      return openingSoon(slot.startAt, { gamesLeft: slot.gamesToMembership, counting: slot.counting })
 
     case "register": {
-      const blocked = Boolean(ui.notice?.status)
+      const blocked = ui.notice?.blocked === true
       const off = Boolean(ui.notice?.registerOff)
       const notice = ui.notice ? registerFoot(ui.notice) : undefined
       const date = options.registerCountdown ? formatCountdown(slot.startAt, nowSeconds) : formatGameTime(slot.startAt)
@@ -301,43 +270,33 @@ export function gameCardNode(slot: GameSlot, ui: CardUi, nowSeconds: number, opt
               loading: ui.busy,
             }),
           ],
-          { gamesLeft: slot.gamesToMembership, foot: notice },
+          { gamesLeft: slot.gamesToMembership, counting: slot.counting, foot: notice },
         )
+      // The tap shows Left to join at once, and a sign-up that fails puts Register back with its notice.
+      if (ui.busy && !blocked && !off) return withNotice(leftToJoin(slot.startAt, nowSeconds, { gamesLeft: slot.gamesToMembership, counting: slot.counting }), ui)
       return partyClock(
         [
-          ...heading(
-            ui.notice?.status ? text(ui.notice.status, { style: "body.large.regular", color: "fg.warning" }) : copy.NEXT_GAME,
-            date,
-          ),
+          ...heading(copy.NEXT_GAME, date),
           spacer(12),
-          off ? actionPill(copy.ILL_BE_THERE, "bg.surface.container", "fg.tertiary") : signUpButton(ui),
+          off
+            ? actionPill(copy.ILL_BE_THERE, "bg.surface.container", "fg.tertiary")
+            : actionPill(copy.ILL_BE_THERE, "fg.warning", "bg.surface.main", ACTION_REGISTER),
         ],
         {
           gamesLeft: slot.gamesToMembership,
+          counting: slot.counting,
           foot: notice && blocked && ui.camera === "off" ? [notice, cameraFoot(ui.busy)] : notice,
           footPadding: blocked ? BLOCKED_FOOT_PADDING : undefined,
         },
       )
     }
 
-    // A posted message cannot be removed, and iOS draws a spinner for a card
-    // that renders nothing, so under the pill of the host the card says the
-    // game is starting soon where the date was: the pill is the only
-    // countdown. The host drops its pill at the join, so the card comes back
-    // with Start playing then.
-
     // Before the join, a minute ahead of the start, the card counts down with
-    // no button, as the native card does, to the moment the pill of the host
-    // counts to. Start playing is the way in from then on.
+    // no button, to the moment the pill of the host counts to. Start playing
+    // is the way in from then on.
     case "starting": {
-      const joinAt = slot.startAt - JOIN_LEAD_S
-      const progress = { gamesLeft: slot.gamesToMembership }
-      if (options.hostPill === true && nowSeconds < joinAt)
-        return withNotice(partyClock(heading(youreIn(), copy.GAME_STARTING_SOON), progress), ui)
-      if (nowSeconds < joinAt && joinAt - nowSeconds <= LAST_MINUTE_S)
-        return withNotice(lastMinutePill(joinAt - nowSeconds), ui)
-      if (nowSeconds < joinAt)
-        return withNotice(partyClock(heading(copy.LEFT_TO_JOIN, formatCountdown(joinAt, nowSeconds)), progress), ui)
+      const progress = { gamesLeft: slot.gamesToMembership, counting: slot.counting }
+      if (nowSeconds < slot.startAt - JOIN_LEAD_S) return withNotice(leftToJoin(slot.startAt, nowSeconds, progress), ui)
       return withNotice(
         partyClock(
           [
@@ -351,41 +310,30 @@ export function gameCardNode(slot: GameSlot, ui: CardUi, nowSeconds: number, opt
       )
     }
 
-    // The design puts a bell where the button was, and rows for the alarm and
-    // the calendar under the card. The host draws no icons and gives a product
-    // no alarm or calendar, so the card stands alone in its frame.
     case "registered":
       return withNotice(
-        partyClock(
-          heading(
-            youreIn(),
-            options.hostPill === true && hostPillUp(slot.startAt, nowSeconds) ? copy.GAME_STARTING_SOON : dateLine(slot.startAt),
-          ),
-          { gamesLeft: slot.gamesToMembership, foot: ui.camera === "off" ? cameraFoot(ui.busy) : undefined },
-        ),
+        leftToJoin(slot.startAt, nowSeconds, {
+          gamesLeft: slot.gamesToMembership,
+          counting: slot.counting,
+          foot: ui.camera === "off" ? cameraFoot(ui.busy) : undefined,
+        }),
         ui,
       )
 
-    // Registration closed where the date was, and no button, since there is
-    // nothing left to tap for this game.
+    // The game after, where the chain lists one, since nothing is left to tap
+    // for this one. Without it, Registration closed where the date was.
     case "closed":
-      return withNotice(partyClock(heading(copy.NEXT_GAME, copy.REGISTRATION_CLOSED), { gamesLeft: slot.gamesToMembership, off: true }), ui)
+      if (slot.nextStartAt !== undefined) return withNotice(openingSoon(slot.nextStartAt, { gamesLeft: slot.gamesToMembership, counting: slot.counting }), ui)
+      return withNotice(partyClock(heading(copy.NEXT_GAME, copy.REGISTRATION_CLOSED), { gamesLeft: slot.gamesToMembership, counting: slot.counting, off: true }), ui)
 
-    // How long the chain still takes reports, and that the card turns into
-    // the results by itself. The game just played counts on the first circle.
     case "pending": {
-      const resultsIn = slot.resultsAt !== undefined && nowSeconds < slot.resultsAt ? formatCountdown(slot.resultsAt, nowSeconds) : null
+      const votingEnds = slot.resultsAt !== undefined && nowSeconds < slot.resultsAt ? formatCountdown(slot.resultsAt, nowSeconds) : null
       return column([partyClock(
         [
-          text(resultsIn === null ? copy.RESULTS_PENDING : copy.RESULTS_IN(resultsIn), { style: "title.medium.regular", color: "fg.primary" }),
-          spacer(4),
-          inline([
-            image(PENDING_CLOCK.path, [width(PENDING_CLOCK.size), height(PENDING_CLOCK.size)], "fill"),
-            horizontalSpacer(8),
-            text(copy.NOTHING_TO_DO, { style: "body.medium.regular", color: "fg.secondary" }),
-          ]),
+          text(copy.VOTES_COMING, { style: "body.large.regular", color: "fg.primary" }),
+          ...(slot.votes ? [spacer(12), votesRow(slot.votes)] : []),
+          ...(votingEnds === null ? [] : [spacer(12), text(copy.VOTING_ENDS(votingEnds), { style: "body.large.regular", color: "fg.secondary" })]),
         ],
-        { gamesLeft: slot.gamesToMembership, counting: true },
       )], frame)
     }
 
@@ -736,9 +684,6 @@ const TAP_AREA = " ".repeat(28)
 /** The same for the button across the slab, about 261pt of spaces, so the ends of a wider pill take no tap on iOS. */
 const ACTION_TAP_AREA = " ".repeat(60)
 
-/** The card shrinks to this pill over the last minute, as the design has it. */
-const LAST_MINUTE_S = 60
-
 /**
  * The Party clock of the design: a nested card in a frame of the container
  * colour, a circle for each game still between a candidate and membership
@@ -767,6 +712,31 @@ function heading(label: string | RenderNode, line: string | RenderNode): RenderN
     spacer(2),
     typeof line === "string" ? text(line, { style: "title.medium.regular", color: "fg.primary" }) : line,
   ]
+}
+
+function openingSoon(startAt: number, options: Parameters<typeof partyClock>[1]): RenderNode {
+  return partyClock([...heading(copy.NEXT_GAME, dateLine(startAt)), spacer(12), actionPill(copy.OPENING_SOON, "bg.surface.container", "fg.tertiary")], options)
+}
+
+function leftToJoin(startAt: number, nowSeconds: number, options: Parameters<typeof partyClock>[1]): RenderNode {
+  return partyClock(heading(copy.LEFT_TO_JOIN, formatCountdown(startAt - JOIN_LEAD_S, nowSeconds)), options)
+}
+
+function votesRow(votes: { received: number; most: number }): RenderNode {
+  const tenthsIn = votes.most > 0 ? Math.min(VOTES_OF, Math.floor((votes.received * VOTES_OF) / votes.most)) : 0
+  return row(Array.from({ length: VOTES_OF }, (_, i) => (i < tenthsIn ? voteIn() : voteToCome())))
+}
+
+function voteToCome(): RenderNode {
+  const hole = VOTE_CIRCLE - 2 * VOTE_RING
+  return column([column([spacer(hole)], [width(hole), height(hole), background("bg.surface.nested", hole / 2)])], [
+    pad(VOTE_RING),
+    background("fg.tertiary", VOTE_CIRCLE / 2),
+  ])
+}
+
+function voteIn(): RenderNode {
+  return box([filledDot(VOTE_CIRCLE, "fg.warning"), image(VOTE_TICK.path, [width(VOTE_TICK.size), height(VOTE_TICK.size)], "fill")])
 }
 
 /** The date of a game, in the size of every line under the label. */
@@ -828,37 +798,12 @@ function liveNow(): RenderNode {
   ])
 }
 
-function youreIn(): RenderNode {
-  return text(copy.YOURE_IN, { style: "body.large.regular", color: "fg.success" })
-}
-
-/**
- * I'll be there, with the ring of the sign-up filling in its middle while it runs.
- *
- * A busy sign-up with no step yet, which is the ask for the camera, shows the
- * spinner of the host there instead.
- */
-function signUpButton(ui: CardUi): RenderNode {
-  if (!ui.busy) return actionPill(copy.ILL_BE_THERE, "fg.warning", "bg.surface.main", ACTION_REGISTER)
-  if (ui.progress === undefined) return actionPill(copy.ILL_BE_THERE, "fg.warning", "fg.warning", ACTION_REGISTER, { loading: true, enabled: false })
-  return box([actionPill(copy.ILL_BE_THERE, "fg.warning", "fg.warning"), progressRing(ui.progress)], [fill])
-}
-
-/** The baked ring nearest to `progress`, never empty and never full, since a full ring would say it is done. */
-function progressRing(progress: number): RenderNode {
-  const percent = progress * 100
-  const step = SIGNUP_RING.steps.reduce((best, candidate) =>
-    Math.abs(candidate.percent - percent) < Math.abs(best.percent - percent) ? candidate : best,
-  )
-  return image(step.path, [width(SIGNUP_RING.size), height(SIGNUP_RING.size)], "fill")
-}
-
 /** The line of the foot, 12px as the design has it. */
 function footLine(line: string, ink: ColorToken): RenderNode {
   return text(line, { style: "body.medium.regular", color: ink })
 }
 function registerFoot(notice: NonNullable<CardUi["notice"]>): RenderNode {
-  if (!notice.status) return footLine(notice.text, notice.tone)
+  if (!notice.blocked) return footLine(notice.text, notice.tone)
   return footRow(BELL_OFF, notice.text)
 }
 function cameraFoot(busy: boolean): RenderNode {
@@ -891,26 +836,6 @@ function footRow(picture: { path: string; size: number }, line: string, tap?: { 
 }
 
 /**
- * The card of the last minute, a pill with the seconds left in a dark ring.
- *
- * The ring is a padded column in the container colour, which stands in for the
- * 4px border of the design, since the host draws a border outside the shape.
- */
-function lastMinutePill(secondsLeft: number): RenderNode {
-  const face = column(
-    [
-      inline([
-        text(copy.GAME_STARTS_IN, { style: "body.large.regular", color: "bg.surface.main" }),
-        horizontalSpacer(10),
-        text(String(secondsLeft), { style: "headline.large", color: "bg.surface.main" }),
-      ]),
-    ],
-    [{ tag: "padding", value: [6, 20, 6, 20] }, background("fg.warning", 24)],
-  )
-  return column([column([face], [pad(4), background("bg.surface.container", 28)])], [fill], { horizontalAlignment: "center" })
-}
-
-/**
  * Children side by side with only the spacers between them.
  *
  * Space between drops the default spacing iOS puts between the children of a
@@ -923,14 +848,11 @@ function inline(children: RenderNode[]): RenderNode {
 /**
  * The button of the card, a pill across the slab, with dark text, that takes a
  * tap through a clear button laid over it when given an action.
- *
- * While the button loads, the host draws its spinner in the middle of the
- * pill, and the label takes the colour of the pill so the pill keeps its size.
  */
-function actionPill(label: string, tone: ColorToken, ink: ColorToken, action?: string, state: { enabled?: boolean; loading?: boolean } = {}): RenderNode {
+function actionPill(label: string, tone: ColorToken, ink: ColorToken, action?: string): RenderNode {
   const face = pill(label, tone, ink)
   if (!action) return face
-  return box([face, button(ACTION_TAP_AREA, action, "text", state)], [fill])
+  return box([face, button(ACTION_TAP_AREA, action, "text")], [fill])
 }
 
 function pill(label: string, tone: ColorToken, ink: ColorToken): RenderNode {

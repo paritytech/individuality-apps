@@ -19,7 +19,7 @@ describe("the register button", () => {
     expect(registerButton(phase)).toEqual({
       label: "Register",
       disabled: false,
-      notice: "Enable notifications to register.",
+      notice: "Enable notifications to join game.",
     })
   })
   it("says it is taking longer when it is", () => {
