@@ -38,6 +38,7 @@ export const FAILURE_KINDS = [
   "clock-drift",
   "unclean-exit",
   "turn-unavailable",
+  "own-key-missing",
 ] as const
 export type FailureKind = (typeof FAILURE_KINDS)[number]
 
@@ -62,6 +63,10 @@ export function isActionable(kind: FailureKind, details: Pick<FailureDetails, "r
       return details.reason !== "denied" && details.reason !== "timeout"
     case "turn-unavailable":
       return details.reason === "bad-request" || details.reason === "proof-failed"
+    // a refused read or a key nobody kept is this bug; a read that hung and a
+    // player with no identifier on chain are not
+    case "own-key-missing":
+      return details.reason === "read-refused" || details.reason === "no-match"
     case "draw-skipped":
     case "mesh-isolated":
     case "peer-failed":

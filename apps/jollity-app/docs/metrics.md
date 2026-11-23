@@ -247,7 +247,7 @@ transport's submit hook, which carries no frame contents.
 
 | Name | Kind | Unit | Attributes | Meaning | Source |
 | :-- | :-- | :-- | :-- | :-- | :-- |
-| `failure` | counter | | `failure.kind`, `failure.reason`, `journey.expected` | One reported failure that is not an actionable error event (the matching log carries the detail). Also sent for an unclean exit mid-game, read at the next open. | `lib/telemetry/failures.ts`, `lib/telemetry/index.ts` |
+| `failure` | counter | | `failure.kind`, `failure.reason`, `journey.expected` | One reported failure that is not an actionable error event (the matching log carries the detail). Also sent for an unclean exit mid-game, read at the next open, and for `own-key-missing` with the reason `no-identifier`. | `lib/telemetry/failures.ts`, `lib/telemetry/index.ts` |
 | `invariant` | counter | | `invariant.kind` | A runtime invariant was broken (the detail rides a log). | `lib/invariants.ts` |
 | `invariant.value_ms` | gauge | millisecond | `invariant.kind` | The measured value of that invariant, when it has one. | `lib/invariants.ts` |
 | `storage.slow` | counter | | `storage.op` | A host-storage read or write that was slow. | `lib/telemetry/index.ts` |

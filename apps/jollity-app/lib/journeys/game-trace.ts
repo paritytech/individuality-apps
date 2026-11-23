@@ -28,7 +28,7 @@ import type { RtcEvent } from "../webrtc/rtc-events"
 import { drawFacts, drawUnplayable, type DrawState } from "./payoff-facts"
 import type { WheelCheck } from "../draw/wheel/rule"
 import { rtcPath } from "./peer-path"
-import { recordTurnOutcome } from "./turn-outcome"
+import { cleanReason, recordTurnOutcome } from "./turn-outcome"
 import { recordFunnelStage, roleAttrs } from "./rtc-funnel"
 import { resetDecoders, trackDecoders } from "./rtc-decoder"
 import { resetImplChanges, trackImplChanges } from "./rtc-impl"
@@ -145,6 +145,10 @@ interface Trace {
   signupSkip: string | null
   /** draw-unplayable goes out once per trace */
   unplayableSent: boolean
+  /** a lookup of this player's own key came back empty this join */
+  ownKeyMissed: boolean
+  /** own-key-missing went out: once per join */
+  ownKeyReported: boolean
 }
 
 interface AwaitingPath {
@@ -200,6 +204,8 @@ function fresh(): Trace {
     stalledStage: null,
     signupSkip: null,
     unplayableSent: false,
+    ownKeyMissed: false,
+    ownKeyReported: false,
   }
 }
 
@@ -352,15 +358,60 @@ export function noteSignUpSurface(gameIndex: number | null, facts: SignUpFacts):
   live(trace.game)?.set(attrs)
 }
 
+/** Why this player's own key was or was not found, and which kept key matched
+ *  (lib/host/communication-key.ts `OwnKeyLookup`). */
+export interface OwnKeyOutcome {
+  cause: string
+  source?: string
+}
+
+/** A lookup of this player's own key that found none: its cause, how the reads
+ *  of the kept keys went, the host's words for a refusal, and the Humanity
+ *  product whose storage was read. */
+export interface OwnKeyMiss {
+  cause: "no-identifier" | "read-refused" | "no-match" | "no-answer"
+  reads?: { own: string; humanity: string }
+  refusal?: string
+  humanityProduct: string
+}
+
 /** a lookup of this player's own signalling key came back: "true" when it was
  *  not found (none kept matches the identifier on chain, none on chain, or the
  *  reads gave up), and its sealed signalling links with nobody; "false" once a
  *  later try finds it. Marked on the join and the game, so a report puts dark
- *  video down to the key, and not to ICE, only while the key was missing. */
-export function signallingKeyLookedUp(found: boolean): void {
-  const attrs = { "rtc.no_signalling_key": found ? "false" : "true" }
+ *  video down to the key, and not to ICE, only while the key was missing.
+ *  With the `outcome`, `rtc.own_key.cause` says why, `rtc.own_key.source`
+ *  which kept key matched, and `rtc.own_key.recovered` that a later try found
+ *  a key a lookup of this join had missed. */
+export function signallingKeyLookedUp(found: boolean, outcome?: OwnKeyOutcome): void {
+  const attrs: Record<string, string> = { "rtc.no_signalling_key": found ? "false" : "true" }
+  if (outcome) attrs["rtc.own_key.cause"] = outcome.cause
+  if (found && outcome?.source) attrs["rtc.own_key.source"] = outcome.source
+  if (found && trace.ownKeyMissed) attrs["rtc.own_key.recovered"] = "true"
+  if (!found) trace.ownKeyMissed = true
   live(trace.join)?.set(attrs)
   live(trace.game)?.set(attrs)
+}
+
+/** The `own-key-missing` failure, at most once per join, on the first miss
+ *  whose cause is not a read that gave no answer (a hung host read is not this
+ *  bug, and the next try may well find the key). The values ride the event's
+ *  context, never its message, so each cause is one issue. `signup` is the
+ *  sign-up surface read for the game (point 3), when it is known. */
+export function ownKeyMissed(miss: OwnKeyMiss, signup: SignUpFacts | null): void {
+  if (miss.cause === "no-answer" || trace.ownKeyReported) return
+  trace.ownKeyReported = true
+  const context: Record<string, string> = { humanity_product: miss.humanityProduct }
+  if (miss.reads) {
+    context.own_read = miss.reads.own
+    context.humanity_read = miss.reads.humanity
+  }
+  if (miss.refusal !== undefined) context.refusal = cleanReason(miss.refusal)
+  if (signup) {
+    context["signup.surface"] = signup.surface
+    context["signup.humanity_read"] = signup.humanityRead
+  }
+  reportFailure("own-key-missing", { reason: miss.cause, context }, live(trace.join) ?? live(trace.game) ?? undefined)
 }
 
 function iceStep(event: IceEvent): void {

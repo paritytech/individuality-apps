@@ -73,13 +73,13 @@ import {
 } from "@individuality/game-outcome"
 import { playerStatementStore, signerOfPlayer } from "./host/statement-store"
 import { isHostChannelInterruption, retrySafeHostRead, safeHostReadWhenConnected, type HostConnectionSource } from "./host/safe-call"
-import { noteSignUpSurface, signalSubmit, signallingKeyLookedUp, statementsFirstPage, statementsInterrupted, statementsResubscribed, statementsSubscribed } from "./journeys/game-trace"
+import { noteSignUpSurface, ownKeyMissed, signalSubmit, signallingKeyLookedUp, statementsFirstPage, statementsInterrupted, statementsResubscribed, statementsSubscribed } from "./journeys/game-trace"
 import { signUpCapabilities } from "./host/sign-up"
 import { describeError } from "./host/error-detail"
 import { knownDisplayName } from "./host/identity"
 import { holdGameReminder, reminderForSignup } from "./host/game-reminder"
-import { communicationIdentifier, signallingSecret } from "./host/communication-key"
-import { readGameRegistration, readSignUpSurface, recordSignUp, type SignUpSurfaceFacts } from "./host/game-registration"
+import { communicationIdentifier, lookUpSignallingSecret, type OwnKeyLookup } from "./host/communication-key"
+import { humanityProduct, readGameRegistration, readSignUpSurface, recordSignUp, type SignUpSurfaceFacts } from "./host/game-registration"
 import { sweepClaimedPrizes } from "./prize-sweep"
 import { devLog } from "./debug/log-store"
 import { warnThrottled } from "./debug/warn-throttled"
@@ -2748,14 +2748,22 @@ async function resolveSource(): Promise<GameSource | null> {
           // v4: a v3 build sent them in the clear)
           keys: {
             secret: async () => {
-              void signUpSurface().catch(() => {})
-              let found: Uint8Array | null = null
+              const surface = signUpSurface()
+              // a lookup that threw (a chain read that failed) gave no answer;
+              // no player is no identifier
+              let lookup: OwnKeyLookup = { secret: null, cause: player ? "no-answer" : "no-identifier" }
               try {
-                found = player ? await signallingSecret(player, engine) : null
-                return found
+                if (player) lookup = await lookUpSignallingSecret(player, engine)
+                return lookup.secret
               } finally {
                 // to the trace, a read that failed included: a miss means this player links with nobody
-                signallingKeyLookedUp(!!found)
+                signallingKeyLookedUp(!!lookup.secret, lookup)
+                // and once per join the failure, with the sign-up surface once it is read
+                const { cause, reads, refusal } = lookup
+                if (cause !== "found")
+                  void surface
+                    .catch(() => null)
+                    .then((signup) => ownKeyMissed({ cause, reads, refusal, humanityProduct: humanityProduct() }, signup))
               }
             },
             peerIdentifier: (peer) => engine.communicationIdentifier(peer),

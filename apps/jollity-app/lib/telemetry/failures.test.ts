@@ -45,6 +45,11 @@ const ACTIONABLE_CASES = [
   ["name-link-failed", "unowned", false],
   ["name-link-failed", "unfunded", true],
   ["name-link-failed", "note", true],
+  // a refused read or a key nobody kept is the own-key bug; a hung read and no identifier are not
+  ["own-key-missing", "read-refused", true],
+  ["own-key-missing", "no-match", true],
+  ["own-key-missing", "no-answer", false],
+  ["own-key-missing", "no-identifier", false],
 ] as const
 
 describe("which failures are actionable", () => {

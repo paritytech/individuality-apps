@@ -61,6 +61,14 @@ describe("masking-safe sealed signalling vocabulary", () => {
   const words = [
     "rtc.no_signalling_key",
     "ownKeyMissing",
+    "ownKeyFound",
+    // the own-key-missing failure (lib/journeys/game-trace.ts ownKeyMissed) and the join's own-key attributes
+    "own-key-missing", "rtc.own_key.cause", "rtc.own_key.source", "rtc.own_key.recovered",
+    "found", "no-identifier", "read-refused", "no-match", "no-answer",
+    "jollity", "humanity", "derived",
+    "own_read", "humanity_read", "refusal", "humanity_product",
+    "answered", "refused", "failed",
+    "peopl.paseo", "AccessNotGranted",
     "peerIdMissing",
     "openFailed",
     "plaintextDropped",
@@ -300,7 +308,7 @@ describe("masking-safe vocabulary of the lanes", () => {
 
 describe("masking-safe layer names", () => {
   // the health ladder's layers, packages/jollity-statement-core/src/health.ts `Layer`
-  const LAYERS = ["internet", "turn-credentials", "store-write", "store-read", "signalling", "ice", "media", "camera", "device"]
+  const LAYERS = ["internet", "own-key", "turn-credentials", "store-write", "store-read", "signalling", "ice", "media", "camera", "device"]
   it.each(LAYERS.map((layer) => [layer]))("%s is sent under a masking-safe name", (layer) => {
     expect(isMaskSafe(layerName(layer))).toBe(true)
   })
