@@ -35,7 +35,13 @@ name: Release
 # and it tags humanity-v<version>.
 # Bump `version` in apps/humanity-app/package.json in a PR first, since it is
 # the appVersion the records carry.
-run-name: ${{ inputs.product == 'humanity' && format('Humanity Release {0} to {1}.paseo', inputs.version, vars.HUMANITY_DOTNS_DOMAIN) || format('Release {0}', inputs.version || (github.ref_type == 'tag' && github.ref_name) || 'next patch') }}
+#
+# With scope manifest, a Humanity dispatch copies only the root manifest, which
+# carries the trustedProducts grants, and leaves the app and worker records
+# and their contenthashes as they are. It needs no version and creates no tag
+# or release. Either scope refuses to write when the staged grants differ from
+# the HUMANITY_TRUSTED_PRODUCTS repository variable.
+run-name: ${{ inputs.product == 'humanity' && inputs.scope == 'manifest' && format('Humanity manifest to {0}.paseo', vars.HUMANITY_DOTNS_DOMAIN) || inputs.product == 'humanity' && format('Humanity Release {0} to {1}.paseo', inputs.version, vars.HUMANITY_DOTNS_DOMAIN) || format('Release {0}', inputs.version || (github.ref_type == 'tag' && github.ref_name) || 'next patch') }}
 
 on:
   push:
@@ -53,6 +59,11 @@ on:
         type: choice
         default: jollity
         options: [jollity, humanity]
+      scope:
+        description: "Humanity only: everything, or the manifest alone (its trustedProducts), without the app and worker"
+        type: choice
+        default: everything
+        options: [everything, manifest]
 
 permissions:
   contents: write
@@ -77,6 +88,12 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
       skip: ${{ steps.version.outputs.skip }}
     steps:
+      - name: Refuse scope manifest
+        if: inputs.scope == 'manifest'
+        run: |
+          echo "::error title=Scope manifest is Humanity only::Pick product humanity to copy only the manifest. A Jollity release always promotes everything."
+          exit 1
+
       - name: Resolve the version
         id: version
         env:
@@ -327,6 +344,7 @@ jobs:
       DOMAIN: ${{ vars.HUMANITY_DOTNS_DOMAIN }}.paseo
       STAGED: ${{ vars.HUMANITY_DOTNS_DOMAIN }}next.paseo
       DOTNS_CLI_VERSION: 1.1.0
+      MANIFEST_ONLY: ${{ inputs.scope == 'manifest' }}
     steps:
       - name: Require the HUMANITY_DOTNS_DOMAIN variable
         run: |
@@ -337,6 +355,7 @@ jobs:
 
       - name: Resolve the version
         id: version
+        if: inputs.scope != 'manifest'
         env:
           VERSION: ${{ inputs.version }}
         run: |
@@ -357,7 +376,7 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
-          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" >/dev/null 2>&1; then
+          if [ -n "$TAG" ] && gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" >/dev/null 2>&1; then
             echo "::error title=Already released::${TAG} exists. Pick the next version."
             exit 1
           fi
@@ -457,6 +476,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Compare the staged app version with the release version
+        if: inputs.scope != 'manifest'
         env:
           STAGED_VERSION: ${{ steps.read.outputs.app_version }}
           VERSION: ${{ inputs.version }}
@@ -478,16 +498,41 @@ jobs:
           {
             echo "### $STAGED to $DOMAIN"
             echo ""
+            if [ "$MANIFEST_ONLY" = "true" ]; then echo "Scope: manifest only. The app, the worker and their contenthashes stay as they are."; echo ""; fi
             echo "| Record | Change |"
             echo "|---|---|"
-            plan "$DOMAIN contenthash" "$(cid "$STAGED")" "$(cid "$DOMAIN")"
-            plan "app.$DOMAIN contenthash" "$(cid "app.$STAGED")" "$(cid "app.$DOMAIN")"
-            plan "worker.$DOMAIN contenthash" "$(cid "worker.$STAGED")" "$(cid "worker.$DOMAIN")"
-            plan "app.$DOMAIN executable" "$(brief "$(text "app.$STAGED" executable)")" "$(brief "$(text "app.$DOMAIN" executable)")"
-            plan "worker.$DOMAIN executable" "$(brief "$(text "worker.$STAGED" executable)")" "$(brief "$(text "worker.$DOMAIN" executable)")"
+            if [ "$MANIFEST_ONLY" != "true" ]; then
+              plan "$DOMAIN contenthash" "$(cid "$STAGED")" "$(cid "$DOMAIN")"
+              plan "app.$DOMAIN contenthash" "$(cid "app.$STAGED")" "$(cid "app.$DOMAIN")"
+              plan "worker.$DOMAIN contenthash" "$(cid "worker.$STAGED")" "$(cid "worker.$DOMAIN")"
+              plan "app.$DOMAIN executable" "$(brief "$(text "app.$STAGED" executable)")" "$(brief "$(text "app.$DOMAIN" executable)")"
+              plan "worker.$DOMAIN executable" "$(brief "$(text "worker.$STAGED" executable)")" "$(brief "$(text "worker.$DOMAIN" executable)")"
+            fi
             if [ "$(text "$STAGED" manifest)" = "$(text "$DOMAIN" manifest)" ]; then plan "$DOMAIN manifest" x x
             else plan "$DOMAIN manifest" "$(text "$STAGED" manifest | jq -c .trustedProducts)" "$(text "$DOMAIN" manifest | jq -c .trustedProducts)"; fi
           } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # The grants decide which products may use Humanity's keys and storage,
+      # so they must be the ones the repository intends before anything is
+      # written.
+      - name: Check the staged grants
+        env:
+          EXPECTED: ${{ vars.HUMANITY_TRUSTED_PRODUCTS }}
+        run: |
+          set -euo pipefail
+          if [ -z "$EXPECTED" ] || ! jq -e 'type == "object"' >/dev/null 2>&1 <<<"$EXPECTED"; then
+            echo "::error title=HUMANITY_TRUSTED_PRODUCTS variable missing or not an object::Set HUMANITY_TRUSTED_PRODUCTS to the grants of $DOMAIN, or {} for none."
+            exit 1
+          fi
+          # bulletin-deploy sorts and dedupes each grant list, so compare them
+          # the same way.
+          want=$(jq -cS 'map_values(unique)' <<<"$EXPECTED")
+          got=$(jq -r '.value // ""' "records/$STAGED.manifest.json" | jq -cS '.trustedProducts // {} | map_values(unique)')
+          if [ "$got" != "$want" ]; then
+            echo "::error title=Staged grants differ::$STAGED grants $got but HUMANITY_TRUSTED_PRODUCTS is $want. Run Deploy on main, or fix the variable, then release again. A grant to ${LABEL}next cannot pass, since the staging name never lists itself. Nothing was written."
+            exit 1
+          fi
+          echo "$STAGED grants $got, as HUMANITY_TRUSTED_PRODUCTS says."
 
       - name: Point the released name at the staged records
         env:
@@ -511,6 +556,10 @@ jobs:
               jq -r '.value' "$staged" | dotns text set "$2" "$3" --env "$DOTNS_ENV"
             fi
           }
+          if [ "$MANIFEST_ONLY" = "true" ]; then
+            copy_text "$STAGED" "$DOMAIN" manifest
+            exit 0
+          fi
           copy_text "app.$STAGED" "app.$DOMAIN" executable
           copy_text "worker.$STAGED" "worker.$DOMAIN" executable
           copy_text "$STAGED" "$DOMAIN" manifest
@@ -524,13 +573,16 @@ jobs:
           WORKER_CID: ${{ steps.read.outputs.worker }}
         run: |
           set -euo pipefail
-          for pair in "$DOMAIN=$APP_CID" "app.$DOMAIN=$APP_CID" "worker.$DOMAIN=$WORKER_CID"; do
+          contents=("$DOMAIN=$APP_CID" "app.$DOMAIN=$APP_CID" "worker.$DOMAIN=$WORKER_CID")
+          texts=("app.$DOMAIN=app.$STAGED=executable" "worker.$DOMAIN=worker.$STAGED=executable" "$DOMAIN=$STAGED=manifest")
+          if [ "$MANIFEST_ONLY" = "true" ]; then contents=(); texts=("$DOMAIN=$STAGED=manifest"); fi
+          for pair in ${contents[@]+"${contents[@]}"}; do
             name=${pair%%=*}; want=${pair#*=}
             got=$(dotns content view "$name" --env "$DOTNS_ENV" --json | jq -r '.cid')
             [ "$got" = "$want" ] || { echo "::error title=Not promoted::$name serves $got, expected $want."; exit 1; }
             echo "$name serves $got"
           done
-          for pair in "app.$DOMAIN=app.$STAGED=executable" "worker.$DOMAIN=worker.$STAGED=executable" "$DOMAIN=$STAGED=manifest"; do
+          for pair in "${texts[@]}"; do
             name=${pair%%=*}; rest=${pair#*=}; staged=${rest%%=*}; key=${rest#*=}
             got=$(dotns text view "$name" "$key" --env "$DOTNS_ENV" --json | jq -r '.value // ""')
             want=$(jq -r '.value // ""' "records/$staged.$key.json")
@@ -542,6 +594,7 @@ jobs:
       # that touched Humanity, since generated notes cannot filter by path.
       # Latest stays Jollity's.
       - name: Create the release
+        if: inputs.scope != 'manifest'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -582,6 +635,7 @@ jobs:
             --notes-file notes.md --latest=false
 
       - name: Release summary
+        if: inputs.scope != 'manifest'
         env:
           VERSION: ${{ inputs.version }}
         run: |

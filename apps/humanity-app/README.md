@@ -327,7 +327,8 @@ keys — which is what lets a lite person sign up for the weekly game from the g
 (see [`docs/cross-product-game-signing.md`](docs/cross-product-game-signing.md)). `storage` lets it
 read this product's host storage. Grant only products whose names you own or trust on that network:
 whoever owns a label there controls what it runs. Hosts read the grants from the on-chain root
-manifest, so they take effect on the next deploy of each network and need a host on truapi 0.17
+manifest, so they take effect on the next deploy of each network (on paseo, the release name gets them
+through a Humanity release; its `manifest` scope copies only the grants) and need a host on truapi 0.17
 or newer. Keys are bare labels — never `dim2.paseo`.
 
 The app icon exists twice, on purpose. `apps/humanity-app/deploy/icon.png` is the **square** one the manifest
