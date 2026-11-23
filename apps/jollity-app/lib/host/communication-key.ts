@@ -49,7 +49,7 @@ export type KeyRead = "answered" | "refused" | "failed" | "no-answer"
 
 /** Why this player's own key was (not) found, decided in this order: no
  *  identifier on chain (and no read hung), a match, Humanity's read refused,
- *  a read that gave no answer, and else no kept key matches. A refusal wins
+ *  a read that gave no answer or failed, and else no kept key matches. A refusal wins
  *  over no match because it is why nothing could match. */
 export type OwnKeyCause = "found" | "no-identifier" | "read-refused" | "no-answer" | "no-match"
 
@@ -98,6 +98,8 @@ async function entropyKey(gameIndex: number, lookup?: Lookup): Promise<Communica
     if (entropy.ok) return communicationKeyFrom(entropy.value, gameIndex)
     warn("the host gave no entropy for the communication key", entropy.error)
   } catch (error) {
+    // the call itself failed: no answer, not a key that is missing
+    if (lookup) lookup.hung = true
     warn("the host gave no entropy for the communication key", error)
   }
   return null
@@ -170,7 +172,10 @@ export async function lookUpSignallingSecret(
     secrets.set(id, found)
     return { secret: found.secret, cause: "found", source: found.source, reads, ...refusal }
   }
-  const cause: OwnKeyCause = reads.humanity === "refused" ? "read-refused" : lookup.hung ? "no-answer" : "no-match"
+  // a read that failed says no more than one that hung: only a refusal, or
+  // every read answered, is a definite miss
+  const failed = reads.own === "failed" || reads.humanity === "failed"
+  const cause: OwnKeyCause = reads.humanity === "refused" ? "read-refused" : lookup.hung || failed ? "no-answer" : "no-match"
   return { secret: null, cause, reads, ...refusal }
 }
 
@@ -194,7 +199,12 @@ async function findSecret(
     const pair = sound(key)
     if (pair) return { secret: pair.secret, source }
   }
-  const gameIndex = (await bounded(lookup, "the game read", engine.game()).catch(() => null))?.index
+  const gameIndex = (
+    await bounded(lookup, "the game read", engine.game()).catch(() => {
+      lookup.hung = true // a game read that failed gave no answer
+      return null
+    })
+  )?.index
   const derived = gameIndex === undefined ? null : await entropyKey(gameIndex, lookup)
   const pair = derived ? sound(communicationKeyRecord(gameIndex!, derived)) : null
   if (pair) return { secret: pair.secret, source: "derived" }

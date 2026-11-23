@@ -37,7 +37,7 @@ When a DSN is set:
   (`signup.humanity_read`: `ok`, `refused`, `failed`, `no-answer` or `no-host`).
 - **A missing video key.** The video signalling of a game is sealed with the player's own key.
   When it cannot be found, the join and the game say why (`rtc.own_key.cause`: `read-refused`,
-  `no-match`, `no-identifier` or `no-answer`), which kept key matched once it is found
+  `no-match`, `no-identifier`, or `no-answer` for a read that hung or failed), which kept key matched once it is found
   (`rtc.own_key.source`: `jollity`, `humanity` or `derived`), and `rtc.own_key.recovered` when a
   later try found it. The failure `own-key-missing` goes out once per join, its reason the cause:
   `read-refused` and `no-match` as error events, `no-identifier` as a `failure` count and a log,

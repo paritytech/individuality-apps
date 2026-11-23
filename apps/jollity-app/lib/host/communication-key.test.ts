@@ -14,6 +14,8 @@ const host = vi.hoisted(() => ({
   hangNextRead: false,
   /** Humanity's storage rejects every read with this */
   humanityError: null as unknown,
+  /** this product's storage rejects every read with this */
+  ownError: null as unknown,
   logs: [] as string[],
 }))
 
@@ -22,6 +24,7 @@ vi.mock("@parity/product-sdk-host", () => ({ deriveEntropy: host.deriveEntropy }
 vi.mock("./storage", () => ({
   hostStorage: async () => ({
     readJSON: (key: string) => {
+      if (host.ownError) return Promise.reject(host.ownError)
       if (host.hangNextRead) {
         host.hangNextRead = false
         return new Promise(() => {})
@@ -53,6 +56,7 @@ beforeEach(() => {
   host.deriveEntropy.mockReset()
   host.hangNextRead = false
   host.humanityError = null
+  host.ownError = null
   host.logs.length = 0
 })
 
@@ -219,12 +223,34 @@ describe("why this player's own key was or was not found", () => {
     expect(lookup).toEqual({ secret: null, cause: "no-match", reads: { own: "answered", humanity: "answered" } })
   })
 
-  it("says failed for a read that broke without a refusal, and no-match for the lookup", async () => {
+  it("says failed for a read that broke without a refusal, and no-answer for the lookup: nothing definite", async () => {
     host.humanityError = new Error("bridge closed")
 
     const lookup = await lookUpSignallingSecret("leo", engine(freshCommunicationKey().publicKey))
 
-    expect(lookup).toMatchObject({ secret: null, cause: "no-match", reads: { own: "answered", humanity: "failed" } })
+    expect(lookup).toMatchObject({ secret: null, cause: "no-answer", reads: { own: "answered", humanity: "failed" } })
+  })
+
+  it("keeps read-refused first, over another read that failed", async () => {
+    host.humanityError = new HostReadRefused("peopl.paseo", "AccessNotGranted")
+    host.ownError = new Error("bridge closed")
+
+    const lookup = await lookUpSignallingSecret("lena", engine(freshCommunicationKey().publicKey))
+
+    expect(lookup).toMatchObject({ cause: "read-refused", reads: { own: "failed", humanity: "refused" } })
+  })
+
+  it("says no-answer when the game read or the host's entropy call fails", async () => {
+    const failingGame = {
+      communicationIdentifier: vi.fn(async () => freshCommunicationKey().publicKey),
+      game: vi.fn(async () => {
+        throw new Error("chain read failed")
+      }),
+    }
+    expect((await lookUpSignallingSecret("lars", failingGame)).cause).toBe("no-answer")
+
+    host.deriveEntropy.mockRejectedValue(new Error("bridge closed"))
+    expect((await lookUpSignallingSecret("lars", engine(freshCommunicationKey().publicKey))).cause).toBe("no-answer")
   })
 
   it("says no-answer when a read hangs, for the kept keys and for the identifier", async () => {

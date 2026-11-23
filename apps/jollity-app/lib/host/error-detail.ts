@@ -48,6 +48,17 @@ export class HostReadRefused extends Error {
   }
 }
 
+/** The one refusal a read of another product's storage answers with: that
+ *  product grants this caller no `storage` (truapi `HostLocalStorageReadError`).
+ *  Every other error of the read (`Full`, `Unknown`) is a read that failed. */
+const ACCESS_REFUSAL = "AccessNotGranted"
+
+/** Whether a host error is that refusal, wherever it sits in the `Domain` /
+ *  version nesting; `words` is the host's text for it (`formatHostError`). */
+export function isAccessRefusal(error: unknown, words: string): boolean {
+  return words === ACCESS_REFUSAL || walkTags(error, "tag").tags.includes(ACCESS_REFUSAL)
+}
+
 /** A host-API error to `Outer.Version.Variant`, plus the leaf's `reason` when
  *  it carries one (`Unknown`, `MalformedFrame`, `HostFailure`). */
 export function hostErrorText(error: unknown): string {

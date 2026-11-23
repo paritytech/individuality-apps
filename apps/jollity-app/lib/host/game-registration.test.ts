@@ -193,6 +193,17 @@ describe("the sign-up surface of the game the player joins", () => {
     expect((await readSignUpSurface(7)).surface).toBe("chat")
   })
 
+  it("counts only a missing grant as refused, in the host's nesting too; any other host error is a read that failed", async () => {
+    host.read.mockResolvedValue(refused({ tag: "Domain", value: { tag: "V1", value: { tag: "AccessNotGranted" } } }))
+    expect((await readSignUpSurface(7)).humanityRead).toBe("refused")
+
+    host.read.mockResolvedValue(refused({ tag: "Domain", value: { tag: "V1", value: { tag: "Full" } } }))
+    expect(await readSignUpSurface(7)).toEqual({ surface: "unreadable", humanityRead: "failed" })
+
+    host.read.mockResolvedValue(refused("Unknown: storage backend gone"))
+    expect((await readSignUpSurface(7)).humanityRead).toBe("failed")
+  })
+
   it("throws a refusal that keeps the host's reason apart from the line it logs", async () => {
     host.read.mockResolvedValue(refused("AccessNotGranted"))
     const { humanityStorage } = await import("./game-registration")

@@ -30,7 +30,7 @@ import {
 import { devLog } from "../debug/log-store"
 import { WORKER_NOTIFICATIONS_KEY } from "../debug/worker-evidence"
 import { withTimeout } from "../with-timeout"
-import { describeError, HostReadRefused } from "./error-detail"
+import { describeError, HostReadRefused, isAccessRefusal } from "./error-detail"
 import { hostStorage } from "./storage"
 
 const READ_TIMEOUT_MS = 8_000
@@ -59,7 +59,10 @@ export async function humanityStorage(): Promise<JSONStorage | null> {
       const value = (await api.localStorage.read({ product, key })).match(
         (response) => response.value ?? null,
         (error) => {
-          throw new HostReadRefused(product, sdk.formatHostError(error))
+          const words = sdk.formatHostError(error)
+          // only a missing grant is a refusal; any other host error is a read that failed
+          if (isAccessRefusal(error, words)) throw new HostReadRefused(product, words)
+          throw new Error(`${product} read failed: ${words}`)
         },
       )
       return value ? decodeStoredJSON(value) : null
