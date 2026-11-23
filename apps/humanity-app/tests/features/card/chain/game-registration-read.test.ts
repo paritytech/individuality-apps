@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@humanity/shared/chain/host-api.ts", () => ({
+  asProductId: (value: string) => value,
   getTruApi: mocks.getTruApi,
   getHostLocalStorage: mocks.getHostLocalStorage,
 }));

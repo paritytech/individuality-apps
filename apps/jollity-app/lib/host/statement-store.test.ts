@@ -22,7 +22,7 @@ describe("the room's statement subscription", () => {
         return { unsubscribe() {} }
       },
     }
-    const sdk = { getStatementStore: async () => store, getTruApi: async () => ({}) }
+    const sdk = { asProductId: (value: string) => value, getStatementStore: async () => store, getTruApi: async () => ({}) }
     const account = { dotNsIdentifier: "x", derivationIndex: 0 }
     const wrapped = await playerStatementStore(sdk as never, account as never, {
       onSubscribed: () => trace.calls.push("subscribed"),
@@ -42,7 +42,7 @@ describe("the room's statement subscription", () => {
         return { unsubscribe() {} }
       },
     }
-    const sdk = { getStatementStore: async () => store, getTruApi: async () => ({}) }
+    const sdk = { asProductId: (value: string) => value, getStatementStore: async () => store, getTruApi: async () => ({}) }
     const wrapped = await playerStatementStore(sdk as never, { dotNsIdentifier: "x", derivationIndex: 0 } as never)
     wrapped?.subscribe({ matchAny: [] } as never, () => {})
     expect(() => deliver({ statements: [] })).not.toThrow()
@@ -68,7 +68,7 @@ function endableStore() {
       }
     },
   }
-  const sdk = { getStatementStore: async () => store, getTruApi: async () => ({}), formatHostError: () => "ended" }
+  const sdk = { asProductId: (value: string) => value, getStatementStore: async () => store, getTruApi: async () => ({}), formatHostError: () => "ended" }
   return { sdk, opened }
 }
 
@@ -138,7 +138,7 @@ describe("who signed a statement (#2014)", () => {
         return { unsubscribe() {} }
       },
     }
-    const sdk = { getStatementStore: async () => store, getTruApi: async () => ({}) }
+    const sdk = { asProductId: (value: string) => value, getStatementStore: async () => store, getTruApi: async () => ({}) }
     const wrapped = await playerStatementStore(sdk as never, { dotNsIdentifier: "x", derivationIndex: 0 } as never)
     const pages: unknown[] = []
     wrapped?.subscribe({ matchAny: [] } as never, (page) => pages.push(page))

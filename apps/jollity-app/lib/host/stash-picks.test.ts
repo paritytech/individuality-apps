@@ -10,6 +10,7 @@ const host = vi.hoisted(() => ({
 }))
 
 vi.mock("@parity/product-sdk-host", () => ({
+  asProductId: (value: string) => value,
   getTruApi: host.getTruApi,
   formatHostError: host.formatHostError,
 }))

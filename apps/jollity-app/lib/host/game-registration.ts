@@ -52,7 +52,7 @@ export async function humanityStorage(): Promise<JSONStorage | null> {
   const sdk = await import("@parity/product-sdk-host")
   const api = await sdk.getTruApi()
   if (!api) return null
-  const product = humanityProduct()
+  const product = sdk.asProductId(humanityProduct())
   return {
     async readJSON(key) {
       const value = (await api.localStorage.read({ product, key })).match(

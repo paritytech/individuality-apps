@@ -29,7 +29,7 @@ import {
   type JSONStorage,
 } from "@individuality/shared-records";
 
-import { getHostLocalStorage, getTruApi } from "@humanity/shared/chain/host-api.ts";
+import { asProductId, getHostLocalStorage, getTruApi } from "@humanity/shared/chain/host-api.ts";
 import { GAME_STORAGE_PRODUCT_DOMAIN } from "@humanity/shared/identity/game-account.ts";
 import { loggerFor } from "@humanity/shared/logging/logger.ts";
 import { withTimeout } from "@humanity/shared/utils/with-timeout.ts";
@@ -52,7 +52,7 @@ async function jollityStorage(): Promise<JSONStorage | null> {
   if (truApi == null) return null;
   return {
     async readJSON(key) {
-      const result = await truApi.localStorage.read({ product: GAME_STORAGE_PRODUCT_DOMAIN, key });
+      const result = await truApi.localStorage.read({ product: asProductId(GAME_STORAGE_PRODUCT_DOMAIN), key });
       if (!result.isOk()) {
         const error = result.error;
         throw new ReadRefused(error.tag === "Domain" ? error.value.value.tag : error.tag);

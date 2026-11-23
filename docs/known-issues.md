@@ -43,7 +43,7 @@ bounded, and a deadline counts as a refusal:
 - the worker bounds each sign-up host call at 30 s (`boundedHostCall` in
   `apps/jollity-worker/src/host.ts`).
 
-This was last confirmed on product-sdk-host 0.24; the workspace pins 0.31.0
+This was last confirmed on product-sdk-host 0.24. The workspace pins 0.35.0
 today and has not been rechecked, so recheck it when the SDK moves. The bounds
 are harmless once the SDK forwards the failures.
 
@@ -112,7 +112,8 @@ scratch happens in Humanity (`apps/jollity-worker/src/daily-dollar/worker.ts`).
 
 | Feature | Needs | Below it | Where |
 | :-- | :-- | :-- | :-- |
-| Any host call | a host on the lockfile's `@parity/truapi` minor (0.27 today) | the handshake fails: `Malformed protocol error payload` | [host-wire.md](host-wire.md) |
+| Any host call | a host on the lockfile's `@parity/truapi` minor (0.32 today) | the handshake fails: `Malformed protocol error payload` | [host-wire.md](host-wire.md) |
+| Sign-up and every signed transaction, card button presses, the prize top-up, the room footer | a host on truapi 0.32 | the host cannot read the V2 request, so the call fails | `apps/jollity-worker/src/hostStack.test.ts` |
 | Jollity's transactions (sign-up, report) with the SDK's stock signer | truapi-host 0.23.0 | older hosts assembled the transaction one slot short | `lib/game-source.ts` |
 | Cross-product grants (`trustedProducts`) read from a manifest | truapi-host 0.17.0, and bulletin-deploy 0.19.0 to write them | no grants: the host refuses one product the other's keys (Jollity's free seat, the Daily Dollar in Jollity's chat) | `apps/humanity-app/deploy/bulletin-deploy.config.ts` |
 | Humanity's lite identity proof signed by its own product account | truapi-host 0.17 | falls back to the legacy-account call, which prompts | `sign-lite-identity-proof.ts` |

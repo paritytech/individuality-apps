@@ -4,6 +4,7 @@
 import { ss58Encode } from "@parity/product-sdk/address";
 
 import {
+  asProductId,
   formatHostError,
   fromHex,
   toHex,
@@ -72,7 +73,7 @@ export async function signLiteIdentityProofUnwatermarked(
   const product = await truApi.signing
     .signRawUnwatermarkedDeprecated({
       account: {
-        dotNsIdentifier: ownerDomain,
+        dotNsIdentifier: asProductId(ownerDomain),
         derivationIndex: { tag: "Index", value: 0 },
       },
       payload,

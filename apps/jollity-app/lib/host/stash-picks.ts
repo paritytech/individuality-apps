@@ -30,7 +30,7 @@ export async function readStashPicks(options: ReadStashPicksOptions = {}): Promi
       const sdk = await import("@parity/product-sdk-host")
       const api = await sdk.getTruApi()
       if (!api) return null
-      const result = await api.localStorage.read({ product, key: STASH_PICKS_KEY })
+      const result = await api.localStorage.read({ product: sdk.asProductId(product), key: STASH_PICKS_KEY })
       const response = result.match(
         (value) => value,
         (error) => {

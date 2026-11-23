@@ -34,6 +34,7 @@ vi.mock("./telemetry", async (importOriginal) => {
 vi.mock("@parity/product-sdk-host", () => {
   class ChainNotSupportedError extends Error {}
   return {
+    asProductId: (value: string) => value,
     ChainNotSupportedError,
     deriveEntropy: vi.fn(),
     findRingVrfKeyHandle: vi.fn(),
@@ -178,8 +179,8 @@ const DOCKED: RoomFooter = { card: { messageType: "jollity.gamecard", payload: U
 
 /** The setRoomFooter of the installed client up to its encoding, which is what throws on a footer it does not know. */
 function installedSetRoomFooter() {
-  return vi.fn((request: never) => {
-    VersionedHostChatSetRoomFooterRequest.enc({ tag: "V1", value: request })
+  return vi.fn((request: VersionedHostChatSetRoomFooterRequest["value"]) => {
+    VersionedHostChatSetRoomFooterRequest.enc({ tag: "V2", value: request })
     return answered()
   })
 }
@@ -639,27 +640,28 @@ describe("alt text the host accepts", () => {
 })
 
 describe("the room footer works", () => {
-  it("asks truapi for the footer of the room by its plain name", async () => {
+  it.each(["Empty", "TextInput"] as const)("asks truapi for the %s footer of the room by its plain name", async (footer) => {
     // Given
     const setRoomFooter = installedSetRoomFooter()
 
     // When
-    const outcome = await footerAnswer({ setRoomFooter })
+    const outcome = await footerAnswer({ setRoomFooter }, footer)
 
     // Then
     expect(setRoomFooter).toHaveBeenCalledTimes(1)
-    expect(setRoomFooter).toHaveBeenCalledWith({ roomId: "jollity", footer: "Empty" })
+    expect(setRoomFooter).toHaveBeenCalledWith({ roomId: "jollity", footer })
     expect(outcome).toBe("set")
   })
 
   it("docks a card as the Card footer of truapi", async () => {
     // Given
-    const setRoomFooter = vi.fn(() => answered())
+    const setRoomFooter = installedSetRoomFooter()
 
     // When
     const outcome = await footerAnswer({ setRoomFooter }, DOCKED)
 
     // Then
+    expect(setRoomFooter).toHaveBeenCalledTimes(1)
     expect(setRoomFooter).toHaveBeenCalledWith({
       roomId: "jollity",
       footer: { tag: "Card", value: { messageType: "jollity.gamecard", payload: "0x0102" } },
@@ -924,33 +926,20 @@ describe("host identity works", () => {
 })
 
 describe("the room footer fails", () => {
-  it("answers unsupported on a client or a host without the method", async () => {
+  it("answers unsupported with no truapi client or when the host answers unsupported", async () => {
     // Given
-    const older = {}
     const refusing = { setRoomFooter: () => answered({ tag: "Unsupported" }) }
 
     // When
-    const outcomes = [await footerAnswer(older), await footerAnswer(null), await footerAnswer(refusing)]
+    const outcomes = [await footerAnswer(null), await footerAnswer(refusing)]
 
     // Then
-    expect(outcomes).toEqual(["unsupported", "unsupported", "unsupported"])
-  })
-
-  it("answers unsupported for a card on a client older than the Card footer", async () => {
-    // Given
-    const setRoomFooter = installedSetRoomFooter()
-
-    // When
-    const outcome = await footerAnswer({ setRoomFooter }, DOCKED)
-
-    // Then
-    expect(outcome).toBe("unsupported")
-    expect(setRoomFooter).toHaveBeenCalledTimes(1)
+    expect(outcomes).toEqual(["unsupported", "unsupported"])
   })
 
   it("names a room the product did not create, and never throws", async () => {
     // Given
-    const unknown = { setRoomFooter: () => answered({ tag: "Domain", value: { tag: "V1", value: { tag: "UnknownRoom" } } }) }
+    const unknown = { setRoomFooter: () => answered({ tag: "Domain", value: { tag: "V2", value: { tag: "UnknownRoom" } } }) }
     const throwing = { setRoomFooter: () => Promise.reject(new Error("gone")) }
 
     // When
@@ -962,7 +951,7 @@ describe("the room footer fails", () => {
 
   it("answers failed on any other error of the domain", async () => {
     // Given
-    const unknown = { setRoomFooter: () => answered({ tag: "Domain", value: { tag: "V1", value: { tag: "Unknown", value: { reason: "gone" } } } }) }
+    const unknown = { setRoomFooter: () => answered({ tag: "Domain", value: { tag: "V2", value: { tag: "Unknown", value: { reason: "gone" } } } }) }
 
     // When
     const outcome = await footerAnswer(unknown)
@@ -1097,7 +1086,7 @@ describe("chain and account lookup fails", () => {
 
 const TOP_UP_ID = `0x${"ab".repeat(32)}` as const
 const topUpRefusal = (tag: string) =>
-  new Error(`payment topUp failed: ${tag}`, { cause: { tag: "Domain", value: { tag: "V1", value: { tag } } } })
+  new Error(`payment topUp failed: ${tag}`, { cause: { tag: "Domain", value: { tag: "V2", value: { tag } } } })
 
 async function topUpWith(payments: unknown) {
   const sdk = await import("@parity/product-sdk-host")

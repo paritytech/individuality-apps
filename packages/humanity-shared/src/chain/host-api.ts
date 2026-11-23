@@ -22,6 +22,7 @@ import * as localStorageSdk from "@parity/product-sdk/local-storage";
 import { traceHostCall, traceHostObject } from "./host-call-log.ts";
 
 export {
+  asProductId,
   ChainNotSupportedError,
   findRingVrfKeyHandle,
   formatHostError,

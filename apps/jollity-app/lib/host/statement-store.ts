@@ -92,7 +92,7 @@ export async function playerStatementStore(
   const [store, truApi] = await Promise.all([sdk.getStatementStore(), sdk.getTruApi()])
   if (!store || !truApi) return null
   const productAccountId = {
-    dotNsIdentifier: account.dotNsIdentifier,
+    dotNsIdentifier: sdk.asProductId(account.dotNsIdentifier),
     derivationIndex: { tag: "Index" as const, value: account.derivationIndex },
   }
   const toHostStatement = (wire: WireStatement) => ({

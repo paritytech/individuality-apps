@@ -131,6 +131,7 @@ type SymbolPin = [name: string, shape: Shape, arity?: number]
  * scan below, which fails when a scanned symbol is missing here.
  */
 const HOST: SymbolPin[] = [
+  ["asProductId", "function", 1],
   ["ChainNotSupportedError", "function", 1],
   ["deriveEntropy", "function", 1],
   ["findRingVrfKeyHandle", "function", 2],

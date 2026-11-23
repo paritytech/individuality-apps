@@ -1,14 +1,14 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { HostAccountCreateProofRequest } from "@parity/truapi";
+import type { HostAccountCreateProofRequest, ProductProofContext } from "@parity/truapi";
 
 import { hostError } from "@humanity/shared/chain/error-detail.ts";
 import {
+  asProductId,
   fromHex,
   toHex,
   type HexString,
-  type ProductProofContext,
   type RingLocation,
   type RingVRFProof,
   type RingVrfKeyHandle,
@@ -57,7 +57,7 @@ export async function createRingVrfProof({
   contextMismatchMessage,
 }: CreateRingVrfProofArgs): Promise<RingVRFProof> {
   const context: ProductProofContext = {
-    productId,
+    productId: asProductId(productId),
     suffix: { tag: "Index", value: contextIndex },
   };
   const request: HostAccountCreateProofRequest = {

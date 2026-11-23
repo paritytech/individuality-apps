@@ -11,7 +11,7 @@ How the lite→full username claim works, and how to run it end to end against a
   [trinity-user-agents#731](https://github.com/paritytech/trinity-user-agents/pull/731).
 - Nothing unreleased: the SPA calls those signing methods on the truAPI client itself, so no
   `@parity/product-sdk` change is required. The lockfile resolves a single `@parity/truapi`
-  `0.27.0` copy, the one `@parity/product-sdk-host` 0.31 also resolves to, and
+  `0.32.0` copy, the one `@parity/product-sdk-host` 0.35 also resolves to, and
   `apps/jollity-worker/src/hostStack.test.ts` fails on a second. One copy matters: two
   would give the Desktop webview two `MessagePort` handler sets.
 - A disposable identity. Claiming a name permanently links the lite and full identities in public.

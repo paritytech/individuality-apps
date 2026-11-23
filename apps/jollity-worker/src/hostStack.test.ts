@@ -101,12 +101,12 @@ describe("host stack shared by the app and the worker works", () => {
 
     // Then
     expect(truapiEntries).toEqual(["node_modules/@parity/truapi"])
-    expect(truapiVersion).toBe("0.27.0")
+    expect(truapiVersion).toBe("0.32.0")
   })
 })
 
 describe("truapi wire codec pin works", () => {
-  it("is codec version 3 and wire schema 72bf858138ead26e. Bumping either must move with the host, never alone", async () => {
+  it("is codec version 3 and wire schema 7c6a3a324db0decd. Bumping either must move with the host, never alone", async () => {
     // Given
     const truapi = await import("@parity/truapi")
 
@@ -122,8 +122,8 @@ describe("truapi wire codec pin works", () => {
     expect(
       TRUAPI_WIRE_SCHEMA_HASH,
       "The truapi wire schema hash changed, so a method moved even though the codec did not. " +
-        "product-sdk-host 0.31 pairs with truapi 0.27 hosts, whose schema is 72bf858138ead26e.",
-    ).toBe("72bf858138ead26e")
+        "product-sdk-host 0.35 pairs with truapi 0.32 hosts, whose schema is 7c6a3a324db0decd.",
+    ).toBe("7c6a3a324db0decd")
   })
 })
 

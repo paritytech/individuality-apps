@@ -126,7 +126,7 @@ function toWireModifier(modifier: Modifier): WireModifier {
 }
 
 /**
- * The SlideToConfirm node of the renderer protocol, which truapi 0.27.0, the
+ * The SlideToConfirm node of the renderer protocol, which truapi 0.32.0, the
  * one this worker ships with, does not carry. truapi writes it as renderer
  * variant 12, after Materials, once a release carries it.
  *

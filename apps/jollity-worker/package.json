@@ -30,11 +30,11 @@
     "@jollity/protocol": "*",
     "@next/env": "16.4.6",
     "@noble/hashes": "^2.4.0",
-    "@parity/product-sdk-host": "0.31.0",
+    "@parity/product-sdk-host": "0.35.0",
     "@parity/product-sdk-individuality": "0.11.4",
     "@parity/product-sdk-nfts": "0.4.1",
     "@parity/product-sdk-tx": "0.5.7",
-    "@parity/truapi": "^0.27.0",
+    "@parity/truapi": "^0.32.0",
     "@polkadot-api/signers-common": "^0.4.0",
     "polkadot-api": "^3.2.1"
   },

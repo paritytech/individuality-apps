@@ -14,10 +14,7 @@
  * null without a truapi host. Cards render through its
  * `onCustomMessageRenderingRequest`.
  *
- * The footer of the room is truapi only too, and its Card is newer than the
- * `@parity/truapi` this worker runs on. Its client is typed by its shape, so a
- * client without the method or without the Card answers "unsupported" until
- * product-sdk-host carries the release that has it. A docked card is drawn
+ * The footer of the room is truapi only too, and a docked card is drawn
  * through the renderer of truapi.
  *
  * The button presses of both kinds of card come through one action
@@ -34,6 +31,7 @@
  * the one the app opens its mesh with.
  */
 import {
+  asProductId,
   ChainNotSupportedError,
   deriveEntropy,
   findRingVrfKeyHandle,
@@ -82,7 +80,14 @@ import {
 import type { JsonRpcProvider } from "polkadot-api"
 import type { CommonSignerTxCreator } from "@polkadot-api/signers-common"
 import { storedJSON } from "@jollity/collectables"
-import type { RendererNode, ChatRoomRegistrationStatus, ChatBotRegistrationStatus } from "@parity/truapi"
+import type {
+  CallErrorValue,
+  ChatBotRegistrationStatus,
+  ChatRoomFooter,
+  ChatRoomRegistrationStatus,
+  RendererNode,
+  VersionedHostChatSetRoomFooterError,
+} from "@parity/truapi"
 import type { HostTheme } from "./card"
 import { chatFailure, describeError, describeErrorChain, nameHostCallError } from "./telemetry"
 import { CallDeadlineError, within } from "./state"
@@ -328,8 +333,6 @@ function enqueuePost<T>(post: () => Promise<T>): Promise<T> {
   return turn
 }
 
-type WireRoomFooter = "TextInput" | "Empty" | { tag: "Card"; value: { messageType: string; payload: string } }
-
 interface RoomFooterContext {
   roomId: string
   messageType: string
@@ -339,12 +342,6 @@ interface RendererAction {
   context: { tag: string; value: Partial<RoomFooterContext> & { messageId?: string } }
   actionId: string
   payload: `0x${string}`
-}
-
-interface RoomFooterClient {
-  chat: {
-    setRoomFooter?(request: { roomId: string; footer: WireRoomFooter }): PromiseLike<{ isOk(): boolean; error?: unknown }>
-  }
 }
 
 interface RendererActionClient {
@@ -358,35 +355,22 @@ interface RendererActionClient {
 const ROOM_FOOTER_CONTEXT = "ChatRoomFooter" as string as RenderContextTag
 const MESSAGE_CONTEXT = "ChatMessage"
 
-function roomFooterFailure(error: unknown): RoomFooterOutcome {
-  const { tag, value } = (error ?? {}) as { tag?: unknown; value?: { value?: { tag?: unknown } } }
-  if (tag === "Unsupported") return "unsupported"
-  if (tag === "Domain" && value?.value?.tag === "UnknownRoom") return "unknown-room"
+function roomFooterFailure(error: CallErrorValue<VersionedHostChatSetRoomFooterError>): RoomFooterOutcome {
+  if (error.tag === "Unsupported") return "unsupported"
+  if (error.tag === "Domain" && error.value.value.tag === "UnknownRoom") return "unknown-room"
   return "failed"
 }
 
-/** Null for a card on a client that has no Card footer. */
-function sendRoomFooter(client: RoomFooterClient, roomId: string, footer: RoomFooter) {
-  if (typeof footer === "string") return client.chat.setRoomFooter!({ roomId, footer })
-  try {
-    return client.chat.setRoomFooter!({
-      roomId,
-      footer: { tag: "Card", value: { messageType: footer.card.messageType, payload: toHex(footer.card.payload) } },
-    })
-  } catch {
-    // The codec of a client older than the Card footer throws on one before
-    // anything reaches the host.
-    return null
-  }
-}
+const wireFooter = (footer: RoomFooter): ChatRoomFooter =>
+  typeof footer === "string"
+    ? footer
+    : { tag: "Card", value: { messageType: footer.card.messageType, payload: toHex(footer.card.payload) } }
 
 async function setRoomFooter(roomId: string, footer: RoomFooter): Promise<RoomFooterOutcome> {
   try {
-    const truApi = (await getTruApi()) as unknown as RoomFooterClient | null
-    if (!truApi?.chat.setRoomFooter) return "unsupported"
-    const sent = sendRoomFooter(truApi, roomId, footer)
-    if (!sent) return "unsupported"
-    const result = await sent
+    const truApi = await getTruApi()
+    if (!truApi) return "unsupported"
+    const result = await truApi.chat.setRoomFooter({ roomId, footer: wireFooter(footer) })
     return result.isOk() ? "set" : roomFooterFailure(result.error)
   } catch {
     return "failed"
@@ -839,7 +823,7 @@ export function createWorkerHost(): WorkerHost {
       async readProductJSON<T>(product: string, key: string) {
         return callHost("storage.readProductJSON", async () => {
           const truApi = await orThrow(getTruApi(), "truapi")
-          const result = await truApi.localStorage.read({ product, key })
+          const result = await truApi.localStorage.read({ product: asProductId(product), key })
           const value = result.match(
             (response) => response.value ?? null,
             (error) => {

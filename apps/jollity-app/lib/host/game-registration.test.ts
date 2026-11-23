@@ -17,6 +17,7 @@ const stored = vi.hoisted(() => ({
 }))
 
 vi.mock("@parity/product-sdk-host", () => ({
+  asProductId: (value: string) => value,
   getTruApi: async () => ({ localStorage: { read: host.read } }),
   getHostLocalStorage: async () => host.own,
   getNotificationManager: async () => host.notifications,
