@@ -50,6 +50,9 @@ NEXT_PUBLIC_NETWORK_NAME=paseo PRODUCT_DOTNS=my-game.paseo npm run build:chat
   (`NEXT_PUBLIC_DEVICE_UNIQUENESS_BACKEND_URL`,
   `NEXT_PUBLIC_SIGNUP_ACCOUNT_INDEX` and others listed in `scripts/build.mjs`)
   in the shell too.
+- `DD_SCRATCH=worker` builds a worker that posts the Daily Dollar scratch
+  card it draws itself (`src/daily-dollar/scratch-worker.ts`). Its ticket
+  and claim are stand-ins, so the default (`none`) posts none.
 
 The build writes `dist/index.js` (esbuild, ASCII output, since the host reads
 worker code as Latin-1) and copies the card pictures it names from
