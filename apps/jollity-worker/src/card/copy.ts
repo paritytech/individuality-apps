@@ -43,6 +43,8 @@ export const START_PLAYING = "Start playing"
 export const LIVE_NOW = "Live now"
 /** Along the top of the card of a game ahead, beside a circle for each game still between a candidate and membership. */
 export const GAMES_TO_MEMBERSHIP = (count: number) => `${count} ${count === 1 ? "game" : "games"} to Membership`
+/** Beside the circles of the countdown to the join, where the card already speaks of the game ahead. */
+export const GAMES_LEFT = (count: number) => `${count} ${count === 1 ? "game" : "games"} left`
 
 export const REGISTRATION_CLOSED_NOTICE = "You just missed this one. Stay tuned for the next game."
 /** The notice under I'll be there when a sign-up from the chat did not go through. */

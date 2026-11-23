@@ -242,7 +242,7 @@ export function gameCardNode(slot: GameSlot, ui: CardUi, nowSeconds: number, opt
   switch (slot.kind) {
     // A game that is not coming, in the clock it would have shown, its circles greyed out.
     case "cancelled":
-      return column([partyClock(heading(copy.GAME_CANCELLED, dateLine(slot.startAt)), { gamesLeft: slot.gamesToMembership, off: true })], frame)
+      return column([endedBox(copy.GAME_CANCELLED, slot.startAt)], frame, { horizontalAlignment: "center" })
 
     // The worker posts a card per game, so no card is ever drawn without one.
     case "none":
@@ -694,7 +694,7 @@ const ACTION_TAP_AREA = " ".repeat(60)
  */
 function partyClock(
   content: RenderNode[],
-  options: { gamesLeft?: number | null; counting?: boolean; off?: boolean; foot?: RenderNode | RenderNode[]; footPadding?: number } = {},
+  options: { gamesLeft?: number | null; caption?: (count: number) => string; counting?: boolean; off?: boolean; foot?: RenderNode | RenderNode[]; footPadding?: number } = {},
 ): RenderNode {
   const games = options.gamesLeft ? gamesRow(options.gamesLeft, options) : null
   const slab = column(content, [fill, pad(16), background("bg.surface.nested", 20)], { horizontalAlignment: "start", verticalArrangement: "spaceBetween" })
@@ -719,7 +719,7 @@ function openingSoon(startAt: number, options: Parameters<typeof partyClock>[1])
 }
 
 function leftToJoin(startAt: number, nowSeconds: number, options: Parameters<typeof partyClock>[1]): RenderNode {
-  return partyClock(heading(copy.LEFT_TO_JOIN, formatCountdown(startAt - JOIN_LEAD_S, nowSeconds)), options)
+  return partyClock(heading(copy.LEFT_TO_JOIN, formatCountdown(startAt - JOIN_LEAD_S, nowSeconds)), { ...options, caption: copy.GAMES_LEFT })
 }
 
 function votesRow(votes: { received: number; most: number }): RenderNode {
@@ -750,7 +750,7 @@ function dateLine(startAt: number, color: ColorToken = "fg.primary"): RenderNode
  * While the results of a game are pending, its circle holds a dot and the
  * words go, since the count changes once the results land.
  */
-function gamesRow(gamesLeft: number, look: { counting?: boolean; off?: boolean }): RenderNode {
+function gamesRow(gamesLeft: number, look: { caption?: (count: number) => string; counting?: boolean; off?: boolean }): RenderNode {
   const ink: ColorToken = look.off ? "fg.tertiary" : "fg.secondary"
   const circles = Array.from({ length: Math.min(gamesLeft, MAX_CIRCLES) }, (_, i) =>
     look.counting && i === 0 ? circle("fg.warning", true) : circle(ink, false),
@@ -760,7 +760,7 @@ function gamesRow(gamesLeft: number, look: { counting?: boolean; off?: boolean }
       inline(circles.flatMap((node, i) => (i === 0 ? [node] : [horizontalSpacer(CIRCLE_GAP), node]))),
       ...(look.counting ? [] : [
             flexibleSpacer(),
-            column([text(copy.GAMES_TO_MEMBERSHIP(gamesLeft), { style: "body.small.regular", color: ink })], [width(GAMES_CAPTION_WIDTH)], {
+            column([text((look.caption ?? copy.GAMES_TO_MEMBERSHIP)(gamesLeft), { style: "body.small.regular", color: ink })], [width(GAMES_CAPTION_WIDTH)], {
               horizontalAlignment: "end",
             }),
           ]),

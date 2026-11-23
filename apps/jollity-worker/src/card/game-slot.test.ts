@@ -908,7 +908,6 @@ describe("game card before the game works", () => {
       { kind: "registered", startAt: START, ...progress },
       { kind: "starting", startAt: START, ...progress },
       { kind: "closed", startAt: START, ...progress },
-      { kind: "cancelled", startAt: START, ...progress },
     ]
     const pending = { kind: "pending" as const, endedAt: START, resultsAt: START + 600, ...progress }
 
@@ -919,7 +918,8 @@ describe("game card before the game works", () => {
     // Then
     for (const [kind, json] of drawn) {
       expect({ kind, circles: json.split('"tag":"padding","value":[2,2,2,2]').length - 1 }).toEqual({ kind, circles: 3 })
-      expect({ kind, caption: json.includes("3 games to Membership") }).toEqual({ kind, caption: true })
+      const caption = kind === "registered" || kind === "starting" ? "3 games left" : "3 games to Membership"
+      expect({ kind, caption: json.includes(caption) }).toEqual({ kind, caption: true })
     }
     expect(pendingJson).not.toContain('"tag":"padding","value":[2,2,2,2]')
     expect(pendingJson).not.toContain("to Membership")
@@ -1046,7 +1046,7 @@ describe("game card before the game works", () => {
     const busy = gameCardNode(register, { busy: true, notice: null }, START - 1200)
 
     // Then
-    expect(strings(busy)).toEqual(["2 games to Membership", "Left to join", "19:00"])
+    expect(strings(busy)).toEqual(["2 games left", "Left to join", "19:00"])
     expect(buttons(busy)).toEqual([])
     expect(images(busy)).toEqual([])
   })
@@ -1282,7 +1282,7 @@ describe("game card before the game works", () => {
     expect(strings(failed)).toEqual(["Next game", formatGameTime(START), "I'll be there", "Couldn't sign you up."])
   })
 
-  it("says a cancelled game did not go ahead over its date, with no button, no line under it and its circles greyed out", () => {
+  it("says a cancelled game did not go ahead in the grey box of a game that ended, with no circles, no button and no line under it", () => {
     // Given
     const cancelled = { kind: "cancelled" as const, startAt: START, gamesToMembership: 2 }
 
@@ -1290,8 +1290,8 @@ describe("game card before the game works", () => {
     const card = gameCardNode(cancelled, IDLE_UI, START + 60)
 
     // Then
-    expect(strings(card)).toEqual(["2 games to Membership", "Game cancelled", formatGameTime(START)])
-    expect(propsOf(card, "2 games to Membership")).toEqual({ style: "body.small.regular", color: "fg.tertiary" })
+    expect(strings(card)).toEqual(["Game cancelled", formatGameDate(START)])
+    expect(JSON.stringify(card)).not.toContain('"tag":"padding","value":[2,2,2,2]')
     expect(actions(card)).toEqual([])
   })
 
