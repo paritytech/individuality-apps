@@ -151,6 +151,26 @@ describe("journey.join", () => {
     expect(journeysNamed("join")[0].attrs["rtc.no_signalling_key"]).toBe("false")
   })
 
+  it("puts the sign-up surface on the join and the game, even when it was read before the join opened", () => {
+    trace.noteSignUpSurface(5, { surface: "unreadable", humanityRead: "refused" })
+    trace.beginJoin({ cameraWarm: false })
+    expect(journeysNamed("join")[0].attrs["signup.surface"]).toBeUndefined()
+    trace.noteGame(5, 0)
+    expect(journeysNamed("join")[0].attrs).toMatchObject({ "signup.surface": "unreadable", "signup.humanity_read": "refused" })
+    trace.roundChanged(0)
+    expect(journeysNamed("game")[0].attrs).toMatchObject({ "signup.surface": "unreadable", "signup.humanity_read": "refused" })
+    trace.noteSignUpSurface(5, { surface: "humanity", humanityRead: "ok" })
+    expect(journeysNamed("join")[0].attrs).toMatchObject({ "signup.surface": "humanity", "signup.humanity_read": "ok" })
+    expect(journeysNamed("game")[0].attrs).toMatchObject({ "signup.surface": "humanity", "signup.humanity_read": "ok" })
+  })
+
+  it("leaves off a sign-up surface read for another game", () => {
+    trace.noteSignUpSurface(4, { surface: "app", humanityRead: "ok" })
+    trace.beginJoin({ cameraWarm: false })
+    trace.noteGame(5, 0)
+    expect(journeysNamed("join")[0].attrs["signup.surface"]).toBeUndefined()
+  })
+
   it("ends full once every present peer is connected, with each peer's path", () => {
     trace.beginJoin({ cameraWarm: true })
     trace.cameraSettled({ kind: "live" })

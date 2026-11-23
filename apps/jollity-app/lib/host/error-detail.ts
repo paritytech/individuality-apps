@@ -33,6 +33,21 @@ const clamp = (text: string) => (text.length <= MAX_LINK ? text : `${text.slice(
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
+/**
+ * The host refused a read of another product's storage (no grant in that
+ * product's manifest, for one). Its message is the line the log has always
+ * shown; `reason` is the host's own words for the refusal, kept apart so a
+ * reader can tell a refusal from a read that failed and say why.
+ */
+export class HostReadRefused extends Error {
+  constructor(
+    readonly product: string,
+    readonly reason: string,
+  ) {
+    super(`${product} refused the read: ${reason}`)
+  }
+}
+
 /** A host-API error to `Outer.Version.Variant`, plus the leaf's `reason` when
  *  it carries one (`Unknown`, `MalformedFrame`, `HostFailure`). */
 export function hostErrorText(error: unknown): string {

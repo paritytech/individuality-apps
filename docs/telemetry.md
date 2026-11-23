@@ -31,7 +31,10 @@ When a DSN is set:
   events of one kind per page session. There is no switch to leave the player's identity out while
   telemetry is on; Humanity has one (`VITE_SENTRY_SEND_IDENTITY`).
 - **Journeys** (sign-up, joining a game, the game itself, the payoff) as transactions with their
-  timings.
+  timings. The join and the game say which surface signed the player up for that game
+  (`signup.surface`: `humanity`, `app`, `chat`, `none`, or `unreadable` when no record was found
+  and a store could not be read) and how the read of Humanity's store went
+  (`signup.humanity_read`: `ok`, `refused`, `failed`, `no-answer` or `no-host`).
 - **Metrics**: video link quality per round, frame smoothness and connection funnel steps. A link
   is named by `rtc.pair`, a short hash of the game, the round and the two players' accounts, and a
   peer by `rtc.peer`, its index in the game; neither carries another player's account. Anyone who

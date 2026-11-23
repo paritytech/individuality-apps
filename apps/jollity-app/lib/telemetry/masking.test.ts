@@ -43,6 +43,18 @@ describe("masking-safe literals", () => {
   )
 })
 
+describe("masking-safe sign-up surface vocabulary", () => {
+  // the join and game span attributes of lib/journeys/game-trace.ts noteSignUpSurface
+  const words = [
+    "signup.surface", "signup.humanity_read",
+    "humanity", "app", "chat", "none", "unreadable",
+    "ok", "refused", "failed", "no-answer", "no-host",
+  ]
+  it.each(words.map((word) => [word]))("%s", (word) => {
+    expect(isMaskSafe(word)).toBe(true)
+  })
+})
+
 describe("masking-safe sealed signalling vocabulary", () => {
   // the per-player flag on the game trace, and the sealed wire's counters in
   // the connection_stalled detail (packages/jollity-statement-core health.ts)

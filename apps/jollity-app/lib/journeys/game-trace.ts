@@ -268,7 +268,7 @@ export function noteGame(gameIndex: number, clockOffset: number, reportEnds?: nu
   // the first game/seat read at the handover: from /game mounting to the chain's answer
   if (firstRead) live(trace.join)?.step("chain.read", {}, { startedAt: trace.joinedAt }).end()
   trace.clockOffset = String(clockOffset)
-  trace.join?.set({ "game.index": String(gameIndex), "clock.offset": trace.clockOffset })
+  trace.join?.set({ "game.index": String(gameIndex), "clock.offset": trace.clockOffset, ...signUpAttrs() })
   setGameIndex(gameIndex)
   beginGameLogOutbox(gameIndex)
   // the marker the late log upload looks for (lib/telemetry/game-log.ts)
@@ -314,6 +314,42 @@ export function statementsFirstPage(): void {
   if (!join) return
   statementsDone = true
   join.step("statements.first_page", {}, { startedAt: openedAt }).end()
+}
+
+/** What `readSignUpSurface` (lib/host/game-registration.ts) found for a game. */
+export interface SignUpFacts {
+  surface: string
+  humanityRead: string
+}
+
+/** the sign-up surface of the game it was read for (null: the game was not
+ *  known). Outside Trace, like `statementsOpenedAt`: the first key lookup,
+ *  which reads it, can run before /game's join opens, and a join then gets it
+ *  once its game is known */
+let signUpSurface: { gameIndex: number | null; facts: SignUpFacts } | null = null
+
+/** the sign-up surface, when it was read for the game this trace is in (or
+ *  either game is still unknown) */
+function currentSignUp(): SignUpFacts | null {
+  const known = signUpSurface
+  if (!known) return null
+  return known.gameIndex === null || trace.gameIndex === null || known.gameIndex === trace.gameIndex ? known.facts : null
+}
+
+function signUpAttrs(): Record<string, string> {
+  const facts = currentSignUp()
+  return facts ? { "signup.surface": facts.surface, "signup.humanity_read": facts.humanityRead } : {}
+}
+
+/** Which surface signed this player up for `gameIndex`, and how the read of
+ *  Humanity's store went: `signup.surface` and `signup.humanity_read` on the
+ *  join and the game. A refused read shows on every join, even when the
+ *  surface is known from Jollity's own store. */
+export function noteSignUpSurface(gameIndex: number | null, facts: SignUpFacts): void {
+  signUpSurface = { gameIndex, facts }
+  const attrs = signUpAttrs()
+  live(trace.join)?.set(attrs)
+  live(trace.game)?.set(attrs)
 }
 
 /** a lookup of this player's own signalling key came back: "true" when it was
@@ -952,6 +988,7 @@ export function roundChanged(round: number | null, between = false, turn?: numbe
         "clock.offset": trace.clockOffset,
         "game.late": round > 0 ? "true" : "false",
         ...(trace.gameIndex !== null ? { "game.index": String(trace.gameIndex) } : {}),
+        ...signUpAttrs(),
       },
       { sameTraceAs: trace.join, ownsLifecycle: true },
     )
@@ -1350,6 +1387,7 @@ export function resetGameTraceForTests(): void {
   trace = fresh()
   statementsOpenedAt = null
   statementsDone = false
+  signUpSurface = null
   startRtcGame()
   resetPaths()
   resetDecoders()

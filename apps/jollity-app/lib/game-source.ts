@@ -73,13 +73,13 @@ import {
 } from "@individuality/game-outcome"
 import { playerStatementStore, signerOfPlayer } from "./host/statement-store"
 import { isHostChannelInterruption, retrySafeHostRead, safeHostReadWhenConnected, type HostConnectionSource } from "./host/safe-call"
-import { signalSubmit, signallingKeyLookedUp, statementsFirstPage, statementsInterrupted, statementsResubscribed, statementsSubscribed } from "./journeys/game-trace"
+import { noteSignUpSurface, signalSubmit, signallingKeyLookedUp, statementsFirstPage, statementsInterrupted, statementsResubscribed, statementsSubscribed } from "./journeys/game-trace"
 import { signUpCapabilities } from "./host/sign-up"
 import { describeError } from "./host/error-detail"
 import { knownDisplayName } from "./host/identity"
 import { holdGameReminder, reminderForSignup } from "./host/game-reminder"
 import { communicationIdentifier, signallingSecret } from "./host/communication-key"
-import { readGameRegistration, recordSignUp } from "./host/game-registration"
+import { readGameRegistration, readSignUpSurface, recordSignUp, type SignUpSurfaceFacts } from "./host/game-registration"
 import { sweepClaimedPrizes } from "./prize-sweep"
 import { devLog } from "./debug/log-store"
 import { warnThrottled } from "./debug/warn-throttled"
@@ -2699,6 +2699,17 @@ async function resolveSource(): Promise<GameSource | null> {
                 onResubscribed: statementsResubscribed,
               })
             : Promise.resolve(null)
+        // which surface signed this player up for the game being joined, on
+        // the join and the game spans: read once per game, beside the first
+        // key lookup, and never in its way
+        let signUpRead: { game: number | null; facts: Promise<SignUpSurfaceFacts> } | undefined
+        const signUpSurface = async (): Promise<SignUpSurfaceFacts> => {
+          const game = (await withTimeout(engine.game(), GAME_READ_TIMEOUT_MS).catch(() => null))?.index ?? null
+          if (!signUpRead || signUpRead.game !== game) signUpRead = { game, facts: readSignUpSurface(game) }
+          const facts = await signUpRead.facts
+          noteSignUpSurface(game, facts)
+          return facts
+        }
         const signalling = statementTransport({
           resolveStore,
           // the peer TTL and the stats on the step-free device clock; the
@@ -2737,6 +2748,7 @@ async function resolveSource(): Promise<GameSource | null> {
           // v4: a v3 build sent them in the clear)
           keys: {
             secret: async () => {
+              void signUpSurface().catch(() => {})
               let found: Uint8Array | null = null
               try {
                 found = player ? await signallingSecret(player, engine) : null
