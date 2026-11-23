@@ -241,6 +241,14 @@ describe("journey.join", () => {
     expect(recorded.failures).toEqual([expect.objectContaining({ kind: "own-key-missing", journey: "join", details: expect.objectContaining({ reason: "read-refused" }) })])
   })
 
+  it("drops a held miss once a later lookup finds the key: a recovered player sends nothing on the next join", async () => {
+    trace.ownKeyMissed(refusedMiss, refused)
+    trace.signallingKeyLookedUp(true, { cause: "found", source: "humanity" })
+    trace.beginJoin({ cameraWarm: false })
+    await flush()
+    expect(recorded.failures).toHaveLength(0)
+  })
+
   it("sends nothing for a lookup whose reads gave no answer, and the next real miss still goes", async () => {
     trace.beginJoin({ cameraWarm: false })
     trace.ownKeyMissed({ cause: "no-answer", reads: { own: "no-answer", humanity: "answered" }, humanityProduct: "peopl.paseo" }, Promise.resolve(null))

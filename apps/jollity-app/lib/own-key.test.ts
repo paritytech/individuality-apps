@@ -94,6 +94,26 @@ describe("the transport's own-key lookup", () => {
     expect(readSignUpSurface).toHaveBeenCalledWith(9)
   })
 
+  it("drops the kept game read once the session names the game, so a later game on the page reads afresh", async () => {
+    host.lookup = { secret: null, cause: "no-match", reads: { own: "answered", humanity: "answered" } }
+    host.surface = Promise.resolve({ surface: "none", humanityRead: "ok" })
+    const chain = engine()
+    const secret = ownKeySecret("alice", chain)
+    await secret() // before the session has said: one chain read, game 9
+    trace.beginJoin({ cameraWarm: false })
+    trace.noteGame(12, 0)
+    await secret() // the session's game, no chain read
+    // the next game on the same page: a new join that has not said its game yet
+    trace.leftGame()
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    chain.game.mockResolvedValue({ index: 13 } as never)
+    trace.beginJoin({ cameraWarm: false })
+    await secret()
+    await flush()
+    expect(chain.game).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(readSignUpSurface).mock.calls.map(([game]) => game)).toEqual([9, 12, 13])
+  })
+
   it("takes the game from the session once it has said, with no chain read", async () => {
     host.lookup = { secret: SECRET, cause: "found", source: "jollity" }
     trace.beginJoin({ cameraWarm: false })

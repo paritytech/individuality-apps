@@ -28,11 +28,15 @@ export function ownKeySecret(
   engine: Pick<GameEngine, "communicationIdentifier" | "game">,
 ): () => Promise<Uint8Array | null | "no-answer"> {
   // the game: the session's once it has said, else one chain read, kept once
-  // it answers (a read that gave nothing is asked again next time)
+  // it answers (a read that gave nothing is asked again next time) until the
+  // session names the game, so a later game on the same page reads afresh
   let gameRead: Promise<number | null> | undefined
   const gameIndex = (): Promise<number | null> => {
     const known = currentGameIndex()
-    if (known !== null) return Promise.resolve(known)
+    if (known !== null) {
+      gameRead = undefined
+      return Promise.resolve(known)
+    }
     const read = (gameRead ??= withTimeout(engine.game(), GAME_READ_TIMEOUT_MS).then(
       (game) => game?.index ?? null,
       () => null,

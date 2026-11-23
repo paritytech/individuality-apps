@@ -393,6 +393,8 @@ export function signallingKeyLookedUp(found: boolean, outcome?: OwnKeyOutcome): 
   if (found && outcome?.source) attrs["rtc.own_key.source"] = outcome.source
   if (found && trace.ownKeyMissed) attrs["rtc.own_key.recovered"] = "true"
   if (!found) trace.ownKeyMissed = true
+  // a player whose key turned up sends nothing for a miss held for a join
+  else heldOwnKeyMiss = null
   live(trace.join)?.set(attrs)
   live(trace.game)?.set(attrs)
 }
