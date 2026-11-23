@@ -159,6 +159,7 @@ import {
   type RoomFooter,
   type Unsubscribe,
   type WorkerHost,
+  type WorkerHostInfoRead,
 } from "./host"
 
 const TAG = "[jollity-chat]"
@@ -180,6 +181,11 @@ const PERMISSION_WAIT_MS = 30_000
 const BOOKING_RETRY_MS = 10 * 60_000
 const ANSWER_POLL_MS = 1_000
 let hostInfoReady: Promise<void> = Promise.resolve()
+// A failed read of the host's identity is tried again from the next poll, and a
+// timed-out read is waited on for its late answer and tried again if that fails,
+// so a host busy at start does not leave the run without its slide until the app restarts.
+let hostInfoKnown = false
+let hostInfoReading = false
 // The sign-up is a slide only once the host says it draws one, so a card drawn
 // before the answer, or for any older host, is the I'll be there button.
 let slideRegister = false
@@ -1040,6 +1046,7 @@ export async function tick(host: WorkerHost, autoClaim?: AutoClaim): Promise<voi
   ticking = true
   const finishActivity = beginChatActivity("poll")
   const pollStartedAt = Date.now()
+  void readHostInfoAgain(host)
   // what went wrong in this poll, for pollOutcome
   let stage = "connect"
   let failed: { stage: string; reason: string; error?: string } | null = null
@@ -2803,19 +2810,48 @@ async function reportStart(host: WorkerHost, roomStatus: string, footer: Promise
   }
 }
 
+/** Records a read of the host's identity until one succeeds, and waits on a late answer to a timed-out read. */
+function takeHostInfo(read: WorkerHostInfoRead): void {
+  if (hostInfoKnown) return
+  setChatHost(read.info, read.failed)
+  slideRegister = drawsSlideToConfirm(read.info)
+  hostInfoKnown = !read.failed
+  if (read.late) {
+    hostInfoReading = true
+    void read.late
+      .then((answer) => {
+        if (!answer.failed) takeHostInfo(answer)
+      })
+      .catch(() => {})
+      .finally(() => {
+        hostInfoReading = false
+      })
+  }
+}
+
+/** Reads the host's identity, unless it is known or a read is still under way. Never rejects. */
+function readHostInfoAgain(host: WorkerHost): Promise<void> {
+  if (!host.hostInfo || hostInfoKnown || hostInfoReading) return Promise.resolve()
+  hostInfoReading = true
+  return host
+    .hostInfo()
+    .then((read) => {
+      hostInfoReading = false
+      takeHostInfo(read)
+    })
+    .catch(() => {
+      hostInfoReading = false
+      if (!hostInfoKnown) setChatHost(null, true)
+    })
+}
+
 export async function main(host: WorkerHost): Promise<void> {
   // This proof must precede room setup, rules, permission prompts and
   // migrations: any of those can take longer than the app's startup grace.
   startWorkerHeartbeat(host)
   installGlobalErrorTelemetry()
   if (host.hostInfo) {
-    hostInfoReady = host
-      .hostInfo()
-      .then(({ info, failed }) => {
-        setChatHost(info, failed)
-        slideRegister = drawsSlideToConfirm(info)
-      })
-      .catch(() => setChatHost(null, true))
+    hostInfoReady = readHostInfoAgain(host)
   } else {
     setChatHost(null, true)
     hostInfoReady = Promise.resolve()

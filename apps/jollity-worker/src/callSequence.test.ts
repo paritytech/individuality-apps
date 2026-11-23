@@ -339,6 +339,65 @@ async function poll(tick: (host: WorkerHost) => Promise<void>, host: WorkerHost)
 }
 
 describe("the boot sequence works", () => {
+  it("reads the identity of the host again on the first poll after a read that failed, and takes the answer", async () => {
+    // Given
+    const hostInfo = vi
+      .fn<NonNullable<WorkerHost["hostInfo"]>>()
+      .mockResolvedValueOnce({ info: null, failed: true })
+      .mockResolvedValue({ info: { name: "Polkadot", version: "2.0.1" }, failed: false })
+    const host = welcomedHost({ hostInfo })
+    await withChain(nextGameAt(5_000))
+    const setChatHost = vi.spyOn(await import("./telemetry"), "setChatHost")
+
+    // When
+    await started(host)
+
+    // Then
+    expect(hostInfo).toHaveBeenCalledTimes(2)
+    expect(setChatHost).toHaveBeenLastCalledWith({ name: "Polkadot", version: "2.0.1" }, false)
+  })
+
+  it("stops reading the identity of the host once it is known", async () => {
+    // Given
+    const hostInfo = vi
+      .fn<NonNullable<WorkerHost["hostInfo"]>>()
+      .mockResolvedValueOnce({ info: null, failed: true })
+      .mockResolvedValue({ info: { name: "Polkadot", version: "2.0.1" }, failed: false })
+    const host = welcomedHost({ hostInfo })
+    await withChain(nextGameAt(5_000))
+    const tick = await started(host)
+
+    // When
+    await poll(tick, host)
+    await poll(tick, host)
+
+    // Then
+    expect(hostInfo).toHaveBeenCalledTimes(2)
+  })
+
+  it("takes a late answer to a timed-out read and does not read the host again", async () => {
+    // Given
+    let answer: (read: { info: { name: string; version: string }; failed: false }) => void = () => {}
+    const late = new Promise<{ info: { name: string; version: string }; failed: false }>((resolve) => (answer = resolve))
+    const hostInfo = vi.fn<NonNullable<WorkerHost["hostInfo"]>>().mockResolvedValue({ info: null, failed: true, late })
+    const host = welcomedHost({ hostInfo })
+    await withChain(nextGameAt(5_000))
+    const telemetry = await import("./telemetry")
+    const setChatHost = vi.spyOn(telemetry, "setChatHost")
+    const tick = await started(host)
+
+    // When
+    await poll(tick, host)
+    answer({ info: { name: "Polkadot", version: "2.0.1" }, failed: false })
+    await flush()
+    await poll(tick, host)
+    await poll(tick, host)
+
+    // Then
+    expect(hostInfo).toHaveBeenCalledTimes(1)
+    expect(setChatHost).toHaveBeenLastCalledWith({ name: "Polkadot", version: "2.0.1" }, false)
+  })
+
   it("starts the worker heartbeat before room registration or other long startup work settles", async () => {
     const { main } = await import("./index")
     const host = welcomedHost({
