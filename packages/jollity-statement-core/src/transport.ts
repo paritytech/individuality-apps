@@ -82,6 +82,9 @@ export interface SignalStats {
 export interface SealedSignalStats {
   /** lookups of this player's own registered key that found none (or hung) */
   ownKeyMissing: number
+  /** a lookup of this player's own registered key found it: the sealed wire
+   *  can seal from now on, whatever `ownKeyMissing` counted before */
+  ownKeyFound: boolean
   /** peers whose lookup found no communication identifier on chain */
   peerIdMissing: number
   /** sealed frames that failed to open (wrong key, tampered, bad header) */

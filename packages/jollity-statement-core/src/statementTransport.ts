@@ -1,7 +1,7 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { CreateTransport, RtcPayload, SignalStats } from "./transport"
+import type { CreateTransport, RtcPayload, SealedSignalStats, SignalStats } from "./transport"
 import type { ResolveStore, StatementStoreLike } from "./store"
 import { fromHex, toHex } from "./store"
 import {
@@ -494,9 +494,10 @@ export function statementTransport(
     const roster = rosterOf(members ?? [], id)
     const presenceTopic = ROSTER ? label(`from:${id}`) : label("")
     const stats: SignalStats = zeroStats("statement")
-    const sealedStats = KEYS
+    const sealedStats: SealedSignalStats | undefined = KEYS
       ? (stats.sealed = {
           ownKeyMissing: 0,
+          ownKeyFound: false,
           peerIdMissing: 0,
           openFailed: 0,
           plaintextDropped: 0,
@@ -602,6 +603,7 @@ export function statementTransport(
       })
       mySecret = lookup
       void lookup.then((found) => {
+        if (found) sealedStats!.ownKeyFound = true
         if (found || mySecret !== lookup) return
         sealedStats!.ownKeyMissing++
         noteCryptoFailure("secret", "no registered secret for this player → no peer gets a frame")

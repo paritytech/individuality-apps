@@ -483,7 +483,23 @@ describe("statementTransport with keys — end to end to the on-chain identifier
     transport.send("peer", { rtc: { desc: { type: "offer", sdp: "o2" } } })
     await until(() => count(fake, "d") === 1, "the offer, once the secret is found")
     expect(((await peer.open(kept(fake, "d"))) as { desc: { sdp: string } }).desc.sdp).toBe("o2")
-    expect(transport.stats?.()?.sealed?.ownKeyMissing).toBe(1)
+    expect(transport.stats?.()?.sealed).toMatchObject({ ownKeyMissing: 1, ownKeyFound: true })
+    transport.close()
+  })
+
+  it("says its own key is not found while every lookup misses", async () => {
+    const fake = fakeStore()
+    const peer = await remotePeer()
+    let reads = 0
+    const transport = statementTransport({
+      resolveStore: async () => fake.store,
+      namespace: "test.ns",
+      keys: { secret: async () => (reads++, null), peerIdentifier: async () => peer.identifier },
+      log: () => {},
+    })({ base: "", room: "room1", id: "me", name: "Me", handlers: handlers() })
+    await until(() => reads === 1, "the read at subscribe")
+    await settle()
+    expect(transport.stats?.()?.sealed).toMatchObject({ ownKeyMissing: 1, ownKeyFound: false })
     transport.close()
   })
 
@@ -554,6 +570,7 @@ describe("statementTransport with keys — end to end to the on-chain identifier
     const sealed = () => transport.stats?.()?.sealed
     expect(sealed()).toEqual({
       ownKeyMissing: 0,
+      ownKeyFound: true,
       peerIdMissing: 0,
       openFailed: 0,
       plaintextDropped: 0,

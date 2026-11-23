@@ -175,6 +175,44 @@ describe("classifyLadder", () => {
     expect(rung(v.rungs, "ice").detail).toContain("not evaluated")
   })
 
+  describe("this player's own key (rung 1b)", () => {
+    const sealed = (ownKeyMissing: number, ownKeyFound: boolean) =>
+      stats({
+        sealed: { ownKeyMissing, ownKeyFound, peerIdMissing: 0, openFailed: 0, plaintextDropped: 0, droppedAtLookupCap: 0, droppedInBackoff: 0 },
+      })
+    const stunOnly = { turnReceived: false, issuerErrors: ["issuer 1: NotAllowlisted"], at: NOW }
+    // no co-player gets a frame: nobody gives an endpoint, and ICE has no path
+    const dark = { health: [snap("new", false), snap("new", false)], peers: [] }
+
+    it("takes the blame over a failed relay and the rungs it breaks, so the network is not blamed", () => {
+      const v = classifyLadder(ladder({ stats: sealed(2, false), ice: stunOnly, ...dark }))
+      expect(v.blame?.layer).toBe("own-key")
+      expect(rung(v.rungs, "turn-credentials").status).toBe("unknown")
+      expect(rung(v.rungs, "signalling").detail).toContain("not evaluated")
+    })
+
+    it("takes the blame over nobody having turned up, with the relay working", () => {
+      const v = classifyLadder(ladder({ stats: sealed(1, false), ...dark }))
+      expect(v.blame?.layer).toBe("own-key")
+    })
+
+    it("is ok once a later lookup found the key, whatever missed before", () => {
+      const v = classifyLadder(ladder({ stats: sealed(3, true) }))
+      expect(rung(v.rungs, "own-key").status).toBe("ok")
+      expect(v.blame).toBeNull()
+    })
+
+    it("is unknown before the first lookup answers, and ok on a wire that seals nothing", () => {
+      expect(rung(classifyLadder(ladder({ stats: sealed(0, false) })).rungs, "own-key").status).toBe("unknown")
+      expect(rung(classifyLadder(ladder({ stats: null })).rungs, "own-key").status).toBe("unknown")
+      expect(rung(classifyLadder(ladder()).rungs, "own-key")).toMatchObject({ status: "ok", expected: "this wire seals nothing" })
+    })
+
+    it("still gives way to being offline", () => {
+      expect(classifyLadder(ladder({ online: false, stats: sealed(1, false) })).blame?.layer).toBe("internet")
+    })
+  })
+
   describe("the known blocker (rung 2)", () => {
     const stunOnly = { turnReceived: false, issuerErrors: ["issuer 1: Load failed"], at: NOW }
 

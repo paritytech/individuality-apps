@@ -58,6 +58,15 @@ describe("layer copy", () => {
     )
   })
 
+  it("tells a player whose own key is missing that it isn't their internet, in plain words", () => {
+    expect(noticeHeadline("own-key")).toBe("Video can't start for you in this game. It isn't your internet.")
+    expect(LAYER_COPY["own-key"].name).toBe("Setting up your video")
+    expect(LAYER_COPY["own-key"].fixes).toEqual(["Keep the game open. If this clears up, your video starts by itself."])
+    const text = [LAYER_COPY["own-key"].name, LAYER_COPY["own-key"].headline, ...LAYER_COPY["own-key"].fixes].join(" ")
+    // nothing technical, and no advice that cannot help: the app asks again by itself
+    expect(text).not.toMatch(/\b(key|chain|record|storage|sign-?up|grant|network|wi-?fi|mobile data|rejoin|leave)\b/i)
+  })
+
   it("never leaks an internal rung id into what a player reads", () => {
     // only the hyphenated ids: "internet" and "media" are ordinary English and
     // a player reading them is reading words, not jargon

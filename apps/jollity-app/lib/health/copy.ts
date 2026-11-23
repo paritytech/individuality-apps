@@ -52,6 +52,14 @@ export const LAYER_COPY: Record<Layer, LayerCopy> = {
       "Toggle Wi-Fi or mobile data off and on.",
     ],
   },
+  // this player's own key is missing: nothing on their side is broken and
+  // nothing they do fixes it, while the app asks again by itself every 10 to
+  // 20 s. So no "switch to mobile data" and no "leave and rejoin"
+  "own-key": {
+    name: "Setting up your video",
+    headline: "Video can't start for you in this game. It isn't your internet.",
+    fixes: ["Keep the game open. If this clears up, your video starts by itself."],
+  },
   "turn-credentials": turnCredentialsCopy(),
   "store-write": {
     name: "Sending your moves",

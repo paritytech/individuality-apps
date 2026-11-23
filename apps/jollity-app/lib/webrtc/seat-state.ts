@@ -94,6 +94,9 @@ export interface SeatContext {
   heardFrom: number
   /** the trouble may be ours (offline, page hidden): nobody is blamed */
   selfSuspect: boolean
+  /** this player's own key was not found, so no co-player gets a frame of
+   *  ours: the trouble is ours, as with `selfSuspect`, and the notice says why */
+  ownKeyMissing?: boolean
   /** their video is flowing badly (rates over the last report windows) */
   weak: boolean
 }
@@ -101,7 +104,8 @@ export interface SeatContext {
 /** The state a seat held by an account (a mesh peer) shows, before settling. */
 export function seatState(f: SeatFacts | undefined, ctx: SeatContext, t = SEAT_TIMES): SeatState {
   const { now } = ctx
-  const blame = (state: "no-signal" | "cant-connect"): SeatState => (ctx.selfSuspect || (state === "cant-connect" && f?.healing === true) ? "connecting" : state)
+  const ours = ctx.selfSuspect || ctx.ownKeyMissing === true
+  const blame = (state: "no-signal" | "cant-connect"): SeatState => (ours || (state === "cant-connect" && f?.healing === true) ? "connecting" : state)
   if (!f || !Number.isFinite(f.firstHeardAt)) return now - ctx.heardFrom < t.graceMs ? "connecting" : blame("no-signal")
   if (f.away === "said") return "away"
   if (f.cameraOff) return "camera-off"
