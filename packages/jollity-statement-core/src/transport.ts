@@ -80,8 +80,12 @@ export interface SignalStats {
 
 /** Counters of the sealed wire's drops, each since the room opened. */
 export interface SealedSignalStats {
-  /** lookups of this player's own registered key that found none (or hung) */
+  /** lookups of this player's own registered key that definitely found none:
+   *  every read answered, or a read was refused */
   ownKeyMissing: number
+  /** lookups of this player's own registered key that gave no answer (a read
+   *  that hung or failed, or the lookup's timeout): nothing said yet */
+  ownKeyHung: number
   /** a lookup of this player's own registered key found it: the sealed wire
    *  can seal from now on, whatever `ownKeyMissing` counted before */
   ownKeyFound: boolean

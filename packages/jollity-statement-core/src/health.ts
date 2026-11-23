@@ -267,6 +267,10 @@ export function classifyLadder(input: LadderInput): LadderVerdict {
   else if (sealed.ownKeyFound) rungs.push(ok("own-key", "this player's registered key was found"))
   else if (sealed.ownKeyMissing > 0)
     rungs.push(fail("own-key", `no registered key found for this player after ${sealed.ownKeyMissing} lookup(s): no co-player gets a frame`))
+  // a lookup that gave no answer says nothing yet: a slow host read must not
+  // tell a player whose key is fine that their video can't start
+  else if (sealed.ownKeyHung > 0)
+    rungs.push(unknown("own-key", `${sealed.ownKeyHung} lookup(s) of this player's registered key gave no answer`))
   else rungs.push(unknown("own-key", "this player's registered key not looked up yet"))
 
   // ── RUNG 2 — TURN credentials ───────────────────────────────────────────
