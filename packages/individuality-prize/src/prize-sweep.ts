@@ -81,7 +81,7 @@ export async function sweepPrizes(deps: PrizeSweepDependencies): Promise<PrizeTo
 /**
  * The outcome a top-up error carries, read from the innermost tag of its
  * cause: the SDK throws `Error(label, { cause })` around the truapi error,
- * which nests the tag of the host under `Domain` and `V1`.
+ * which nests the tag of the host under `Domain` and `V2`.
  */
 export function topUpErrorOutcome(error: unknown): TopUpOutcome {
   const tag = innermostTag(error)

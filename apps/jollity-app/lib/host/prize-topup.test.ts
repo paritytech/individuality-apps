@@ -12,7 +12,7 @@ afterEach(() => vi.useRealTimers())
 
 const ID = `0x${"ab".repeat(32)}` as const
 const refusal = (tag: string) =>
-  new Error(`payment topUp failed: ${tag}`, { cause: { tag: "Domain", value: { tag: "V1", value: { tag } } } })
+  new Error(`payment topUp failed: ${tag}`, { cause: { tag: "Domain", value: { tag: "V2", value: { tag } } } })
 
 describe("topUpPrize", () => {
   it("tops up from the game account under the id", async () => {

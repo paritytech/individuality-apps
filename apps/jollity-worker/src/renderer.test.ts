@@ -260,9 +260,9 @@ describe("the slide to confirm goes out only where a host draws it", () => {
     expect(drawsSlideToConfirm({ name: "Polkadot", version: "2.0.0", platform: "toString", truapiVersion: "0.40.0" }, since, writes)).toBe(false)
   })
 
-  // The worker's own codec is the last guard: a node it cannot write would
-  // fail the whole card, not just the slide. truapi 0.27.0 cannot; a truapi
-  // that carries the node writes it as renderer variant 12.
+  // The codec of the worker is the last guard. A node it cannot write would
+  // fail the whole card, not just the slide. truapi 0.32.0 cannot write it, and
+  // a truapi that carries the node writes it as renderer variant 12.
   it("admits the slide only where the truapi codec the worker is built with writes the node", () => {
     // Given
     const probe = { tag: "SlideToConfirm", value: { modifiers: [], props: { text: "" } } }

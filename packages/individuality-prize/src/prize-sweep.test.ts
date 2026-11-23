@@ -145,7 +145,7 @@ describe("prizeTopUpId", () => {
 
 describe("topUpErrorOutcome", () => {
   const thrown = (tag: string, value?: unknown) =>
-    new Error(`payment topUp failed: ${tag}`, { cause: { tag: "Domain", value: { tag: "V1", value: { tag, value } } } })
+    new Error(`payment topUp failed: ${tag}`, { cause: { tag: "Domain", value: { tag: "V2", value: { tag, value } } } })
 
   it("reads the tag of the host under the SDK error", () => {
     expect(topUpErrorOutcome(thrown("AlreadyExists"))).toBe("already-sent")
