@@ -5,17 +5,17 @@
 
 /**
  * The NFT picker — a hologram on a coin. An OVERLAY on the
- * chest, opened by tapping a pinned collectable there.
+ * chest, opened by tapping an opened collectable there.
  *
  * THE SCREEN ZOOMS TO THE COLLECTABLE. It does not fly the collectable to a
- * stage in the middle — the whole stage starts mapped onto the tapped pin and
+ * stage in the middle — the whole stage starts mapped onto the tapped piece and
  * opens out to fill the frame, so it reads as the camera moving to the thing
  * you touched rather than the thing coming to you.
  *
  *   1. backdrop  — fixed, black, opacity driven by the spring
  *   2. the stage — fixed, full-viewport: projection (beam + art) over the
  *                  coin. THE ONLY TRANSFORMED ELEMENT: its transform maps
- *                  the projection's measured box onto the pin's art box. The
+ *                  the projection's measured box onto the piece's art box. The
  *                  transform is cleared before measuring, so a StrictMode
  *                  re-run reads the true layout. (The
  *                  CHEST's canvases stay untransformed: scaling those
@@ -26,10 +26,10 @@
  *   ramps in early (e 0.08→0.5), so the surroundings fall away while the
  *   collectable grows, and the DRESSING (beam, coin) late (e 0.45→1), so the
  *   collectable arrives before its setting does; the hologram tint crossfades over the
- *   piece's own art on the same ramp, so what leaves the pin is the art you
+ *   piece's own art on the same ramp, so what leaves the piece is the art you
  *   tapped and what lands is a hologram. Closing runs the SAME spring in
- *   reverse — dressing out, the stage shrinking back into its pin — and
- *   commits only when it lands (a turned coin swaps the pinned collectable;
+ *   reverse — dressing out, the stage shrinking back onto its piece — and
+ *   commits only when it lands (a turned coin swaps the opened collectable;
  *   "Yours" just closes).
  *
  * THE COIN IS THE CONTROL — the three.js collection coin (CoinCanvas). Drag
@@ -83,8 +83,8 @@ export interface Offer {
   src: string
 }
 
-/** Fallback zoom-from box when the caller has no rect to give: pin-sized, at
- *  the top of the frame where the pins live. */
+/** Fallback zoom-from box when the caller has no rect to give: piece-sized, at
+ *  the top of the frame where opened pieces gather. */
 function pinnedOrigin(): DOMRect {
   const side = Math.max(24, window.innerWidth * 0.17)
   return new DOMRect((window.innerWidth - side) / 2, 14, side, side)
@@ -98,7 +98,7 @@ export function NftPicker({
 }: {
   /** the piece being inspected; null renders nothing */
   item: PickerItem | null
-  /** the tapped pin's art box — where the hero takes off and lands */
+  /** the tapped piece's art box — where the hero takes off and lands */
   origin?: DOMRect | null
   onClose: () => void
   onPick: (offer: Offer) => void
@@ -187,9 +187,9 @@ function PickerStage({
   /** the setting, not the collectable: it arrives after the zoom does */
   const dressRef = useRef<HTMLDivElement>(null)
   const coinWrapRef = useRef<HTMLDivElement>(null)
-  /** the piece's OWN art, under the tinted projection — what leaves the pin */
+  /** the piece's OWN art, under the tinted projection — what leaves the piece */
   const plainRef = useRef<HTMLImageElement>(null)
-  /** the projection's STATIC box — the thing that must land on the pin's art */
+  /** the projection's STATIC box — the thing that must land on the piece's art */
   const artRef = useRef<HTMLDivElement>(null)
   const springK = useRef(0)
   const [closing, setClosing] = useState(false)
@@ -205,13 +205,13 @@ function PickerStage({
     if (!backdrop || !stage) return
 
     // WHERE THE ZOOM STARTS. It is not enough to shrink the stage into the
-    // pin's box: what has to line up is the PROJECTION and the pin's ART, or
+    // piece's box: what has to line up is the PROJECTION and the piece's ART, or
     // the picture jumps in size and position at the handover (the projection
-    // sits in the middle of the stage, so mapping viewport→pin leaves it
-    // smaller than the pin's art and off its centre).
+    // sits in the middle of the stage, so mapping viewport→piece leaves it
+    // smaller than the piece's art and off its centre).
     //
     // So: measure the projection's static box, and solve for the transform
-    // that puts it exactly on the pin's art at e=0 and at identity at e=1.
+    // that puts it exactly on the piece's art at e=0 and at identity at e=1.
     // The transform is cleared first, so the measurement is the true layout
     // no matter what a previous run (StrictMode's included) left behind.
     stage.style.transform = "none"
@@ -225,17 +225,17 @@ function PickerStage({
     const artCx = art.left + art.width / 2
     const artCy = art.top + art.height / 2
     const s0 = Math.max(0.02, from.width / Math.max(1, art.width))
-    // t at e=0: whatever puts the scaled projection centre on the pin's
+    // t at e=0: whatever puts the scaled projection centre on the piece's
     const tx = from.left + from.width / 2 - ox - s0 * (artCx - ox)
     const ty = from.top + from.height / 2 - oy - s0 * (artCy - oy)
     stage.style.transformOrigin = "50% 50%"
     stage.style.transform = `translate(${tx}px, ${ty}px) scale(${s0})`
-    // NO FADE, EITHER WAY. The pin hides the moment the picker opens and stays
-    // hidden until it unmounts, so any stage fade leaves a window with the pin
+    // NO FADE, EITHER WAY. The piece hides the moment the picker opens and stays
+    // hidden until it unmounts, so any stage fade leaves a window with the piece
     // invisible AND the stage invisible — a blank gap. Closing showed it worst:
-    // the hologram vanished before the new collectable appeared in its pin.
+    // the hologram vanished before the new collectable appeared on its piece.
     // Opaque from the first frame to the last, and the handover is one frame:
-    // the same React batch that drops the picker puts the new art in the pin.
+    // the same React batch that drops the picker puts the new art on the piece.
     // (The JSX starts at opacity 0 only to cover the paint before this runs;
     // useLayoutEffect lands ahead of it.)
     stage.style.opacity = "1"
@@ -270,7 +270,7 @@ function PickerStage({
       if (k !== want) {
         raf = requestAnimationFrame(tick)
       } else if (closing && !finishedRef.current) {
-        // the stage landed back in its pin — NOW commit
+        // the stage landed back on its piece — NOW commit
         finishedRef.current = true
         const picked = previewRef.current
         if (picked) onPick(picked)
@@ -338,7 +338,7 @@ function PickerStage({
         type="button"
         aria-label="Close"
         // OPAQUE. At 70% the whole chest showed through — every unopened
-        // piece, the other pins, the footer — and the hologram read as a
+        // piece, the other pieces, the footer — and the hologram read as a
         // panel floating over a busy screen instead of the only thing there.
         className="absolute inset-0 bg-black"
         style={{ opacity: 0 }}
@@ -346,7 +346,7 @@ function PickerStage({
       />
 
       {/* 2 — the stage: full-viewport, and the ONE transformed element. It
-             starts mapped onto the tapped pin and zooms out to identity. */}
+             starts mapped onto the tapped piece and zooms out to identity. */}
       <div
         ref={stageRef}
         className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
@@ -403,7 +403,7 @@ function PickerStage({
                     filter: tearing ? "url(#fx-holo-tint) url(#fx-holo-glitch)" : "url(#fx-holo-tint)",
                   }}
                 />
-                {/* the SAME art, untinted: what the pin was showing. It fades
+                {/* the SAME art, untinted: what the piece was showing. It fades
                     out as the zoom lands, so the piece becomes a hologram
                     rather than arriving as one. */}
                 {/* eslint-disable-next-line @next/next/no-img-element -- gateway art */}
@@ -420,7 +420,7 @@ function PickerStage({
           </div>
         </div>
         {/* the coin — the one interactive thing on the stage, and dressing:
-            a coin shrunk into a pin reads as debris, so it fades in late */}
+            a coin shrunk into a piece's box reads as debris, so it fades in late */}
         {/* THE COIN'S FOOTPRINT, not the coin's canvas.
             Its size is a fraction of its canvas height (rc = h · 0.42, and the
             tilted slab stands about HALF its canvas tall — measured, not

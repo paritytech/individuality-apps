@@ -41,7 +41,7 @@ interface SceneProps {
   onLanded?: () => void
   onCollected?: (count: number) => void
   onOpened?: () => void
-  onShelfTap?: (index: number, rect: DOMRect) => void
+  onInspect?: (index: number, rect: DOMRect) => void
 }
 interface PickerProps {
   item: { name: string; choices: { collectionId: number }[] } | null
@@ -557,7 +557,7 @@ describe("the chest screen, captured", () => {
         landed(500),
         answer(1000, chest({ items: claims(3) }), "three, settled"),
         collected(1500, 3),
-        { at: 5000, label: "the first pin tapped", run: () => ctl.scene!.onShelfTap?.(0, new DOMRect()) },
+        { at: 5000, label: "the first opened piece tapped", run: () => ctl.scene!.onInspect?.(0, new DOMRect()) },
         {
           at: 6000,
           label: "another collection picked",

@@ -6,453 +6,769 @@
 /* eslint-disable @next/next/no-img-element -- gateway collectable art and a static cover asset */
 
 /**
- * The chest's way into the Pocket: a ray falls from the pieces onto the open book at the foot of the screen, and a
- * swipe down raises the book while every collectable follows the finger onto its cell, before the cover snaps shut.
+ * The chest's way into the Pocket: an open book at the foot of the screen. Drag the book's cover across to close
+ * it: every piece its edge sweeps past drops through the middle of the screen into its cell, and let go past CLAIM_AT the cover shuts by itself on the rest and lands with a thud. The book then grows
+ * into the middle of the screen under "Added to your Pocket", everything fades, and the chest goes on by itself;
+ * only a hand-off the host refused puts up a Continue.
  *
- * The geometry is lib/pocket/book and the motion lib/pocket/motion. The swipe starts anywhere on `surface` except
- * inside a list scrolled away from its top, so a drag down in a scrolled inventory scrolls it back instead of
- * starting the swipe. A piece still in the chest's scatter flies in its shell from where the scatter draws it
- * (`ring`), and a pinned one flies as the flat art that carries `data-chest-piece`.
- *
- * The beats, by phase: `rest` (ray idle) → `held` (the swipe drags the book open and leans the pieces into the ray)
- * → either `returning` (let go short of the claim; everything springs back to `rest`) or `landing` (each piece flies
- * down the ray to its cell, STAGGER_MS apart) → `swelling` (the full book swells, SWELL_MS) → `closing` (the book
- * stands up and the cover swings shut, then bounces and sparkles) → `shut` (title and Continue).
+ * The geometry is lib/pocket/book and the motion lib/pocket/motion. A press on the book grabs the cover unless it
+ * lands on a piece, which stays the scene's to look at. A piece the Pocket takes leaves the scene (`onTake`) and is
+ * the Pocket's to draw from then on: one still wrapped flies in its shell from where the scene drew it, an opened
+ * one as the flat art that carries `data-chest-piece`. The puff, the ghost finger and the confetti are
+ * drawn on one canvas over the book (lib/pocket/fx.ts), and only while there is something to draw.
  */
-import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react"
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from "react"
 import { asset } from "@/lib/asset"
 import { Button } from "@/components/ui/button"
-import type { PieceSpot } from "@/components/chest/chest-scene"
-import { BOOK, CLAIM_AT, PAGE_HALF, clamp01, claims, closedBookAt, landing, onCover, openBookAt, openScale, trackSwipe, type Point, type Swipe } from "@/lib/pocket/book"
-import { JELLY, SNUG, coverSwing, standUp, settled, sparksFor, stepSpring, type Spark, type Spring } from "@/lib/pocket/motion"
+import { orbTint, type PieceSpot } from "@/components/chest/chest-scene"
+import {
+  BOOK,
+  CLAIM_AT,
+  bookAt,
+  cellAt,
+  cellOrder,
+  claims,
+  clamp01,
+  coverFor,
+  grabs,
+  lerp,
+  onCover as cellsOnCover,
+  seg,
+  smooth,
+  sweeps,
+  type Book,
+  type Point,
+} from "@/lib/pocket/book"
+import {
+  FLIGHT,
+  LANDING,
+  confettiFor,
+  coverFall,
+  flightAt,
+  follow,
+  invitation,
+  squash,
+  thud,
+  type Bit,
+} from "@/lib/pocket/motion"
+import { paintPocketFx } from "@/lib/pocket/fx"
 import { wrappingExpected } from "@/lib/wrapping/availability"
 import { ensureFields } from "@/lib/wrapping/fieldCache"
 import { BASE, materialFor, wrappingPhase } from "@/lib/wrapping/materials"
 import type { WrappingRenderer } from "@/lib/wrapping/renderer"
 
-/** The bubble's own film colours, for the confetti. */
-const FILM = ["#ff9ad5", "#c7a4ff", "#86d4ff", "#9cf0cf", "#ffe3a0", "#ffad8c"]
-/** px a finger moves before the gesture decides whether it is a swipe down */
-const SLOP = 8
-/** px the ray reaches above the book's pages */
-const RAY_LENGTH = 170
-/** the ray's strength at rest, 0..1 (the `--ray` CSS variable) */
-const RAY_AT_REST = 0.55
-/** how fast the ray fades as the swipe progresses (gone at progress 1/3) */
-const RAY_FADE = 3
-/** where the ray meets the pages, as a share of their height from the top */
-const RAY_ON_PAGES = 0.42
-/** ms the swipe takes to finish once the finger lets go */
-const LAND_MS = 700
-/** ms into the close before the cover starts to swing */
-const COVER_FROM_MS = 220
-/** ms the book takes to stand up as it closes */
-const STAND_MS = 1000
-/** ms the cover takes to swing shut */
-const COVER_MS = 1150
-/** ms after the cover lands before the screen counts as shut */
-const SHUT_AFTER_MS = 420
-/** ms the book, title and Continue fade out on Continue, or back in after a refused hand-off */
+/** the book comes up from below between these, s after the pieces began to float */
+const BOOK_IN_FROM = 1.2
+const BOOK_IN_TO = 1.9
+/** how far up the book peeks at rest, of the way from peeking to fully up (lib/pocket/book openY) */
+const PEEK_AT = 0.45
+/** per s: the held cover trailing the finger (it has weight), the cover swinging back open, the book lifting */
+const HELD_RATE = 11
+const OPEN_RATE = 6
+const LIFT_RATE = 8
+/** with nothing opened yet, the invitation starts this long after the float began, s */
+const LATE = 5
+/** the finish's pieces leave this far apart, s */
+const FINISH_STAGGER = 0.06
+/** let go short of the point: the pieces the cover took fly home this far apart, the last taken first, s */
+const BACK_STAGGER = 0.05
+/** the falling cover lands this long before the last piece is in, s */
+const LAND_EARLY = 0.04
+/** the cover lies still this long after the thud before the book grows, s */
+const SHUT_AFTER = 0.5
+/** after the book is shut: it grows into the middle between these, s */
+const GROW_FROM = 0.05
+const GROW_TO = 1
+const CONFETTI = 46
+/** after the book is shut: everything fades, ms, and the chest goes on */
+const FADE_AT_MS = 2550
 const FADE_MS = 300
-/** how many confetti sparks the shut throws */
-const CONFETTI = 26
-/** the cover's rebound velocity as it lands, in degrees per second */
-const COVER_BOUNCE = -130
-/** spring tunes (stiffness k, damping c; lib/pocket/motion stepSpring): the cover settling after its bounce */
-const SETTLE = { k: 200, c: 16 }
-/** the closed book gliding to the middle */
-const GLIDE = { k: 42, c: 11 }
-/** the closing book growing to its closed size */
-const GROW = { k: 55, c: 9 }
-/** the veil's opacity at a full swipe, scaled by the swipe's progress */
-const VEIL_HELD = 0.75
-/** the veil's opacity while the pieces land and the book closes */
-const VEIL_LANDING = 0.92
-/** the open book's horizontal position */
-const POSITION = { k: 140, c: 22 }
-
-type Phase = "rest" | "held" | "returning" | "landing" | "closing" | "shut"
+/** a press this near a piece, of its box, is the piece's: the scene's own hit test */
+const PIECE_HIT = 0.575
+/** the cover's perspective, px: upright, its free edge comes about 14% bigger toward you */
+const COVER_DEPTH = 1460
+/** how much bigger the cover's free edge comes toward you, upright (what COVER_DEPTH makes of it), with a little to spare */
+const COVER_TOWARD = 0.16
+/** how far the cover's free edge lifts off the table as it stands, and more while it is held, px */
+const COVER_LIFT = 16
+const HELD_LIFT = 10
+/** the squash of a landing, as keyframes over LANDING */
+const SQUASH_FRAMES = Array.from({ length: 25 }, (_, i) => {
+  const q = squash((i / 24) * LANDING)
+  return { transform: `scale(${(1 + q).toFixed(4)}, ${(1 - q).toFixed(4)})` }
+})
 
 interface Flight {
-  pinned: HTMLImageElement | null
-  cx: number
-  cy: number
+  from: Point
+  /** the art's side as it left the scene, px */
   art: number
   rotation: number
+  pinned: HTMLImageElement | null
+  opened: boolean
+}
+
+interface Take {
+  /** when it leaves the scene, s */
+  at: number
+  /** its place in the order the cells fill (lib/pocket/book cellOrder) */
+  order: number
+  flight: Flight | null
+  started: boolean
+  landed: boolean
+  /** given back (the cover let go short): when it starts home, s; −1 while it is the Pocket's */
+  back: number
+  /** it had landed: it was opened in the book, and goes back out open */
+  openIn: boolean
 }
 
 interface Drawn {
-  cx: number
-  cy: number
+  index: number
+  flight: Flight
+  at: Point
   scale: number
   rotate: number
-  opacity: number
-}
-
-interface Finger {
-  id: number
-  start: Point
-  ours: boolean | null
+  u: number
+  /** on its way back out of the book: whole from the start, no fade */
+  going: boolean
+  /** …and opened there: it goes as its plain art, no shell */
+  open: boolean
 }
 
 export interface PocketPiece {
   image: string
   rare: boolean
+  /** its rarity tier, whose colour (the scene's orb tint) is its landing */
+  tier?: string
 }
 
-const still = (x: number): Spring => ({ x, v: 0 })
-const easeOut = (t: number) => 1 - (1 - clamp01(t)) ** 3
-const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches
+const reducedMotion = () =>
+  typeof matchMedia === "function" &&
+  matchMedia("(prefers-reduced-motion: reduce)").matches
+
+/** the book's furniture fades out, then the chest goes on */
+function fadeAndGo(shownEls: HTMLDivElement[], onDone: () => void) {
+  const shown = shownEls.filter(Boolean)
+  if (shown.length === 0) return onDone()
+  const fades = shown.map((el) =>
+    el.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: FADE_MS,
+      easing: "ease-in",
+      fill: "forwards",
+    }),
+  )
+  void fades[0]!.finished.then(
+    () => onDone(),
+    () => {},
+  )
+}
 
 export function PocketClaim({
   surface,
   pieces,
   ring,
-  onRelease,
+  onTake,
+  onReturn,
+  onCover,
   hidden,
   claimed,
   refusals,
   onClaim,
   onDone,
 }: {
-  /** the element whose swipe down claims the pieces (the chest page) */
   surface: RefObject<HTMLElement | null>
-  /** the collectables to send to the Pocket, in chest order */
   pieces: PocketPiece[]
-  /** where the chest scene drew each unpinned piece on its last frame */
   ring: RefObject<PieceSpot[]>
-  /** true when the pieces are lifted off the chest (it should stop drawing them), false when put back */
-  onRelease: (released: boolean) => void
-  /** ignore new swipes and hide the book (a piece is zoomed or the picker is open) */
+  /** a piece left the scene for the Pocket, which draws it from now on */
+  onTake: (index: number) => void
+  /** a piece the Pocket gave back (the book left open): the scene draws it again, opened if it was opened in the book */
+  onReturn?: (index: number, opened: boolean) => void
+  /** how far the cover has closed, 0 to 1, as it moves */
+  onCover?: (closed: number) => void
   hidden: boolean
-  /** the screen has claimed: run the landing without a swipe */
   claimed: boolean
-  /** counts hand-offs the host refused; each new one brings Continue back */
   refusals: number
-  /** the player claimed, by swipe or by the Claim all button */
   onClaim: () => void
-  /** the player pressed Continue and the fade-out finished */
   onDone: () => void
 }) {
   const [shut, setShut] = useState(false)
-  const [confetti, setConfetti] = useState<Spark[] | null>(null)
+  // the pieces in the order they were taken (the n-th fills cellOrder's n-th
+  // cell), and how many have landed
+  const [filled, setFilled] = useState<number[]>([])
+  const [landed, setLanded] = useState(0)
   const rootRef = useRef<HTMLDivElement>(null)
-  const veilRef = useRef<HTMLDivElement>(null)
-  const rayRef = useRef<HTMLDivElement>(null)
   const bookRef = useRef<HTMLDivElement>(null)
   const coverRef = useRef<HTMLDivElement>(null)
-  const pageRef = useRef<HTMLDivElement>(null)
+  const innerRef = useRef<HTMLDivElement>(null)
+  const outerRef = useRef<HTMLDivElement>(null)
+  const edgeRef = useRef<HTMLElement>(null)
+  const fxRef = useRef<HTMLCanvasElement>(null)
+  const flightsRef = useRef<HTMLDivElement>(null)
   const shellsRef = useRef<HTMLCanvasElement>(null)
   const shownRef = useRef<HTMLDivElement[]>([])
-  const cellRefs = useRef<(HTMLImageElement | null)[]>([])
+  const slotRefs = useRef<(HTMLDivElement | null)[]>([])
   const spriteRefs = useRef<(HTMLImageElement | null)[]>([])
   const renderer = useRef<WrappingRenderer | null>(null)
-  const callbacks = useRef({ onClaim, onDone, onRelease })
+  const callbacks = useRef({ onClaim, onDone, onTake, onCover, onReturn })
   const hiddenRef = useRef(hidden)
   useEffect(() => {
     hiddenRef.current = hidden
   }, [hidden])
-  const finger = useRef<Finger | null>(null)
-  const swipe = useRef<Swipe | null>(null)
   const sim = useRef({
-    phase: "rest" as Phase,
-    phaseAt: 0,
-    now: 0,
-    progress: 0,
-    returning: still(0),
-    flights: [] as (Flight | null)[],
-    drawn: [] as (Drawn | null)[],
-    released: 0,
-    closedAt: 0,
-    veil: 0,
-    ray: still(RAY_AT_REST),
-    bookX: still(0),
-    bookY: still(0),
-    scale: still(1),
-    tilt: still(BOOK.tilt),
-    cover: still(BOOK.bend - 180),
-    squash: still(0),
-    sparkled: false,
-    landedAt: 0,
-    placed: false,
+    t: 0,
+    last: 0,
+    cov: 0,
+    covV: 0,
+    covTarget: 0,
+    grab: null as number | null,
+    finishing: false,
+    lift: 0,
+    opened: false,
+    thudAt: -1,
+    thudBook: null as Book | null,
+    shutAt: -1,
+    takes: new Map<number, Take>(),
+    taken: 0,
+    book: null as Book | null,
+    confetti: [] as Bit[],
+    said: -1,
+    painted: false,
+    still: false,
   })
 
   useEffect(() => {
-    callbacks.current = { onClaim, onDone, onRelease }
-  }, [onClaim, onDone, onRelease])
+    callbacks.current = { onClaim, onDone, onTake, onCover, onReturn }
+  }, [onClaim, onDone, onTake, onCover, onReturn])
 
-  const art = pieces.map((piece, index) => ({ src: piece.image, rare: piece.rare, index })).filter((piece) => piece.src)
-  const cover = onCover(art.length)
+  const art = pieces
+    .slice(0, 10)
+    .map((piece, index) => ({ ...piece, index, tint: orbTint(piece) }))
+  const count = art.length
+  const half = cellsOnCover(count)
+  const order = cellOrder(count)
 
-  const frame = () => rootRef.current!.getBoundingClientRect()
-
-  const rayBase = (box: DOMRect) => {
-    const pages = [...bookRef.current!.querySelectorAll(".pocket-book-page, .pocket-book-face--inner")].map((el) => el.getBoundingClientRect())
-    const top = Math.min(...pages.map((page) => page.top))
-    const bottom = Math.min(box.bottom, Math.max(...pages.map((page) => page.bottom)))
-    return top + (bottom - top) * RAY_ON_PAGES - box.top
-  }
-
-  const cellOnScreen = (k: number, box: DOMRect) => {
-    const cell = cellRefs.current[k]!.getBoundingClientRect()
-    return { at: { x: cell.left - box.left + cell.width / 2, y: cell.top - box.top + cell.height / 2 }, size: cell.width }
-  }
+  const onPiece = (at: Point) =>
+    (ring.current ?? []).some(
+      (spot) =>
+        !sim.current.takes.has(spot.index) &&
+        Math.hypot(spot.cx - at.x, spot.cy - at.y) <= spot.size * PIECE_HIT,
+    )
 
   const fromPin = (index: number, box: DOMRect): Flight | null => {
-    const pinned = surface.current?.querySelector<HTMLImageElement>(`img[data-chest-piece="${index}"]`)
+    const pinned = surface.current?.querySelector<HTMLImageElement>(
+      `img[data-chest-piece="${index}"]`,
+    )
     if (!pinned) return null
     const rect = pinned.getBoundingClientRect()
     if (rect.width === 0) return null
     const style = getComputedStyle(pinned)
-    const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
-    return { pinned, cx: rect.left - box.left + rect.width / 2, cy: rect.top - box.top + rect.height / 2, art: Math.max(1, rect.width - padding), rotation: 0 }
+    const padding =
+      parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+    return {
+      from: {
+        x: rect.left - box.left + rect.width / 2,
+        y: rect.top - box.top + rect.height / 2,
+      },
+      art: Math.max(1, rect.width - padding),
+      rotation: 0,
+      pinned,
+      opened: true,
+    }
   }
 
   const fromRing = (index: number, box: DOMRect): Flight | null => {
     const spot = ring.current?.find((s) => s.index === index)
     if (!spot) return null
-    return { pinned: null, cx: spot.cx - box.left, cy: spot.cy - box.top, art: spot.size * BASE.fit, rotation: spot.rotation }
+    return {
+      from: { x: spot.cx - box.left, y: spot.cy - box.top },
+      art: spot.size * BASE.fit,
+      rotation: spot.rotation,
+      pinned: null,
+      opened: spot.opened,
+    }
   }
 
-  const lift = () => {
+  /** queue a piece for the book: it leaves the scene at `at` */
+  const take = (index: number, at: number) => {
     const s = sim.current
-    if (s.flights.length) return
-    const box = frame()
-    s.flights = art.map(({ index }, k) => {
-      const flight = fromPin(index, box) ?? fromRing(index, box)
-      const sprite = spriteRefs.current[k]
-      if (!flight || !sprite) return null
+    if (s.takes.has(index)) return
+    s.takes.set(index, {
+      at,
+      order: s.taken++,
+      flight: null,
+      started: false,
+      landed: false,
+      back: -1,
+      openIn: false,
+    })
+  }
+
+  /** it leaves the scene: from here on the Pocket draws it, from where the scene last did */
+  const start = (index: number, piece: Take) => {
+    piece.started = true
+    const box = rootRef.current!.getBoundingClientRect()
+    const flight = fromPin(index, box) ?? fromRing(index, box)
+    piece.flight = flight
+    const sprite = spriteRefs.current[index]
+    if (flight && sprite) {
       Object.assign(sprite.style, {
-        left: `${flight.cx - flight.art / 2}px`,
-        top: `${flight.cy - flight.art / 2}px`,
+        left: `${flight.from.x - flight.art / 2}px`,
+        top: `${flight.from.y - flight.art / 2}px`,
         width: `${flight.art}px`,
         height: `${flight.art}px`,
       })
-      if (flight.pinned) flight.pinned.style.visibility = "hidden"
-      return flight
+    }
+    if (flight?.pinned) flight.pinned.style.visibility = "hidden"
+    setFilled((was) => {
+      const next = [...was]
+      next[piece.order] = index
+      return next
     })
-    s.drawn = s.flights.map((flight) => (flight ? { cx: flight.cx, cy: flight.cy, scale: 1, rotate: flight.rotation, opacity: 1 } : null))
-    callbacks.current.onRelease(true)
+    callbacks.current.onTake(index)
   }
 
-  const putBack = () => {
+  /** it is in its cell: a squash, and a breath of its colour */
+  const land = (piece: Take) => {
     const s = sim.current
-    s.flights.forEach((flight, k) => {
-      if (flight?.pinned) flight.pinned.style.visibility = ""
-      const sprite = spriteRefs.current[k]
-      if (sprite) sprite.style.opacity = "0"
-    })
-    s.flights = []
-    s.drawn = []
-    callbacks.current.onRelease(false)
+    piece.landed = true
+    setLanded((was) => Math.max(was, piece.order + 1))
+    navigator.vibrate?.(8)
+    const slot = slotRefs.current[order[piece.order] ?? -1]
+    if (!slot || s.still) return
+    slot
+      .querySelector("img")
+      ?.animate(SQUASH_FRAMES, { duration: LANDING * 1000 })
+    slot
+      .querySelector(".pocket-cell-glow")
+      ?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: LANDING * 1000 })
+    slot
+      .querySelector(".pocket-cell-ring")
+      ?.animate([{ opacity: 0.6 }, { opacity: 0 }], {
+        duration: LANDING * 1000,
+      })
   }
 
-  const enter = (phase: Phase) => {
-    sim.current.phase = phase
-    sim.current.phaseAt = sim.current.now
-  }
-
-  const claim = (fromPlayer: boolean) => {
+  /** past the point (or the screen's word): every piece left goes in, and the cover falls shut */
+  const finish = (fromPlayer: boolean) => {
     const s = sim.current
-    if (s.phase === "landing" || s.phase === "closing" || s.phase === "shut") return
-    finger.current = null
-    swipe.current = null
-    lift()
-    s.released = s.progress
-    enter("landing")
+    if (s.finishing || s.shutAt >= 0) return
+    s.finishing = true
+    s.grab = null
+    // one on its way home turns round: it goes in from where the scene has it
+    for (const [index, piece] of s.takes)
+      if (piece.back >= 0) home(index, piece)
+    let k = 0
+    for (const { index } of art)
+      take(index, s.t + (s.still ? 0 : FINISH_STAGGER * k++))
     if (fromPlayer) callbacks.current.onClaim()
   }
 
+  /* LET GO SHORT, the book stays open: nothing the cover took is kept. Each
+     piece flies back out of its cell to where the scene floats it, the last
+     taken first, and is the scene's again when it gets there; one still
+     queued never left */
+  const giveBack = () => {
+    const s = sim.current
+    const out = [...s.takes.entries()]
+      .filter(([, piece]) => piece.back < 0)
+      .sort(([, a], [, b]) => b.order - a.order)
+    let k = 0
+    for (const [index, piece] of out) {
+      if (!piece.started) {
+        s.takes.delete(index)
+        continue
+      }
+      piece.back = s.t + (s.still ? 0 : BACK_STAGGER * k++)
+      piece.openIn = piece.landed
+    }
+  }
+  /** home: the scene has it again */
+  const home = (index: number, piece: Take) => {
+    const s = sim.current
+    s.takes.delete(index)
+    if (piece.flight?.pinned) piece.flight.pinned.style.visibility = ""
+    const sprite = spriteRefs.current[index]
+    if (sprite) sprite.style.opacity = "0"
+    setFilled((was) => {
+      const next = [...was]
+      if (next[piece.order] === index) delete next[piece.order]
+      return next
+    })
+    callbacks.current.onReturn?.(index, piece.openIn)
+    // all home: the cells fill from the first again
+    if (!s.takes.size && !s.finishing) {
+      s.taken = 0
+      setFilled([])
+      setLanded(0)
+    }
+  }
+
   const letGo = () => {
-    const held = swipe.current?.progress ?? 0
-    swipe.current = null
-    if (claims(held)) return claim(true)
-    sim.current.returning = still(held)
-    enter("returning")
+    const s = sim.current
+    if (s.grab === null) return
+    s.grab = null
+    if (claims(s.cov)) finish(true)
+    else giveBack()
+  }
+
+  // the Pocket's box (it is the whole screen): measured when it changes size, not read every frame
+  const boxRef = useRef({ left: 0, top: 0, width: 0, height: 0 })
+  const measureBox = () => {
+    const root = rootRef.current
+    if (!root) return
+    const r = root.getBoundingClientRect()
+    boxRef.current = {
+      left: r.left,
+      top: r.top,
+      width: root.clientWidth,
+      height: root.clientHeight,
+    }
   }
 
   const step = (now: number) => {
     const s = sim.current
-    const dt = s.now ? (now - s.now) / 1000 : 0
-    s.now = now
-    const book = bookRef.current
-    if (!rootRef.current || !book) return
-    const box = frame()
-    const stage = { width: box.width, height: box.height }
-    const since = now - s.phaseAt
+    const root = rootRef.current
+    const bookEl = bookRef.current
+    const coverEl = coverRef.current
+    if (!root || !bookEl || !coverEl) return
+    const dt = s.last ? Math.min(0.05, (now - s.last) / 1000) : 0
+    s.last = now
+    s.t += dt
+    const t = s.t
+    if (!boxRef.current.width) measureBox()
+    const stage = {
+      width: boxRef.current.width,
+      height: boxRef.current.height,
+    }
+    const floating = s.shutAt < 0
+    const spots = ring.current ?? []
+    if (spots.some((spot) => spot.opened)) s.opened = true
+    const takes = [...s.takes.entries()]
 
-    if (s.phase === "held") s.progress = swipe.current?.progress ?? s.progress
-    if (s.phase === "returning") {
-      s.returning = stepSpring(s.returning, 0, SNUG, dt)
-      s.progress = Math.max(0, s.returning.x)
-      if (settled(s.returning, 0, 0.004)) {
-        s.progress = 0
-        putBack()
-        enter("rest")
+    // the cover: held, it trails the finger; let go short, it swings back
+    // open; past the point it falls shut by itself, faster and faster, and
+    // waits just short of shut until the last piece is in
+    if (floating) {
+      if (s.finishing) {
+        const lastIn = Math.max(
+          0,
+          ...takes.map(([, piece]) => piece.at + FLIGHT),
+        )
+        if (s.still) s.cov = 1
+        else
+          ({ cov: s.cov, v: s.covV } = coverFall(
+            { cov: s.cov, v: s.covV },
+            dt,
+            t < lastIn - LAND_EARLY,
+          ))
+      } else {
+        const held = s.grab !== null
+        s.cov = follow(
+          s.cov,
+          held ? s.covTarget : 0,
+          held ? HELD_RATE : OPEN_RATE,
+          dt,
+        )
+        s.covV = 0
+      }
+      s.lift = follow(
+        s.lift,
+        s.grab !== null || s.finishing || s.cov > 0.02 ? 1 : 0,
+        LIFT_RATE,
+        dt,
+      )
+    }
+    const landing = floating && s.finishing && s.cov >= 1 && s.thudAt < 0
+    if (landing) {
+      s.thudAt = t
+      navigator.vibrate?.([12, 30, 20])
+      if (!s.still) bookEl.classList.add("is-shimmering")
+    }
+
+    // where the book is, and how far closed its cover is drawn
+    const bookIn = floating ? smooth(seg(t, BOOK_IN_FROM, BOOK_IN_TO)) : 1
+    const grown = floating
+      ? 0
+      : s.still
+        ? 1
+        : smooth(seg(t, s.shutAt + GROW_FROM, s.shutAt + GROW_TO))
+    const peek = floating ? lerp(PEEK_AT, 1, smooth(s.lift)) : 1
+    let closed = floating ? s.cov : 1
+    let dip = 0
+    let ghost: { a: number; u: number } | null = null
+    // the invitation: every few seconds the cover lifts a little and a finger shows where to take it
+    if (
+      floating &&
+      !s.still &&
+      s.grab === null &&
+      !s.finishing &&
+      s.cov < 0.02 &&
+      bookIn > 0.95 &&
+      (s.opened || t > LATE)
+    ) {
+      const invite = invitation(t)
+      closed += invite.lift
+      ghost = invite.ghost
+    }
+    if (s.thudAt >= 0 && !s.still) ({ closed, dip } = thud(t - s.thudAt))
+    const book = bookAt({
+      stage,
+      bookIn,
+      peek,
+      cov: s.cov,
+      shut: !floating,
+      grown,
+      dip,
+    })
+    s.book = book
+    if (landing) s.thudBook = book
+
+    // every piece the cover's edge sweeps past drops through the middle of the screen into its cell
+    if (floating && !s.finishing && s.cov > 0.04) {
+      for (const spot of spots)
+        if (!s.takes.has(spot.index) && sweeps(spot.cx, book, s.cov))
+          take(spot.index, t)
+    }
+    // a claim that came in after the finish began goes in too
+    if (s.finishing && floating)
+      for (const { index } of art) if (!s.takes.has(index)) take(index, t)
+    for (const [index, piece] of s.takes)
+      if (!piece.started && t >= piece.at) start(index, piece)
+    // where each piece the Pocket holds would be in the scene: its way home
+    const homes = new Map(
+      spots.filter((spot) => spot.taken).map((spot) => [spot.index, spot]),
+    )
+
+    const midX = stage.width / 2
+    const rootBox = boxRef.current
+    const flying: Drawn[] = []
+    for (const [index, piece] of [...s.takes]) {
+      if (!piece.started) continue
+      // on its way home: the way it came, backwards, out of its cell
+      const going = piece.back >= 0
+      if (piece.landed && !going) continue
+      const sprite = spriteRefs.current[index]
+      const u = going
+        ? 1 - (s.still ? 1 : seg(t, piece.back, piece.back + FLIGHT))
+        : s.still
+          ? 1
+          : seg(t, piece.at, piece.at + FLIGHT)
+      const flight = piece.flight
+      if (going && t >= piece.back && piece.landed) {
+        // out of its cell: the cell is empty now, the flight draws it
+        piece.landed = false
+        setFilled((was) => {
+          const next = [...was]
+          if (next[piece.order] === index) delete next[piece.order]
+          return next
+        })
+      }
+      if (going && u <= 0) {
+        home(index, piece)
+        continue
+      }
+      if (!going && u >= 1) {
+        land(piece)
+        if (sprite) sprite.style.opacity = "0"
+        continue
+      }
+      if (!flight) continue
+      if (going && t < piece.back) continue
+      const cell = cellAt(piece.order, count, book, closed)
+      const back = going ? homes.get(index) : undefined
+      const from = back
+        ? { x: back.cx - rootBox.left, y: back.cy - rootBox.top }
+        : flight.from
+      const { at, k } = flightAt(from, cell, midX, u)
+      const drawn = {
+        index,
+        flight,
+        at,
+        scale: lerp(1, cell.side / flight.art, k),
+        rotate: flight.rotation * (1 - k),
+        u,
+        going,
+        open: going && piece.openIn,
+      }
+      flying.push(drawn)
+      if (sprite) {
+        const shelled =
+          !flight.pinned &&
+          !flight.opened &&
+          !drawn.open &&
+          !!renderer.current?.has(art[index]?.image ?? "")
+        sprite.style.transform = `translate(${at.x - flight.from.x}px, ${at.y - flight.from.y}px) rotate(${drawn.rotate}deg) scale(${drawn.scale})`
+        sprite.style.opacity = shelled
+          ? "0"
+          : going
+            ? "1"
+            : String(1 - seg(u, 0.9, 1))
       }
     }
-    if (s.phase === "landing") {
-      s.progress = s.released + (1 - s.released) * easeOut(since / LAND_MS)
-      if (since >= LAND_MS) {
-        s.progress = 1
-        navigator.vibrate?.(14)
-        s.closedAt = now
-        enter("closing")
-      }
-    }
-    if (s.phase === "closing" && s.sparkled && now - s.landedAt > SHUT_AFTER_MS) {
-      enter("shut")
+
+    // shut: the thud has rung out and every piece is in
+    const allIn =
+      s.takes.size >= count && takes.every(([, piece]) => piece.landed)
+    if (
+      floating &&
+      s.thudAt >= 0 &&
+      t >= s.thudAt + (s.still ? 0 : SHUT_AFTER) &&
+      allIn
+    ) {
+      s.shutAt = t
+      s.cov = 1
+      s.confetti = s.still ? [] : confettiFor(CONFETTI)
       setShut(true)
     }
 
-    const closed = s.phase === "closing" || s.phase === "shut"
-    const closeSince = now - s.closedAt
-    const swung = closed ? (s.sparkled ? 1 : coverSwing((closeSince - COVER_FROM_MS) / COVER_MS)) : 0
-    const middle = closedBookAt(stage)
-    const open = openScale(stage)
-    const target = closed ? { x: middle.x + PAGE_HALF * open * (1 - swung), y: middle.y } : openBookAt(s.progress, stage)
-    if (!s.placed) {
-      s.bookX = still(target.x)
-      s.bookY = still(target.y)
-      s.scale = still(open)
-      s.placed = true
-    }
-    s.bookX = stepSpring(s.bookX, target.x, closed ? GLIDE : POSITION, dt)
-    s.bookY = stepSpring(s.bookY, target.y, closed ? GLIDE : SNUG, dt)
-    s.scale = stepSpring(s.scale, closed ? open + (BOOK.grown - open) * swung : open, closed ? GROW : SNUG, dt)
-    const stood = closed ? standUp(closeSince / STAND_MS) : 0
-    s.tilt = closed ? still(BOOK.tilt * (1 - stood)) : stepSpring(s.tilt, BOOK.tilt, SNUG, dt)
-    pageRef.current!.style.transform = `rotateY(${-BOOK.bend * (1 - Math.min(1, stood))}deg)`
-    const opened = BOOK.bend - 180
-    if (!closed) s.cover = stepSpring(s.cover, opened, SNUG, dt)
-    else if (!s.sparkled) s.cover = still(opened * (1 - swung))
-    else {
-      s.cover = stepSpring(s.cover, 0, SETTLE, dt)
-      if (s.cover.x > 0) s.cover = still(0)
-    }
-    if (s.phase === "closing" && !s.sparkled && closeSince >= COVER_FROM_MS + COVER_MS) {
-      s.cover = { x: 0, v: COVER_BOUNCE }
-      s.sparkled = true
-      s.landedAt = now
-      s.squash = { x: s.squash.x, v: s.squash.v + 3.4 }
-      navigator.vibrate?.([12, 30, 20])
-      book.classList.add("is-shimmering")
-      if (!reducedMotion()) setConfetti(sparksFor(CONFETTI))
-    }
-    s.squash = stepSpring(s.squash, 0, JELLY, dt)
-    const squash = Math.max(-0.14, Math.min(0.14, s.squash.x * 0.05))
-    book.style.transform =
-      `translate(${s.bookX.x - BOOK.width / 2}px, ${s.bookY.x - BOOK.height / 2}px) ` +
-      `rotateX(${s.tilt.x}deg) scale(${s.scale.x * (1 - squash * 0.6)}, ${s.scale.x * (1 + squash)})`
-    coverRef.current!.style.transform = `rotateY(${s.cover.x}deg) translateZ(1px)`
+    // the book and its cover, turned like a page lifting: it comes toward
+    // you as it stands, lifts off the table at its free edge, catches the
+    // light near upright, and shades the page as it comes down onto it
+    const turned = clamp01(closed)
+    const sn = Math.sin(Math.PI * turned)
+    const cs = Math.cos(Math.PI * turned)
+    const lift = (COVER_LIFT + (s.grab !== null ? HELD_LIFT : 0)) * sn
+    bookEl.style.transform = `translate(${book.sx}px, ${book.sy - BOOK.height / 2}px) scale(${book.sc})`
+    bookEl.style.setProperty(
+      "--shadow",
+      cs < 0 ? (clamp01(-cs * 1.6) * 0.5 * (1 - sn * 0.4)).toFixed(3) : "0",
+    )
+    bookEl.style.setProperty(
+      "--shadow-w",
+      `${(BOOK.width * Math.max(0, -cs) + 24 * sn).toFixed(1)}px`,
+    )
+    coverEl.style.transform = `perspective(${COVER_DEPTH}px) rotateY(${((turned - 1) * 180).toFixed(2)}deg) skewY(${(-Math.atan(lift / BOOK.width)).toFixed(4)}rad)`
+    coverEl.style.setProperty("--light", (0.22 * sn ** 3).toFixed(3))
+    coverEl.style.setProperty("--shade-in", (0.28 * sn).toFixed(3))
+    coverEl.style.setProperty("--shade-out", (0.22 * sn).toFixed(3))
+    innerRef.current!.style.visibility = cs > 0 ? "visible" : "hidden"
+    outerRef.current!.style.visibility = cs > 0 ? "hidden" : "visible"
+    // past the point, a gold edge on the cover, so you know it will shut
+    edgeRef.current!.style.opacity =
+      floating && s.grab !== null && s.cov >= CLAIM_AT ? "0.9" : "0"
+    // the pieces go INTO the book: where the cover lies over the page, a piece
+    // flying in goes under it (the cover's place is cut out of the flights'
+    // layer), never over it to vanish when it lands
+    const flightsEl = flightsRef.current!
+    if (floating && cs < 0) {
+      const x0 = book.sx
+      const x1 = book.sx + book.pw * -cs + 2
+      const half = (book.ph / 2) * (1 + COVER_TOWARD * sn) + lift * book.sc + 4
+      const y0 = book.sy - half
+      const y1 = book.sy + half
+      flightsEl.style.clipPath = `path(evenodd, "M0 0H${stage.width}V${stage.height}H0Z M${x0.toFixed(1)} ${y0.toFixed(1)}H${x1.toFixed(1)}V${y1.toFixed(1)}H${x0.toFixed(1)}Z")`
+    } else if (flightsEl.style.clipPath) flightsEl.style.clipPath = ""
 
-    const veilTarget = closed || s.phase === "landing" ? VEIL_LANDING : s.progress * VEIL_HELD
-    s.veil += (veilTarget - s.veil) * Math.min(1, dt * 9)
-    veilRef.current!.style.opacity = s.veil.toFixed(3)
+    const reported = floating ? s.cov : 1
+    if (Math.abs(reported - s.said) > 0.002) {
+      s.said = reported
+      callbacks.current.onCover?.(reported)
+    }
 
-    art.forEach((_, k) => {
-      const cell = cellRefs.current[k]
-      const flight = s.flights[k]
-      const sprite = spriteRefs.current[k]
-      if (!flight || !sprite) {
-        if (cell) cell.style.opacity = String(closed ? 1 : clamp01((s.progress - CLAIM_AT) / (1 - CLAIM_AT)))
-        return
-      }
-      const onPage = cellOnScreen(k, box)
-      const pose = landing({
-        from: { x: flight.cx, y: flight.cy },
-        to: onPage.at,
-        progress: closed ? 1 : s.progress,
-        rotation: flight.rotation,
-        endScale: onPage.size / flight.art,
-      })
-      const drawn: Drawn = { cx: flight.cx + pose.x, cy: flight.cy + pose.y, scale: pose.scale, rotate: pose.rotate, opacity: closed ? 0 : pose.opacity }
-      s.drawn[k] = drawn
-      if (cell) cell.style.opacity = String(1 - drawn.opacity)
-      const shelled = !flight.pinned && !!renderer.current?.has(art[k]!.src)
-      sprite.style.transform = `translate(${drawn.cx - flight.cx}px, ${drawn.cy - flight.cy}px) rotate(${drawn.rotate}deg) scale(${drawn.scale})`
-      sprite.style.opacity = shelled ? "0" : String(drawn.opacity)
-    })
-
-    const ray = rayRef.current!
-    const bottom = stage.height
-    const top = rayBase(box) - RAY_LENGTH
-    const rayTarget = s.phase === "rest" || s.phase === "held" || s.phase === "returning" ? RAY_AT_REST * (1 - clamp01(s.progress * RAY_FADE)) : 0
-    s.ray = stepSpring(s.ray, rayTarget, SNUG, dt)
-    ray.style.top = `${top}px`
-    ray.style.height = `${bottom - top}px`
-    ray.style.setProperty("--ray", Math.max(0, s.ray.x).toFixed(3))
+    paintPocketFx(fxRef.current, stage, t, book, ghost, sim.current)
 
     const shells = renderer.current
     if (shells) {
-      const entries = s.flights.flatMap((flight, k) => {
-        const piece = art[k]
-        const drawn = s.drawn[k]
-        if (!flight || flight.pinned || !piece || !drawn || drawn.opacity <= 0 || !shells.has(piece.src)) return []
-        return [
-          {
-            id: String(piece.index),
-            url: piece.src,
-            material: materialFor(piece.src, piece.rare),
-            phase: wrappingPhase(piece.index),
-            brk: 0,
-            hit: [0.5, 0.5] as const,
-            moving: true,
-            place: {
-              cx: box.left + drawn.cx,
-              cy: box.top + drawn.cy,
-              size: (flight.art / BASE.fit) * drawn.scale,
-              rotation: drawn.rotate,
-              opacity: drawn.opacity,
+      const entries = flying.flatMap(
+        ({ index, flight, at, scale, rotate, u, going, open }) => {
+          const src = art[index]?.image
+          if (
+            !src ||
+            flight.pinned ||
+            flight.opened ||
+            open ||
+            !shells.has(src)
+          )
+            return []
+          return [
+            {
+              id: String(index),
+              url: src,
+              material: materialFor(src, !!art[index]?.rare),
+              phase: wrappingPhase(index),
+              brk: 0,
+              hit: [0.5, 0.5] as const,
+              moving: true,
+              place: {
+                cx: at.x,
+                cy: at.y,
+                size: (flight.art / BASE.fit) * scale,
+                rotation: rotate,
+                opacity: going ? 1 : 1 - seg(u, 0.9, 1),
+              },
             },
-          },
-        ]
-      })
+          ]
+        },
+      )
       shells.draw(entries, now)
     }
   }
 
-  const handlers = useRef({ step, claim, letGo, putBack, lift, enter })
+  const handlers = useRef({ step, finish, letGo, onPiece })
   useEffect(() => {
-    handlers.current = { step, claim, letGo, putBack, lift, enter }
+    handlers.current = { step, finish, letGo, onPiece }
   })
 
+  // the box again whenever the Pocket changes size
   useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const observer = new ResizeObserver(() => {
+      const r = root.getBoundingClientRect()
+      boxRef.current = {
+        left: r.left,
+        top: r.top,
+        width: root.clientWidth,
+        height: root.clientHeight,
+      }
+    })
+    observer.observe(root)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    sim.current.still = reducedMotion()
     let frameId = 0
     const loop = (now: number) => {
       handlers.current.step(now)
       frameId = requestAnimationFrame(loop)
     }
     frameId = requestAnimationFrame(loop)
-    return () => {
-      cancelAnimationFrame(frameId)
-      handlers.current.putBack()
-    }
+    return () => cancelAnimationFrame(frameId)
   }, [])
 
   useEffect(() => {
-    if (claimed) handlers.current.claim(false)
+    if (claimed) handlers.current.finish(false)
   }, [claimed])
 
   useEffect(() => {
     const canvas = shellsRef.current
     if (!canvas || !wrappingExpected()) return
     let disposed = false
-    void import("@/lib/wrapping/renderer").then(({ WrappingRenderer: Renderer }) => {
-      if (disposed) return
-      try {
-        renderer.current = new Renderer(canvas)
-      } catch {
-        return
-      }
-      for (const { src } of art) {
-        void ensureFields(src)
-          .then((entry) => {
-            if (!disposed) renderer.current?.upload(src, entry, entry.image)
-          })
-          .catch(() => {})
-      }
-    })
+    void import("@/lib/wrapping/renderer").then(
+      ({ WrappingRenderer: Renderer }) => {
+        if (disposed) return
+        try {
+          renderer.current = new Renderer(canvas)
+        } catch {
+          return
+        }
+        for (const { image } of art) {
+          if (!image) continue
+          void ensureFields(image)
+            .then((entry) => {
+              if (!disposed)
+                renderer.current?.upload(image, entry, entry.image)
+            })
+            .catch(() => {})
+        }
+      },
+    )
     return () => {
       disposed = true
       renderer.current?.dispose()
@@ -461,115 +777,117 @@ export function PocketClaim({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one renderer for the life of the Pocket
   }, [])
 
+  // a press on the book grabs the cover, unless it lands on a piece; the
+  // scene never hears a press the cover took
   useEffect(() => {
     const area = surface.current
     if (!area) return
 
-    const scrolledAway = (target: EventTarget | null) => {
-      for (let el = target as HTMLElement | null; el && el !== area; el = el.parentElement) {
-        if (el.scrollTop > 0) return true
-      }
-      return false
-    }
-
-    const decide = (at: Point, target: EventTarget | null) => {
-      const held = finger.current
-      if (!held || held.ours !== null) return held?.ours ?? false
-      const dx = at.x - held.start.x
-      const dy = at.y - held.start.y
-      if (Math.hypot(dx, dy) < SLOP) return false
-      held.ours = dy > Math.abs(dx) && !scrolledAway(target)
-      if (held.ours) {
-        handlers.current.lift()
-        swipe.current = trackSwipe(null, held.start)
-        handlers.current.enter("held")
-      }
-      return held.ours
-    }
-
-    const idle = () => sim.current.phase === "rest" || sim.current.phase === "returning"
-
     const onDown = (event: PointerEvent) => {
-      if (hiddenRef.current || !idle() || finger.current || (event.target as Element | null)?.closest("button")) return
-      finger.current = { id: event.pointerId, start: { x: event.clientX, y: event.clientY }, ours: null }
+      const s = sim.current
+      if (
+        hiddenRef.current ||
+        s.grab !== null ||
+        s.finishing ||
+        s.shutAt >= 0 ||
+        !s.book
+      )
+        return
+      if ((event.target as Element | null)?.closest("button, a, [role=button]"))
+        return
+      const at = { x: event.clientX, y: event.clientY }
+      if (handlers.current.onPiece(at) || !grabs(at, s.book)) return
+      event.stopPropagation()
+      s.grab = event.pointerId
+      s.covTarget = coverFor(at.x, s.book)
     }
 
     const onMove = (event: PointerEvent) => {
-      if (finger.current?.id !== event.pointerId) return
-      if (!decide({ x: event.clientX, y: event.clientY }, event.target)) return
-      swipe.current = trackSwipe(swipe.current, { x: event.clientX, y: event.clientY })
-      if (swipe.current.progress >= 1) handlers.current.claim(true)
-    }
-
-    const onTouchMove = (event: TouchEvent) => {
-      const touch = event.touches[0]
-      if (!touch || !finger.current) return
-      if (decide({ x: touch.clientX, y: touch.clientY }, event.target) && event.cancelable) event.preventDefault()
+      const s = sim.current
+      if (s.grab !== event.pointerId || !s.book) return
+      s.covTarget = coverFor(event.clientX, s.book)
     }
 
     const onUp = (event: PointerEvent) => {
-      if (finger.current?.id !== event.pointerId) return
-      const ours = finger.current.ours
-      finger.current = null
-      if (ours) handlers.current.letGo()
+      if (sim.current.grab === event.pointerId) handlers.current.letGo()
     }
 
-    const onCancel = (event: PointerEvent) => {
-      if (finger.current?.id !== event.pointerId) return
-      const ours = finger.current.ours
-      finger.current = null
-      if (!ours || sim.current.phase !== "held") return
-      sim.current.returning = still(swipe.current?.progress ?? 0)
-      swipe.current = null
-      handlers.current.enter("returning")
+    const onTouchMove = (event: TouchEvent) => {
+      if (sim.current.grab !== null && event.cancelable) event.preventDefault()
     }
 
-    area.addEventListener("pointerdown", onDown)
+    area.addEventListener("pointerdown", onDown, { capture: true })
     area.addEventListener("touchmove", onTouchMove, { passive: false })
     window.addEventListener("pointermove", onMove)
     window.addEventListener("pointerup", onUp)
-    window.addEventListener("pointercancel", onCancel)
+    window.addEventListener("pointercancel", onUp)
     return () => {
-      area.removeEventListener("pointerdown", onDown)
+      area.removeEventListener("pointerdown", onDown, { capture: true })
       area.removeEventListener("touchmove", onTouchMove)
       window.removeEventListener("pointermove", onMove)
       window.removeEventListener("pointerup", onUp)
-      window.removeEventListener("pointercancel", onCancel)
+      window.removeEventListener("pointercancel", onUp)
     }
   }, [surface])
 
   useEffect(() => {
     if (refusals === 0) return
-    for (const el of shownRef.current) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_MS, easing: "ease-out", fill: "forwards" })
+    for (const el of shownRef.current)
+      el.animate([{ opacity: 0 }, { opacity: 1 }], {
+        duration: FADE_MS,
+        easing: "ease-out",
+        fill: "forwards",
+      })
   }, [refusals])
 
-  const leave = () => {
-    const shown = shownRef.current.filter(Boolean)
-    if (shown.length === 0) return callbacks.current.onDone()
-    const fades = shown.map((el) => el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE_MS, easing: "ease-in", fill: "forwards" }))
-    void fades[0]!.finished.then(
-      () => callbacks.current.onDone(),
-      () => {},
+  const leave = () => fadeAndGo(shownRef.current, callbacks.current.onDone)
+
+  // the book shut: on by itself once it has had its moment, no Continue to
+  // press. A hand-off the host refused (`refusals`) puts the Continue up
+  // instead, so there is one to press
+  useEffect(() => {
+    if (!shut || refusals > 0) return
+    const timer = setTimeout(
+      () => fadeAndGo(shownRef.current, callbacks.current.onDone),
+      FADE_AT_MS,
+    )
+    return () => clearTimeout(timer)
+  }, [shut, refusals])
+
+  const pieceAt = (place: number) => {
+    const index = filled[place]
+    return index === undefined ? undefined : art[index]
+  }
+
+  const cell = (j: number) => {
+    const place = order.indexOf(j)
+    const piece = pieceAt(place)
+    return (
+      <div
+        key={j}
+        ref={(el) => {
+          slotRefs.current[j] = el
+        }}
+        className="pocket-cell"
+        data-landed={place >= 0 && place < landed ? "" : undefined}
+        style={piece ? ({ "--tint": piece.tint } as CSSProperties) : undefined}
+      >
+        <i className="pocket-cell-glow" />
+        <i className="pocket-cell-ring" />
+        {piece?.image ? (
+          <img src={piece.image} alt="" draggable={false} decoding="async" />
+        ) : null}
+      </div>
     )
   }
 
-  const cell = ({ src }: { src: string }, k: number) => (
-    <img
-      key={k}
-      ref={(el) => {
-        cellRefs.current[k] = el
-      }}
-      className="pocket-book-cell"
-      src={src}
-      alt=""
-      draggable={false}
-      decoding="async"
-    />
-  )
-
   return (
-    <div ref={rootRef} className={`pocket-claim${shut ? " is-shut" : ""}${hidden ? " is-hidden" : ""}`} data-testid="pocket-claim" data-shut={shut ? "true" : "false"}>
-      <div ref={veilRef} className="pocket-veil" aria-hidden="true" />
+    <div
+      ref={rootRef}
+      className={`pocket-claim${shut ? " is-shut" : ""}${hidden ? " is-hidden" : ""}`}
+      data-testid="pocket-claim"
+      data-shut={shut ? "true" : "false"}
+    >
       <div
         ref={(el) => {
           if (el) shownRef.current[0] = el
@@ -577,56 +895,58 @@ export function PocketClaim({
         aria-hidden="true"
       >
         <div ref={bookRef} className="pocket-book">
-          <div ref={pageRef} className="pocket-book-page">
-            <div className="pocket-book-grid">{art.slice(cover).map((piece, k) => cell(piece, cover + k))}</div>
+          <div className="pocket-book-page">
+            <div className="pocket-book-grid">
+              {art.slice(half).map((_, k) => cell(half + k))}
+            </div>
+            <i className="pocket-book-shadow" />
           </div>
           <div ref={coverRef} className="pocket-book-cover">
-            <div className="pocket-book-face pocket-book-face--inner">
-              <div className="pocket-book-grid">{art.slice(0, cover).map((piece, k) => cell(piece, k))}</div>
+            <div
+              ref={innerRef}
+              className="pocket-book-face pocket-book-face--inner"
+            >
+              <div className="pocket-book-grid">
+                {art.slice(0, half).map((_, k) => cell(k))}
+              </div>
+              <i className="pocket-book-light" />
+              <i className="pocket-book-shade" />
             </div>
-            <div className="pocket-book-face pocket-book-face--outer">
-              <img src={asset("/assets/album-cover.webp")} alt="" draggable={false} />
+            <div
+              ref={outerRef}
+              className="pocket-book-face pocket-book-face--outer"
+            >
+              <img
+                src={asset("/assets/album-cover.webp")}
+                alt=""
+                draggable={false}
+              />
+              <i className="pocket-book-light" />
+              <i className="pocket-book-shade" />
             </div>
+            <i ref={edgeRef} className="pocket-book-edge" />
           </div>
         </div>
       </div>
-      <div ref={rayRef} className="pocket-ray" aria-hidden="true">
-        <span className="pocket-ray-spark" />
-      </div>
-      {art.map(({ src }, k) => (
-        <img
-          key={k}
-          ref={(el) => {
-            spriteRefs.current[k] = el
-          }}
-          className="pocket-flight"
-          src={src}
-          alt=""
-          aria-hidden="true"
-          draggable={false}
-        />
-      ))}
-      <canvas ref={shellsRef} className="pocket-shells" aria-hidden="true" />
-      {confetti ? (
-        <div className="pocket-confetti" aria-hidden="true">
-          {confetti.map((spark, k) => (
-            <i
+      <div ref={flightsRef} className="pocket-flights">
+        <canvas ref={fxRef} className="pocket-fx" aria-hidden="true" />
+        {art.map(({ image }, k) =>
+          image ? (
+            <img
               key={k}
-              style={
-                {
-                  "--dx": `${spark.dx}px`,
-                  "--rise": `${spark.rise}px`,
-                  "--fall": `${spark.fall}px`,
-                  "--turn": `${spark.turn}deg`,
-                  "--size": `${spark.size}px`,
-                  "--film": FILM[spark.hue % FILM.length],
-                  animationDelay: `${spark.delay}ms`,
-                } as CSSProperties
-              }
+              ref={(el) => {
+                spriteRefs.current[k] = el
+              }}
+              className="pocket-flight"
+              src={image}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
             />
-          ))}
-        </div>
-      ) : null}
+          ) : null,
+        )}
+        <canvas ref={shellsRef} className="pocket-shells" aria-hidden="true" />
+      </div>
       <div
         ref={(el) => {
           if (el) shownRef.current[1] = el
@@ -636,7 +956,7 @@ export function PocketClaim({
           Added to your Pocket
         </h1>
       </div>
-      {shut ? (
+      {shut && refusals > 0 ? (
         <div
           ref={(el) => {
             if (el) shownRef.current[2] = el
@@ -647,8 +967,12 @@ export function PocketClaim({
             Continue
           </Button>
         </div>
-      ) : (
-        <button type="button" className="pocket-claim-without-gesture" onClick={() => claim(true)}>
+      ) : shut ? null : (
+        <button
+          type="button"
+          className="pocket-claim-without-gesture"
+          onClick={() => handlers.current.finish(true)}
+        >
           Claim all
         </button>
       )}

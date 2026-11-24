@@ -11,6 +11,7 @@
  * must be mirrored here by hand — the compiler cannot check the two agree.
  */
 import { createChestScene as createUntypedChestScene } from "./engine"
+import type { CarriedBubble } from "./carry"
 
 /** An image the 2D canvas can draw and measure. */
 type ChestSpriteImage = CanvasImageSource & { width: number; height: number }
@@ -36,12 +37,17 @@ type ChestSceneEvent =
   | "focus"
   /** a tap cracked the focused piece (`index`) */
   | "pop"
+  /** an opened piece was tapped (`index`), its box centred at `x`, `y`, `side` across, canvas-local CSS px */
+  | "inspect"
 
 /** The payload of an event; which fields are set depends on the event. */
 interface ChestSceneEventData {
   index?: number
   clock?: number
   on?: boolean
+  x?: number
+  y?: number
+  side?: number
 }
 
 /** Where one live piece is drawn this frame, for a layer drawn on top. */
@@ -62,6 +68,9 @@ export interface ChestPlacement {
   /** where the cracking tap landed, in canvas-local CSS px */
   hitX: number
   hitY: number
+  /** its breathing tilt, as the circle is squashed by it across and down (1: none) */
+  sx: number
+  sy: number
 }
 
 export interface ChestSceneOptions {
@@ -74,6 +83,11 @@ export interface ChestSceneOptions {
   /** every frame: the live pieces' placements, and how far the camera has
    *  settled on the pieces after the pop (0..1) */
   onDiscs?: (placements: ChestPlacement[], blend: number) => void
+  /** the bubble the draw's hold carried here (./carry): it starts blown where
+   *  it was, and each claim is found from a share of its pieces */
+  carried?: CarriedBubble | null
+  /** the carried bubble is drawn by the scene now: the layer that carried it can go */
+  onCarriedShown?: () => void
 }
 
 export interface ChestScene {
@@ -94,8 +108,13 @@ export interface ChestScene {
   addPiece(tint: string): number
   /** pop the bubble: now if it is blown, else the moment it is */
   open(): void
-  /** the piece left the scene (it landed on the shelf): stop simulating it */
-  removePiece(index: number): void
+  /** the piece's shell has broken: it stays as its plain art and floats up
+   *  to the opened ones */
+  openPiece(index: number): void
+  /** stop (true) or restart (false) the frames while something covers the scene */
+  hold(on: boolean): void
+  /** the pieces float above this, CSS px from the canvas's top (the Pocket's book); null: the canvas's foot */
+  setFloor(px: number | null): void
   /** another layer draws this piece now: stop painting its flat art */
   setSpriteHidden(index: number, hidden: boolean): void
   /** the host element changed size, in CSS px */

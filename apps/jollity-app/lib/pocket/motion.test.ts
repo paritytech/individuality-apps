@@ -2,76 +2,177 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { describe, expect, it } from "vitest"
-import { BOUNCY, SNUG, coverSwing, standUp, settled, sparksFor, stepSpring, type Spring } from "./motion"
+import type { Book } from "./book"
+import {
+  COVER_WAIT,
+  CONFETTI_FOR,
+  arcAt,
+  confettiAt,
+  confettiFor,
+  coverFall,
+  flightAt,
+  follow,
+  ghostAt,
+  invitation,
+  puffAt,
+  squash,
+  thud,
+  trailAlpha,
+} from "./motion"
 
-const run = (from: Spring, target: number, tune = BOUNCY, frames = 240) => {
-  let spring = from
-  let peak = from.x
-  for (let i = 0; i < frames; i++) {
-    spring = stepSpring(spring, target, tune, 1 / 60)
-    peak = Math.max(peak, spring.x)
+const book: Book = { sx: 195, sy: 700, sc: 0.95, pw: 171, ph: 228 }
+
+describe("the cover held", () => {
+  it("trails its target, the same at any frame rate", () => {
+    // When
+    let slow = 0
+    for (let i = 0; i < 6; i++) slow = follow(slow, 1, 11, 1 / 30)
+    let fast = 0
+    for (let i = 0; i < 12; i++) fast = follow(fast, 1, 11, 1 / 60)
+
+    // Then
+    expect(slow).toBeGreaterThan(0.8)
+    expect(slow).toBeLessThan(1)
+    expect(fast).toBeCloseTo(slow)
+  })
+})
+
+describe("the cover falling shut", () => {
+  const fall = (from: number, seconds: number, waiting: (t: number) => boolean) => {
+    let cover = { cov: from, v: 0 }
+    let t = 0
+    while (t < seconds) {
+      cover = coverFall(cover, 1 / 60, waiting(t))
+      t += 1 / 60
+    }
+    return cover
   }
-  return { spring, peak }
-}
 
-describe("a spring", () => {
-  it("overshoots its target once and settles on it", () => {
+  it("gathers speed as it goes", () => {
     // When
-    const { spring, peak } = run({ x: 0, v: 0 }, 1)
+    const early = coverFall({ cov: 0.7, v: 0 }, 1 / 60, false)
+    const later = coverFall(early, 1 / 60, false)
 
     // Then
-    expect(peak).toBeGreaterThan(1.05)
-    expect(settled(spring, 1)).toBe(true)
+    expect(later.v).toBeGreaterThan(early.v)
+    expect(later.cov - early.cov).toBeGreaterThan(early.cov - 0.7)
   })
 
-  it("stays put through a long stall instead of flying off", () => {
+  it("waits short of shut while a piece is on its way in, then lands", () => {
     // When
-    const after = stepSpring({ x: 0, v: 0 }, 1, SNUG, 5)
+    const held = fall(0.7, 1, () => true)
+    const landed = fall(0.7, 1, (t) => t < 0.5)
 
     // Then
-    expect(after.x).toBeGreaterThan(0)
-    expect(after.x).toBeLessThan(1.5)
-  })
-})
-
-describe("the cover", () => {
-  it("lifts off slowly and is still moving when it lands", () => {
-    // When
-    const start = coverSwing(0.1) - coverSwing(0)
-    const end = coverSwing(1) - coverSwing(0.9)
-
-    // Then
-    expect(coverSwing(0)).toBe(0)
-    expect(coverSwing(1)).toBeCloseTo(1)
-    expect(end).toBeGreaterThan(start * 2)
+    expect(held.cov).toBe(COVER_WAIT)
+    expect(landed.cov).toBe(1)
   })
 })
 
-describe("the book standing up", () => {
-  it("leaves the table quickly, leans a hair past upright and settles", () => {
+describe("a flight", () => {
+  const from = { x: 80, y: 300 }
+  const to = { x: 250, y: 760 }
+
+  it("starts where the piece was and ends on its cell", () => {
     // When
-    const early = standUp(0.2)
-    const late = standUp(0.9) - standUp(0.8)
-    const peak = Math.max(...[0.6, 0.7, 0.8, 0.9].map(standUp))
+    const start = flightAt(from, to, 195, 0)
+    const end = flightAt(from, to, 195, 1)
 
     // Then
-    expect(standUp(0)).toBeCloseTo(0)
-    expect(early).toBeGreaterThan(0.35)
-    expect(Math.abs(late)).toBeLessThan(0.05)
-    expect(peak).toBeGreaterThan(1)
-    expect(peak).toBeLessThan(1.08)
-    expect(standUp(1)).toBeCloseTo(1)
+    expect(start.at).toEqual(from)
+    expect(end.at).toEqual(to)
+    expect(end.k).toBe(1)
+  })
+
+  it("curves in through the middle of the screen, halfway down", () => {
+    // When
+    const middle = flightAt(from, to, 195, 0.5)
+
+    // Then
+    expect(middle.at.x).toBeGreaterThan((from.x + to.x) / 2)
+    expect(middle.at.y).toBeCloseTo((from.y + to.y) / 2)
+  })
+
+  it("follows a curve through its control point", () => {
+    expect(arcAt({ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 0, y: 10 }, 0.5)).toEqual({ x: 5, y: 2.5 })
+  })
+
+  it("leaves a trail only early on", () => {
+    expect(trailAlpha(0)).toBe(0)
+    expect(trailAlpha(0.25)).toBeCloseTo(0.35)
+    expect(trailAlpha(0.6)).toBe(0)
+  })
+})
+
+describe("a landing", () => {
+  it("lands wide and flat and rings back to still", () => {
+    expect(squash(0)).toBeCloseTo(0.28)
+    expect(squash(0.13)).toBeLessThan(0)
+    expect(Math.abs(squash(0.7))).toBeLessThan(0.002)
+  })
+
+  it("bounces the cover a little open and dips the book, then settles shut", () => {
+    // When
+    const now = thud(0)
+    const bounce = thud(0.1)
+    const after = thud(2)
+
+    // Then
+    expect(now.closed).toBe(1)
+    expect(bounce.closed).toBeLessThan(1)
+    expect(bounce.dip).toBeGreaterThan(2)
+    expect(after.closed).toBeCloseTo(1)
+    expect(after.dip).toBeCloseTo(0)
+  })
+
+  it("puffs specks out from the book's edges", () => {
+    // When
+    const specks = Array.from({ length: 28 }, (_, j) => [puffAt(j, 0, book), puffAt(j, 0.5, book)] as const)
+
+    // Then
+    for (const [start, later] of specks) {
+      const onEdge = Math.abs(start.y - (book.sy - book.ph / 2)) < 0.01 || Math.abs(start.y - (book.sy + book.ph / 2)) < 0.01 || start.x === book.sx + book.pw
+      expect(onEdge).toBe(true)
+      expect(Math.hypot(later.x - start.x, later.y - start.y)).toBeGreaterThan(10)
+    }
+    expect(puffAt(0, 1, book).alpha).toBe(0)
+  })
+})
+
+describe("the invitation", () => {
+  it("lifts the cover a little and shows the finger, every 3.4 s", () => {
+    // When
+    const lifted = invitation(0.75)
+    const between = invitation(2)
+    const again = invitation(3.4 + 0.75)
+
+    // Then
+    expect(lifted.lift).toBeGreaterThan(0.2)
+    expect(lifted.lift).toBeLessThanOrEqual(0.3)
+    expect(lifted.ghost).not.toBeNull()
+    expect(between).toEqual({ lift: 0, ghost: null })
+    expect(again.lift).toBeCloseTo(lifted.lift)
+  })
+
+  it("moves the finger from the cover's left part to just right of the spine", () => {
+    expect(ghostAt(0, book).x).toBeCloseTo(195 - 171 + 26)
+    expect(ghostAt(1, book).x).toBeCloseTo(195 + 34)
+    expect(ghostAt(1, book).y).toBeCloseTo(710)
   })
 })
 
 describe("the confetti", () => {
-  it("is thrown upwards and is the same for the same seed", () => {
+  it("is thrown up, falls, and is the same for the same seed", () => {
     // When
-    const sparks = sparksFor(12, 3)
+    const bits = confettiFor(46, 3)
+    const from = { x: 195, y: 422 }
 
     // Then
-    expect(sparks).toHaveLength(12)
-    expect(sparks.every((spark) => spark.rise <= 0)).toBe(true)
-    expect(sparksFor(12, 3)).toEqual(sparks)
+    expect(bits).toHaveLength(46)
+    expect(confettiFor(46, 3)).toEqual(bits)
+    expect(bits.every((bit) => Math.sin(bit.angle) < 0.3)).toBe(true)
+    expect(confettiAt(bits[0]!, 0, from)).toBeNull()
+    expect(confettiAt(bits[0]!, CONFETTI_FOR + 0.1, from)).toBeNull()
+    expect(confettiAt(bits[0]!, CONFETTI_FOR, from)!.y).toBeGreaterThan(from.y)
   })
 })

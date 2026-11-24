@@ -19,17 +19,21 @@
  *
  * The chest is the last beat of the game: its Continue ends the payoff and
  * hands the player over to their Humanity card (lib/membership/humanity-target).
+ * While the Pocket is up there is no Continue: closing the Pocket's cover does
+ * the same, by itself.
  *
  * Identity: the source's player + their last attended game. URL override
  * (development builds only, lib/debug/dev-url.ts):
  * /chest?player=<ss58>&game=<index> reads any account against the chain the
  * source watches (read-only ws mode included).
  */
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { canChangePick } from "@jollity/collectables"
 import { ChestScene, type PieceSpot } from "@/components/chest/chest-scene"
+import { Starfield } from "@/components/chest/starfield"
 import { NftPicker } from "@/components/collectable/nft-picker"
 import { PocketClaim } from "@/components/pocket/pocket-claim"
+import { bookTop } from "@/lib/pocket/book"
 import { Button } from "@/components/ui/button"
 import { MessageScreen } from "@/components/ui/screen"
 import { chestRestartCardCopy } from "@/lib/chain-health"
@@ -56,14 +60,31 @@ const WAIT_COPY = {
 
 const NOTE = "max-w-[38ch] text-sm leading-5 text-muted-foreground"
 
+/** air between the lowest piece and the Pocket's book at its highest, px */
+const FLOOR_GAP = 12
+
 export default function ChestPage() {
   const { view, send, reconnecting, closing } = useChestScreen()
-  // which pin the picker is inspecting, and the rect its hero flies out of
+  // which opened piece the picker is inspecting, and the rect its hero flies out of
   const [pickerFor, setPickerFor] = useState<{ index: number; rect: DOMRect } | null>(null)
   const pageRef = useRef<HTMLDivElement>(null)
   const ring = useRef<PieceSpot[]>([])
-  const [released, setReleased] = useState(false)
+  // the pieces the Pocket has taken out of the scene, and how far its cover has closed
+  const [taken, setTaken] = useState<number[]>([])
+  // pieces opened in the Pocket's book and given back: open in the scene too
+  const [openNow, setOpenNow] = useState<number[]>([])
+  const cover = useRef(0)
   const [focused, setFocused] = useState(false)
+  // the bubble has popped: the stars drift back in where it was
+  const [popped, setPopped] = useState(false)
+  // the screen's size, kept in step with it: where the Pocket's book comes to moves when it does (a turned phone, a host's bars)
+  const [screen, setScreen] = useState<{ width: number; height: number } | null>(null)
+  useEffect(() => {
+    const measure = () => setScreen({ width: innerWidth, height: innerHeight })
+    measure()
+    addEventListener("resize", measure)
+    return () => removeEventListener("resize", measure)
+  }, [])
 
   if (view.kind === "restart") {
     const copy = chestRestartCardCopy(reconnecting)
@@ -86,10 +107,13 @@ export default function ChestPage() {
   const pieces = vessel?.pieces ?? []
   const picked = pickerFor !== null ? pieces[pickerFor.index] : undefined
   const pocket = vessel !== null && (action === "continue" || closing !== null)
+  // with the Pocket up, the pieces float above where its book comes to, held open (lib/pocket/book bookTop)
+  const floor = pocket && screen ? bookTop(screen) - FLOOR_GAP : null
 
   return (
     <div ref={pageRef} className="relative isolate flex min-h-dvh flex-1 flex-col pt-6" data-testid={wait ? `chest-${wait}` : undefined}>
       <div aria-hidden className="chest-backdrop pointer-events-none fixed inset-0 -z-10" />
+      <Starfield bubble={!popped} />
       <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 pb-4 text-center">
         {nothing ? (
           <>
@@ -116,18 +140,24 @@ export default function ChestPage() {
               canOpen={vessel.canOpen}
               onLanded={() => send({ type: "landed" })}
               onCollected={(count) => send({ type: "collected", count })}
-              onOpened={() => send({ type: "vessel-opened" })}
-              onShelfTap={(index, rect) => setPickerFor({ index, rect })}
+              onOpened={() => {
+                setPopped(true)
+                send({ type: "vessel-opened" })
+              }}
+              onInspect={(index, rect) => setPickerFor({ index, rect })}
               onPieces={(spots) => {
                 ring.current = spots
               }}
-              released={released}
+              taken={taken}
+              openNow={openNow}
+              cover={cover}
+              floor={floor}
               onFocus={setFocused}
               inspected={pickerFor?.index ?? null}
               className="-mx-6 min-h-[320px] w-[calc(100%+3rem)] flex-1"
             />
             {/* the hologram — an overlay on this screen, not a route: it opens
-                over the pin you tapped and flies back into it on close */}
+                over the opened piece you tapped and flies back into it on close */}
             <NftPicker
               origin={pickerFor?.rect ?? null}
               item={
@@ -183,9 +213,16 @@ export default function ChestPage() {
       {pocket ? (
         <PocketClaim
           surface={pageRef}
-          pieces={pieces.map((item) => ({ image: item.image, rare: item.rarity === "rare" }))}
+          pieces={pieces.map((item) => ({ image: item.image, rare: item.rarity === "rare", tier: item.tier }))}
           ring={ring}
-          onRelease={setReleased}
+          onTake={(index) => setTaken((was) => (was.includes(index) ? was : [...was, index]))}
+          onReturn={(index, opened) => {
+            setTaken((was) => was.filter((i) => i !== index))
+            if (opened) setOpenNow((was) => (was.includes(index) ? was : [...was, index]))
+          }}
+          onCover={(closed) => {
+            cover.current = closed
+          }}
           hidden={(focused || pickerFor !== null) && closing === null}
           claimed={closing !== null}
           refusals={closing?.refusals ?? 0}
