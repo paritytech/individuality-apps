@@ -2,49 +2,70 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { execFile } from "node:child_process"
-import { createServer, type IncomingMessage } from "node:http"
-import type { AddressInfo } from "node:net"
 import { join } from "node:path"
 import { promisify } from "node:util"
 import { describe, expect, it } from "vitest"
-import { checkInRequest, cronUrl } from "./sentry-checkin.mjs"
+import { checkInItem, envelope, envelopeTarget, traceIdFor } from "./sentry-checkin.mjs"
+import { envelopeLines, stubSentry } from "./sentry-stub"
 
 const DSN = "https://abc123@o42.ingest.de.sentry.io/4507"
 
-describe("cronUrl", () => {
-  it("builds the check-in endpoint from the DSN's host, project and public key", () => {
-    expect(cronUrl(DSN, "humanity-grants")).toBe("https://o42.ingest.de.sentry.io/api/4507/cron/humanity-grants/abc123/")
+describe("envelopeTarget", () => {
+  it("builds the envelope endpoint from the DSN's host and project, and keeps the key apart", () => {
+    expect(envelopeTarget(DSN)).toEqual({ url: "https://o42.ingest.de.sentry.io/api/4507/envelope/", key: "abc123" })
   })
 
   it("keeps a path prefix of a self-hosted DSN", () => {
-    expect(cronUrl("https://k@sentry.example.com/sub/7", "m")).toBe("https://sentry.example.com/sub/api/7/cron/m/k/")
+    expect(envelopeTarget("https://k@sentry.example.com/sub/7")?.url).toBe("https://sentry.example.com/sub/api/7/envelope/")
   })
 
   it("refuses a value that is not a DSN", () => {
-    expect(cronUrl("", "m")).toBeNull()
-    expect(cronUrl("https://o42.ingest.sentry.io/4507", "m")).toBeNull()
-    expect(cronUrl("https://k@o42.ingest.sentry.io/", "m")).toBeNull()
+    expect(envelopeTarget("")).toBeNull()
+    expect(envelopeTarget("https://o42.ingest.sentry.io/4507")).toBeNull()
+    expect(envelopeTarget("https://k@o42.ingest.sentry.io/")).toBeNull()
   })
 })
 
-describe("checkInRequest", () => {
+describe("checkInItem", () => {
   const config = { schedule: { type: "crontab", value: "23 * * * *" }, checkin_margin: 45 }
+  const trace = "0123456789abcdef0123456789abcdef"
 
   it("sends the monitor's config with in_progress, so the check-in creates or updates it", () => {
-    const r = checkInRequest({ dsn: DSN, slug: "humanity-grants", status: "in_progress", checkInId: "id1", environment: "paseo", monitorConfig: config })
-    expect(r.url).toBe("https://o42.ingest.de.sentry.io/api/4507/cron/humanity-grants/abc123/?status=in_progress&environment=paseo&check_in_id=id1")
-    expect(r.body).toEqual({ status: "in_progress", environment: "paseo", check_in_id: "id1", monitor_config: config })
+    const item = checkInItem({ slug: "humanity-grants", status: "in_progress", checkInId: "id1", environment: "paseo", monitorConfig: config, traceId: trace })
+    expect(item).toEqual({
+      type: "check_in",
+      payload: {
+        check_in_id: "id1",
+        monitor_slug: "humanity-grants",
+        status: "in_progress",
+        environment: "paseo",
+        monitor_config: config,
+        contexts: { trace: { trace_id: trace } },
+      },
+    })
   })
 
   it("closes the same check-in with its result and duration, without the config", () => {
-    const r = checkInRequest({ dsn: DSN, slug: "humanity-grants", status: "error", checkInId: "id1", durationSeconds: 42, monitorConfig: config })
-    expect(r.body).toEqual({ status: "error", environment: "production", check_in_id: "id1", duration: 42 })
-    expect(r.url).toContain("status=error&environment=production&check_in_id=id1&duration=42")
+    const item = checkInItem({ slug: "humanity-grants", status: "error", checkInId: "id1", durationSeconds: 42, monitorConfig: config })
+    expect(item.payload).toEqual({ check_in_id: "id1", monitor_slug: "humanity-grants", status: "error", environment: "production", duration: 42 })
   })
 
-  it("refuses an unknown status or a bad DSN", () => {
-    expect(() => checkInRequest({ dsn: DSN, slug: "m", status: "missed" })).toThrow(/status must be/)
-    expect(() => checkInRequest({ dsn: "nope", slug: "m", status: "ok" })).toThrow(/not a DSN/)
+  it("refuses an unknown status", () => {
+    expect(() => checkInItem({ slug: "m", status: "missed" })).toThrow(/status must be/)
+  })
+})
+
+describe("envelope", () => {
+  it("writes the header, then each item's header and payload, one JSON line each", () => {
+    const body = envelope({ sent_at: "t" }, [{ type: "check_in", payload: { a: 1 } }])
+    expect(body).toBe('{"sent_at":"t"}\n{"type":"check_in"}\n{"a":1}\n')
+  })
+})
+
+describe("traceIdFor", () => {
+  it("uses the check-in id as the run's trace id, and a fresh one when it is not 32 hex digits", () => {
+    expect(traceIdFor("0123456789ABCDEF0123456789abcdef")).toBe("0123456789abcdef0123456789abcdef")
+    for (const id of [undefined, "", "abc", "0123456789abcdef-0123456789abcdef"]) expect(traceIdFor(id)).toMatch(/^[0-9a-f]{32}$/)
   })
 })
 
@@ -53,39 +74,54 @@ describe("sentry-checkin.mjs", () => {
   const run = (env: Record<string, string>, args = ["humanity-grants", "ok"]) =>
     promisify(execFile)(process.execPath, [script, ...args], { env: { PATH: process.env.PATH ?? "", ...env }, encoding: "utf8" })
 
-  /** A stand-in Sentry that answers every request with `status` and records what it got. */
-  async function sentry(status: number) {
-    const seen: Array<{ method?: string; url?: string; body: string }> = []
-    const server = createServer((req: IncomingMessage, res) => {
-      let body = ""
-      req.on("data", (d) => (body += d))
-      req.on("end", () => {
-        seen.push({ method: req.method, url: req.url, body })
-        res.writeHead(status).end()
-      })
-    })
-    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
-    const port = (server.address() as AddressInfo).port
-    return { dsn: `http://pubkey@127.0.0.1:${port}/42`, seen, close: () => new Promise((resolve) => server.close(resolve)) }
-  }
+  const sentry = stubSentry
 
   it("skips with a warning when SENTRY_DSN is empty", async () => {
     const { stdout } = await run({ SENTRY_DSN: "" })
     expect(stdout).toBe("::warning title=No Sentry check-in::SENTRY_DSN is empty, so humanity-grants was not told ok.\n")
   })
 
-  it("posts the check-in to the DSN's cron endpoint", async () => {
-    const server = await sentry(202)
+  it("posts the check-in to the DSN's envelope endpoint, with the check-in id as its trace", async () => {
+    const server = await sentry(200)
+    const id = "0123456789abcdef0123456789abcdef"
     try {
       const { stdout } = await run(
-        { SENTRY_DSN: server.dsn, CHECK_IN_ID: "abc", SENTRY_ENVIRONMENT: "paseo", MONITOR_CONFIG: '{"schedule":{"type":"crontab","value":"23 * * * *"}}' },
+        { SENTRY_DSN: server.dsn, CHECK_IN_ID: id, SENTRY_ENVIRONMENT: "paseo", MONITOR_CONFIG: '{"schedule":{"type":"crontab","value":"23 * * * *"}}' },
         ["humanity-grants", "in_progress"],
       )
-      expect(stdout).toBe("Sentry check-in in_progress sent for humanity-grants (202).\n")
+      expect(stdout).toBe(`Sentry check-in in_progress sent for humanity-grants (200), trace ${id}.\n`)
       expect(server.seen).toHaveLength(1)
-      expect(server.seen[0]!.method).toBe("POST")
-      expect(server.seen[0]!.url).toBe("/api/42/cron/humanity-grants/pubkey/?status=in_progress&environment=paseo&check_in_id=abc")
-      expect(JSON.parse(server.seen[0]!.body).monitor_config.schedule.value).toBe("23 * * * *")
+      const [request] = server.seen
+      expect(request!.method).toBe("POST")
+      expect(request!.url).toBe("/api/42/envelope/")
+      expect(request!.type).toBe("application/x-sentry-envelope")
+      expect(request!.auth).toBe("Sentry sentry_version=7, sentry_client=individuality-ci/1.0, sentry_key=pubkey")
+      const [header, item, payload] = envelopeLines(request!.body)
+      expect(Object.keys(header)).toEqual(["sent_at"])
+      expect(item).toEqual({ type: "check_in" })
+      expect(payload).toEqual({
+        check_in_id: id,
+        monitor_slug: "humanity-grants",
+        status: "in_progress",
+        environment: "paseo",
+        monitor_config: { schedule: { type: "crontab", value: "23 * * * *" } },
+        contexts: { trace: { trace_id: id } },
+      })
+    } finally {
+      await server.close()
+    }
+  })
+
+  it("sends the duration with the closing check-in", async () => {
+    const server = await sentry(200)
+    try {
+      const started = String(Math.round(Date.now() / 1000) - 30)
+      await run({ SENTRY_DSN: server.dsn, CHECK_IN_ID: "0123456789abcdef0123456789abcdef", CHECK_IN_STARTED: started }, ["humanity-grants", "ok"])
+      const payload = envelopeLines(server.seen[0]!.body)[2]
+      expect(payload.status).toBe("ok")
+      expect(payload.duration).toBeGreaterThanOrEqual(30)
+      expect(payload.duration).toBeLessThan(40)
+      expect(payload.monitor_config).toBeUndefined()
     } finally {
       await server.close()
     }
@@ -94,7 +130,7 @@ describe("sentry-checkin.mjs", () => {
   it("warns and exits 0 when Sentry answers with an error, and never prints the DSN", async () => {
     const server = await sentry(500)
     try {
-      const { stdout } = await run({ SENTRY_DSN: server.dsn, CHECK_IN_ID: "abc" }, ["humanity-grants", "error"])
+      const { stdout } = await run({ SENTRY_DSN: server.dsn, CHECK_IN_ID: "0123456789abcdef0123456789abcdef" }, ["humanity-grants", "error"])
       expect(stdout).toBe("::warning title=Sentry check-in not sent::humanity-grants error: Sentry answered 500\n")
       expect(stdout).not.toContain("pubkey")
     } finally {
@@ -103,7 +139,7 @@ describe("sentry-checkin.mjs", () => {
   })
 
   it("warns and exits 0 when Sentry cannot be reached", async () => {
-    const server = await sentry(202)
+    const server = await sentry(200)
     await server.close()
     const { stdout } = await run({ SENTRY_DSN: server.dsn }, ["humanity-grants", "ok"])
     expect(stdout).toMatch(/^::warning title=Sentry check-in not sent::humanity-grants ok: /)

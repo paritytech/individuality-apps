@@ -3,19 +3,36 @@
 
 name: Humanity grants
 
-# Every hour, reads the grants <HUMANITY_DOTNS_DOMAIN>.paseo and its staging
-# name <HUMANITY_DOTNS_DOMAIN>next.paseo publish, and checks them with
+# Every hour, reads the grants <HUMANITY_DOTNS_DOMAIN>.paseo, its staging
+# name <HUMANITY_DOTNS_DOMAIN>next.paseo and its previewnet name
+# <HUMANITY_DOTNS_DOMAIN>.testnet publish, and checks them with
 # scripts/ci/check-grants.mjs: equal to HUMANITY_TRUSTED_PRODUCTS, and
 # context and storage for Jollity's label (JOLLITY_DOTNS_DOMAIN). A name's
 # grants can change with no Humanity release (#40), and Jollity's sign-up and
 # its chat worker break when they do.
 #
-# The run goes red when a grant is wrong ("Grants wrong on <name>") and when a
+# The paseo names and the previewnet name are read in two legs, each its own
+# Sentry environment of the cron monitor humanity-grants (paseo, previewnet).
+# Sentry keeps a monitor's state per environment, so a previewnet reset or
+# outage never masks a real paseo break, and the alert rule can follow paseo
+# alone.
+#
+# A leg goes red when a grant is wrong ("Grants wrong on <name>") and when a
 # name could not be read ("Could not check the grants of <name>"), and tells
-# the Sentry cron monitor humanity-grants, through the SENTRY_DSN secret:
+# the monitor, in its environment, through the SENTRY_DSN secret:
 # in_progress when it starts, then ok or error. Sentry raises an issue on
 # error and on a missed hour. The alert rule on that issue is set in Sentry
-# (see the Humanity README, "Grants checks").
+# (see the Humanity README, "Grants checks"). On error it also sends one
+# Sentry error event per name that is wrong or could not be read, with the
+# grants expected and found or the read error, and this run's URL
+# (scripts/ci/sentry-grants.mjs). The events carry the monitor and the
+# check-in's trace, so they show with humanity-grants.
+#
+# Previewnet is reset from time to time, and <label>.testnet does not exist
+# until the next Humanity deploy there. The previewnet leg reads it with
+# --not-deployed-warns: a name that does not exist only warns ("not deployed
+# since the reset"), and the check-in stays ok. Wrong grants on a name that
+# exists are still wrong. On paseo, a missing name is wrong.
 #
 # The monitor lives in Jollity's Sentry project, through the repo-level
 # SENTRY_DSN secret, and not in Humanity's: wrong grants break Jollity's
@@ -38,20 +55,36 @@ concurrency:
 
 jobs:
   grants:
-    name: Humanity live grants
+    name: Humanity live grants (${{ matrix.network }})
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Each name's read can take 3 tries of 90 s, 15 s apart: 300 s. The paseo
+    # leg reads two names, 600 s, and needs room for its setup too.
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - network: paseo
+            dotns-cli: 1.1.0
+          # 2.0.0 for --stack: previewnet restarts, and the copy of it
+          # bundled in a CLI release then points at the old chain ("WRONG
+          # CHAIN"). Read on the stack previewnet publishes, it follows the
+          # restart.
+          - network: previewnet
+            dotns-cli: 2.0.0
     env:
-      DOTNS_CLI_VERSION: 1.1.0
+      DOTNS_CLI_VERSION: ${{ matrix.dotns-cli }}
+      NETWORK: ${{ matrix.network }}
+      PREVIEWNET_STACK: polkadotapp://stack?key=0x4d43362f03d5511632a210632d1fb7760b5a663580f12ffca34619f79357e239&url=https%3A%2F%2Fpreviewnet.substrate.dev%2F.well-known%2Ftrinity-stack.json
       LABEL: ${{ vars.HUMANITY_DOTNS_DOMAIN }}
       MONITOR_SLUG: humanity-grants
-      SENTRY_ENVIRONMENT: paseo
+      SENTRY_ENVIRONMENT: ${{ matrix.network }}
       # Sent with every in_progress check-in, so Sentry creates the monitor on
       # the first run and keeps it as written here. The schedule matches the
       # cron above. GitHub can start a scheduled run late, hence the margin.
       MONITOR_CONFIG: >-
         {"schedule":{"type":"crontab","value":"23 * * * *"},"timezone":"UTC",
-        "checkin_margin":45,"max_runtime":20,
+        "checkin_margin":45,"max_runtime":25,
         "failure_issue_threshold":1,"recovery_threshold":1}
     steps:
       - uses: actions/checkout@v7
@@ -97,18 +130,34 @@ jobs:
         env:
           HUMANITY_TRUSTED_PRODUCTS: ${{ vars.HUMANITY_TRUSTED_PRODUCTS }}
           JOLLITY_DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
-        run: node scripts/ci/check-grants.mjs --env paseo-v2 "${LABEL}.paseo" "${LABEL}next.paseo"
+        run: |
+          case "$NETWORK" in
+            paseo) set -- --env paseo-v2 "${LABEL}.paseo" "${LABEL}next.paseo" ;;
+            previewnet) set -- --not-deployed-warns --stack "$PREVIEWNET_STACK" "${LABEL}.testnet" ;;
+            *) echo "::error title=Could not check the grants::No names for the network $NETWORK."; exit 1 ;;
+          esac
+          node scripts/ci/check-grants.mjs --results "$RUNNER_TEMP/grants-results.json" "$@"
 
       # Any step that failed before the read leaves no outcome, and that is a
-      # check that did not happen.
+      # check that did not happen. A name not deployed since a reset only
+      # warns, so it ends ok. The detail goes first, so the issues it raises
+      # are there when the error check-in is, and nothing it does can stop
+      # the check-in.
       - name: Tell Sentry how the check ended
         if: always()
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           OUTCOME: ${{ steps.check.outputs.outcome }}
         run: |
-          if [ "$OUTCOME" = "ok" ]; then status=ok; else status=error; fi
+          case "$OUTCOME" in
+            ok | undeployed) status=ok ;;
+            *) status=error ;;
+          esac
           if [ -z "$OUTCOME" ]; then
             echo "::error title=Could not check the grants::The check stopped before it read the names. See the failed step."
+          fi
+          if [ "$status" = error ]; then
+            node scripts/ci/sentry-grants.mjs "$MONITOR_SLUG" "$RUNNER_TEMP/grants-results.json" ||
+              echo "::warning title=Sentry events not sent::The detail of the grants could not be sent to $MONITOR_SLUG. The check-in still goes out."
           fi
           node scripts/ci/sentry-checkin.mjs "$MONITOR_SLUG" "$status"
