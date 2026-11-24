@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest"
 import { encodeGestureEvent, RendererNode, type GesturePhase } from "@parity/truapi"
 import type { ActionListener, WorkerHost } from "../host"
 import {
-  BRUSH, REVEAL_AT, SCRATCH_END, SCRATCH_FOIL_KEY, SCRATCH_MOVE, SCRATCH_PAN_KEY, SCRATCH_START,
+  BRUSH, REVEAL_PERMILLE, SCRATCH_END, SCRATCH_FOIL_KEY, SCRATCH_MOVE, SCRATCH_PAN_KEY, SCRATCH_REVEAL, SCRATCH_START,
   cellsUnderStroke, createWorkerScratchCard, gridFor, lookFor, ticketTree, totalCells,
 } from "./scratch-worker"
 
@@ -118,6 +118,14 @@ describe("the worker-drawn scratch card", () => {
     expect(RendererNode.dec(RendererNode.enc(tree))).toBeTruthy()
   })
 
+  it("asks the host to say when 55% of the foil is scratched with the finger up", () => {
+    const tree = ticketTree(LOOK, { day: "0x01", outcome: "win" }, new Set(), "Scratch")
+    const reveal = `"reveal":{"pan":"${SCRATCH_PAN_KEY}","atPermille":550,"action":"${SCRATCH_REVEAL}"}`
+    expect(JSON.stringify(tree)).toContain(reveal)
+    const decoded = JSON.stringify(RendererNode.dec(RendererNode.enc(tree)), (_, v) => (typeof v === "bigint" ? Number(v) : v))
+    expect(decoded).toContain(reveal)
+  })
+
   it("asks the host for a 52-point round brush that follows the ticket's pan, in the tree only", () => {
     const tree = ticketTree(LOOK, { day: "0x01", outcome: "win" }, new Set(), "Scratch")
     expect(JSON.stringify(tree)).toContain(`"brush":{"pan":"${SCRATCH_PAN_KEY}","width":52}`)
@@ -176,6 +184,7 @@ describe("the worker-drawn scratch card", () => {
         flush()
         act(SCRATCH_END, event("Ended", TICKET.width, y))
       }
+      act(SCRATCH_REVEAL)
       const trees = sent.filter((node) => node.tag !== "ClearCells")
       const revealed = trees.at(-1)!
       expect(tagsOf(revealed)).not.toContain("CoverGrid")
@@ -195,17 +204,26 @@ describe("the worker-drawn scratch card", () => {
     }
   })
 
-  it("waits for the finger to lift before revealing", async () => {
+  it("reveals only when the host says so, never on a lift alone, however much is scratched", async () => {
     const { sent, act, flush } = await renderedCard()
     act(SCRATCH_START, event("Started", 0, 10))
     for (let y = 10; y <= TICKET.height; y += 20) {
       act(SCRATCH_MOVE, event("Moved", y % 40 === 10 ? TICKET.width : 0, y))
       flush()
     }
-    expect(sent.every((node) => node.tag === "ClearCells" || tagsOf(node).includes("CoverGrid"))).toBe(true)
     act(SCRATCH_END, event("Ended", 0, TICKET.height))
+    expect(sent.every((node) => node.tag === "ClearCells" || tagsOf(node).includes("CoverGrid"))).toBe(true)
+    act(SCRATCH_REVEAL)
     expect(tagsOf(sent.at(-1)!)).not.toContain("CoverGrid")
     expect(sent.at(-1)?.tag).not.toBe("ClearCells")
+  })
+
+  it("ignores a reveal once the ticket is no longer under the foil", async () => {
+    const { sent, act } = await renderedCard()
+    act(SCRATCH_REVEAL)
+    const count = sent.length
+    act(SCRATCH_REVEAL)
+    expect(sent.length).toBe(count)
   })
 
   it("redraws a half-scratched ticket with every cell it cleared, since a tree always wins", async () => {
@@ -214,7 +232,7 @@ describe("the worker-drawn scratch card", () => {
     act(SCRATCH_END, event("Ended", 100, 100))
     const cleared = new Set(sent.flatMap((node) => (node.tag === "ClearCells" ? node.value.cells : [])))
     expect(cleared.size).toBeGreaterThan(0)
-    expect(cleared.size).toBeLessThan(REVEAL_AT * TOTAL_CELLS)
+    expect(cleared.size).toBeLessThan((REVEAL_PERMILLE / 1000) * TOTAL_CELLS)
     // The card scrolled away and back: the same message renders again, from memory.
     const redraws: RendererNode[] = []
     card.render({ messageId: "m1", messageType: "jollity.ddscratch", payload: new Uint8Array() } as never, (node) => redraws.push(node), () => () => undefined)

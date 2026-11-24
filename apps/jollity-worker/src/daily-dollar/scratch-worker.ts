@@ -12,8 +12,10 @@
  * frame, none while the last is unanswered), and this worker answers only the newest move it holds, with a
  * `ClearCells` naming the cells its brush newly reached along the segment from the last point it handled. So a move
  * costs a few bytes each way, never a tree, and no part of the finger's path is skipped between frames. A lone press
- * clears the cells under the brush where it landed, so it leaves a dot. Once the cleared cells reach `REVEAL_AT` of
- * the ticket when the finger lifts, a tree without the foil shows the prize, then the result card.
+ * clears the cells under the brush where it landed, so it leaves a dot. The cover asks the host to say when it is
+ * scratched enough (`reveal`): once its cleared cells reach `REVEAL_PERMILLE` of the ticket with the finger up, the
+ * host sends `SCRATCH_REVEAL`, and a tree without the foil shows the prize, then the result card. The worker keeps no
+ * threshold of its own.
  *
  * How it looks. As Daily Dollar's scratch ticket on the same phone: its ticket size, its foil and SCRATCH HERE label,
  * its purple ticket with the prize under the foil (pictures drawn in the font the ticket uses on that platform), and
@@ -33,6 +35,8 @@ export const MESSAGE_DD_SCRATCH = "jollity.ddscratch"
 export const SCRATCH_START = "dds.start"
 export const SCRATCH_MOVE = "dds.move"
 export const SCRATCH_END = "dds.end"
+/** Sent by the host, once per lift, when the foil is scratched past `REVEAL_PERMILLE`. */
+export const SCRATCH_REVEAL = "dds.reveal"
 const RETRY = "dds.retry"
 const AGAIN = "dds.again"
 /** The ticket's pan, whose moves the host paces. */
@@ -89,9 +93,9 @@ export function lookFor(platform: string | undefined): Look {
   return { ...look, grid: gridFor(look.ticket) }
 }
 
-/** The brush radius and the share scratched that reveals the ticket (26 points, 55%). */
+/** The brush radius and the share scratched, in thousandths, that reveals the ticket (26 points, 55%). */
 export const BRUSH = 26
-export const REVEAL_AT = 0.55
+export const REVEAL_PERMILLE = 550
 /**
  * After the reveal: a win shows the prize for 1.8 s, then says the claim did not go through, and the result card
  * follows 0.9 s later; a miss shows the open ticket for 0.6 s before its result card.
@@ -193,6 +197,8 @@ export function ticketTree(look: Look, ticket: Ticket, cleared: ReadonlySet<numb
             cleared: coverBits(cleared, columns, rows),
             // The host draws the cells cleared since this tree as a round brush along the finger: 52 points wide.
             brush: { pan: SCRATCH_PAN_KEY, width: 2 * BRUSH },
+            // The host says when the foil is scratched enough, on a lift: one shared rule on every host.
+            reveal: { pan: SCRATCH_PAN_KEY, atPermille: REVEAL_PERMILLE, action: SCRATCH_REVEAL },
           },
           children: [picture(look.foil, look.ticket)],
         },
@@ -338,12 +344,10 @@ export function createWorkerScratchCard(host: WorkerHost, schedule?: (flush: () 
       send(clearCells(SCRATCH_FOIL_KEY, fresh))
     }
 
-    /** When the finger lifts: past the threshold, a tree without the foil shows the prize. */
-    function revealIfDone(): void {
+    /** The host said the foil is scratched enough: a tree without the foil shows the prize. */
+    function revealNow(): void {
       const state = states.get(messageId)
-      const cleared = scratched.get(messageId)?.size ?? 0
-      const total = totalCells(look)
-      if (state?.kind !== "ticket" || cleared < REVEAL_AT * total) return
+      if (state?.kind !== "ticket") return
       reveal(messageId, state.ticket)
     }
 
@@ -370,9 +374,11 @@ export function createWorkerScratchCard(host: WorkerHost, schedule?: (flush: () 
           if (payload && state.kind === "ticket") scratchTo(pointOf(payload).point)
           stroking = false
           last = null
-          revealIfDone()
           return
         }
+        case SCRATCH_REVEAL:
+          revealNow()
+          return
         case RETRY:
           if (state.kind === "won" && state.claim === "failed") set(messageId, { kind: "won", ticket: state.ticket, claim: "sent" })
           return
