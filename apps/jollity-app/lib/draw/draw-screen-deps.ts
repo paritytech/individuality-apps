@@ -22,6 +22,7 @@ import { drawShown } from "@/lib/journeys/game-trace"
 import { reportDrawCeremony } from "@/lib/telemetry"
 import { devLog } from "@/lib/debug/log-store"
 import { describeError } from "@/lib/host/error-detail"
+import { contactUsernames } from "@/lib/host/contacts"
 import { postGameIndex } from "@/lib/post-game"
 import { devUrlParam } from "@/lib/debug/dev-url"
 import { chestHref } from "@/lib/draw/chest-href"
@@ -35,6 +36,10 @@ export function browserDrawScreenDeps(router: { replace(href: string): void }): 
   const game = browser ? postGameIndex() : undefined
   const override = browser ? devUrlParam("player") : undefined
   const log = (message: string, data?: unknown, level?: "info" | "warn") => devLog("draw", message, data, level)
+  // the player's contacts, asked for as the screen opens: the host answers
+  // long before the wheel mounts, and a draw that mounts first marks no friends
+  let friends: readonly string[] = []
+  if (browser) void contactUsernames().then((names) => (friends = names))
   return {
     game,
     override,
@@ -57,6 +62,7 @@ export function browserDrawScreenDeps(router: { replace(href: string): void }): 
     touch: touchOnPointerDown,
     stage: startStage,
     names: readDrawName,
+    friends: () => friends,
     ceremony: () => createDrawCeremony({ devLog: log, report: reportDrawCeremony }),
     hidden: () => document.visibilityState === "hidden",
     log,

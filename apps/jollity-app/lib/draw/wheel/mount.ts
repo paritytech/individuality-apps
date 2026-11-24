@@ -56,8 +56,8 @@ import { createNameTicker, type NameTicker } from "./name-ticker"
    player sees the wheel first (the scene starts it as the coin lands). The
    draw's timeline, at the bottom, takes the player back to any point of the
    spin once it is over (explore.ts): let go, it stays there (at the very end, it lands).
-   Friends the host passes (WheelDraw.friends, by name; this app passes
-   none) are marked on the wheel, a colour each */
+   The player's friends (WheelDraw.friends: their contacts, by name) are
+   marked on the wheel as their names are read, a colour each, FRIENDS_MAX at most */
 const WHEEL_STANDS_MS = 1500
 const TICKETS_BEFORE_LANDING_MS = 1200
 /* with friends in the draw, the wheel stands until their row (before the
@@ -66,6 +66,9 @@ const TICKETS_BEFORE_LANDING_MS = 1200
    (the ticker's TICK_* below; FRIEND_CYCLE_MS each for the "friends" row),
    shows them all for FRIENDS_TAIL_MS, and then the wheel turns (standsFor) */
 const FRIENDS_AFTER_LANDING_MS = 400
+/* a draw marks at most this many friends: each one is visited before the
+   spin, so every one more holds the wheel a little longer */
+const FRIENDS_MAX = 6
 const FRIEND_CYCLE_MS = 1200
 const FRIENDS_TAIL_MS = 600
 /* how the friends are shown before the spin: "ticker", a strip of every name
@@ -152,7 +155,9 @@ export interface WheelDraw {
   /** the player's friends, by name (as who's playing reads them, `names`):
    *  a ticket whose name is one of these is a friend's, marked on the wheel in
    *  a colour of its own, its name on the row in it, and visited before the
-   *  spin. Empty: no friends shown, and the wheel stands its usual time */
+   *  spin. Any number may come (all of the player's contacts): the wheel
+   *  stands only for the ones it finds among its entrants. None found: no
+   *  friends shown, and the wheel stands its usual time */
   friends: readonly string[]
 }
 
@@ -173,6 +178,8 @@ interface ProtoScene {
   dispose: () => void
   /** the JOLLITY names edit: write who's playing again, with the names that came since */
   names: { refresh: () => void }
+  /** the JOLLITY friends edit: the ticker's visit has begun, its stops held: a friend found after is marked, not visited */
+  friendsHeld: () => boolean
   /** the JOLLITY timeline edit: where the draw is along the spin, and the page's hand on it */
   timeline: {
     at: () => number
@@ -441,8 +448,8 @@ function mountStage(host: HTMLElement, draw: WheelDraw, { held = false, onEnded,
   const values = slots.map(bytes)
   // THE PLAYER'S FRIENDS, BY NAME: a ticket is a friend's once the name read
   // for it (who's playing's, below) is one of theirs. It is marked from then
-  // on, a colour each in the order they turn up; the scene reads this list
-  // as it grows
+  // on, a colour each in the order they turn up, FRIENDS_MAX at most; the
+  // scene reads this list as it grows
   const friendNames = new Set(draw.friends.map(rowName).filter((name) => name !== ""))
   const friends: { index: number; colour: string }[] = []
 
@@ -454,8 +461,8 @@ function mountStage(host: HTMLElement, draw: WheelDraw, { held = false, onEnded,
   const u = readUrl(`?intro=${spectator ? 0 : 1}`)
   slitParams(u)
   Object.assign(SLIT, {
-    // the wheel stands until every friend has been visited (slitParams clamps it to the scene's 2 s: set after)
-    spinStartMs: standsFor(friendNames.size, spectator),
+    // the wheel stands its usual time until a friend is found (findFriend; slitParams clamps it to the scene's 2 s: set after)
+    spinStartMs: standsFor(0, spectator),
     n: values.length,
     winners: Math.max(1, Math.min(draw.winners, values.length)),
     friends: 0, // the scene's own made-up friends off; real ones come in through chainDraw.friends
@@ -496,9 +503,13 @@ function mountStage(host: HTMLElement, draw: WheelDraw, { held = false, onEnded,
   const labels = rowLabels(slots, nameCache(draw.names), onName, first)
   // a name just read is a friend's: the ticket is theirs (never yours)
   const findFriend = (index: number) => {
-    if (!friendNames.size || slots[index] === mine || friends.some((friend) => friend.index === index)) return
+    if (!friendNames.size || friends.length >= FRIENDS_MAX || slots[index] === mine || friends.some((friend) => friend.index === index)) return
     if (!friendNames.has(labels.labelOf(index))) return
     friends.push({ index, colour: FRIEND_COLOURS[friends.length % FRIEND_COLOURS.length]! })
+    // the wheel stands until every friend found is visited: the scene reads the
+    // stand each frame, so it may grow until the visit begins (its stops held)
+    // or the wheel turns, and never after, or the spin would run back
+    if (!scene?.friendsHeld() && !scene?.timeline.started()) SLIT.spinStartMs = standsFor(friends.length, spectator)
     poke(POKE_FRAMES)
   }
   const labelOf = (index: number) => {

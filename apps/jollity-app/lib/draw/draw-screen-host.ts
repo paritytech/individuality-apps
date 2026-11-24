@@ -76,6 +76,8 @@ export interface DrawScreenDeps {
   touch(element: HTMLElement, idle: DrawIdleWatch): () => void
   stage(element: HTMLElement, draw: WheelDraw, options: { held: boolean }, on: StageEvents): StageRunner
   names(wheel: DrawWheel, ticket: string): Promise<string | null>
+  /** the player's contacts by name, as far as they are known now: the entrants among them are the player's friends on the wheel */
+  friends(): readonly string[]
   ceremony(): Ceremony
   hidden(): boolean
   log(message: string, data?: unknown, level?: "info" | "warn"): void
@@ -221,9 +223,8 @@ export function createDrawScreenHost(deps: DrawScreenDeps): DrawScreenHost {
         won: draw.won,
         prize: { amount: coinAmount(draw.prizeUsd), unit: PRIZE_UNIT, prefix: "$" },
         names: (ticket) => deps.names(wheel, ticket),
-        // the player's friends, by name: the app has no list of friends, so
-        // none are marked and the wheel stands its usual time
-        friends: [],
+        // the player's friends: their contacts, by name; the wheel marks the entrants among them
+        friends: deps.friends(),
       },
       stageWanted,
       {

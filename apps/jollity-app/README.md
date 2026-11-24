@@ -102,7 +102,7 @@ shows a gate, with `NEXT_PUBLIC_PEOPLE_WS` as a read-only dev override.
 | `/permissions` | The one-time gate — camera, network, peer connections, game messages |
 | `/game` | 12 turns across 2 rounds. Copy the host, tap tiles to vote, confirm |
 | `/chest` | The reveal: the bubble (carried in from the draw when you held there) finds your claims as they land, pops, and your collectables float in the frame wrapped in glass shells you break by hand. Broken-open pieces float up to the top; tapping one opens the hologram picker over it. Once every piece is open, the scene gives way to a grid of their cards. The collection picked there is kept in host storage, so the next visit deals the same item. Dragging the Pocket's cover across puts them away, and the screen hands you over to your Humanity card by itself |
-| `/prize-draw` | The prize draw: the wheel replays the chain's draw and lands on its winners, and its timeline takes you back to any point of the spin. A won prize is claimed by itself. Holding anywhere gathers the draw into the collectables' bubble and carries it on to `/chest` |
+| `/prize-draw` | The prize draw: the wheel replays the chain's draw and lands on its winners, and its timeline takes you back to any point of the spin. A won prize is claimed by itself. Your contacts among the entrants (the host's `contacts.usernames`) are marked in a colour each and visited before the spin. Holding anywhere gathers the draw into the collectables' bubble and carries it on to `/chest` |
 
 ### Architecture
 

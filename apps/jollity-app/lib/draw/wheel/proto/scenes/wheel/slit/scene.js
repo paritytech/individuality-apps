@@ -1546,7 +1546,7 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
     setVar('--slit-names-y', String(SLIT.namesY))
     // JOLLITY: the friends' row, from just after your coin is down until who's playing takes the line
     const friendsFrom = cues.seat + Math.max(0, SLIT.friendsAfterSeatMs ?? 0) / 1000
-    const friendsTo = ok && !before && s >= friendsFrom && !(pl && (opened || wk.phase !== 'off')) && !ending?.prizeUp ? 1 : 0
+    const friendsTo = ok && !before && s >= friendsFrom && friendsNow().length > 0 && !(pl && (opened || wk.phase !== 'off')) && !ending?.prizeUp ? 1 : 0 // JOLLITY: only once a friend is found among the entrants
     friendsVisit = -1 // the friend the full row is at this frame (friendsRow 'all', below)
     friendsLineK = -1 // …and the ticket a friends' line comes down to
     friendsA += (friendsTo - friendsA) * (1 - Math.exp(-dt / 0.15))
@@ -1874,6 +1874,9 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
     },
     /* JOLLITY: names that came after the row was built, put in (lib/draw/wheel/mount.ts) */
     names: { refresh: () => void (row.length && legend.set(row.map(whoOf))) },
+    /* JOLLITY: the ticker's visit has begun, its stops held: a friend found after is marked, not visited,
+       so the page stops lengthening the stand for them (lib/draw/wheel/mount.ts) */
+    friendsHeld: () => tickStopsHeld,
     /* JOLLITY: the timeline, in the page's hand (lib/draw/wheel/explore.ts): where the draw is
        along the spin (0..1), and a drag along it, as the pill's own. Once the coin is down; let go,
        the spin plays on from there */
