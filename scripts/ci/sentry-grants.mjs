@@ -11,7 +11,7 @@
 // monitor the way Sentry's SDKs tie a job's errors to it: the monitor context
 // (contexts.monitor.slug, also the monitor.slug tag), and the run's trace id,
 // which is the check-in id sentry-checkin.mjs sends as its trace. Each event
-// is fingerprinted by monitor, name and outcome, so one problem on one name
+// is fingerprinted by monitor, environment, name and outcome, so one problem on one name
 // is one Sentry issue, however many hours it lasts.
 //
 // A run that compared nothing (a missing variable, a crash, or a step that
@@ -93,7 +93,7 @@ export function grantEvent({ result, slug, environment = "production", traceId, 
     logger: slug,
     environment,
     message: { formatted: clip(title) },
-    fingerprint: [slug, name ?? "(run)", outcome],
+    fingerprint: [slug, environment, name ?? "(run)", outcome],
     tags,
     contexts: {
       monitor: { slug },

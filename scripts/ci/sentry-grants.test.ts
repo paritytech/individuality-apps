@@ -80,7 +80,7 @@ describe("grantEvent", () => {
       logger: "humanity-grants",
       environment: "paseo",
       message: { formatted: "Grants wrong on peopl.paseo: dim2 missing storage; dim2next extra chat" },
-      fingerprint: ["humanity-grants", "peopl.paseo", "wrong"],
+      fingerprint: ["humanity-grants", "paseo", "peopl.paseo", "wrong"],
       tags: { "monitor.slug": "humanity-grants", "grants.outcome": "wrong", "grants.name": "peopl.paseo" },
       contexts: {
         monitor: { slug: "humanity-grants" },
@@ -107,7 +107,7 @@ describe("grantEvent", () => {
   it("carries the read error of a name that could not be read", () => {
     const event = grantEvent({ ...base, result: { name: "peopl.paseo", outcome: "unchecked", detail: "attempt 1: no answer within 90 s" } })
     expect(event.message.formatted).toBe("Could not check the grants of peopl.paseo: the manifest could not be read")
-    expect(event.fingerprint).toEqual(["humanity-grants", "peopl.paseo", "unchecked"])
+    expect(event.fingerprint).toEqual(["humanity-grants", "paseo", "peopl.paseo", "unchecked"])
     expect(event.contexts.grants).toEqual({ outcome: "unchecked", name: "peopl.paseo", read_error: "attempt 1: no answer within 90 s" })
   })
 
@@ -135,8 +135,8 @@ describe("grantEvents", () => {
       base,
     )
     expect(events.map((e) => e.fingerprint)).toEqual([
-      ["humanity-grants", "peoplnext.paseo", "wrong"],
-      ["humanity-grants", "peopl.testnet", "unchecked"],
+      ["humanity-grants", "paseo", "peoplnext.paseo", "wrong"],
+      ["humanity-grants", "paseo", "peopl.testnet", "unchecked"],
     ])
     expect(new Set(events.map((e) => e.event_id)).size).toBe(2)
     expect(events.every((e) => e.contexts.trace.trace_id === TRACE)).toBe(true)
@@ -146,7 +146,7 @@ describe("grantEvents", () => {
   it("sends one event for a run that compared nothing", () => {
     const [unset] = grantEvents({ outcome: "unchecked", error: "HUMANITY_TRUSTED_PRODUCTS is not set. Set the repo variable, then run the check again.", results: [] }, base)
     expect(unset!.message.formatted).toBe("Could not check the grants: HUMANITY_TRUSTED_PRODUCTS is not set. Set the repo variable, then run the check again.")
-    expect(unset!.fingerprint).toEqual(["humanity-grants", "(run)", "unchecked"])
+    expect(unset!.fingerprint).toEqual(["humanity-grants", "paseo", "(run)", "unchecked"])
     expect(unset!.tags).toEqual({ "monitor.slug": "humanity-grants", "grants.outcome": "unchecked" })
     const [stopped] = grantEvents(null, base)
     expect(stopped!.message.formatted).toBe("Could not check the grants: the check stopped before it read the names. See the failed step.")
@@ -155,12 +155,21 @@ describe("grantEvents", () => {
   it("words a missing results file by the outcome the check gave", () => {
     const [found] = grantEvents(null, { ...base, outcome: "wrong" })
     expect(found!.message.formatted).toBe("Could not check the grants: the check found wrong grants but wrote no results, so which names is unknown. See the run.")
-    expect(found!.fingerprint).toEqual(["humanity-grants", "(run)", "wrong"])
+    expect(found!.fingerprint).toEqual(["humanity-grants", "paseo", "(run)", "wrong"])
     const [unread] = grantEvents(null, { ...base, outcome: "unchecked" })
     expect(unread!.message.formatted).toMatch(/the check could not read every name but wrote no results/)
-    expect(unread!.fingerprint).toEqual(["humanity-grants", "(run)", "unchecked"])
+    expect(unread!.fingerprint).toEqual(["humanity-grants", "paseo", "(run)", "unchecked"])
     expect(noResultsDetail("")).toBe("the check stopped before it read the names. See the failed step.")
     expect(noResultsDetail(undefined)).toBe(noResultsDetail(""))
+  })
+
+  it("keeps the same failure in two environments as two issues", () => {
+    const run = { outcome: "unchecked", error: "the dotns CLI could not be installed", results: [] }
+    const [paseo] = grantEvents(run, base)
+    const [previewnet] = grantEvents(run, { ...base, environment: "previewnet" })
+    expect(paseo!.fingerprint).toEqual(["humanity-grants", "paseo", "(run)", "unchecked"])
+    expect(previewnet!.fingerprint).toEqual(["humanity-grants", "previewnet", "(run)", "unchecked"])
+    expect(previewnet!.environment).toBe("previewnet")
   })
 
   it("sends no event for a name not deployed since a reset", () => {
@@ -198,7 +207,7 @@ describe("sentry-grants.mjs", () => {
         level: "error",
         environment: "paseo",
         message: { formatted: "Grants wrong on peopl.paseo: dim2 missing storage" },
-        fingerprint: ["humanity-grants", "peopl.paseo", "wrong"],
+        fingerprint: ["humanity-grants", "paseo", "peopl.paseo", "wrong"],
         contexts: {
           monitor: { slug: "humanity-grants" },
           trace: { trace_id: TRACE },
