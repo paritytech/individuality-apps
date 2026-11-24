@@ -23,7 +23,7 @@
 // The read is `dotns text view <name> manifest --json` with no key: the CLI's
 // key variables are removed from its environment, so it can only read.
 //
-// Usage: node scripts/ci/check-grants.mjs --env paseo-v2 [--unchecked-warns] [--confirm-wrong] <name>...
+// Usage: node scripts/ci/check-grants.mjs --env paseo-v2 [--unchecked-warns] [--confirm-wrong] [--results <file>] <name>...
 //   reads HUMANITY_TRUSTED_PRODUCTS and JOLLITY_DOTNS_DOMAIN from the
 //   environment, prints one ::error or ::notice line per name, writes
 //   outcome=ok|wrong|unchecked to $GITHUB_OUTPUT, and exits 0 (ok),
@@ -37,11 +37,16 @@
 //   unchecked.
 //   Anything that crashes the checker is reported as unchecked too, never
 //   as exit 1, which means wrong grants.
+//   With --results, the outcome and every name's result are also written to
+//   <file> as JSON, for scripts/ci/sentry-grants.mjs: a wrong name carries
+//   the grants expected and found and, per product, the grants missing and
+//   extra; an unchecked one carries the read error in its detail. A run that
+//   compared nothing writes no results and an `error` instead.
 //   DOTNS_BIN overrides the CLI (default `dotns` on PATH);
 //   GRANTS_READ_ATTEMPTS, GRANTS_READ_TIMEOUT_SECONDS and
 //   GRANTS_READ_DELAY_SECONDS tune the retries (3 reads, 90 s each, 15 s apart).
 import { spawn } from "node:child_process"
-import { appendFileSync } from "node:fs"
+import { appendFileSync, writeFileSync } from "node:fs"
 import { setTimeout as sleep } from "node:timers/promises"
 
 /** What Jollity's label needs at least: game-registration.ts reads storage and signs as Humanity. */
@@ -102,18 +107,42 @@ export function grantsFromRead(stdout) {
   return { manifest: record.value }
 }
 
-/** What is wrong with the grants a name publishes, or [] when nothing is. */
-export function grantProblems({ manifest, want, floorLabel }) {
-  if (manifest === null) return ["it has no manifest, so it grants nothing"]
+/**
+ * Per product, the grants HUMANITY_TRUSTED_PRODUCTS has that `found` lacks
+ * (missing) and the ones `found` has that it does not (extra); products that
+ * match are left out. Both arguments are normalized grants.
+ */
+export function grantDiff(found, want) {
+  const labels = [...new Set([...Object.keys(want), ...Object.keys(found)])].sort()
+  const products = []
+  for (const label of labels) {
+    const has = found[label] ?? []
+    const wants = want[label] ?? []
+    const missing = wants.filter((g) => !has.includes(g))
+    const extra = has.filter((g) => !wants.includes(g))
+    if (missing.length > 0 || extra.length > 0) products.push({ label, missing, extra })
+  }
+  return products
+}
+
+/**
+ * Judges the grants a name publishes: what is wrong with them (problems, []
+ * when nothing is), the grants found (normalized, or null when the manifest
+ * yields none), how they differ from `want` per product, and which grants
+ * Jollity needs that its label lacks.
+ */
+export function judgeGrants({ manifest, want, floorLabel }) {
+  const none = (problem) => ({ problems: [problem], found: null, products: grantDiff({}, want), floor: { label: floorLabel, lacking: [...FLOOR] } })
+  if (manifest === null) return none("it has no manifest, so it grants nothing")
   let parsed
   try {
     parsed = JSON.parse(manifest)
   } catch {
-    return ["its manifest is not JSON, so a host reads no grants from it"]
+    return none("its manifest is not JSON, so a host reads no grants from it")
   }
   const raw = parsed?.trustedProducts
-  if (raw === undefined) return ["its manifest has no trustedProducts, so it grants nothing"]
-  if (!isGrants(raw)) return [`its trustedProducts is not an object of label to grant list: ${JSON.stringify(raw)}`]
+  if (raw === undefined) return none("its manifest has no trustedProducts, so it grants nothing")
+  if (!isGrants(raw)) return none(`its trustedProducts is not an object of label to grant list: ${JSON.stringify(raw)}`)
   const got = normalize(raw)
   const problems = []
   if (JSON.stringify(got) !== JSON.stringify(want)) {
@@ -123,8 +152,11 @@ export function grantProblems({ manifest, want, floorLabel }) {
   if (lacking.length > 0) {
     problems.push(`${floorLabel} lacks ${lacking.join(" and ")}, which Jollity needs`)
   }
-  return problems
+  return { problems, found: got, products: grantDiff(got, want), floor: lacking.length > 0 ? { label: floorLabel, lacking } : null }
 }
+
+/** What is wrong with the grants a name publishes, or [] when nothing is. */
+export const grantProblems = (args) => judgeGrants(args).problems
 
 /** Reads a name's manifest with the dotns CLI, with no key, and kills it after timeoutMs. */
 export function readManifest(name, env, { bin = "dotns", timeoutMs = 90_000 } = {}) {
@@ -184,10 +216,10 @@ async function checkOnce({ name, want, floorLabel, read, attempts, delayMs }) {
       if (attempt < attempts) await sleep(delayMs)
       continue
     }
-    const problems = grantProblems({ manifest: found?.manifest ?? null, want, floorLabel })
-    return problems.length === 0
-      ? { name, outcome: "ok", detail: `grants ${show(want)}, as HUMANITY_TRUSTED_PRODUCTS says` }
-      : { name, outcome: "wrong", detail: problems.join("; ") }
+    const judged = judgeGrants({ manifest: found?.manifest ?? null, want, floorLabel })
+    if (judged.problems.length === 0) return { name, outcome: "ok", detail: `grants ${show(want)}, as HUMANITY_TRUSTED_PRODUCTS says` }
+    const { problems, ...grants } = judged
+    return { name, outcome: "wrong", detail: problems.join("; "), expected: want, ...grants }
   }
   return { name, outcome: "unchecked", detail: failures.join("; ") }
 }
@@ -227,15 +259,27 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--env") env = argv[++i] ?? ""
     else if (argv[i] === "--unchecked-warns") continue
+    else if (argv[i] === "--results") i++
     else if (argv[i] === "--confirm-wrong") confirmWrong = true
     else names.push(argv[i])
   }
-  if (!env || names.length === 0) throw new Error("usage: check-grants.mjs --env <dotns env> [--unchecked-warns] [--confirm-wrong] <name>...")
+  if (!env || names.length === 0) throw new Error("usage: check-grants.mjs --env <dotns env> [--unchecked-warns] [--confirm-wrong] [--results <file>] <name>...")
   return { env, names, confirmWrong }
 }
 
-/** Read apart from the other flags, so a crash in parsing them still honours it. */
+/** Read apart from the other flags, so a crash in parsing them still honours them. */
 const uncheckedWarns = process.argv.includes("--unchecked-warns")
+const resultsFile = process.argv.includes("--results") ? process.argv[process.argv.indexOf("--results") + 1] : undefined
+
+/** Writes the --results file. Like the step output, a file that cannot be written is a warning. */
+function writeResults(results) {
+  if (!resultsFile) return
+  try {
+    writeFileSync(resultsFile, `${JSON.stringify(results, null, 2)}\n`)
+  } catch (error) {
+    console.log(`::warning title=No grants results file::${escapeData(String(error))}`)
+  }
+}
 
 /** Writes to $GITHUB_OUTPUT. A file that cannot be written is a warning: the exit code still carries the outcome. */
 function output(line) {
@@ -257,6 +301,7 @@ async function main() {
     // Nothing was compared, so the grants are unknown, not wrong.
     console.log(`::${uncheckedWarns ? "warning" : "error"} title=Could not check the grants::${error.message}. Set the repo variable, then run the check again.`)
     output("outcome=unchecked")
+    writeResults({ outcome: "unchecked", error: `${error.message}. Set the repo variable, then run the check again.`, results: [] })
     process.exit(uncheckedWarns ? EXIT.ok : EXIT.unchecked)
   }
   const attempts = Number(process.env.GRANTS_READ_ATTEMPTS || 3)
@@ -273,6 +318,7 @@ async function main() {
   }
   const outcome = overall(results)
   output(`outcome=${outcome}`)
+  writeResults({ outcome, results })
   // The summary is a courtesy: failing to write it must not hide the outcome.
   try {
     if (process.env.GITHUB_STEP_SUMMARY) {
@@ -290,6 +336,7 @@ function crashed(error) {
   const message = escapeData(`The checker stopped, so the grants are unknown: ${error?.stack ?? error}`)
   console.log(`::${uncheckedWarns ? "warning" : "error"} title=Could not check the grants::${message}`)
   output("outcome=unchecked")
+  writeResults({ outcome: "unchecked", error: `The checker stopped, so the grants are unknown: ${error?.message ?? error}`, results: [] })
   process.exit(uncheckedWarns ? EXIT.ok : EXIT.unchecked)
 }
 

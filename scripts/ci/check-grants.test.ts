@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { spawnSync } from "node:child_process"
-import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
+import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { annotation, checkName, expectedGrants, grantProblems, grantsFromRead, normalize, overall } from "./check-grants.mjs"
+import { annotation, checkName, expectedGrants, grantDiff, grantProblems, grantsFromRead, judgeGrants, normalize, overall } from "./check-grants.mjs"
 
 const VARIABLE = '{"back-me-up":["context"],"dim2":["context","storage"],"dim2next":["context","storage"]}'
 const want = expectedGrants(VARIABLE)
@@ -77,6 +77,38 @@ describe("grantProblems", () => {
   })
 })
 
+describe("grantDiff and judgeGrants", () => {
+  it("lists, per product, the grants missing and extra, and leaves matching products out", () => {
+    expect(grantDiff(normalize({ "back-me-up": ["context", "storage"], dim2: ["context"], x: ["context"] }), want)).toEqual([
+      { label: "back-me-up", missing: [], extra: ["storage"] },
+      { label: "dim2", missing: ["storage"], extra: [] },
+      { label: "dim2next", missing: ["context", "storage"], extra: [] },
+      { label: "x", missing: [], extra: ["context"] },
+    ])
+    expect(grantDiff(want, want)).toEqual([])
+  })
+
+  it("returns the grants found, the difference and Jollity's floor with the problems", () => {
+    const manifest = JSON.parse(cliAnswer({ ...want, dim2: ["context"] })).value
+    expect(judgeGrants({ manifest, want, floorLabel: "dim2" })).toEqual({
+      problems: [expect.stringMatching(/^it grants /), "dim2 lacks storage, which Jollity needs"],
+      found: { "back-me-up": ["context"], dim2: ["context"], dim2next: ["context", "storage"] },
+      products: [{ label: "dim2", missing: ["storage"], extra: [] }],
+      floor: { label: "dim2", lacking: ["storage"] },
+    })
+    expect(judgeGrants({ manifest: JSON.parse(cliAnswer(want)).value, want, floorLabel: "dim2" })).toMatchObject({ problems: [], products: [], floor: null })
+  })
+
+  it("finds no grants, and every expected one missing, when the manifest grants nothing", () => {
+    expect(judgeGrants({ manifest: null, want, floorLabel: "dim2" })).toEqual({
+      problems: ["it has no manifest, so it grants nothing"],
+      found: null,
+      products: grantDiff({}, want),
+      floor: { label: "dim2", lacking: ["context", "storage"] },
+    })
+  })
+})
+
 describe("grantsFromRead", () => {
   it("returns the manifest, or null when the name or the record does not exist", () => {
     expect(grantsFromRead(cliAnswer({}))).toEqual({ manifest: '{"$v":1,"displayName":"Humanity","trustedProducts":{}}' })
@@ -103,6 +135,19 @@ describe("checkName", () => {
     const result = await checkName({ ...base, read: async () => cliAnswer({}) })
     expect(result).toMatchObject({ outcome: "wrong" })
     expect(result.detail).toMatch(/dim2 lacks context and storage/)
+  })
+
+  it("carries the grants expected and found, and what differs per product, when wrong", async () => {
+    const result = await checkName({ ...base, read: async () => cliAnswer({ ...want, dim2: ["context"] }) })
+    expect(result).toEqual({
+      name: "peopl.paseo",
+      outcome: "wrong",
+      detail: expect.stringContaining("dim2 lacks storage"),
+      expected: want,
+      found: { ...want, dim2: ["context"] },
+      products: [{ label: "dim2", missing: ["storage"], extra: [] }],
+      floor: { label: "dim2", lacking: ["storage"] },
+    })
   })
 
   it("is unchecked, never wrong, when every read fails", async () => {
@@ -207,7 +252,8 @@ else console.log(answer)
     writeFileSync(reads, "{}")
     const output = join(dir, `output-${Math.random()}`)
     writeFileSync(output, "")
-    const r = spawnSync(process.execPath, [join(__dirname, "check-grants.mjs"), ...(args ?? ["--env", "paseo-v2", ...flags, ...Object.keys(byName)])], {
+    const resultsFile = join(dir, `results-${Math.random()}.json`)
+    const r = spawnSync(process.execPath, [join(__dirname, "check-grants.mjs"), ...(args ?? ["--env", "paseo-v2", "--results", resultsFile, ...flags, ...Object.keys(byName)])], {
       env: {
         PATH: process.env.PATH ?? "",
         DOTNS_BIN: bin,
@@ -223,7 +269,8 @@ else console.log(answer)
       encoding: "utf8",
     })
     const count = JSON.parse(readFileSync(reads, "utf8")) as Record<string, number>
-    return { status: r.status, stdout: r.stdout, output: readFileSync(output, "utf8"), reads: count }
+    const results = existsSync(resultsFile) ? JSON.parse(readFileSync(resultsFile, "utf8")) : undefined
+    return { status: r.status, stdout: r.stdout, output: readFileSync(output, "utf8"), reads: count, results }
   }
 
   it("exits 0 when both names grant what the variable says", () => {
@@ -238,6 +285,19 @@ else console.log(answer)
     expect(r.status).toBe(1)
     expect(r.output).toBe("outcome=wrong\n")
     expect(r.stdout).toContain("::error title=Grants wrong on peopl.paseo::")
+  })
+
+  it("writes every name's result to --results, with what is wrong per product or the read error", () => {
+    const r = run({ "peopl.paseo": cliAnswer({ ...want, dim2: ["context"] }), "peoplnext.paseo": "fail", "other.paseo": cliAnswer(want) })
+    expect(r.status).toBe(1)
+    expect(r.results.outcome).toBe("wrong")
+    expect(r.results.results.map((x: { name: string; outcome: string }) => [x.name, x.outcome])).toEqual([
+      ["peopl.paseo", "wrong"],
+      ["peoplnext.paseo", "unchecked"],
+      ["other.paseo", "ok"],
+    ])
+    expect(r.results.results[0]).toMatchObject({ expected: want, products: [{ label: "dim2", missing: ["storage"], extra: [] }] })
+    expect(r.results.results[1].detail).toBe("attempt 1: dotns exited 1: Error: RPC unreachable; attempt 2: dotns exited 1: Error: RPC unreachable".replaceAll("dotns", bin))
   })
 
   it("exits 2, and says nothing of missing grants, when the read hangs or fails", () => {
@@ -290,8 +350,14 @@ else console.log(answer)
   })
 
   it("reports a crash as could-not-check, never as exit 1", () => {
-    const crashed = run({}, [], "15", ["peopl.paseo"])
+    const resultsFile = join(dir, "results-crash.json")
+    const crashed = run({}, [], "15", ["--results", resultsFile, "peopl.paseo"])
     expect(crashed.status).toBe(2)
+    expect(JSON.parse(readFileSync(resultsFile, "utf8"))).toEqual({
+      outcome: "unchecked",
+      error: expect.stringMatching(/^The checker stopped, so the grants are unknown: usage:/),
+      results: [],
+    })
     expect(crashed.output).toBe("outcome=unchecked\n")
     expect(crashed.stdout).toContain("::error title=Could not check the grants::The checker stopped, so the grants are unknown: Error: usage:")
     const warned = run({}, [], "15", ["--unchecked-warns", "peopl.paseo"])
@@ -313,12 +379,18 @@ else console.log(answer)
     writeFileSync(answers, "{}")
     const output = join(dir, "output-missing")
     writeFileSync(output, "")
-    const r = spawnSync(process.execPath, [join(__dirname, "check-grants.mjs"), "--env", "paseo-v2", "peopl.paseo"], {
+    const resultsFile = join(dir, "results-missing.json")
+    const r = spawnSync(process.execPath, [join(__dirname, "check-grants.mjs"), "--env", "paseo-v2", "--results", resultsFile, "peopl.paseo"], {
       env: { PATH: process.env.PATH ?? "", DOTNS_BIN: bin, JOLLITY_DOTNS_DOMAIN: "dim2", GITHUB_OUTPUT: output },
       encoding: "utf8",
     })
     expect(r.status).toBe(2)
     expect(readFileSync(output, "utf8")).toBe("outcome=unchecked\n")
+    expect(JSON.parse(readFileSync(resultsFile, "utf8"))).toEqual({
+      outcome: "unchecked",
+      error: "HUMANITY_TRUSTED_PRODUCTS is not set. Set the repo variable, then run the check again.",
+      results: [],
+    })
     expect(r.stdout).toContain("::error title=Could not check the grants::HUMANITY_TRUSTED_PRODUCTS is not set")
   })
 })

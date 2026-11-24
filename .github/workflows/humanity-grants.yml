@@ -15,7 +15,11 @@ name: Humanity grants
 # the Sentry cron monitor humanity-grants, through the SENTRY_DSN secret:
 # in_progress when it starts, then ok or error. Sentry raises an issue on
 # error and on a missed hour. The alert rule on that issue is set in Sentry
-# (see the Humanity README, "Grants checks").
+# (see the Humanity README, "Grants checks"). On error it also sends one
+# Sentry error event per name that is wrong or could not be read, with the
+# grants expected and found or the read error, and this run's URL
+# (scripts/ci/sentry-grants.mjs). The events carry the monitor and the
+# check-in's trace, so they show with humanity-grants.
 #
 # The monitor lives in Jollity's Sentry project, through the repo-level
 # SENTRY_DSN secret, and not in Humanity's: wrong grants break Jollity's
@@ -97,10 +101,11 @@ jobs:
         env:
           HUMANITY_TRUSTED_PRODUCTS: ${{ vars.HUMANITY_TRUSTED_PRODUCTS }}
           JOLLITY_DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
-        run: node scripts/ci/check-grants.mjs --env paseo-v2 "${LABEL}.paseo" "${LABEL}next.paseo"
+        run: node scripts/ci/check-grants.mjs --env paseo-v2 --results "$RUNNER_TEMP/grants-results.json" "${LABEL}.paseo" "${LABEL}next.paseo"
 
       # Any step that failed before the read leaves no outcome, and that is a
-      # check that did not happen.
+      # check that did not happen. The detail goes first, so the issues it
+      # raises are there when the error check-in is.
       - name: Tell Sentry how the check ended
         if: always()
         env:
@@ -110,5 +115,8 @@ jobs:
           if [ "$OUTCOME" = "ok" ]; then status=ok; else status=error; fi
           if [ -z "$OUTCOME" ]; then
             echo "::error title=Could not check the grants::The check stopped before it read the names. See the failed step."
+          fi
+          if [ "$status" = error ]; then
+            node scripts/ci/sentry-grants.mjs "$MONITOR_SLUG" "$RUNNER_TEMP/grants-results.json"
           fi
           node scripts/ci/sentry-checkin.mjs "$MONITOR_SLUG" "$status"

@@ -376,6 +376,15 @@ with each start, so the first run creates the monitor in that project. Sentry op
 `error` or a missed hour, but who hears of it is a cron monitor alert a Sentry admin sets on
 `humanity-grants`: a DSN cannot create one.
 
+A check-in only says `ok` or `error`, so a run that ends in `error` also sends
+[`scripts/ci/sentry-grants.mjs`](../../scripts/ci/sentry-grants.mjs)'s error events: one per name
+whose grants are wrong, titled `Grants wrong on <name>: <product> missing <grant>`, with the grants
+expected and found and each product's missing and extra grants, and one per name that could not be
+read, with the read error. Each links the GitHub run and is one Sentry issue per name and outcome,
+however many hours it lasts. The events carry the monitor's slug (`monitor.slug`) and the run's
+trace, which is the trace of its check-ins too, so they show with `humanity-grants`. A check-in
+itself holds no text, so an `ok` run sends nothing but its check-in.
+
 The app icon exists twice, on purpose. `apps/humanity-app/deploy/icon.png` is the **square** one the manifest
 publishes: hosts apply their own platform mask (iOS squircle, Android adaptive), so a pre-rounded
 icon would be masked twice. `apps/humanity-app/assets/app-icon.png` is the same artwork **pre-masked** as a squircle,

@@ -149,7 +149,9 @@ describe("humanity-grants.yml", () => {
   })
 
   it("checks both paseo names, and uses Jollity's SENTRY_DSN for both check-ins", () => {
-    expect(stepNamed(job, "Read the live grants").run).toBe('node scripts/ci/check-grants.mjs --env paseo-v2 "${LABEL}.paseo" "${LABEL}next.paseo"')
+    expect(stepNamed(job, "Read the live grants").run).toBe(
+      'node scripts/ci/check-grants.mjs --env paseo-v2 --results "$RUNNER_TEMP/grants-results.json" "${LABEL}.paseo" "${LABEL}next.paseo"',
+    )
     expect(stepNamed(job, "Tell Sentry the check started").env).toEqual({ SENTRY_DSN: "${{ secrets.SENTRY_DSN }}" })
     expect(stepNamed(job, "Tell Sentry how the check ended").env?.SENTRY_DSN).toBe("${{ secrets.SENTRY_DSN }}")
   })
@@ -157,12 +159,20 @@ describe("humanity-grants.yml", () => {
   it("always closes the check-in: ok only when the check said ok", () => {
     const end = stepNamed(job, "Tell Sentry how the check ended")
     expect(end.if).toBe("always()")
-    const stubs = 'node() { echo "sent $3"; }'
-    const sent = (outcome: string) => runStep(end.run!, { stubs, env: { OUTCOME: outcome, MONITOR_SLUG: "humanity-grants" } }).stdout
-    expect(sent("ok")).toBe("sent ok\n")
-    expect(sent("wrong")).toBe("sent error\n")
-    expect(sent("unchecked")).toBe("sent error\n")
+    const stubs = 'node() { echo "$*"; }'
+    const sent = (outcome: string) => runStep(end.run!, { stubs, env: { OUTCOME: outcome, MONITOR_SLUG: "humanity-grants", RUNNER_TEMP: "/tmp/r" } }).stdout
+    const checkIn = (status: string) => `scripts/ci/sentry-checkin.mjs humanity-grants ${status}\n`
+    const detail = "scripts/ci/sentry-grants.mjs humanity-grants /tmp/r/grants-results.json\n"
+    expect(sent("ok")).toBe(checkIn("ok"))
+    expect(sent("wrong")).toBe(detail + checkIn("error"))
+    expect(sent("unchecked")).toBe(detail + checkIn("error"))
     expect(sent("")).toContain("::error title=Could not check the grants::The check stopped before it read the names.")
-    expect(sent("")).toContain("sent error")
+    expect(sent("")).toContain(detail + checkIn("error"))
+  })
+
+  it("sends the detail of a failed check with the same Sentry DSN and check-in id", () => {
+    const end = stepNamed(job, "Tell Sentry how the check ended")
+    expect(end.env?.SENTRY_DSN).toBe("${{ secrets.SENTRY_DSN }}")
+    expect(stepNamed(job, "Tell Sentry the check started").run).toContain('echo "CHECK_IN_ID=$CHECK_IN_ID"')
   })
 })
