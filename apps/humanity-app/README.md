@@ -345,21 +345,27 @@ for Jollity's label (`JOLLITY_DOTNS_DOMAIN`) even if the variable drops them:
   since the RPC node may not have the publish yet, and if they are still wrong the leg fails; a
   release only takes a commit whose "Humanity paseo staging" leg passed. A CLI that will not install
   or a read that fails only warns there, since the release checks again.
-- **Every hour** (`humanity-grants.yml`) reads `<label>.paseo`, `<label>next.paseo` and the
-  previewnet name `<label>.testnet`. Run it by hand from the Actions tab after changing the
-  variable or a grant.
+- **Every hour** (`humanity-grants.yml`) reads `<label>.paseo` and `<label>next.paseo` in one leg,
+  and the previewnet name `<label>.testnet` in another. Run it by hand from the Actions tab after
+  changing the variable or a grant.
 
 The last two share [`scripts/ci/check-grants.mjs`](../../scripts/ci/check-grants.mjs), which reads
-the manifest with `dotns text view <name> manifest --json` (no key; dotns-cli 1.1.0 at deploy, 2.0.0
-every hour) and ends in one of three outcomes. The hourly run reads the previewnet name with
-`--stack` and the stack previewnet publishes, not `--env previewnet`: previewnet restarts, and the
-copy bundled in a CLI release then refuses the new chain ("WRONG CHAIN").
+the manifest with `dotns text view <name> manifest --json` (no key; dotns-cli 1.1.0 at deploy and on
+paseo every hour, 2.0.0 on previewnet) and ends in one of these outcomes. The hourly run reads the
+previewnet name with `--stack` and the stack previewnet publishes, not `--env previewnet`:
+previewnet restarts, and the copy bundled in a CLI release then refuses the new chain ("WRONG
+CHAIN").
 
 | Outcome | Annotation | Exit |
 | :-- | :-- | :-- |
 | The grants are right | `Grants right on <name>` | 0 |
 | The read worked and the grants are wrong or missing | `Grants wrong on <name>` | 1 |
 | The read failed or timed out, so nothing is known | `Could not check the grants of <name>` | 2 |
+| With `--not-deployed-warns`, the name does not exist | `<name> not deployed since the reset` (a warning) | 0 |
+
+Previewnet is reset from time to time, and `<label>.testnet` does not exist again until the next
+Humanity deploy there, so the previewnet leg passes `--not-deployed-warns`. A name that exists with
+wrong or no grants is still wrong there, and on paseo a name that does not exist is wrong.
 
 A failed read never counts as missing grants. Each read is tried 3 times, 90 s each and 15 s apart,
 because a Paseo RPC can take about 20 s to open. To run it yourself:
@@ -368,14 +374,16 @@ because a Paseo RPC can take about 20 s to open. To run it yourself:
 npm install -g @parity/dotns-cli@2.0.0
 HUMANITY_TRUSTED_PRODUCTS="$(gh variable get HUMANITY_TRUSTED_PRODUCTS)" JOLLITY_DOTNS_DOMAIN=dim2 \
   node scripts/ci/check-grants.mjs --env paseo-v2 peopl.paseo peoplnext.paseo \
-  --stack "$PREVIEWNET_STACK" peopl.testnet
+  --not-deployed-warns --stack "$PREVIEWNET_STACK" peopl.testnet
 ```
 
 with `PREVIEWNET_STACK` set to the value of the same name in `humanity-grants.yml`.
 
-The hourly run goes red on both failures and tells the Sentry cron monitor `humanity-grants`
-(environment `paseo`) through the repo's `SENTRY_DSN` secret: `in_progress` when it starts, then
-`ok` or `error`. That is Jollity's Sentry project, on purpose: wrong grants break Jollity's sign-up
+Each hourly leg goes red on both failures and tells the Sentry cron monitor `humanity-grants`
+through the repo's `SENTRY_DSN` secret, in its own environment (`paseo` or `previewnet`):
+`in_progress` when it starts, then `ok` or `error`. A name not deployed since a reset ends `ok`.
+Sentry keeps a monitor's state per environment, so previewnet never hides a paseo break, and the
+alert rule can be limited to `paseo`. That is Jollity's Sentry project, on purpose: wrong grants break Jollity's sign-up
 and chat worker, so the alert belongs with Jollity's.
 [`scripts/ci/sentry-checkin.mjs`](../../scripts/ci/sentry-checkin.mjs) sends the monitor's schedule
 with each start, so the first run creates the monitor in that project. Sentry opens an issue on

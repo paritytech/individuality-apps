@@ -13,27 +13,35 @@
 // grants" compares them, and when Jollity's label (JOLLITY_DOTNS_DOMAIN) holds
 // at least context and storage, so emptying the variable cannot pass either.
 //
-// Each name ends in one of three outcomes:
-//   ok         the grants are right;
-//   wrong      the read worked, and the grants are wrong or missing;
-//   unchecked  the read failed or timed out, so nothing is known about them.
+// Each name ends in one of these outcomes:
+//   ok          the grants are right;
+//   wrong       the read worked, and the grants are wrong or missing;
+//   unchecked   the read failed or timed out, so nothing is known about them;
+//   undeployed  only with --not-deployed-warns: the name does not exist, as
+//               on a network that was reset and has had no deploy since.
 // A failed read is never reported as missing grants. Paseo's RPC can take
 // about 20 s to open a websocket, so each read is tried a few times first.
 //
 // The read is `dotns text view <name> manifest --json` with no key: the CLI's
 // key variables are removed from its environment, so it can only read.
 //
-// Usage: node scripts/ci/check-grants.mjs [--unchecked-warns] [--confirm-wrong] [--results <file>] --env paseo-v2 <name>... [--stack <stack> <name>...]
+// Usage: node scripts/ci/check-grants.mjs [--unchecked-warns] [--not-deployed-warns] [--confirm-wrong] [--results <file>] --env paseo-v2 <name>... [--stack <stack> <name>...]
 //   --env <dotns env> or --stack <stack descriptor> says where the names
 //   after it are read: --stack (dotns-cli 2.0.0 and later) reads on a network
 //   from its published descriptor instead of the CLI's bundled copy, which
 //   goes stale when a network such as previewnet restarts.
 //   reads HUMANITY_TRUSTED_PRODUCTS and JOLLITY_DOTNS_DOMAIN from the
 //   environment, prints one ::error or ::notice line per name, writes
-//   outcome=ok|wrong|unchecked to $GITHUB_OUTPUT, and exits 0 (ok),
-//   1 (any name wrong) or 2 (none wrong, but some could not be checked).
+//   outcome=ok|wrong|unchecked|undeployed to $GITHUB_OUTPUT, and exits 0
+//   (ok or undeployed), 1 (any name wrong) or 2 (none wrong, but some could
+//   not be checked).
 //   With --unchecked-warns, a name that could not be checked is a warning
 //   and exits 0, for a job that must not fail on a slow RPC.
+//   With --not-deployed-warns, a name that does not exist is the outcome
+//   undeployed: a warning that it was not deployed since the network's last
+//   reset, exit 0. A name that exists with wrong or no grants is still
+//   wrong. Without it, a name that does not exist is wrong: it grants
+//   nothing.
 //   With --confirm-wrong, grants found wrong are read again after
 //   GRANTS_CONFIRM_DELAY_SECONDS (45), and only that second read counts: a
 //   read right after a publish can reach an RPC node that is a block behind
@@ -56,7 +64,10 @@ import { setTimeout as sleep } from "node:timers/promises"
 /** What Jollity's label needs at least: game-registration.ts reads storage and signs as Humanity. */
 export const FLOOR = ["context", "storage"]
 
-export const EXIT = { ok: 0, wrong: 1, unchecked: 2 }
+export const EXIT = { ok: 0, wrong: 1, unchecked: 2, undeployed: 0 }
+
+/** The retries when GRANTS_READ_* leave them unset: a workflow's timeout must fit them for every name it reads. */
+export const READ_DEFAULTS = { attempts: 3, timeoutSeconds: 90, delaySeconds: 15 }
 
 const LABEL = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
 
@@ -93,9 +104,9 @@ function isGrants(value) {
 }
 
 /**
- * The grants in one `dotns text view <name> manifest --json` answer, or null
- * when the name has no manifest. Throws when the answer is not the CLI's
- * JSON, which means the read itself failed.
+ * One `dotns text view <name> manifest --json` answer: whether the name
+ * exists, and its manifest text, or null when it has none. Throws when the
+ * answer is not the CLI's JSON, which means the read itself failed.
  */
 export function grantsFromRead(stdout) {
   let record
@@ -107,8 +118,8 @@ export function grantsFromRead(stdout) {
   if (record === null || typeof record !== "object" || typeof record.exists !== "boolean") {
     throw new Error(`the CLI's answer has no exists field: ${stdout.trim().slice(0, 200)}`)
   }
-  if (!record.exists || record.value === null || record.value === undefined || record.value === "") return null
-  return { manifest: record.value }
+  const none = !record.exists || record.value === null || record.value === undefined || record.value === ""
+  return { exists: record.exists, manifest: none ? null : record.value }
 }
 
 /**
@@ -198,18 +209,20 @@ export function readManifest(name, where, { bin = "dotns", timeoutMs = 90_000 } 
  * With `confirmWrongMs`, a wrong result is read again that long after, and
  * the second result is the one returned.
  */
-export async function checkName({ name, want, floorLabel, read, attempts = 3, delayMs = 15_000, confirmWrongMs }) {
-  const first = await checkOnce({ name, want, floorLabel, read, attempts, delayMs })
+export async function checkName({ name, want, floorLabel, read, attempts = 3, delayMs = 15_000, confirmWrongMs, notDeployedWarns = false }) {
+  const once = () => checkOnce({ name, want, floorLabel, read, attempts, delayMs, notDeployedWarns })
+  const first = await once()
   if (first.outcome !== "wrong" || confirmWrongMs === undefined) return first
   await sleep(confirmWrongMs)
-  const second = await checkOnce({ name, want, floorLabel, read, attempts, delayMs })
+  const second = await once()
   const wait = `${Math.round(confirmWrongMs / 1000)} s`
   if (second.outcome === "ok") return { ...second, detail: `${second.detail} (a read ${wait} earlier saw old grants)` }
   if (second.outcome === "wrong") return { ...second, detail: `${second.detail} (the same again ${wait} later)` }
+  if (second.outcome === "undeployed") return second
   return { ...second, detail: `a first read found wrong grants (${first.detail}), and the read ${wait} later to confirm it failed: ${second.detail}` }
 }
 
-async function checkOnce({ name, want, floorLabel, read, attempts, delayMs }) {
+async function checkOnce({ name, want, floorLabel, read, attempts, delayMs, notDeployedWarns }) {
   const failures = []
   for (let attempt = 1; attempt <= attempts; attempt++) {
     let found
@@ -220,7 +233,10 @@ async function checkOnce({ name, want, floorLabel, read, attempts, delayMs }) {
       if (attempt < attempts) await sleep(delayMs)
       continue
     }
-    const judged = judgeGrants({ manifest: found?.manifest ?? null, want, floorLabel })
+    if (!found.exists && notDeployedWarns) {
+      return { name, outcome: "undeployed", detail: "the name does not exist, so it was not deployed since the network's last reset" }
+    }
+    const judged = judgeGrants({ manifest: found.manifest, want, floorLabel })
     if (judged.problems.length === 0) return { name, outcome: "ok", detail: `grants ${show(want)}, as HUMANITY_TRUSTED_PRODUCTS says` }
     const { problems, ...grants } = judged
     return { name, outcome: "wrong", detail: problems.join("; "), expected: want, ...grants }
@@ -228,10 +244,9 @@ async function checkOnce({ name, want, floorLabel, read, attempts, delayMs }) {
   return { name, outcome: "unchecked", detail: failures.join("; ") }
 }
 
-/** The run's outcome: wrong before unchecked, since a known break matters more than an unknown. */
+/** The run's outcome: wrong before unchecked, since a known break matters more than an unknown, and both before undeployed, which only warns. */
 export function overall(results) {
-  if (results.some((r) => r.outcome === "wrong")) return "wrong"
-  if (results.some((r) => r.outcome === "unchecked")) return "unchecked"
+  for (const outcome of ["wrong", "unchecked", "undeployed"]) if (results.some((r) => r.outcome === outcome)) return outcome
   return "ok"
 }
 
@@ -242,6 +257,13 @@ const escapeData = (text) => text.replaceAll("%", "%25").replaceAll("\r", "%0D")
 export function annotation({ name, outcome, detail }, { uncheckedWarns = false } = {}) {
   const line = (level, title, message) => `::${level} title=${title}::${escapeData(message)}`
   if (outcome === "ok") return line("notice", `Grants right on ${name}`, `${detail}.`)
+  if (outcome === "undeployed") {
+    return line(
+      "warning",
+      `${name} not deployed since the reset`,
+      `${detail}. Its grants are checked again once a Humanity deploy publishes it there.`,
+    )
+  }
   if (outcome === "wrong") {
     return line(
       "error",
@@ -256,26 +278,27 @@ export function annotation({ name, outcome, detail }, { uncheckedWarns = false }
   )
 }
 
-const USAGE = "usage: check-grants.mjs [--unchecked-warns] [--confirm-wrong] [--results <file>] --env <dotns env> <name>... [--stack <stack> <name>...]"
+const USAGE = "usage: check-grants.mjs [--unchecked-warns] [--not-deployed-warns] [--confirm-wrong] [--results <file>] --env <dotns env> <name>... [--stack <stack> <name>...]"
 
 /** The flags, and each name with where it is read: the --env or --stack before it. */
 export function parseArgs(argv) {
   const names = []
   let where = null
   let confirmWrong = false
+  const notDeployedWarns = argv.includes("--not-deployed-warns")
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--env" || argv[i] === "--stack") {
       const value = argv[++i]
       if (!value) throw new Error(USAGE)
       where = [argv[i - 1], value]
-    } else if (argv[i] === "--unchecked-warns") continue
+    } else if (argv[i] === "--unchecked-warns" || argv[i] === "--not-deployed-warns") continue
     else if (argv[i] === "--results") i++
     else if (argv[i] === "--confirm-wrong") confirmWrong = true
     else if (where === null) throw new Error(USAGE)
     else names.push({ name: argv[i], where })
   }
   if (names.length === 0) throw new Error(USAGE)
-  return { names, confirmWrong }
+  return { names, confirmWrong, notDeployedWarns }
 }
 
 /** Read apart from the other flags, so a crash in parsing them still honours them. */
@@ -302,7 +325,7 @@ function output(line) {
 }
 
 async function main() {
-  const { names, confirmWrong } = parseArgs(process.argv.slice(2))
+  const { names, confirmWrong, notDeployedWarns } = parseArgs(process.argv.slice(2))
   const floorLabel = process.env.JOLLITY_DOTNS_DOMAIN ?? ""
   let want
   try {
@@ -315,15 +338,15 @@ async function main() {
     writeResults({ outcome: "unchecked", error: `${error.message}. Set the repo variable, then run the check again.`, results: [] })
     process.exit(uncheckedWarns ? EXIT.ok : EXIT.unchecked)
   }
-  const attempts = Number(process.env.GRANTS_READ_ATTEMPTS || 3)
-  const timeoutMs = Number(process.env.GRANTS_READ_TIMEOUT_SECONDS || 90) * 1000
-  const delayMs = Number(process.env.GRANTS_READ_DELAY_SECONDS ?? 15) * 1000
+  const attempts = Number(process.env.GRANTS_READ_ATTEMPTS || READ_DEFAULTS.attempts)
+  const timeoutMs = Number(process.env.GRANTS_READ_TIMEOUT_SECONDS || READ_DEFAULTS.timeoutSeconds) * 1000
+  const delayMs = Number(process.env.GRANTS_READ_DELAY_SECONDS ?? READ_DEFAULTS.delaySeconds) * 1000
   const confirmWrongMs = confirmWrong ? Number(process.env.GRANTS_CONFIRM_DELAY_SECONDS ?? 45) * 1000 : undefined
   const bin = process.env.DOTNS_BIN || "dotns"
   const results = []
   for (const { name, where } of names) {
     const read = (n) => readManifest(n, where, { bin, timeoutMs })
-    const result = await checkName({ name, want, floorLabel, attempts, delayMs, confirmWrongMs, read })
+    const result = await checkName({ name, want, floorLabel, attempts, delayMs, confirmWrongMs, notDeployedWarns, read })
     console.log(annotation(result, { uncheckedWarns }))
     results.push(result)
   }

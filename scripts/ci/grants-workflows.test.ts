@@ -10,9 +10,17 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { parse } from "yaml"
+import { READ_DEFAULTS } from "./check-grants.mjs"
 
 type Step = { name?: string; id?: string; if?: string; run?: string; env?: Record<string, string>; uses?: string }
-type Job = { env?: Record<string, string>; steps: Step[]; permissions?: Record<string, string>; "timeout-minutes"?: number }
+type Job = {
+  name?: string
+  env?: Record<string, string>
+  steps: Step[]
+  permissions?: Record<string, string>
+  "timeout-minutes"?: number
+  strategy?: { "fail-fast"?: boolean; matrix: { include: Array<Record<string, string>> } }
+}
 type Workflow = { on: Record<string, unknown>; permissions?: Record<string, string>; jobs: Record<string, Job> }
 
 const workflow = (file: string) => {
@@ -141,8 +149,30 @@ describe("humanity-grants.yml", () => {
     expect(text).not.toMatch(/MNEMONIC/)
   })
 
+  const legs = job.strategy!.matrix.include
+  const read = stepNamed(job, "Read the live grants")
+  const end = stepNamed(job, "Tell Sentry how the check ended")
+  /** The check-grants.mjs arguments the read step gives on one network, with node stubbed. */
+  const readArgs = (network: string) => {
+    const r = runStep(read.run!, { stubs: 'node() { printf "%s\\n" "$@"; }', env: { NETWORK: network, LABEL: "peopl", RUNNER_TEMP: "/tmp/r", PREVIEWNET_STACK: "polkadotapp://stack?key=0x1" } })
+    return { ...r, args: r.stdout.trimEnd().split("\n") }
+  }
+  const namesOf = (network: string) => readArgs(network).args.filter((a) => /^peopl/.test(a))
+
+  it("reads paseo and previewnet as two legs, each its own Sentry environment of the same monitor", () => {
+    expect(legs).toEqual([
+      { network: "paseo", "dotns-cli": "1.1.0" },
+      { network: "previewnet", "dotns-cli": "2.0.0" },
+    ])
+    expect(job.strategy!["fail-fast"]).toBe(false)
+    expect(job.name).toBe("Humanity live grants (${{ matrix.network }})")
+    expect(job.env?.NETWORK).toBe("${{ matrix.network }}")
+    expect(job.env?.SENTRY_ENVIRONMENT).toBe("${{ matrix.network }}")
+    expect(job.env?.DOTNS_CLI_VERSION).toBe("${{ matrix.dotns-cli }}")
+    expect(job.env?.MONITOR_SLUG).toBe("humanity-grants")
+  })
+
   it("reads previewnet on the stack it publishes, with a CLI that has --stack", () => {
-    expect(job.env?.DOTNS_CLI_VERSION).toBe("2.0.0")
     const stack = new URL(job.env!.PREVIEWNET_STACK!)
     expect(stack.protocol).toBe("polkadotapp:")
     expect(stack.searchParams.get("url")).toBe("https://previewnet.substrate.dev/.well-known/trinity-stack.json")
@@ -156,32 +186,68 @@ describe("humanity-grants.yml", () => {
     expect(job.env?.MONITOR_SLUG).toBe("humanity-grants")
   })
 
-  it("checks both paseo names and the previewnet name, and uses Jollity's SENTRY_DSN for both check-ins", () => {
-    expect(stepNamed(job, "Read the live grants").run).toBe(
-      'node scripts/ci/check-grants.mjs --results "$RUNNER_TEMP/grants-results.json" ' +
-        '--env paseo-v2 "${LABEL}.paseo" "${LABEL}next.paseo" ' +
-        '--stack "$PREVIEWNET_STACK" "${LABEL}.testnet"',
-    )
-    expect(stepNamed(job, "Tell Sentry the check started").env).toEqual({ SENTRY_DSN: "${{ secrets.SENTRY_DSN }}" })
-    expect(stepNamed(job, "Tell Sentry how the check ended").env?.SENTRY_DSN).toBe("${{ secrets.SENTRY_DSN }}")
+  it("gives each leg the time to read every name it checks, with room for its setup", () => {
+    const { attempts, timeoutSeconds, delaySeconds } = READ_DEFAULTS
+    const perName = attempts * timeoutSeconds + (attempts - 1) * delaySeconds
+    expect(perName).toBe(300)
+    // Nothing here shortens the reads, so the defaults are the budget.
+    expect(text).not.toMatch(/GRANTS_READ_/)
+    const setup = 5 * 60
+    for (const { network } of legs) {
+      const budget = namesOf(network!).length * perName + setup
+      expect(budget, network).toBeLessThanOrEqual(job["timeout-minutes"]! * 60)
+    }
+    expect(namesOf("paseo")).toHaveLength(2)
   })
 
-  it("always closes the check-in: ok only when the check said ok", () => {
-    const end = stepNamed(job, "Tell Sentry how the check ended")
+  it("checks both paseo names on paseo-v2, and the previewnet name on its stack, where a missing name only warns", () => {
+    expect(readArgs("paseo").args).toEqual(["scripts/ci/check-grants.mjs", "--results", "/tmp/r/grants-results.json", "--env", "paseo-v2", "peopl.paseo", "peoplnext.paseo"])
+    expect(readArgs("previewnet").args).toEqual([
+      "scripts/ci/check-grants.mjs",
+      "--results",
+      "/tmp/r/grants-results.json",
+      "--not-deployed-warns",
+      "--stack",
+      "polkadotapp://stack?key=0x1",
+      "peopl.testnet",
+    ])
+    const unknown = readArgs("kusama")
+    expect(unknown.status).toBe(1)
+    expect(unknown.stdout).toContain("::error title=Could not check the grants::No names for the network kusama.")
+    expect(read.env).toEqual({ HUMANITY_TRUSTED_PRODUCTS: "${{ vars.HUMANITY_TRUSTED_PRODUCTS }}", JOLLITY_DOTNS_DOMAIN: "${{ vars.JOLLITY_DOTNS_DOMAIN }}" })
+  })
+
+  it("uses Jollity's SENTRY_DSN for both check-ins, and gives the events script the check's outcome", () => {
+    expect(stepNamed(job, "Tell Sentry the check started").env).toEqual({ SENTRY_DSN: "${{ secrets.SENTRY_DSN }}" })
+    expect(end.env).toEqual({ SENTRY_DSN: "${{ secrets.SENTRY_DSN }}", OUTCOME: "${{ steps.check.outputs.outcome }}" })
+  })
+
+  const checkIn = (status: string) => `scripts/ci/sentry-checkin.mjs humanity-grants ${status}\n`
+  const detail = "scripts/ci/sentry-grants.mjs humanity-grants /tmp/r/grants-results.json\n"
+  const endWith = (outcome: string, stubs = 'node() { echo "$*"; }') =>
+    runStep(end.run!, { stubs, env: { OUTCOME: outcome, MONITOR_SLUG: "humanity-grants", RUNNER_TEMP: "/tmp/r" } })
+
+  it("always closes the check-in: ok when the check said ok or only found a name not deployed since a reset", () => {
     expect(end.if).toBe("always()")
-    const stubs = 'node() { echo "$*"; }'
-    const sent = (outcome: string) => runStep(end.run!, { stubs, env: { OUTCOME: outcome, MONITOR_SLUG: "humanity-grants", RUNNER_TEMP: "/tmp/r" } }).stdout
-    const checkIn = (status: string) => `scripts/ci/sentry-checkin.mjs humanity-grants ${status}\n`
-    const detail = "scripts/ci/sentry-grants.mjs humanity-grants /tmp/r/grants-results.json\n"
+    const sent = (outcome: string) => endWith(outcome).stdout
     expect(sent("ok")).toBe(checkIn("ok"))
+    expect(sent("undeployed")).toBe(checkIn("ok"))
     expect(sent("wrong")).toBe(detail + checkIn("error"))
     expect(sent("unchecked")).toBe(detail + checkIn("error"))
     expect(sent("")).toContain("::error title=Could not check the grants::The check stopped before it read the names.")
     expect(sent("")).toContain(detail + checkIn("error"))
   })
 
+  it("still sends the error check-in when the events script fails", () => {
+    const stubs = 'node() { echo "$*"; if [ "$1" = scripts/ci/sentry-grants.mjs ]; then return 1; fi; }'
+    const r = endWith("wrong", stubs)
+    expect(r.status).toBe(0)
+    expect(r.stdout).toBe(
+      detail + "::warning title=Sentry events not sent::The detail of the grants could not be sent to humanity-grants. The check-in still goes out.\n" + checkIn("error"),
+    )
+  })
+
   it("sends the detail of a failed check with the same Sentry DSN and check-in id", () => {
-    const end = stepNamed(job, "Tell Sentry how the check ended")
     expect(end.env?.SENTRY_DSN).toBe("${{ secrets.SENTRY_DSN }}")
     expect(stepNamed(job, "Tell Sentry the check started").run).toContain('echo "CHECK_IN_ID=$CHECK_IN_ID"')
   })

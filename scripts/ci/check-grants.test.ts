@@ -8,6 +8,13 @@ import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { annotation, checkName, expectedGrants, grantDiff, grantProblems, grantsFromRead, judgeGrants, normalize, overall, parseArgs } from "./check-grants.mjs"
 
+// What dotns-cli 2.0.0 printed, verbatim, on 2026-11-24: `text view peopl.paseo
+// manifest --env paseo-v2 --json`, and the same with --stack <previewnet's
+// stack> for a .testnet name that does not exist. They pin the {exists, value}
+// shape the checker reads.
+const CLI2_MANIFEST = "{\"domain\":\"peopl.paseo\",\"key\":\"manifest\",\"exists\":true,\"owner\":\"0xdFE298F9f934d2Ae078583467f1649379779E33e\",\"value\":\"{\\\"$v\\\":1,\\\"displayName\\\":\\\"Humanity\\\",\\\"description\\\":\\\"Your membership card, prize draws, and a chance to win a dollar every day.\\\",\\\"icon\\\":{\\\"cid\\\":\\\"bafk2bzacebftmgphvspzw4v2mhtjmzvlsa2t5f6bnc3gcfludejsqivfzhuu2\\\",\\\"format\\\":\\\"png\\\"},\\\"trustedProducts\\\":{\\\"back-me-up\\\":[\\\"context\\\"],\\\"dim2\\\":[\\\"context\\\",\\\"storage\\\"],\\\"dim2next\\\":[\\\"context\\\",\\\"storage\\\"]}}\"}"
+const CLI2_NO_NAME = "{\"domain\":\"no-such-name-zz9.testnet\",\"key\":\"manifest\",\"exists\":false,\"owner\":null,\"value\":null}"
+
 const VARIABLE = '{"back-me-up":["context"],"dim2":["context","storage"],"dim2next":["context","storage"]}'
 const want = expectedGrants(VARIABLE)
 
@@ -78,6 +85,15 @@ describe("grantProblems", () => {
 })
 
 describe("parseArgs", () => {
+  it("takes --not-deployed-warns as a flag, not a name", () => {
+    expect(parseArgs(["--not-deployed-warns", "--stack", "s", "peopl.testnet"])).toEqual({
+      names: [{ name: "peopl.testnet", where: ["--stack", "s"] }],
+      confirmWrong: false,
+      notDeployedWarns: true,
+    })
+    expect(parseArgs(["--env", "paseo-v2", "peopl.paseo"]).notDeployedWarns).toBe(false)
+  })
+
   it("reads each name where the --env or --stack before it says", () => {
     const { names } = parseArgs(["--results", "r.json", "--env", "paseo-v2", "a.paseo", "b.paseo", "--stack", "polkadotapp://stack?x", "c.testnet"])
     expect(names).toEqual([
@@ -127,10 +143,22 @@ describe("grantDiff and judgeGrants", () => {
 })
 
 describe("grantsFromRead", () => {
-  it("returns the manifest, or null when the name or the record does not exist", () => {
-    expect(grantsFromRead(cliAnswer({}))).toEqual({ manifest: '{"$v":1,"displayName":"Humanity","trustedProducts":{}}' })
-    expect(grantsFromRead('{"domain":"x.paseo","key":"manifest","exists":false,"owner":null,"value":null}')).toBeNull()
-    expect(grantsFromRead('{"domain":"x.paseo","key":"manifest","exists":true,"owner":"0x1","value":null}')).toBeNull()
+  it("returns whether the name exists, and its manifest or null when it has none", () => {
+    expect(grantsFromRead(cliAnswer({}))).toEqual({ exists: true, manifest: '{"$v":1,"displayName":"Humanity","trustedProducts":{}}' })
+    expect(grantsFromRead('{"domain":"x.paseo","key":"manifest","exists":false,"owner":null,"value":null}')).toEqual({ exists: false, manifest: null })
+    expect(grantsFromRead('{"domain":"x.paseo","key":"manifest","exists":true,"owner":"0x1","value":null}')).toEqual({ exists: true, manifest: null })
+  })
+
+  it("reads dotns-cli 2.0.0's answer: {exists, value} with the manifest as text", () => {
+    const record = JSON.parse(CLI2_MANIFEST)
+    expect(Object.keys(record)).toEqual(["domain", "key", "exists", "owner", "value"])
+    expect(record).toMatchObject({ domain: "peopl.paseo", key: "manifest", exists: true })
+    expect(typeof record.value).toBe("string")
+    const read = grantsFromRead(CLI2_MANIFEST)
+    expect(read.exists).toBe(true)
+    expect(judgeGrants({ manifest: read.manifest, want, floorLabel: "dim2" })).toMatchObject({ problems: [], found: want })
+    expect(JSON.parse(CLI2_NO_NAME)).toEqual({ domain: "no-such-name-zz9.testnet", key: "manifest", exists: false, owner: null, value: null })
+    expect(grantsFromRead(CLI2_NO_NAME)).toEqual({ exists: false, manifest: null })
   })
 
   it("throws when the CLI did not answer with its JSON, since that is a failed read", () => {
@@ -212,6 +240,30 @@ describe("checkName", () => {
     expect(fine.reads()).toBe(1)
   })
 
+  it("with notDeployedWarns, calls a name that does not exist undeployed, and still fails one that exists with wrong grants", async () => {
+    const flagged = { ...base, name: "peopl.testnet", notDeployedWarns: true }
+    expect(await checkName({ ...flagged, read: async () => CLI2_NO_NAME })).toEqual({
+      name: "peopl.testnet",
+      outcome: "undeployed",
+      detail: "the name does not exist, so it was not deployed since the network's last reset",
+    })
+    expect((await checkName({ ...flagged, read: async () => cliAnswer({}) })).outcome).toBe("wrong")
+    const noValue = '{"domain":"peopl.testnet","key":"manifest","exists":true,"owner":"0x1","value":null}'
+    expect((await checkName({ ...flagged, read: async () => noValue })).outcome).toBe("wrong")
+    expect((await checkName({ ...flagged, read: async () => CLI2_MANIFEST })).outcome).toBe("ok")
+  })
+
+  it("without notDeployedWarns, calls a name that does not exist wrong: it grants nothing", async () => {
+    const result = await checkName({ ...base, read: async () => CLI2_NO_NAME })
+    expect(result).toMatchObject({ outcome: "wrong", detail: "it has no manifest, so it grants nothing", floor: { label: "dim2", lacking: ["context", "storage"] } })
+  })
+
+  it("keeps undeployed when a name found wrong is gone at the confirming read", async () => {
+    const answers = [cliAnswer({}), CLI2_NO_NAME]
+    const result = await checkName({ ...base, notDeployedWarns: true, confirmWrongMs: 0, read: async () => answers.shift()! })
+    expect(result.outcome).toBe("undeployed")
+  })
+
   it("retries a failed read and judges the one that works", async () => {
     const answers = [() => Promise.reject(new Error("socket closed")), () => Promise.resolve(cliAnswer({ dim2: ["context"] }))]
     const result = await checkName({ ...base, read: () => answers.shift()!() })
@@ -223,11 +275,15 @@ describe("overall and annotation", () => {
   const ok = { name: "a", outcome: "ok", detail: "" }
   const wrong = { name: "b", outcome: "wrong", detail: "" }
   const unchecked = { name: "c", outcome: "unchecked", detail: "" }
+  const undeployed = { name: "d", outcome: "undeployed", detail: "" }
 
-  it("puts a known break before an unknown", () => {
+  it("puts a known break before an unknown, and both before a name not deployed since a reset", () => {
     expect(overall([ok, ok])).toBe("ok")
     expect(overall([ok, unchecked])).toBe("unchecked")
     expect(overall([unchecked, wrong, ok])).toBe("wrong")
+    expect(overall([ok, undeployed])).toBe("undeployed")
+    expect(overall([undeployed, unchecked])).toBe("unchecked")
+    expect(overall([undeployed, wrong])).toBe("wrong")
   })
 
   it("gives each outcome its own title, and escapes line breaks", () => {
@@ -236,6 +292,9 @@ describe("overall and annotation", () => {
       /^::error title=Could not check the grants of peopl\.paseo::.*unknown, not missing \(a%0Ab 100%25\)/,
     )
     expect(annotation({ name: "peopl.paseo", outcome: "ok", detail: "fine" })).toBe("::notice title=Grants right on peopl.paseo::fine.")
+    expect(annotation({ name: "peopl.testnet", outcome: "undeployed", detail: "gone" })).toBe(
+      "::warning title=peopl.testnet not deployed since the reset::gone. Its grants are checked again once a Humanity deploy publishes it there.",
+    )
   })
 })
 
@@ -378,6 +437,24 @@ else console.log(answer)
       ["text", "view", "peopl.paseo", "manifest", "--env", "paseo-v2", "--json"],
       ["text", "view", "peopl.testnet", "manifest", "--stack", "polkadotapp://stack?key=0x1", "--json"],
     ])
+  })
+
+  it("with --not-deployed-warns, passes a name that does not exist with a warning, but still fails wrong grants", () => {
+    const gone = run({ "peopl.testnet": CLI2_NO_NAME }, ["--not-deployed-warns"])
+    expect(gone.status).toBe(0)
+    expect(gone.output).toBe("outcome=undeployed\n")
+    expect(gone.stdout).toContain("::warning title=peopl.testnet not deployed since the reset::")
+    expect(gone.stdout).not.toContain("Grants wrong")
+    expect(gone.results).toEqual({
+      outcome: "undeployed",
+      results: [{ name: "peopl.testnet", outcome: "undeployed", detail: "the name does not exist, so it was not deployed since the network's last reset" }],
+    })
+    const wrong = run({ "peopl.testnet": cliAnswer({ dim2: ["context"] }) }, ["--not-deployed-warns"])
+    expect(wrong.status).toBe(1)
+    expect(wrong.output).toBe("outcome=wrong\n")
+    const withoutFlag = run({ "peopl.paseo": CLI2_NO_NAME })
+    expect(withoutFlag.status).toBe(1)
+    expect(withoutFlag.stdout).toContain("::error title=Grants wrong on peopl.paseo::it has no manifest")
   })
 
   it("reads once without --confirm-wrong, and once when the grants are right", () => {

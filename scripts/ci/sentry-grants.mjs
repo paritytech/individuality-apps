@@ -16,12 +16,16 @@
 //
 // A run that compared nothing (a missing variable, a crash, or a step that
 // failed before the read and left no results file) sends one event for the
-// run instead.
+// run instead. So does a check that ended (OUTCOME) but wrote no results.
 //
-// An event that cannot be sent never fails the job: it prints a warning.
+// Nothing here fails the job: an event that cannot be sent, or a results file
+// that cannot be turned into events, prints a warning and exits 0, so the
+// check-in after it still goes out.
 //
 // Usage: node scripts/ci/sentry-grants.mjs <monitor slug> <results file>
 //   SENTRY_DSN, CHECK_IN_ID and SENTRY_ENVIRONMENT as for sentry-checkin.mjs;
+//   OUTCOME is the check's outcome, from its step output (empty when the
+//   check never ran);
 //   GITHUB_SERVER_URL, GITHUB_REPOSITORY, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT,
 //   GITHUB_WORKFLOW, GITHUB_REF_NAME and GITHUB_SHA describe the run.
 import { readFileSync } from "node:fs"
@@ -101,11 +105,19 @@ export function grantEvent({ result, slug, environment = "production", traceId, 
   }
 }
 
-/** The events for a results file's content, or for a missing one (null). */
-export function grantEvents(file, { slug, environment, traceId, run, now }) {
+/** What a run with no results file tells, by the outcome the check gave, if any. */
+export function noResultsDetail(outcome) {
+  if (outcome === "wrong") return "the check found wrong grants but wrote no results, so which names is unknown. See the run."
+  if (outcome === "unchecked") return "the check could not read every name but wrote no results, so which names is unknown. See the run."
+  if (outcome) return `the check ended ${outcome} but wrote no results. See the run.`
+  return "the check stopped before it read the names. See the failed step."
+}
+
+/** The events for a results file's content, or for a missing one (null), given the check's outcome. */
+export function grantEvents(file, { slug, environment, traceId, run, now, outcome }) {
   const base = { slug, environment, traceId, run, now }
   if (file === null) {
-    return [grantEvent({ ...base, result: { name: null, outcome: "unchecked", detail: "the check stopped before it read the names. See the failed step." } })]
+    return [grantEvent({ ...base, result: { name: null, outcome: outcome || "unchecked", detail: noResultsDetail(outcome) } })]
   }
   if (file.error) return [grantEvent({ ...base, result: { name: null, outcome: "unchecked", detail: file.error } })]
   return (file.results ?? []).filter((r) => r.outcome === "wrong" || r.outcome === "unchecked").map((result) => grantEvent({ ...base, result }))
@@ -120,6 +132,14 @@ function readResults(path) {
 }
 
 async function main() {
+  try {
+    await sendEvents()
+  } catch (error) {
+    stopped(error)
+  }
+}
+
+async function sendEvents() {
   const [slug, path] = process.argv.slice(2)
   const env = process.env
   if (!env.SENTRY_DSN) {
@@ -131,6 +151,7 @@ async function main() {
     environment: env.SENTRY_ENVIRONMENT || undefined,
     traceId: traceIdFor(env.CHECK_IN_ID),
     run: githubRun(env),
+    outcome: env.OUTCOME,
   })
   for (const event of events) {
     const what = `${event.tags["grants.name"] ?? "the run"} (${event.tags["grants.outcome"]})`
@@ -143,4 +164,10 @@ async function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main()
+/** Anything that stops the events must not stop the check-in after them: a warning, and exit 0. */
+function stopped(error) {
+  const message = String(error?.message ?? error).replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")
+  console.log(`::warning title=Sentry events not sent::${process.argv[2]} sent no detail of the grants: ${message}`)
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) main().catch(stopped)

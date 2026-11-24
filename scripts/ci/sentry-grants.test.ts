@@ -8,7 +8,7 @@ import { join } from "node:path"
 import { promisify } from "node:util"
 import { describe, expect, it } from "vitest"
 import { expectedGrants, judgeGrants } from "./check-grants.mjs"
-import { githubRun, grantEvent, grantEvents, productLine, wrongSummary } from "./sentry-grants.mjs"
+import { githubRun, grantEvent, grantEvents, noResultsDetail, productLine, wrongSummary } from "./sentry-grants.mjs"
 import { envelopeLines, stubSentry } from "./sentry-stub"
 
 const want = expectedGrants('{"back-me-up":["context"],"dim2":["context","storage"],"dim2next":["context","storage"]}')
@@ -151,6 +151,21 @@ describe("grantEvents", () => {
     const [stopped] = grantEvents(null, base)
     expect(stopped!.message.formatted).toBe("Could not check the grants: the check stopped before it read the names. See the failed step.")
   })
+
+  it("words a missing results file by the outcome the check gave", () => {
+    const [found] = grantEvents(null, { ...base, outcome: "wrong" })
+    expect(found!.message.formatted).toBe("Could not check the grants: the check found wrong grants but wrote no results, so which names is unknown. See the run.")
+    expect(found!.fingerprint).toEqual(["humanity-grants", "(run)", "wrong"])
+    const [unread] = grantEvents(null, { ...base, outcome: "unchecked" })
+    expect(unread!.message.formatted).toMatch(/the check could not read every name but wrote no results/)
+    expect(unread!.fingerprint).toEqual(["humanity-grants", "(run)", "unchecked"])
+    expect(noResultsDetail("")).toBe("the check stopped before it read the names. See the failed step.")
+    expect(noResultsDetail(undefined)).toBe(noResultsDetail(""))
+  })
+
+  it("sends no event for a name not deployed since a reset", () => {
+    expect(grantEvents({ outcome: "undeployed", results: [{ name: "peopl.testnet", outcome: "undeployed", detail: "gone" }] }, base)).toEqual([])
+  })
 })
 
 describe("sentry-grants.mjs", () => {
@@ -203,6 +218,33 @@ describe("sentry-grants.mjs", () => {
       await runScript({ SENTRY_DSN: server.dsn, CHECK_IN_ID: TRACE }, join(dir, "none.json"))
       expect(server.seen).toHaveLength(1)
       expect(envelopeLines(server.seen[0]!.body)[2].message.formatted).toMatch(/^Could not check the grants: the check stopped before it read the names/)
+    } finally {
+      await server.close()
+    }
+  })
+
+  it("words the event by OUTCOME when the check ended but wrote no results file", async () => {
+    const server = await stubSentry(200)
+    try {
+      await runScript({ SENTRY_DSN: server.dsn, CHECK_IN_ID: TRACE, OUTCOME: "wrong" }, join(dir, "none.json"))
+      expect(server.seen).toHaveLength(1)
+      const event = envelopeLines(server.seen[0]!.body)[2]
+      expect(event.message.formatted).toBe("Could not check the grants: the check found wrong grants but wrote no results, so which names is unknown. See the run.")
+      expect(event.tags["grants.outcome"]).toBe("wrong")
+    } finally {
+      await server.close()
+    }
+  })
+
+  it("warns and exits 0, sending nothing, when the results cannot be turned into events", async () => {
+    const server = await stubSentry(200)
+    try {
+      for (const broken of [{ outcome: "wrong", results: "oops" }, { outcome: "wrong", results: [{ name: "peopl.paseo", outcome: "wrong", detail: "x", found: {}, products: [{ label: "dim2" }] }] }]) {
+        const { stdout } = await runScript({ SENTRY_DSN: server.dsn }, results(broken))
+        expect(stdout).toMatch(/^::warning title=Sentry events not sent::humanity-grants sent no detail of the grants: .+\n$/)
+        expect(stdout).not.toContain("pubkey")
+      }
+      expect(server.seen).toHaveLength(0)
     } finally {
       await server.close()
     }
