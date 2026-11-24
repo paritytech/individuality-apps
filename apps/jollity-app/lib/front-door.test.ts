@@ -1,11 +1,13 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
   arrivalStep,
   behindHome,
   dropArrival,
+  dropStrayHome,
   frontDoorHolds,
   frontDoorOpen,
   heldArrival,
@@ -98,6 +100,27 @@ describe("the front door", () => {
     stop()
     holdArrival("/chest")
     expect(listener).toHaveBeenCalledTimes(3)
+  })
+
+  it("takes out home's markup that a held load arrived with, and nothing else", () => {
+    // Given a /chest load the host answered with the root page: home's prerender, which React did not claim
+    document.body.innerHTML =
+      '<div id="next-root"></div>' +
+      '<div data-testid="home" data-state="loading"><main><h1>Jollity</h1></main></div>' +
+      '<div class="pocket-claim"></div>'
+    // When the door holds it
+    const dropped = dropStrayHome(document)
+    // Then home's leftover is gone and the page's own layers stay
+    expect(dropped).toBe(1)
+    expect(document.querySelector('[data-testid="home"]')).toBeNull()
+    expect(document.getElementById("next-root")).not.toBeNull()
+    expect(document.querySelector(".pocket-claim")).not.toBeNull()
+  })
+
+  it("leaves a load that arrived with its own page alone", () => {
+    document.body.innerHTML = '<div id="next-root"></div>'
+    expect(dropStrayHome(document)).toBe(0)
+    expect(document.body.innerHTML).toBe('<div id="next-root"></div>')
   })
 })
 

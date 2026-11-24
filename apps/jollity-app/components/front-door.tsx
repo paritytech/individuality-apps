@@ -10,12 +10,14 @@
  *
  * The prerender and the hydration render of a game page draw nothing either,
  * so none of its effects (the game session, the chest's reads, the draw's
- * claim) start for a load that is sent away.
+ * claim) start for a load that is sent away. A load that arrived with home's
+ * markup instead of its own (a host serving the root page for a game URL) has
+ * that leftover taken out at the door (lib/front-door.ts dropStrayHome).
  */
 import { useEffect, useSyncExternalStore, type ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { devLog } from "@/lib/debug/log-store"
-import { behindHome, dropArrival, frontDoorHolds, frontDoorOpen, holdArrival, watchFrontDoor } from "@/lib/front-door"
+import { behindHome, dropArrival, dropStrayHome, frontDoorHolds, frontDoorOpen, holdArrival, watchFrontDoor } from "@/lib/front-door"
 import { recordCount } from "@/lib/telemetry/metrics"
 
 const openNow = frontDoorOpen
@@ -31,7 +33,8 @@ export function FrontDoor({ children }: { children: ReactNode }) {
     // either way. Open, the load has arrived where it was going.
     if (openNow()) return dropArrival()
     const href = `${pathname}${window.location.search}`
-    devLog("front-door", "a page load came in past home — home first", { href })
+    const strayHome = dropStrayHome(document)
+    devLog("front-door", "a page load came in past home — home first", { href, ...(strayHome ? { strayHome } : {}) })
     recordCount("app.front_door_held", 1, { "app.route": pathname })
     holdArrival(href)
     router.replace("/")

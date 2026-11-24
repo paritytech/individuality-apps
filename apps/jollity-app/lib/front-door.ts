@@ -70,6 +70,27 @@ export function frontDoorHolds(pathname: string, isOpen: boolean): boolean {
   return behindHome(pathname) && !isOpen
 }
 
+/** home's root (app/page.tsx): its test hooks, a stable contract */
+const HOME_ROOT = '[data-testid="home"]'
+
+/**
+ * A held load can arrive carrying HOME's markup. A host that finds no file of
+ * its own for a game URL answers with the root index.html: the Android host's
+ * archive resolver tries `chest` and `chest/index.html`, never the export's
+ * `chest.html`, then falls back to the root page. That document is home's
+ * prerender, and the hydration render of a held game page draws nothing, so
+ * React claims none of it and leaves it where it is, directly under <body>.
+ * Home's loading screen (its bare "Jollity" title) would stay above the page
+ * for the whole load, and the page itself below the screen, under its own
+ * fixed layers. At the door nothing of home's is React's yet, so any home
+ * root in the document is that leftover. Returns how many were taken out.
+ */
+export function dropStrayHome(root: ParentNode): number {
+  const stray = root.querySelectorAll(HOME_ROOT)
+  for (const node of stray) node.remove()
+  return stray.length
+}
+
 /** <FrontDoor> holds the URL a page load was going to (path and query, no
  *  base path) and sends it home. */
 export function holdArrival(href: string): void {
