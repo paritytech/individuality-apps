@@ -141,6 +141,14 @@ describe("humanity-grants.yml", () => {
     expect(text).not.toMatch(/MNEMONIC/)
   })
 
+  it("reads previewnet on the stack it publishes, with a CLI that has --stack", () => {
+    expect(job.env?.DOTNS_CLI_VERSION).toBe("2.0.0")
+    const stack = new URL(job.env!.PREVIEWNET_STACK!)
+    expect(stack.protocol).toBe("polkadotapp:")
+    expect(stack.searchParams.get("url")).toBe("https://previewnet.substrate.dev/.well-known/trinity-stack.json")
+    expect(stack.searchParams.get("key")).toMatch(/^0x[0-9a-f]{64}$/)
+  })
+
   it("tells Sentry the same schedule it runs on", () => {
     expect(monitorConfig.schedule).toEqual({ type: "crontab", value: "23 * * * *" })
     expect(monitorConfig.timezone).toBe("UTC")
@@ -148,9 +156,11 @@ describe("humanity-grants.yml", () => {
     expect(job.env?.MONITOR_SLUG).toBe("humanity-grants")
   })
 
-  it("checks both paseo names, and uses Jollity's SENTRY_DSN for both check-ins", () => {
+  it("checks both paseo names and the previewnet name, and uses Jollity's SENTRY_DSN for both check-ins", () => {
     expect(stepNamed(job, "Read the live grants").run).toBe(
-      'node scripts/ci/check-grants.mjs --env paseo-v2 --results "$RUNNER_TEMP/grants-results.json" "${LABEL}.paseo" "${LABEL}next.paseo"',
+      'node scripts/ci/check-grants.mjs --results "$RUNNER_TEMP/grants-results.json" ' +
+        '--env paseo-v2 "${LABEL}.paseo" "${LABEL}next.paseo" ' +
+        '--stack "$PREVIEWNET_STACK" "${LABEL}.testnet"',
     )
     expect(stepNamed(job, "Tell Sentry the check started").env).toEqual({ SENTRY_DSN: "${{ secrets.SENTRY_DSN }}" })
     expect(stepNamed(job, "Tell Sentry how the check ended").env?.SENTRY_DSN).toBe("${{ secrets.SENTRY_DSN }}")

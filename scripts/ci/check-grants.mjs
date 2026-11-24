@@ -23,7 +23,11 @@
 // The read is `dotns text view <name> manifest --json` with no key: the CLI's
 // key variables are removed from its environment, so it can only read.
 //
-// Usage: node scripts/ci/check-grants.mjs --env paseo-v2 [--unchecked-warns] [--confirm-wrong] [--results <file>] <name>...
+// Usage: node scripts/ci/check-grants.mjs [--unchecked-warns] [--confirm-wrong] [--results <file>] --env paseo-v2 <name>... [--stack <stack> <name>...]
+//   --env <dotns env> or --stack <stack descriptor> says where the names
+//   after it are read: --stack (dotns-cli 2.0.0 and later) reads on a network
+//   from its published descriptor instead of the CLI's bundled copy, which
+//   goes stale when a network such as previewnet restarts.
 //   reads HUMANITY_TRUSTED_PRODUCTS and JOLLITY_DOTNS_DOMAIN from the
 //   environment, prints one ::error or ::notice line per name, writes
 //   outcome=ok|wrong|unchecked to $GITHUB_OUTPUT, and exits 0 (ok),
@@ -158,14 +162,14 @@ export function judgeGrants({ manifest, want, floorLabel }) {
 /** What is wrong with the grants a name publishes, or [] when nothing is. */
 export const grantProblems = (args) => judgeGrants(args).problems
 
-/** Reads a name's manifest with the dotns CLI, with no key, and kills it after timeoutMs. */
-export function readManifest(name, env, { bin = "dotns", timeoutMs = 90_000 } = {}) {
+/** Reads a name's manifest with the dotns CLI, with no key, on `where` (["--env", env] or ["--stack", stack]), and kills it after timeoutMs. */
+export function readManifest(name, where, { bin = "dotns", timeoutMs = 90_000 } = {}) {
   const childEnv = { ...process.env }
   for (const key of ["DOTNS_MNEMONIC", "DOTNS_KEY_URI", "DOTNS_KEYSTORE_PASSWORD", "DOTNS_KEYSTORE_PATH", "DOTNS_SIGNER"]) {
     delete childEnv[key]
   }
   return new Promise((resolve, reject) => {
-    const child = spawn(bin, ["text", "view", name, "manifest", "--env", env, "--json"], {
+    const child = spawn(bin, ["text", "view", name, "manifest", ...where, "--json"], {
       env: childEnv,
       stdio: ["ignore", "pipe", "pipe"],
     })
@@ -248,23 +252,30 @@ export function annotation({ name, outcome, detail }, { uncheckedWarns = false }
   return line(
     uncheckedWarns ? "warning" : "error",
     `Could not check the grants of ${name}`,
-    `The manifest could not be read, so the grants are unknown, not missing (${detail}). Usually the Paseo RPC is slow or down. Run the check again.`,
+    `The manifest could not be read, so the grants are unknown, not missing (${detail}). Usually the network's RPC is slow or down. Run the check again.`,
   )
 }
 
-function parseArgs(argv) {
+const USAGE = "usage: check-grants.mjs [--unchecked-warns] [--confirm-wrong] [--results <file>] --env <dotns env> <name>... [--stack <stack> <name>...]"
+
+/** The flags, and each name with where it is read: the --env or --stack before it. */
+export function parseArgs(argv) {
   const names = []
-  let env = ""
+  let where = null
   let confirmWrong = false
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--env") env = argv[++i] ?? ""
-    else if (argv[i] === "--unchecked-warns") continue
+    if (argv[i] === "--env" || argv[i] === "--stack") {
+      const value = argv[++i]
+      if (!value) throw new Error(USAGE)
+      where = [argv[i - 1], value]
+    } else if (argv[i] === "--unchecked-warns") continue
     else if (argv[i] === "--results") i++
     else if (argv[i] === "--confirm-wrong") confirmWrong = true
-    else names.push(argv[i])
+    else if (where === null) throw new Error(USAGE)
+    else names.push({ name: argv[i], where })
   }
-  if (!env || names.length === 0) throw new Error("usage: check-grants.mjs --env <dotns env> [--unchecked-warns] [--confirm-wrong] [--results <file>] <name>...")
-  return { env, names, confirmWrong }
+  if (names.length === 0) throw new Error(USAGE)
+  return { names, confirmWrong }
 }
 
 /** Read apart from the other flags, so a crash in parsing them still honours them. */
@@ -291,7 +302,7 @@ function output(line) {
 }
 
 async function main() {
-  const { env, names, confirmWrong } = parseArgs(process.argv.slice(2))
+  const { names, confirmWrong } = parseArgs(process.argv.slice(2))
   const floorLabel = process.env.JOLLITY_DOTNS_DOMAIN ?? ""
   let want
   try {
@@ -310,8 +321,8 @@ async function main() {
   const confirmWrongMs = confirmWrong ? Number(process.env.GRANTS_CONFIRM_DELAY_SECONDS ?? 45) * 1000 : undefined
   const bin = process.env.DOTNS_BIN || "dotns"
   const results = []
-  for (const name of names) {
-    const read = (n) => readManifest(n, env, { bin, timeoutMs })
+  for (const { name, where } of names) {
+    const read = (n) => readManifest(n, where, { bin, timeoutMs })
     const result = await checkName({ name, want, floorLabel, attempts, delayMs, confirmWrongMs, read })
     console.log(annotation(result, { uncheckedWarns }))
     results.push(result)

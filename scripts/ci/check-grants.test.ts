@@ -6,7 +6,7 @@ import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { annotation, checkName, expectedGrants, grantDiff, grantProblems, grantsFromRead, judgeGrants, normalize, overall } from "./check-grants.mjs"
+import { annotation, checkName, expectedGrants, grantDiff, grantProblems, grantsFromRead, judgeGrants, normalize, overall, parseArgs } from "./check-grants.mjs"
 
 const VARIABLE = '{"back-me-up":["context"],"dim2":["context","storage"],"dim2next":["context","storage"]}'
 const want = expectedGrants(VARIABLE)
@@ -74,6 +74,23 @@ describe("grantProblems", () => {
       "its manifest is not JSON, so a host reads no grants from it",
     ])
     expect(problems(["dim2"])[0]).toMatch(/not an object of label to grant list/)
+  })
+})
+
+describe("parseArgs", () => {
+  it("reads each name where the --env or --stack before it says", () => {
+    const { names } = parseArgs(["--results", "r.json", "--env", "paseo-v2", "a.paseo", "b.paseo", "--stack", "polkadotapp://stack?x", "c.testnet"])
+    expect(names).toEqual([
+      { name: "a.paseo", where: ["--env", "paseo-v2"] },
+      { name: "b.paseo", where: ["--env", "paseo-v2"] },
+      { name: "c.testnet", where: ["--stack", "polkadotapp://stack?x"] },
+    ])
+  })
+
+  it("refuses a name with no --env or --stack before it, or none at all", () => {
+    expect(() => parseArgs(["a.paseo", "--env", "paseo-v2"])).toThrow(/^usage:/)
+    expect(() => parseArgs(["--env", "paseo-v2"])).toThrow(/^usage:/)
+    expect(() => parseArgs(["--stack"])).toThrow(/^usage:/)
   })
 })
 
@@ -234,6 +251,7 @@ describe("check-grants.mjs, run with a stand-in dotns CLI", { timeout: 30_000 },
     `#!/usr/bin/env node
 const fs = require("node:fs")
 const name = process.argv[4]
+fs.appendFileSync(${JSON.stringify(join(dir, "argv.log"))}, JSON.stringify(process.argv.slice(2)) + "\\n")
 if (process.env.DOTNS_MNEMONIC) { console.log("a key reached the CLI"); process.exit(3) }
 const count = fs.existsSync(${JSON.stringify(reads)}) ? JSON.parse(fs.readFileSync(${JSON.stringify(reads)}, "utf8")) : {}
 count[name] = (count[name] ?? 0) + 1
@@ -342,6 +360,24 @@ else console.log(answer)
     expect(lost.output).toBe("outcome=unchecked\n")
     expect(lost.stdout).toContain("::warning title=Could not check the grants of peoplnext.paseo::")
     expect(lost.stdout).toContain("a first read found wrong grants")
+  })
+
+  it("passes each name's --env or --stack to the CLI", () => {
+    const log = join(dir, "argv.log")
+    writeFileSync(log, "")
+    const r = run({ "peopl.paseo": cliAnswer(want), "peopl.testnet": cliAnswer(want) }, [], "15", [
+      "--env",
+      "paseo-v2",
+      "peopl.paseo",
+      "--stack",
+      "polkadotapp://stack?key=0x1",
+      "peopl.testnet",
+    ])
+    expect(r.status).toBe(0)
+    expect(readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line))).toEqual([
+      ["text", "view", "peopl.paseo", "manifest", "--env", "paseo-v2", "--json"],
+      ["text", "view", "peopl.testnet", "manifest", "--stack", "polkadotapp://stack?key=0x1", "--json"],
+    ])
   })
 
   it("reads once without --confirm-wrong, and once when the grants are right", () => {

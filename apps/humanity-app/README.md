@@ -345,12 +345,15 @@ for Jollity's label (`JOLLITY_DOTNS_DOMAIN`) even if the variable drops them:
   since the RPC node may not have the publish yet, and if they are still wrong the leg fails; a
   release only takes a commit whose "Humanity paseo staging" leg passed. A CLI that will not install
   or a read that fails only warns there, since the release checks again.
-- **Every hour** (`humanity-grants.yml`) reads `<label>.paseo` and `<label>next.paseo`. Run it by
-  hand from the Actions tab after changing the variable or a grant.
+- **Every hour** (`humanity-grants.yml`) reads `<label>.paseo`, `<label>next.paseo` and the
+  previewnet name `<label>.testnet`. Run it by hand from the Actions tab after changing the
+  variable or a grant.
 
 The last two share [`scripts/ci/check-grants.mjs`](../../scripts/ci/check-grants.mjs), which reads
-the manifest with `dotns text view <name> manifest --json` (dotns-cli 1.1.0, no key) and ends in one
-of three outcomes:
+the manifest with `dotns text view <name> manifest --json` (no key; dotns-cli 1.1.0 at deploy, 2.0.0
+every hour) and ends in one of three outcomes. The hourly run reads the previewnet name with
+`--stack` and the stack previewnet publishes, not `--env previewnet`: previewnet restarts, and the
+copy bundled in a CLI release then refuses the new chain ("WRONG CHAIN").
 
 | Outcome | Annotation | Exit |
 | :-- | :-- | :-- |
@@ -362,10 +365,13 @@ A failed read never counts as missing grants. Each read is tried 3 times, 90 s e
 because a Paseo RPC can take about 20 s to open. To run it yourself:
 
 ```sh
-npm install -g @parity/dotns-cli@1.1.0
+npm install -g @parity/dotns-cli@2.0.0
 HUMANITY_TRUSTED_PRODUCTS="$(gh variable get HUMANITY_TRUSTED_PRODUCTS)" JOLLITY_DOTNS_DOMAIN=dim2 \
-  node scripts/ci/check-grants.mjs --env paseo-v2 peopl.paseo peoplnext.paseo
+  node scripts/ci/check-grants.mjs --env paseo-v2 peopl.paseo peoplnext.paseo \
+  --stack "$PREVIEWNET_STACK" peopl.testnet
 ```
+
+with `PREVIEWNET_STACK` set to the value of the same name in `humanity-grants.yml`.
 
 The hourly run goes red on both failures and tells the Sentry cron monitor `humanity-grants`
 (environment `paseo`) through the repo's `SENTRY_DSN` secret: `in_progress` when it starts, then

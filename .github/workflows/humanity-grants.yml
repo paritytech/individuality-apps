@@ -3,8 +3,9 @@
 
 name: Humanity grants
 
-# Every hour, reads the grants <HUMANITY_DOTNS_DOMAIN>.paseo and its staging
-# name <HUMANITY_DOTNS_DOMAIN>next.paseo publish, and checks them with
+# Every hour, reads the grants <HUMANITY_DOTNS_DOMAIN>.paseo, its staging
+# name <HUMANITY_DOTNS_DOMAIN>next.paseo and its previewnet name
+# <HUMANITY_DOTNS_DOMAIN>.testnet publish, and checks them with
 # scripts/ci/check-grants.mjs: equal to HUMANITY_TRUSTED_PRODUCTS, and
 # context and storage for Jollity's label (JOLLITY_DOTNS_DOMAIN). A name's
 # grants can change with no Humanity release (#40), and Jollity's sign-up and
@@ -46,7 +47,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      DOTNS_CLI_VERSION: 1.1.0
+      # 2.0.0 for --stack: previewnet restarts, and the copy of it bundled in
+      # a CLI release then points at the old chain ("WRONG CHAIN"). Read on
+      # the stack previewnet publishes, it follows the restart.
+      DOTNS_CLI_VERSION: 2.0.0
+      PREVIEWNET_STACK: polkadotapp://stack?key=0x4d43362f03d5511632a210632d1fb7760b5a663580f12ffca34619f79357e239&url=https%3A%2F%2Fpreviewnet.substrate.dev%2F.well-known%2Ftrinity-stack.json
       LABEL: ${{ vars.HUMANITY_DOTNS_DOMAIN }}
       MONITOR_SLUG: humanity-grants
       SENTRY_ENVIRONMENT: paseo
@@ -101,7 +106,10 @@ jobs:
         env:
           HUMANITY_TRUSTED_PRODUCTS: ${{ vars.HUMANITY_TRUSTED_PRODUCTS }}
           JOLLITY_DOTNS_DOMAIN: ${{ vars.JOLLITY_DOTNS_DOMAIN }}
-        run: node scripts/ci/check-grants.mjs --env paseo-v2 --results "$RUNNER_TEMP/grants-results.json" "${LABEL}.paseo" "${LABEL}next.paseo"
+        run: >-
+          node scripts/ci/check-grants.mjs --results "$RUNNER_TEMP/grants-results.json"
+          --env paseo-v2 "${LABEL}.paseo" "${LABEL}next.paseo"
+          --stack "$PREVIEWNET_STACK" "${LABEL}.testnet"
 
       # Any step that failed before the read leaves no outcome, and that is a
       # check that did not happen. The detail goes first, so the issues it
