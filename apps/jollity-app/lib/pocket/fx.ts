@@ -4,8 +4,8 @@
 /**
  * THE POCKET'S EFFECTS LAYER: the puff of film as the cover lands, the ghost
  * finger that shows where to take the cover, and the confetti once the book is
- * shut, drawn on one canvas over the book (components/pocket/pocket-claim.tsx
- * hosts it) and only while there is something to draw. Framework-free
+ * shut, drawn on one canvas over the book (./scene runs it each frame) and
+ * only while there is something to draw. Framework-free
  * (architecture rule 6): where each speck is comes from ./motion, what the
  * book is from ./book; this paints them.
  */

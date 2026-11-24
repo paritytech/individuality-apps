@@ -773,7 +773,7 @@
   background: #080808;
 }
 
-/* The chest's collectables put away in the Pocket (components/pocket/pocket-claim.tsx): drag the open book's cover across to close it. The script places the book, turns its cover and lights its cells every frame; these are the parts it moves. */
+/* The chest's collectables put away in the Pocket (components/pocket/pocket-claim.tsx): drag the open book's cover across to close it. Its scene (lib/pocket/scene.ts) places the book, turns its cover and lights its cells every frame; these are the parts it moves. */
 .pocket-claim {
   position: fixed;
   inset: 0;
