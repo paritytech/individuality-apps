@@ -6,7 +6,7 @@
 /**
  * The prize draw as the WHEEL — what is drawn over the stage (architecture
  * rule 6). Everything the draw does — the coin into the slit, the spin, who's
- * playing, the prize or the fall, and its own Continue — is the stage's, which
+ * playing, the prize or the fall — is the stage's, which
  * lib/draw/wheel/stage-runner mounts in the element handed to `stageRef`.
  * Over it: a SPECTATOR's intro (words fading in a line at a time over the draw
  * itself, held on the frame it opens on), and for a stage that failed, the
@@ -40,9 +40,16 @@ export function WheelStage({
   intro,
   fallback,
   onContinue,
+  hold = false,
+  hostRef,
 }: {
   /** the element the stage mounts in */
   stageRef: (element: HTMLDivElement | null) => void
+  /** the way on is the hold (components/draw/hold-to-chest): the stage's own
+   *  Continue is never shown (stage.css [data-hold]) */
+  hold?: boolean
+  /** the stage's own element, for the hold to read and move */
+  hostRef?: (element: HTMLDivElement | null) => void
   /** a player not in the draw: the draw explained over it (lib/draw/draw-miss
    *  drawIntro), fading out as the stage is let go */
   intro: { heading: string; prize: string; paragraphs: string[]; leaving: boolean } | null
@@ -52,7 +59,12 @@ export function WheelStage({
 }) {
   return (
     // the chip draws the CASH wordmark in place of the word (stage.css)
-    <div className="wheel-host" data-cash-wordmark={PRIZE_UNIT === "CASH" ? "" : undefined}>
+    <div
+      ref={hostRef}
+      className="wheel-host"
+      data-cash-wordmark={PRIZE_UNIT === "CASH" ? "" : undefined}
+      data-hold={hold ? "" : undefined}
+    >
       <div ref={stageRef} className="contents" />
       {fallback ? (
         <div className="wheel-note wheel-fallback" role="status">

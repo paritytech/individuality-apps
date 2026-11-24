@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest"
 import { drawScreenDraw, type DrawCase } from "../state-machines/draw-screen.definition"
 import {
+  COIN_WAIT_MS,
   drawScreenStep,
   drawScreenView,
   startDrawScreen,
@@ -152,6 +153,31 @@ describe("draw-screen mutation guards", () => {
     expect(drawScreenStep(mounted.state, { type: "stage-done" }).commands).toEqual([])
   })
 
+  it("pins the bound: the coin's own while the stage waits for it, the animation's again from when it goes in, and only while the stage is up", () => {
+    const mounted = walk([answer("won"), { type: "stage-mounted", held: false, progressMs: 40_000 }])
+    expect(drawScreenStep(mounted.state, { type: "stage-started", progressMs: 40_000 })).toEqual({
+      state: mounted.state,
+      commands: [
+        { kind: "clear-timer", timer: "progress" },
+        { kind: "arm-timer", timer: "progress", ms: 40_000 },
+      ],
+    })
+    expect(walk([answer("won"), { type: "stage-started", progressMs: 40_000 }]).commands).toEqual([])
+    const offered = drawScreenStep(mounted.state, { type: "stage-ended" }).state
+    expect(drawScreenStep(offered, { type: "stage-started", progressMs: 40_000 }).commands).toEqual([])
+    // waiting at the coin: the wait's own, longer bound, so a coin that can never go in still reaches the fallback
+    expect(drawScreenStep(mounted.state, { type: "stage-waiting" })).toEqual({
+      state: mounted.state,
+      commands: [
+        { kind: "clear-timer", timer: "progress" },
+        { kind: "arm-timer", timer: "progress", ms: COIN_WAIT_MS },
+      ],
+    })
+    const stalled = drawScreenStep(drawScreenStep(mounted.state, { type: "stage-waiting" }).state, { type: "timer", timer: "progress" })
+    expect(stalled.state).toEqual(expect.objectContaining({ stage: "fallback" }))
+    expect(drawScreenStep(offered, { type: "stage-waiting" }).commands).toEqual([])
+  })
+
   it("pins the intro: released at 8 s, faded over 0.5 s, and gone", () => {
     const intro = walk([answer("spectator"), { type: "timer", timer: "intro-auto" }])
     expect(intro).toEqual({
@@ -291,7 +317,7 @@ describe("draw-screen mutation guards", () => {
     expect(drawScreenView(walk([answer("none")]).state)).toEqual({ kind: "blank", label: "Opening the chest" })
     expect(drawScreenView(walk([answer("words-out")]).state)).toEqual({ kind: "words", draw: drawScreenDraw("words-out"), miss: null })
     const spectator = walk([answer("spectator")]).state
-    expect(drawScreenView(spectator)).toEqual({ kind: "wheel", draw: drawScreenDraw("spectator"), miss: null, intro: "up", fallback: false })
+    expect(drawScreenView(spectator)).toEqual({ kind: "wheel", draw: drawScreenDraw("spectator"), miss: null, intro: "up", fallback: false, offered: false })
     expect(drawScreenView(drawScreenStep(spectator, { type: "timer", timer: "intro-auto" }).state)).toMatchObject({ intro: "leaving", fallback: false })
     expect(drawScreenView(drawScreenStep(spectator, { type: "stage-failed", reason: "load" }).state)).toMatchObject({ intro: null, fallback: true })
     expect(drawScreenView(walk([{ type: "unmounted" }]).state)).toEqual({ kind: "blank" })

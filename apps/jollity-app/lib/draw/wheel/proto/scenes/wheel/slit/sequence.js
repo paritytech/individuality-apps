@@ -47,7 +47,7 @@ export function cuesFor(S) {
   const circle = Math.max(0.3, ms(S.circleMs))
   const spiral = Math.max(0.3, ms(S.spiralMs))
   const seat = circle + spiral
-  const spin = Math.max(0.2, seat + Math.max(-2000, Math.min(2000, S.spinStartMs)) / 1000)
+  const spin = Math.max(0.2, seat + Math.max(-2000, Math.min(S.spinStartMaxMs ?? 2000, S.spinStartMs)) / 1000) // JOLLITY: a longer stand, for the friends' row
   const wedge = Math.max(0.05, ms(S.wedgeMs))
   const winner = Math.max(0.05, ms(S.winnerMs))
   const off = (v) => Math.max(-3000, Math.min(3000, v ?? 0)) / 1000
@@ -68,7 +68,7 @@ export function cuesFor(S) {
     spiral,
     seat,
     spin,
-    ticketsAt: spin, //  the tickets come on with the spin (the flip's come on with the wheel, before it)
+    ticketsAt: S.ticketsBeforeSeatMs != null ? Math.min(spin, Math.max(0, seat - ms(S.ticketsBeforeSeatMs))) : spin, // JOLLITY: or ticketsBeforeSeatMs before the coin lands, the wheel standing until it turns (the flip's come on with the wheel, before it)
     wedge: { at: wedgeAt, dur: wedge },
     winner: { at: wedgeAt + wedge, dur: winner }, // the moment the wedge's edge is fully lit
     bar: { at: spin, dur: 0.3 },

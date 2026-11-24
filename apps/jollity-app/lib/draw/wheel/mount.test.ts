@@ -16,7 +16,7 @@ vi.mock("./proto/scenes/wheel/slit/scene.js", () => ({
   slitParams: () => {},
 }))
 vi.mock("./baked-coin", () => ({ keepBakes: () => {}, releaseBakes: () => {} }))
-vi.mock("./names", () => ({ nameCache: () => new Map(), rowLabels: () => ({ labelOf: () => "", stop: () => {} }) }))
+vi.mock("./names", () => ({ nameCache: () => new Map(), rowLabels: () => ({ labelOf: () => "", stop: () => {} }), rowName: (name: string) => name.trim().toUpperCase() }))
 
 const { mountWheel } = await import("./mount")
 
@@ -25,7 +25,7 @@ describe("mountWheel", () => {
     const host = document.createElement("div")
     const kept = host.appendChild(document.createElement("span"))
     const slot = (n: number) => n.toString(16).padStart(64, "0")
-    const draw = { tickets: [slot(1), slot(2)], mine: slot(1), target: slot(2), won: false, winners: 1, prize: { amount: "200", unit: "CASH", prefix: "$" } }
+    const draw = { tickets: [slot(1), slot(2)], mine: slot(1), target: slot(2), won: false, winners: 1, prize: { amount: "200", unit: "CASH", prefix: "$" }, friends: [] }
     expect(() => mountWheel(host, draw)).toThrow("no WebGL")
     expect([...host.children]).toEqual([kept])
   })

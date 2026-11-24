@@ -22,8 +22,9 @@ import { drawShown } from "@/lib/journeys/game-trace"
 import { reportDrawCeremony } from "@/lib/telemetry"
 import { devLog } from "@/lib/debug/log-store"
 import { describeError } from "@/lib/host/error-detail"
-import { postGameHref, postGameIndex } from "@/lib/post-game"
+import { postGameIndex } from "@/lib/post-game"
 import { devUrlParam } from "@/lib/debug/dev-url"
+import { chestHref } from "@/lib/draw/chest-href"
 import type { DrawScreenDeps } from "@/lib/draw/draw-screen-host"
 
 export function browserDrawScreenDeps(router: { replace(href: string): void }): DrawScreenDeps {
@@ -47,7 +48,7 @@ export function browserDrawScreenDeps(router: { replace(href: string): void }): 
     drawShown,
     markSeen: (index) => void markSeen(index, "draw"),
     // the draw plays FIRST, while the chain is still tallying what the chest will hold
-    toChest: () => router.replace(postGameHref("/chest")),
+    toChest: () => router.replace(chestHref()),
     // the chest comes next: its claims are read while the wheel plays
     preloadChest: () => {
       void import("@/lib/chest/chest-screen-deps").then(({ preloadChestFeed }) => preloadChestFeed()).catch(() => {})

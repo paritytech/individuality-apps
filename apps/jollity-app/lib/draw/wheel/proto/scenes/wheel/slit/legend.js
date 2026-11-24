@@ -19,9 +19,9 @@
 
 const GAP = 24 // between two names, nominal px
 
-export function createLegend(app) {
+export function createLegend(app, id = 'slit-legend', { wrap = true } = {}) {
   const root = document.createElement('div')
-  root.id = 'slit-legend'
+  root.id = id // JOLLITY: a second row (your friends', scene.js) has its own, and does not wrap
   const row = document.createElement('div')
   row.className = 'slit-legend-row'
   root.appendChild(row)
@@ -53,7 +53,7 @@ export function createLegend(app) {
       x += w + GAP
       return b
     })
-    span = x > W + GAP ? x : 0
+    span = wrap && x > W + GAP ? x : 0 // JOLLITY: a row that does not wrap is a plain row, however long
     measuredAt = scale
     placed.length = 0
   }
@@ -75,17 +75,22 @@ export function createLegend(app) {
       const id = who.map((w) => `${w.k}:${w.name}`).join(',')
       if (id === key) return
       key = id
+      const was = new Map(items.map((el) => [el.dataset.k, el.style.cssText])) // JOLLITY: how each showed
       row.textContent = ''
       items = who.map((w) => {
         const el = document.createElement('span')
         el.className = w.you ? 'slit-legend-item is-you' : 'slit-legend-item'
         el.textContent = w.name
+        if (w.colour) el.style.color = w.colour // JOLLITY: a friend, in their colour
         el.style.setProperty('--in', '0')
         el.style.opacity = '0'
+        el.dataset.k = String(w.k) // JOLLITY: a name set again shows as it did
+        if (was.has(el.dataset.k)) el.style.cssText = was.get(el.dataset.k)
         row.appendChild(el)
         return el
       })
       shown.length = 0
+      placed.length = 0 // JOLLITY: new names, not yet put anywhere
       measuredAt = 0
       litI = -1
     },

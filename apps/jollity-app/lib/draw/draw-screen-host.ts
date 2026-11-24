@@ -221,10 +221,15 @@ export function createDrawScreenHost(deps: DrawScreenDeps): DrawScreenHost {
         won: draw.won,
         prize: { amount: coinAmount(draw.prizeUsd), unit: PRIZE_UNIT, prefix: "$" },
         names: (ticket) => deps.names(wheel, ticket),
+        // the player's friends, by name: the app has no list of friends, so
+        // none are marked and the wheel stands its usual time
+        friends: [],
       },
       stageWanted,
       {
         mounted: ({ held, progressMs }) => dispatch({ type: "stage-mounted", held, progressMs }),
+        waiting: () => dispatch({ type: "stage-waiting" }),
+        started: ({ progressMs }) => dispatch({ type: "stage-started", progressMs }),
         failed: (reason, error) => {
           stageError = error
           dispatch({ type: "stage-failed", reason })

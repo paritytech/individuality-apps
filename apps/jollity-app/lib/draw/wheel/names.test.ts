@@ -87,6 +87,28 @@ describe("who's playing: the row's labels", () => {
     expect(most).toBe(NAME_READS_AT_ONCE)
   })
 
+  it("reads the row's names next once it says which, and says whose name landed", async () => {
+    const slots = Array.from({ length: NAME_READS_AT_ONCE + 6 }, (_, i) => `${i}`.padStart(4, "0"))
+    const asked: string[] = []
+    const pending: Array<() => void> = []
+    const lookup = (slot: string) =>
+      new Promise<string | null>((resolve) => {
+        asked.push(slot)
+        pending.push(() => resolve(`n${slot}`))
+      })
+    const landed: number[] = []
+    const labels = rowLabels(slots, lookup, (index) => landed.push(index))
+    // the first few are in flight already; the row is the last two
+    labels.prefer([slots.length - 1, slots.length - 2, 0])
+    pending.shift()!()
+    await flush()
+    expect(asked[NAME_READS_AT_ONCE]).toBe(slots[slots.length - 1])
+    expect(landed).toEqual([0])
+    pending.shift()!()
+    await flush()
+    expect(asked[NAME_READS_AT_ONCE + 1]).toBe(slots[slots.length - 2])
+  })
+
   it("drops names that land after the page has gone", async () => {
     const onName = vi.fn()
     const labels = rowLabels(["aaaa"], async () => "ana", onName)
