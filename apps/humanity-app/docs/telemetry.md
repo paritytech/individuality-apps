@@ -131,9 +131,9 @@ the id in Sentry to see the event with its contexts.
 - Transaction hashes, as span attributes (`tx.hash`) and log tags
   (`log.txHash`): they are what finds a failed submission on chain, and a
   hash leads to the account that signed it.
-- Sampling: every error. `card.load` and `pocket.open` are always sent:
-  one per launch, and they are the durations we need every sample of. Every
-  other flow at
+- Sampling: every error. Every completed `card.load` and `pocket.open` is sampled.
+  A page that leaves before it was ever visible drops the tap, even if the browser
+  later restores that document from its back/forward cache. Every other flow at
   `VITE_SENTRY_TRACES_SAMPLE_RATE` (default 0.1, one flow in ten); the
   Sentry quota is per event, and flows far outnumber errors.
 - Never: cookies, headers, query strings, request bodies, the SDK's user

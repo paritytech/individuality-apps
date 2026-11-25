@@ -160,13 +160,15 @@ describe("pocket.open", () => {
       },
     };
     vi.stubGlobal("document", doc);
+    const page = new EventTarget();
+    vi.stubGlobal("window", page);
     vi.spyOn(performance, "getEntriesByType").mockImplementation(((type: string) =>
       type === "navigation" ? [{ type: navigation }] : []) as unknown as typeof performance.getEntriesByType);
     const change = (state: string) => () => {
       doc.visibilityState = state;
       for (const listener of [...listeners]) listener();
     };
-    return { hide: change("hidden"), show: change("visible"), listeners };
+    return { hide: change("hidden"), show: change("visible"), leave: () => page.dispatchEvent(new Event("pagehide")), listeners };
   }
 
   const byName = (name: string) => transactions().find((tx) => tx.transaction === name);
@@ -249,6 +251,18 @@ describe("pocket.open", () => {
     cardLoad.fail(new TypeError("boom"));
     await flush();
     expect(transactions().map((tx) => tx.transaction)).toEqual(["card.load"]);
+  });
+
+  it("does not finish an earlier tap when a never-visible document returns from the back/forward cache", async () => {
+    const { leave, show, listeners } = hostPage(300, "navigate", "pocket_card", "hidden");
+    cardLoad.begin();
+    cardLoad.finish({ kind: "member", ok: true });
+    leave();
+    show();
+    await flush();
+
+    expect(transactions().map((tx) => tx.transaction)).toEqual(["card.load"]);
+    expect(listeners).toEqual([]);
   });
 
   it("fails with card.load, with the error's kind", async () => {

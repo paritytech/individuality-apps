@@ -71,10 +71,18 @@ function openFromTap(): TapEnd | null {
   let seenVisible = document.visibilityState === "visible";
   /** The card's end, held while the page has not been shown yet. */
   let held: ((flow: OpenFlow) => void) | null = null;
-  const end = (close: (flow: OpenFlow) => void): void => {
+  let ended = false;
+  const end = (close?: (flow: OpenFlow) => void): void => {
+    ended = true;
+    held = null;
     document.removeEventListener("visibilitychange", onVisibility);
-    close(tap);
+    window.removeEventListener("pagehide", onPageHide);
+    close?.(tap);
   };
+  // A document restored from the back/forward cache keeps its script state.
+  // Its return must never complete a tap from before it left.
+  const abandon = (flow: OpenFlow): void => flow.finish({ kind: "abandoned", ok: false });
+  const onPageHide = (): void => end(seenVisible ? abandon : undefined);
   const onVisibility = (): void => {
     if (document.visibilityState === "visible") {
       seenVisible = true;
@@ -82,11 +90,12 @@ function openFromTap(): TapEnd | null {
       if (held != null) end(held);
       return;
     }
-    if (seenVisible) end((flow) => flow.finish({ kind: "abandoned", ok: false }));
+    if (seenVisible) end(abandon);
   };
   document.addEventListener("visibilitychange", onVisibility);
+  window.addEventListener("pagehide", onPageHide);
   const settle = (close: (flow: OpenFlow) => void): void => {
-    if (tap.finished || held != null) return;
+    if (ended || held != null) return;
     if (seenVisible) end(close);
     else held = close;
   };
