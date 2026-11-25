@@ -83,7 +83,7 @@ describe("draw idle advance", () => {
     expect(w.advance).toHaveBeenCalledTimes(1)
   })
 
-  it("a reload past 60 s lands on the chest at once, from the stored start", () => {
+  it("a reload past 60 s lands on the collectables screen at once, from the stored start", () => {
     const store = new Map<string, string>()
     const first = world(store, true)
     first.idle.start()

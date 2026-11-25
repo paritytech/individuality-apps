@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * The Pocket book the chest's collectables are put away in.
+ * The Pocket book the collectables are put away in.
  *
  * It lies open at the foot of the screen: the cover is hinged at the spine and lies open to the left with the first
  * half of the cells on its inside, and the right page holds the rest. Closing it is a drag of the cover across the

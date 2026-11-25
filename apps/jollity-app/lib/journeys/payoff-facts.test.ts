@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest"
 import type { PrizeDrawView } from "../draw/prize-draw"
-import { chestFacts, drawFacts, drawUnplayable } from "./payoff-facts"
+import { collectablesFacts, drawFacts, drawUnplayable } from "./payoff-facts"
 
 const draw = (over: Partial<PrizeDrawView>): PrizeDrawView =>
   ({
@@ -59,9 +59,9 @@ describe("a draw the wheel cannot play", () => {
   })
 })
 
-describe("the chest's facts", () => {
+describe("the collectables screen's facts", () => {
   it("counts the collectables", () => {
-    expect(chestFacts({ kind: "ready", gameIndex: 5, seed: "s", items: [{}, {}, {}] as never })).toEqual({
+    expect(collectablesFacts({ kind: "ready", gameIndex: 5, seed: "s", items: [{}, {}, {}] as never })).toEqual({
       "chest.outcome": "collectables",
       "chest.count": "3",
     })
@@ -73,10 +73,10 @@ describe("the chest's facts", () => {
     [{ kind: "on-the-way", gameIndex: 5 }, "on-the-way"],
     [{ kind: "restart", gameIndex: 5 }, "failed"],
   ] as const)("%o → none, %s", (state, reason) => {
-    expect(chestFacts(state as never)).toEqual({ "chest.outcome": "none", "chest.reason": reason })
+    expect(collectablesFacts(state as never)).toEqual({ "chest.outcome": "none", "chest.reason": reason })
   })
   it("has nothing to say while loading or retrying", () => {
-    expect(chestFacts({ kind: "loading" })).toBeNull()
-    expect(chestFacts({ kind: "retrying", gameIndex: 5 })).toBeNull()
+    expect(collectablesFacts({ kind: "loading" })).toBeNull()
+    expect(collectablesFacts({ kind: "retrying", gameIndex: 5 })).toBeNull()
   })
 })

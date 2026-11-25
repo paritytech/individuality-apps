@@ -228,7 +228,7 @@ transport's submit hook, which carries no frame contents.
 | `clock.peer_window_ms` | distribution | millisecond | as `clock.peer_count` | From the window opening to its close. | `lib/game-source.ts` |
 | `clock.offset_ms` | distribution | millisecond | `clock.window`, `clock.method` none, peer | The game clock's offset when a window closed. | `lib/game-source.ts` |
 
-## Game, report, draw and chest
+## Game, report, draw and collectables screen
 
 | Name | Kind | Unit | Attributes | Meaning | Source |
 | :-- | :-- | :-- | :-- | :-- | :-- |
@@ -241,7 +241,7 @@ transport's submit hook, which carries no frame contents.
 | `report.no_video_choice` | counter | | `choice`, `ever_flipped` | The verdict filed for each co-player this device never saw on video. | `lib/journeys/game-trace.ts` |
 | `draw.name_lookup` | counter | | `name.outcome`, `name.ticket` winner, other, `name.error` | One chain read of a prize-draw ticket's name. | `lib/draw/draw-name-lookup.ts` |
 | `draw.name_lookup_ms` | distribution | millisecond | as `draw.name_lookup` | That read's duration. | `lib/draw/draw-name-lookup.ts` |
-| `chest.recovery_ms` | distribution | millisecond | | A chest read that failed and then opened on a later read: time to recovery. | `lib/journeys/game-trace.ts` |
+| `chest.recovery_ms` | distribution | millisecond | | A collectables read that failed and then opened on a later read: time to recovery. | `lib/journeys/game-trace.ts` |
 
 ## Telemetry health, storage and failures
 

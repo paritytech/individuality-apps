@@ -10,7 +10,7 @@ and prints its SVG.
 | `journey.py` | Fragments that nest inside each other, inset by depth, on top of `sequence.py`. |
 | `journey-register-chat.py` | Registering from the chat. |
 | `journey-notifications.py` | The game reminder and the notices the chat books. |
-| `journey-player-process.py` | The payoff: the prize draw, the chest and the hand-off. |
+| `journey-player-process.py` | The payoff: the prize draw, the collectables screen and the hand-off. |
 
 They use the Python 3 standard library only: no packages to install.
 

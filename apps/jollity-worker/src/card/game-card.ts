@@ -520,7 +520,7 @@ function newMemberCard(results: GameResults, remaining: Payoff, claim: ClaimUi |
 /**
  * The collectibles a game earned, a tile with the picture of each, and the way to them in the stash.
  *
- * The count comes from the claims and the tiles from the chest, which the
+ * The count comes from the claims and the tiles from the collectables screen, which the
  * worker reads once every claim can be dealt, so the count can stand alone
  * for a while. A game that earned nothing, or whose count is not read yet,
  * gets no box, unless `announce` asks for one anyway, as the new member card

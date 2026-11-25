@@ -5,7 +5,7 @@
 
 /**
  * The NFT picker — a hologram on a coin. An OVERLAY on the
- * chest, opened by tapping an opened collectable there.
+ * collectables screen, opened by tapping an opened collectable there.
  *
  * THE SCREEN ZOOMS TO THE COLLECTABLE. It does not fly the collectable to a
  * stage in the middle — the whole stage starts mapped onto the tapped piece and
@@ -18,7 +18,7 @@
  *                  the projection's measured box onto the piece's art box. The
  *                  transform is cleared before measuring, so a StrictMode
  *                  re-run reads the true layout. (The
- *                  CHEST's canvases stay untransformed: scaling those
+ *                  COLLECTABLES SCREEN'S canvases stay untransformed: scaling those
  *                  rasterizes them and poisons the wrapping layer's rect
  *                  math, which measures its canvas every frame.)
  *
@@ -337,7 +337,7 @@ function PickerStage({
         ref={backdropRef}
         type="button"
         aria-label="Close"
-        // OPAQUE. At 70% the whole chest showed through — every unopened
+        // OPAQUE. At 70% the whole collectables screen showed through — every unopened
         // piece, the other pieces, the footer — and the hologram read as a
         // panel floating over a busy screen instead of the only thing there.
         className="absolute inset-0 bg-black"

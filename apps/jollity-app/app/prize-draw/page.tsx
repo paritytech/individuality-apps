@@ -11,11 +11,11 @@
  * screen's reducer (lib/draw/draw-screen), run by its host
  * (lib/draw/draw-screen-host) through usePrizeDraw: the read, the rule check
  * that decides between the wheel and the words, the stage, the claim of a won
- * prize, the idle, the payoff's way to the chest and the debug log.
+ * prize, the idle, the payoff's way to the collectables screen and the debug log.
  */
 import { useEffect, useState } from "react"
 import { WheelStage } from "@/components/draw/wheel-stage"
-import { HoldToChest } from "@/components/draw/hold-to-chest"
+import { HoldToCollectables } from "@/components/draw/hold-to-collectables"
 import { autoBackToWheel } from "@/lib/draw/hold/scene"
 import { MessageScreen } from "@/components/ui/screen"
 import { PrizeText } from "@/components/prize-text"
@@ -34,7 +34,7 @@ export default function PrizeDrawPage() {
 
   switch (view.kind) {
     // still loading, and nothing true to say yet: the wheel's own black; or
-    // no draw, the route held inert while the chest replaces it
+    // no draw, the route held inert while the collectables screen replaces it
     case "blank":
       return <div className="fixed inset-0 bg-black" aria-busy="true" aria-label={view.label} />
     case "message":
@@ -61,7 +61,7 @@ export default function PrizeDrawPage() {
     case "wheel":
       // not in the draw: they still watch it, told first what the draw is (the
       // intro); why they are not in it only where the stage fails (the words)
-      // the way on is a hold, not the stage's Continue (components/draw/hold-to-chest);
+      // the way on is a hold, not the stage's Continue (components/draw/hold-to-collectables);
       // a stage that failed keeps the page's own Continue
       return (
         <>
@@ -73,13 +73,13 @@ export default function PrizeDrawPage() {
             fallback={view.fallback ? drawResultLine(view.draw, view.draw.userTicket ? null : drawMissReason(view.miss)) : null}
             onContinue={next}
           />
-          {view.fallback ? null : <HoldToChest stage={stage} offered={view.offered} onContinue={next} />}
+          {view.fallback ? null : <HoldToCollectables stage={stage} offered={view.offered} onContinue={next} />}
         </>
       )
   }
 }
 
-/** the screens with nothing of the draw to show yet, each with Continue on to the chest */
+/** the screens with nothing of the draw to show yet, each with Continue on to the collectables screen */
 const MESSAGES = {
   waiting: { heading: "Drawing the winners…", body: undefined },
   // the draw is not marked seen on the way past, so the chat keeps offering it

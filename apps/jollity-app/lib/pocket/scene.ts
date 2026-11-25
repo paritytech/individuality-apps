@@ -2,20 +2,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * THE POCKET'S SCENE: the chest's way into the Pocket, an open book at the foot of the screen. Drag the book's cover
+ * THE POCKET'S SCENE: the collectables screen's way into the Pocket, an open book at the foot of the screen. Drag the book's cover
  * across to close it: every piece its edge sweeps past drops through the middle of the screen into its cell, and let
  * go past CLAIM_AT the cover shuts by itself on the rest and lands with a thud. Let go short and the book stays open:
  * the pieces the cover took fly back out to the scene. Once shut, the book grows into the middle of the screen.
  *
- * Framework-free (architecture rule 6), the way lib/chest-scene/engine.ts sits behind the chest scene: the
+ * Framework-free (architecture rule 6), the way lib/collectables-scene/engine.ts sits behind the collectables scene: the
  * component (components/pocket/pocket-claim.tsx) renders the book's markup, hands its elements here, forwards the
- * presses, and hears back what React draws (the cells' pieces, the shut) and what the chest wants to know (a piece
+ * presses, and hears back what React draws (the cells' pieces, the shut) and what the collectables screen wants to know (a piece
  * taken or given back, how far the cover has closed, the claim). The geometry is ./book, the motion ./motion and the
  * effects canvas ./fx; this runs the frame loop over them and writes the book, the cover, the flights and the
  * sprites.
  *
  * A piece the Pocket takes leaves the scene (`onTake`) and is the Pocket's to draw from then on: one still wrapped
- * flies in its shell from where the scene drew it, an opened one as the flat art that carries `data-chest-piece`.
+ * flies in its shell from where the scene drew it, an opened one as the flat art that carries `data-collectables-piece`.
  */
 import {
   BOOK,
@@ -65,7 +65,7 @@ const SHUT_AFTER = 0.5
 const GROW_FROM = 0.05
 const GROW_TO = 1
 const CONFETTI = 46
-/** after the book is shut: everything fades, ms, and the chest goes on */
+/** after the book is shut: everything fades, ms, and the collectables screen goes on */
 export const FADE_AT_MS = 2550
 const FADE_MS = 300
 /** a press this near a piece, of its box, is the piece's: the scene's own hit test */
@@ -89,14 +89,14 @@ export interface PocketArt {
   rare: boolean
 }
 
-/** Where the chest scene draws a piece this frame, in viewport px (components/chest/chest-scene's PieceSpot). */
+/** Where the collectables scene draws a piece this frame, in viewport px (components/collectables/collectables-scene's PieceSpot). */
 export interface RingSpot {
   index: number
   cx: number
   cy: number
   size: number
   rotation: number
-  /** broken open: drawn as its plain art, which carries `data-chest-piece` */
+  /** broken open: drawn as its plain art, which carries `data-collectables-piece` */
   opened: boolean
   /** the Pocket has it: the scene keeps its place but does not draw it */
   taken?: boolean
@@ -125,9 +125,9 @@ export interface PocketElements {
 export interface PocketSceneOptions {
   /** the pieces as the scene starts; setPieces keeps them current */
   pieces: readonly PocketArt[]
-  /** where the chest scene draws its pieces, read every frame */
+  /** where the collectables scene draws its pieces, read every frame */
   ring: () => readonly RingSpot[]
-  /** the chest's surface: an opened piece's flat art is found in it by `data-chest-piece` */
+  /** the collectables screen's surface: an opened piece's flat art is found in it by `data-collectables-piece` */
   surface: () => ParentNode | null
   /** the cells changed: `filled[n]` is the piece in cellOrder's n-th cell (a hole: none), and the first `landed`
    *  of them are in */
@@ -357,7 +357,7 @@ export function emptyCell(filled: readonly number[], order: number, index: numbe
 
 const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches
 
-/** The book's furniture fades out, then the chest goes on. */
+/** The book's furniture fades out, then the collectables screen goes on. */
 export function fadeAndGo(shownEls: readonly (HTMLElement | null | undefined)[], onDone: () => void): void {
   const shown = shownEls.filter((el): el is HTMLElement => !!el)
   if (shown.length === 0) return onDone()
@@ -441,7 +441,7 @@ export function createPocketScene(els: PocketElements, opts: PocketSceneOptions)
       .some((spot) => !sim.takes.has(spot.index) && Math.hypot(spot.cx - at.x, spot.cy - at.y) <= spot.size * PIECE_HIT)
 
   const fromPin = (index: number, from: DOMRect): Flight | null => {
-    const pinned = opts.surface()?.querySelector<HTMLImageElement>(`img[data-chest-piece="${index}"]`)
+    const pinned = opts.surface()?.querySelector<HTMLImageElement>(`img[data-collectables-piece="${index}"]`)
     if (!pinned) return null
     const rect = pinned.getBoundingClientRect()
     if (rect.width === 0) return null

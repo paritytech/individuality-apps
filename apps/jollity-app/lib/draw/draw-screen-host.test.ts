@@ -57,8 +57,8 @@ function world({ preloaded, mountsAtOnce = false }: { preloaded?: DrawLoadResult
     payoff: createPrizeDrawPayoffRunner(7),
     drawShown: (state) => void calls.push(`drawShown ${state.kind}`),
     markSeen: (game) => void calls.push(`markSeen ${game}`),
-    toChest: () => void calls.push("toChest"),
-    preloadChest: () => void calls.push("preloadChest"),
+    toCollectables: () => void calls.push("toCollectables"),
+    preloadCollectables: () => void calls.push("preloadCollectables"),
     idle: (key) => {
       calls.push(`idle ${key}`)
       return { start: () => calls.push("idle.start"), stop: () => calls.push("idle.stop"), touch: () => {}, detach: () => calls.push("idle.detach") }
@@ -102,7 +102,7 @@ describe("the draw screen's host", () => {
     host.stageElement(element)
     host.attach()
     await vi.advanceTimersByTimeAsync(0)
-    expect(acts(calls)).toEqual(["preloadChest", "drawShown ready", "stage ticket held=false", "load"])
+    expect(acts(calls)).toEqual(["preloadCollectables", "drawShown ready", "stage ticket held=false", "load"])
   })
 
   it("steps an event sent while a step's commands run only after them", () => {
@@ -130,7 +130,7 @@ describe("the draw screen's host", () => {
     expect(acts(calls).slice(-4)).toEqual(["idle.detach", "stage.destroy", "report", "load.release"])
     expect(vi.getTimerCount()).toBe(0)
     host.send({ type: "continue" })
-    expect(calls).not.toContain("toChest")
+    expect(calls).not.toContain("toCollectables")
   })
 
   it("waits for the stage's element, and mounts unheld a stage let go before it is there", async () => {
@@ -154,7 +154,7 @@ describe("the draw screen's host", () => {
     at.stage!.ended()
     expect(acts(calls).filter((call) => call.startsWith("idle"))).toEqual(["idle 7", "idle.start"])
     at.stage!.done()
-    expect(acts(calls).slice(-4)).toEqual(["markSeen 7", "idle.stop", "preloadChest", "toChest"])
+    expect(acts(calls).slice(-4)).toEqual(["markSeen 7", "idle.stop", "preloadCollectables", "toCollectables"])
   })
 
   it("hands the ceremony the stage's error, or where a stage that never ended stood", async () => {

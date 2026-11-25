@@ -1,6 +1,6 @@
 # The whole flow — chain, host, app
 
-One game of Jollity, from a sudo call to a chest, with what happens ON CHAIN
+One game of Jollity, from a sudo call to a collectables screen, with what happens ON CHAIN
 (the Game pallet on the People chain), IN THE HOST (the Polkadot app or the
 local `truapi-host` CLI), and ON SCREEN (the app). The chain's timings are the
 pallet's stored phase durations, which each network sets; the numbers below
@@ -39,7 +39,7 @@ gantt
   round gap 7 s, Round 2 : b7, 00:11:12, 79s
   "Check your choices!" (7 s confirm) → report : b8, 00:12:31, 15s
   /prize-draw (when the game has draws) : b9, 00:12:46, 60s
-  /chest : b10, 00:13:46, 60s
+  /collectables : b10, 00:13:46, 60s
   section Mesh
   each phone's bundle (hello + offers) re-sent by heartbeat : c1, 00:08:56, 215s
   offer/answer over the statement store : c2, 00:08:56, 64s
@@ -80,7 +80,7 @@ sequenceDiagram
   C-->>C: Players[who], statement allowance for `who` (PlayerStatementLimit)
   C-->>A: SignedUp{who} → "You're in" (optimistic on broadcast, confirmed by watchPlayer)
 
-  Note over C: registration_ends: acceptable_player_count? → Shuffle : Cancelling (no chest)
+  Note over C: registration_ends: acceptable_player_count? → Shuffle : Cancelling (no collectables screen)
   C-->>C: Shuffle steps → groups · state Reporting (may finish up to a minute before gd)
   C-->>A: Game.Game{state Reporting, group members} + Game.CommunicationIdentifiers
 
@@ -103,8 +103,8 @@ sequenceDiagram
   A->>H: sign Game.report(votes)  (createAndSubmit)
   H->>C: ReportSubmitted{who, game_index}
   C-->>C: all reported or report_ends → PlayerProcess → scores, NftClaimCreditAwarded, StmtUsageRemoved, GameEnded
-  Note over A: /prize-draw?game=N reads the draws (or /chest when none was scheduled)
-  C-->>A: /chest reads awarded credits (getClaims)
+  Note over A: /prize-draw?game=N reads the draws (or /collectables when none was scheduled)
+  C-->>A: /collectables reads awarded credits (getClaims)
 ```
 
 ## 3. Where each thing lives
@@ -126,7 +126,7 @@ flowchart LR
     ST[lib/host/statement-store.ts<br/>proofs as the player]
     T[statement-core statementTransport<br/>one bundle per phone · from:id topics · gen gating]
     M[lib/webrtc/mesh.ts + useMesh<br/>perfect negotiation · self-heal · lanes]
-    UI[app/page.tsx · app/game/page.tsx · /chest]
+    UI[app/page.tsx · app/game/page.tsx · /collectables]
   end
   UI --> GS --> E --> SG --> B
   GS --> ST --> T --> M

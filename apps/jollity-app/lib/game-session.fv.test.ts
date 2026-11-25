@@ -559,7 +559,7 @@ const tap = (id: string, verdict: Vote) => R.act(() => view.voteFor(id, verdict)
 const wentToDraw = (router: { replace: ReturnType<typeof vi.fn> }) =>
   router.replace.mock.calls.some(([url]) => String(url).startsWith("/prize-draw?game=7"))
 const wentToMissed = (router: { replace: ReturnType<typeof vi.fn> }) =>
-  router.replace.mock.calls.some(([url]) => url === "/chest?game=7")
+  router.replace.mock.calls.some(([url]) => url === "/collectables?game=7")
 /** B's verdict in each round's report (B is the first co-player, seat 1) */
 const bobFiled = () => chain.reports.at(-1)?.map((round) => round[0])
 
@@ -680,7 +680,7 @@ describe("harness — paths the model says HOLD", () => {
     expect(wentToDraw(router)).toBe(true)
   })
 
-  it("a full game with no scheduled draw skips its screen and opens the chest (#515)", async () => {
+  it("a full game with no scheduled draw skips its screen and opens the collectables screen (#515)", async () => {
     W.drawScheduled = 0
     const router = mountSession()
     await runTo(GAME_END + 9)
@@ -2562,7 +2562,7 @@ describe("the report window and the background (S2, #201)", () => {
 describe("the chain leaves Reporting (#596)", () => {
   const reportFailedCount = () => W.reportEvents.filter((event) => event === "failed").length
   const left = (router: { replace: ReturnType<typeof vi.fn> }) =>
-    router.replace.mock.calls.some(([url]) => /^\/(prize-draw|chest)\?/.test(String(url)))
+    router.replace.mock.calls.some(([url]) => /^\/(prize-draw|collectables)\?/.test(String(url)))
 
   it("a hung submit whose window closes as the chain moves on still leaves /game, as missed", async () => {
     chain = fakeChain("hang")
@@ -2573,7 +2573,7 @@ describe("the chain leaves Reporting (#596)", () => {
     expect(reportFailedCount()).toBe(1)
   })
 
-  it("with the last Reporting block gone, a non-attendee goes to the chest and no failure is claimed", async () => {
+  it("with the last Reporting block gone, a non-attendee goes to the collectables screen and no failure is claimed", async () => {
     chain = fakeChain("hang")
     chain.reportingBlockHeld = false
     const router = mountSession()
@@ -2666,7 +2666,7 @@ describe("the chain leaves Reporting (#596)", () => {
     expect(wentToDraw(router)).toBe(true)
   })
 
-  it("a relaunch after the chain moved on with no report goes to the chest", async () => {
+  it("a relaunch after the chain moved on with no report goes to the collectables screen", async () => {
     vi.setSystemTime((REPORT_ENDS + 5) * 1000)
     const router = mountSession()
     await vi.advanceTimersByTimeAsync(3_000)

@@ -9,7 +9,7 @@
  * which sends it on once its gates have run.
  *
  * The prerender and the hydration render of a game page draw nothing either,
- * so none of its effects (the game session, the chest's reads, the draw's
+ * so none of its effects (the game session, the collectables screen's reads, the draw's
  * claim) start for a load that is sent away. A load that arrived with home's
  * markup instead of its own (a host serving the root page for a game URL) has
  * that leftover taken out at the door (lib/front-door.ts dropStrayHome).

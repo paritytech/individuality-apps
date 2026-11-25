@@ -15,7 +15,7 @@
  * and the trace is a golden, together with the debug log's lines.
  *
  * Defects were captured as they were, and their fixes changed these goldens on
- * purpose: a failed read now says so, with Continue on to the chest, and the
+ * purpose: a failed read now says so, with Continue on to the collectables screen, and the
  * 60 s idle counts from the way on (the stage's Continue, the words, a
  * fallback), no longer from the stage's mount.
  */
@@ -128,8 +128,8 @@ vi.mock("@/lib/debug/log-store", () => ({
   devLog: (tag: string, message: string, data?: unknown, level?: string) =>
     h.rec.logs.push(`${level ?? "info"} [${tag}] ${message}${data === undefined ? "" : ` ${JSON.stringify(data)}`}`),
 }))
-// the chest's own preload (its claims feed) is the chest's, tested there; that the draw starts it is recorded here
-vi.mock("@/lib/chest/chest-screen-deps", () => ({ preloadChestFeed: () => h.rec.note("preloadChestFeed") }))
+// the collectables screen's own preload (its claims feed) is the collectables screen's, tested there; that the draw starts it is recorded here
+vi.mock("@/lib/collectables/collectables-screen-deps", () => ({ preloadCollectablesFeed: () => h.rec.note("preloadCollectablesFeed") }))
 vi.mock("@/lib/draw/draw-name-lookup", () => ({ readDrawName: async () => null }))
 vi.mock("@/lib/draw/wheel/baked-coin", () => ({
   loadBakedCoins: async () => {
@@ -321,11 +321,11 @@ afterEach(() => {
 })
 
 describe("the prize draw screen today, captured", () => {
-  it("a winner plays the wheel and goes on to the chest", async () => {
+  it("a winner plays the wheel and goes on to the collectables screen", async () => {
     const run = await scenario([answer(100, ready(fixture("cash-win")), "a win"), ended(4000), done(7000)], 8000)
     expect(lines(run.trace, "startAutoClaim").length).toBeGreaterThan(0)
     expect(lines(run.trace, "markSeen")).toHaveLength(1)
-    expect(lines(run.trace, "router.replace")).toEqual([expect.stringContaining("router.replace /chest?game=7")])
+    expect(lines(run.trace, "router.replace")).toEqual([expect.stringContaining("router.replace /collectables?game=7")])
     expect(lines(run.trace, "reportDrawCeremony")).toHaveLength(1)
     expect(run).toMatchSnapshot()
   })
@@ -356,7 +356,7 @@ describe("the prize draw screen today, captured", () => {
     expect(run).toMatchSnapshot()
   })
 
-  it("no draw this game goes straight to the chest", async () => {
+  it("no draw this game goes straight to the collectables screen", async () => {
     const run = await scenario([answer(100, { kind: "none" }, "no draw")], 1000)
     expect(lines(run.trace, "router.replace")).toHaveLength(1)
     expect(run).toMatchSnapshot()
@@ -384,7 +384,7 @@ describe("the prize draw screen today, captured", () => {
     expect(run).toMatchSnapshot()
   })
 
-  it("a failed read says so, and Continue goes on to the chest", async () => {
+  it("a failed read says so, and Continue goes on to the collectables screen", async () => {
     const run = await scenario([{ at: 100, label: "the read fails", run: () => ctl.load!.fail() }, pressContinue(3000)], 4000)
     expect(lines(run.trace, "dom:").at(-1)).toContain("Couldn't load the draw")
     expect(lines(run.trace, "markSeen")).toHaveLength(0)

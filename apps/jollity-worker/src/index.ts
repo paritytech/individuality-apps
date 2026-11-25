@@ -205,7 +205,7 @@ function countMalformedFrame(error: unknown, messageType: string): void {
 }
 // A registration already open is announced this soon after the worker sees it.
 const OPENS_DELAY_MS = 5_000
-// Let the player finish the previous game's draw and chest before announcing
+// Let the player finish the previous game's draw and collectables screen before announcing
 // that registration for the next one is open.
 const AFTER_GAME_OPENS_DELAY_MS = 10 * MIN
 const WORKER_STARTED_AT = Date.now()
@@ -1358,16 +1358,16 @@ export function settledOver(early: StoredOutcome, settled: StoredOutcome): Store
   }
 }
 
-// A chest read is the claims, every approved collection, a preview per claim
+// A collectables read is the claims, every approved collection, a preview per claim
 // and a manifest per item, which takes longer than one host call.
-const CHEST_DEADLINE_MS = 90_000
-// Claims reach Asset Hub a block or two after the game, so a chest that cannot
+const COLLECTABLES_DEADLINE_MS = 90_000
+// Claims reach Asset Hub a block or two after the game, so a collectables screen that cannot
 // deal them all yet is read again soon rather than on the booking cadence.
-const CHEST_RETRY_MS = 60_000
+const COLLECTABLES_RETRY_MS = 60_000
 
-/** When to read the collectibles of a game again, on the booking cadence after a failure that is logged once, and sooner while the chest cannot deal every claim. */
+/** When to read the collectibles of a game again, on the booking cadence after a failure that is logged once, and sooner while the collectables screen cannot deal every claim. */
 const earnedRetryAt = new Map<number, number>()
-/** The games whose last count or chest read failed: an early refresh waits out their retry too. */
+/** The games whose last count or collectables read failed: an early refresh waits out their retry too. */
 const earnedFailed = new Set<number>()
 
 /** Counts the collectibles of one game outside the poll, for the card that shows them. */
@@ -1393,14 +1393,14 @@ function needsCount(outcome: StoredOutcome, seen: Seen = UNSEEN): boolean {
  *
  * Until then the stored results carry no count. A failed read is tried again
  * only once BOOKING_RETRY_MS has passed, from the poll or from a card, so a
- * host without an Asset Hub is not asked on every card sync. A failed chest
- * read waits as long. The pictures are stored only once the chest can deal
- * every claim, and until then they are read again after CHEST_RETRY_MS.
+ * host without an Asset Hub is not asked on every card sync. A failed collectables screen
+ * read waits as long. The pictures are stored only once the collectables screen can deal
+ * every claim, and until then they are read again after COLLECTABLES_RETRY_MS.
  *
  * `refresh` counts again a game whose credits are still landing: the outcome
  * is early, or the game has just settled. Co-players' reports award credits
  * as they come in, and the settle awards the rest, so the count can grow
- * until then. A grown count reads the chest again; while that cannot deal
+ * until then. A grown count reads the collectables again; while that cannot deal
  * every claim the pictures already drawn stay, and once the game has settled
  * (`refresh: "settled"`) they are dropped, so the read above draws them later.
  */
@@ -1420,7 +1420,7 @@ async function recordEarned(
   let earned: number | null = refresh ? null : known
   let collectables = stored.results.collectables
   let failure = "no Asset Hub from the host"
-  let chestFailure: string | null = null
+  let collectablesFailure: string | null = null
   try {
     const hub = await within(connectAssetHub(host))
     if (hub && earned === null) {
@@ -1429,14 +1429,14 @@ async function recordEarned(
     }
     const grew = earned !== null && known !== null && earned !== known
     if (hub && earned !== null && earned > 0 && (collectables === null || grew)) {
-      const read = await within(readCollectables(host, people, hub, address, gameIndex), CHEST_DEADLINE_MS)
-      if (read === null) chestFailure = "the chest read failed"
+      const read = await within(readCollectables(host, people, hub, address, gameIndex), COLLECTABLES_DEADLINE_MS)
+      if (read === null) collectablesFailure = "the collectables read failed"
       else if (read.pending === 0) collectables = read.items
       else if (grew && refresh === "settled") collectables = null
     }
   } catch (error) {
     failure = (error as Error)?.message ?? String(error)
-    chestFailure = failure
+    collectablesFailure = failure
   }
   if (earned === null) {
     countFailed(host, gameIndex, failure)
@@ -1444,13 +1444,13 @@ async function recordEarned(
   }
   earnedFailed.delete(gameIndex)
   const pictured = earned === 0 || collectables !== null
-  if (pictured && !chestFailure) earnedRetryAt.delete(gameIndex)
-  else if (chestFailure) {
-    chatCount("chat.earned.failed", { stage: "collectables", "game.index": String(gameIndex) }, { key: "collectables", detail: { error: describeError(chestFailure) } })
-    if (!earnedRetryAt.has(gameIndex)) void workerLog.append(host, "error", `The collectibles of game ${gameIndex} could not be drawn: ${chestFailure}.`)
+  if (pictured && !collectablesFailure) earnedRetryAt.delete(gameIndex)
+  else if (collectablesFailure) {
+    chatCount("chat.earned.failed", { stage: "collectables", "game.index": String(gameIndex) }, { key: "collectables", detail: { error: describeError(collectablesFailure) } })
+    if (!earnedRetryAt.has(gameIndex)) void workerLog.append(host, "error", `The collectibles of game ${gameIndex} could not be drawn: ${collectablesFailure}.`)
     earnedRetryAt.set(gameIndex, Date.now() + BOOKING_RETRY_MS)
     earnedFailed.add(gameIndex)
-  } else earnedRetryAt.set(gameIndex, Date.now() + CHEST_RETRY_MS)
+  } else earnedRetryAt.set(gameIndex, Date.now() + COLLECTABLES_RETRY_MS)
   const latest = await readJSON<StoredOutcome>(host, key)
   if (!latest?.results) return null
   const written: StoredOutcome = { ...latest, results: { ...latest.results, earned, collectables } }
@@ -1555,8 +1555,8 @@ async function confirmedClaim(
  * A missed game of a registered player is not either until a report says they
  * played, since the app can write that long after the worker stored the miss,
  * and then not until its collectibles are counted.
- * The collectibles open in the stash, not the chest of the app, so whether the
- * app marked the chest seen does not matter.
+ * The collectibles open in the stash, not the collectables screen of the app, so whether the
+ * app marked the collectables screen seen does not matter.
  */
 export function settledCard(outcome: StoredOutcome | null, seen: Seen): boolean {
   if (!outcome || outcome.early) return false
@@ -1819,7 +1819,7 @@ export interface Reminder {
  * before it has settled, which is long before the registration start its
  * schedule projects. The opening notice of every game is therefore booked for
  * ten minutes after the game before it starts settling, which lets the player
- * finish the draw and chest of that game, or a few seconds from now when those
+ * finish the draw and collectables screen of that game, or a few seconds from now when those
  * ten minutes have passed.
  * Every moment carries the play time of its game, so a rescheduled game, or
  * the next one, is a new moment and the old one is cancelled.

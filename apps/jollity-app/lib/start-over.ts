@@ -4,7 +4,7 @@
 /**
  * STARTING OVER after the player leaves for another product (#465).
  *
- * After the game the chest hands the player to their Humanity card.
+ * After the game the collectables screen hands the player to their Humanity card.
  * A product cannot close itself (the host offers no call for it), and the
  * Android host brings the tab back as it was, so a player who came back for
  * the next game would find the finished game's after-game screen, still
@@ -14,7 +14,7 @@
  * cache and the remembered post-game index go with it.
  *
  * ON RETURN, not at the hand-off: a navigateTo that did nothing must not take
- * the chest away, and a reload while the host is switching products
+ * the collectables screen away, and a reload while the host is switching products
  * buys nothing. The mark lives in memory only. A page the host tore down comes
  * back as a fresh load anyway, and a stored mark would outlive the visit it
  * was for (iOS reloads the root on most reopens) and restart the next game.

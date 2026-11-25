@@ -224,7 +224,7 @@ describe("report outbox clocks", () => {
     const pending = step(state, { kind: "handover-result", result: "pending" })
     expect(pending.commands).toEqual([{ kind: "poll-handover", delayMs: 2_500 }])
     const missed = step(pending.state, { kind: "handover-result", result: "missed" })
-    expect(missed.commands).toEqual([{ kind: "navigate-chest", missed: true }])
+    expect(missed.commands).toEqual([{ kind: "navigate-collectables", missed: true }])
   })
 
   it("resets handover backoff when the owning effect restarts", () => {

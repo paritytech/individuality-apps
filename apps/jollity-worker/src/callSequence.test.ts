@@ -1970,7 +1970,7 @@ describe("the chain poll works", () => {
     const first = structuredClone(host.store.get(key))
     await tick(host)
 
-    // Then: the second count grew while the chest could not deal it, so the pictures drawn stay
+    // Then: the second count grew while the collectables screen could not deal it, so the pictures drawn stay
     expect(first).toMatchObject({ early: true, results: { earned: 2, collectables: [OCTOPUS, OCTOPUS] } })
     expect(host.store.get(key)).toMatchObject({ early: true, results: { earned: 3, collectables: [OCTOPUS, OCTOPUS] } })
     expect(chain.readOutcome).not.toHaveBeenCalled()
@@ -2134,7 +2134,7 @@ describe("the chain poll works", () => {
     expect(chain.readOutcome).not.toHaveBeenCalled()
   })
 
-  it("counts once what a player who reported and did not pass earned, with no chest and no prize read", async () => {
+  it("counts once what a player who reported and did not pass earned, with no collectables screen and no prize read", async () => {
     // Given
     const chain = await withChain(chainRead({ running: null }), chainRead({ running: null }))
     const game = running()
@@ -2238,7 +2238,7 @@ describe("the chain poll works", () => {
     expect(host.store.get(key)).not.toHaveProperty("early")
   })
 
-  it("stores the picture of each collectible once the chest deals every claim, and reads it again a minute later while claims are pending", async () => {
+  it("stores the picture of each collectible once the collectables screen deals every claim, and reads it again a minute later while claims are pending", async () => {
     // Given
     vi.useFakeTimers({ now: Date.now(), toFake: ["Date"] })
     const chain = await withChain(...Array.from({ length: 4 }, () => chainRead({ running: null })))
@@ -2279,7 +2279,7 @@ describe("the chain poll works", () => {
     expect(host.store.get(key)).toMatchObject({ results: { earned: 2, collectables: [OCTOPUS, OCTOPUS] } })
   })
 
-  it("stores an empty chest once it deals every claim, so the card settles and the chest is not read again", async () => {
+  it("stores an empty collectables screen once it deals every claim, so the card settles and the collectables screen is not read again", async () => {
     // Given
     vi.useFakeTimers({ now: Date.now(), toFake: ["Date"] })
     const chain = await withChain(chainRead({ running: null }), chainRead({ running: null }))
@@ -2306,9 +2306,9 @@ describe("the chain poll works", () => {
   })
 
   it.each([
-    ["answers nothing", () => Promise.resolve(null), "the chest read failed"],
+    ["answers nothing", () => Promise.resolve(null), "the collectables read failed"],
     ["throws", () => Promise.reject(new Error("the hub hung up")), "the hub hung up"],
-  ])("logs a chest read that %s once, and reads the chest again only after the booking retry wait", async (_, failing, reason) => {
+  ])("logs a collectables read that %s once, and reads the collectables again only after the booking retry wait", async (_, failing, reason) => {
     // Given
     vi.useFakeTimers({ now: Date.now(), toFake: ["Date"] })
     try {
@@ -5311,7 +5311,7 @@ describe("a card settles", () => {
     expect(states).toEqual([false, false, true, true])
   })
 
-  it("settles a pictured card whether or not the app marked its chest seen, since the collectibles open in the stash", async () => {
+  it("settles a pictured card whether or not the app marked its collectables screen seen, since the collectibles open in the stash", async () => {
     // Given
     const { settledCard } = await import("./index")
     const newMember = { ...RESULTS, earned: 1, collectables: [OCTOPUS], membership: { member: true, justBecameMember: true, gamesToMembership: null } }

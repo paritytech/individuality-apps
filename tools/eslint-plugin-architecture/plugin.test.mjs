@@ -70,7 +70,7 @@ tester.run("no-device-clock", plugin.rules["no-device-clock"], {
     },
     {
       name: "Date.now as a REFERENCE, not a call (useState(Date.now))",
-      filename: "app/chest/page.tsx",
+      filename: "app/collectables/page.tsx",
       code: "const [startedAt] = useState(Date.now)",
       errors: [{ messageId: "deviceClock", data: { call: "Date.now" } }],
     },
@@ -240,7 +240,7 @@ tester.run("no-host-sdk-outside-doorways", plugin.rules["no-host-sdk-outside-doo
   invalid: [
     {
       name: "a screen reaching for the host SDK",
-      filename: "app/chest/page.tsx",
+      filename: "app/collectables/page.tsx",
       code: 'import { getHostProvider } from "@parity/product-sdk-host"',
       options: [{ allow: ["lib/host/**", "lib/permissions.ts"] }],
       errors: [{ messageId: "hostSdk" }],
@@ -395,38 +395,38 @@ tester.run("no-chain-in-draw-ui", plugin.rules["no-chain-in-draw-ui"], {
   ],
 })
 
-// ── the chest's UI renders; its host reaches the chain ───────────────────────
-tester.run("no-chain-in-chest-ui", plugin.rules["no-chain-in-chest-ui"], {
+// ── the collectables screen's UI renders; its host reaches the chain ───────────────────────
+tester.run("no-chain-in-collectables-ui", plugin.rules["no-chain-in-collectables-ui"], {
   valid: [
     {
       name: "the page reads its screen from the hook",
-      filename: "apps/jollity-app/app/chest/page.tsx",
-      code: 'import { useChestScreen } from "@/lib/chest/use-chest-screen"\nimport { canChangePick } from "@jollity/collectables"',
+      filename: "apps/jollity-app/app/collectables/page.tsx",
+      code: 'import { useCollectablesScreen } from "@/lib/collectables/use-collectables-screen"\nimport { canChangePick } from "@jollity/collectables"',
     },
     {
       name: "a type from the source is erased",
-      filename: "apps/jollity-app/components/chest/chest-scene.tsx",
+      filename: "apps/jollity-app/components/collectables/collectables-scene.tsx",
       code: 'import type { GameSource } from "@/lib/game-source"',
     },
   ],
   invalid: [
     {
       name: "the source, by its alias",
-      filename: "apps/jollity-app/app/chest/page.tsx",
+      filename: "apps/jollity-app/app/collectables/page.tsx",
       code: 'import { getGameSource } from "@/lib/game-source"',
-      errors: [{ messageId: "chestUi", data: { pkg: "@/lib/game-source" } }],
+      errors: [{ messageId: "collectablesUi", data: { pkg: "@/lib/game-source" } }],
     },
     {
       name: "picks storage, by a relative path",
-      filename: "apps/jollity-app/components/chest/chest-scene.tsx",
-      code: 'import { saveChestPick } from "../../lib/chest-picks"',
-      errors: [{ messageId: "chestUi", data: { pkg: "../../lib/chest-picks" } }],
+      filename: "apps/jollity-app/components/collectables/collectables-scene.tsx",
+      code: 'import { saveCollectablesPick } from "../../lib/collectables-picks"',
+      errors: [{ messageId: "collectablesUi", data: { pkg: "../../lib/collectables-picks" } }],
     },
     {
       name: "the host's own way out, and the journey under it",
-      filename: "apps/jollity-app/app/chest/page.tsx",
-      code: 'import { browserChestScreenDeps } from "@/lib/chest/chest-screen-deps"\nimport { chestShown } from "@/lib/journeys/game-trace"',
-      errors: [{ messageId: "chestUi" }, { messageId: "chestUi" }],
+      filename: "apps/jollity-app/app/collectables/page.tsx",
+      code: 'import { browserCollectablesScreenDeps } from "@/lib/collectables/collectables-screen-deps"\nimport { collectablesShown } from "@/lib/journeys/game-trace"',
+      errors: [{ messageId: "collectablesUi" }, { messageId: "collectablesUi" }],
     },
   ],
 })

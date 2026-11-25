@@ -434,7 +434,7 @@ export interface RestartCardCopy {
 const RESTART_HEADING = "Restart the Polkadot app"
 const RESTART_ADVICE = "Close it fully (swipe it away) and open it again."
 
-/** The chest uses the shared stuck-host verdict and restart treatment, but its
+/** The collectables screen uses the shared stuck-host verdict and restart treatment, but its
  * kept-on-chain consequence is the last sentence instead of a game place. */
 const RECONNECTING_HEADING = "Getting the connection back"
 
@@ -447,12 +447,12 @@ function reconnectingCopy(kept: string, timeLeft = ""): RestartCardCopy {
   }
 }
 
-export function chestRestartCardCopy(reconnecting = false): RestartCardCopy {
-  if (reconnecting) return reconnectingCopy("Your chest and collectables are kept.")
+export function collectablesRestartCardCopy(reconnecting = false): RestartCardCopy {
+  if (reconnecting) return reconnectingCopy("Your collectables are kept.")
   return {
     eyebrow: "No answer",
     heading: RESTART_HEADING,
-    body: `Your Polkadot app is not answering. ${RESTART_ADVICE} Your chest and collectables are kept.`,
+    body: `Your Polkadot app is not answering. ${RESTART_ADVICE} Your collectables are kept.`,
     escalated: false,
   }
 }

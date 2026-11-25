@@ -7,7 +7,7 @@ import {
   CHAIN_LOST_RECHECK_CAP_MS,
   CHAIN_LOST_RECHECK_FIRST_MS,
   chainLostRecheckDelayMs,
-  chestRestartCardCopy,
+  collectablesRestartCardCopy,
   restartCardCopy,
   shouldWaitForReconnect,
   type ChainHealthResult,
@@ -39,20 +39,20 @@ describe("the restart card's advice", () => {
     expect(restartCardCopy("chain-lost", 2, "", true).escalated).toBe(false)
   })
 
-  it("uses chest-specific kept wording while its silent host is reconnecting", () => {
-    expect(chestRestartCardCopy(true)).toEqual({
+  it("uses collectables-specific kept wording while its silent host is reconnecting", () => {
+    expect(collectablesRestartCardCopy(true)).toEqual({
       eyebrow: "Reconnecting…",
       heading: "Getting the connection back",
-      body: "The Polkadot app lost its chain connection and is reconnecting. This usually takes under a minute. Your chest and collectables are kept.",
+      body: "The Polkadot app lost its chain connection and is reconnecting. This usually takes under a minute. Your collectables are kept.",
       escalated: false,
     })
   })
 
-  it("keeps the same restart card for the chest and changes only what is kept", () => {
-    expect(chestRestartCardCopy()).toEqual({
+  it("keeps the same restart card for the collectables screen and changes only what is kept", () => {
+    expect(collectablesRestartCardCopy()).toEqual({
       eyebrow: "No answer",
       heading: "Restart the Polkadot app",
-      body: "Your Polkadot app is not answering. Close it fully (swipe it away) and open it again. Your chest and collectables are kept.",
+      body: "Your Polkadot app is not answering. Close it fully (swipe it away) and open it again. Your collectables are kept.",
       escalated: false,
     })
   })

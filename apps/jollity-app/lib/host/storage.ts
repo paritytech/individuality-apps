@@ -97,7 +97,7 @@ const OP_OF: Record<string, StorageOp> = {
 }
 
 /** Every read and write on the handle is timed, so a caller that holds the raw
- *  handle (chat signup, the tutorial request, chest picks) is measured too. */
+ *  handle (chat signup, the tutorial request, collectables picks) is measured too. */
 function measured(store: HostLocalStorage, source: HostConnectionSource): HostLocalStorage {
   return new Proxy(store, {
     get(target, name, receiver) {

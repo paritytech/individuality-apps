@@ -45,7 +45,7 @@ const CURRENT: BuildAnswer = { state: "current", last: "current" }
 const STALE: BuildAnswer = { state: "stale", last: "stale" }
 const step = (over: Partial<Parameters<typeof arrivalStep>[0]>) =>
   arrivalStep({
-    href: "/chest?game=7",
+    href: "/collectables?game=7",
     status: registration,
     now: 0,
     hostOnly: false,
@@ -57,17 +57,17 @@ const step = (over: Partial<Parameters<typeof arrivalStep>[0]>) =>
 
 describe("the front door", () => {
   it("guards the game's pages, and nothing else", () => {
-    for (const path of ["/game", "/prize-draw", "/chest", "/chest/"]) expect(behindHome(path)).toBe(true)
+    for (const path of ["/game", "/prize-draw", "/collectables", "/collectables/"]) expect(behindHome(path)).toBe(true)
     for (const path of ["/", "/nux", "/permissions", "/connection-help"])
       expect(behindHome(path)).toBe(false)
   })
 
   it("a fresh load starts closed and opens once home is on screen", () => {
     expect(frontDoorOpen()).toBe(false)
-    expect(frontDoorHolds("/chest", frontDoorOpen())).toBe(true)
+    expect(frontDoorHolds("/collectables", frontDoorOpen())).toBe(true)
     openFrontDoor()
     expect(frontDoorOpen()).toBe(true)
-    expect(frontDoorHolds("/chest", true)).toBe(false)
+    expect(frontDoorHolds("/collectables", true)).toBe(false)
     expect(frontDoorHolds("/game", true)).toBe(false)
   })
 
@@ -79,10 +79,10 @@ describe("the front door", () => {
 
   it("holds the URL the load was going to until it is let go", () => {
     expect(heldArrival()).toBeNull()
-    holdArrival("/chest?game=270")
-    expect(heldArrival()).toBe("/chest?game=270")
+    holdArrival("/collectables?game=270")
+    expect(heldArrival()).toBe("/collectables?game=270")
     // still there for home after the permission gate's detour
-    expect(heldArrival()).toBe("/chest?game=270")
+    expect(heldArrival()).toBe("/collectables?game=270")
     dropArrival()
     expect(heldArrival()).toBeNull()
   })
@@ -98,12 +98,12 @@ describe("the front door", () => {
     dropArrival()
     expect(listener).toHaveBeenCalledTimes(3)
     stop()
-    holdArrival("/chest")
+    holdArrival("/collectables")
     expect(listener).toHaveBeenCalledTimes(3)
   })
 
   it("takes out home's markup that a held load arrived with, and nothing else", () => {
-    // Given a /chest load the host answered with the root page: home's prerender, which React did not claim
+    // Given a /collectables load the host answered with the root page: home's prerender, which React did not claim
     document.body.innerHTML =
       '<div id="next-root"></div>' +
       '<div data-testid="home" data-state="loading"><main><h1>Jollity</h1></main></div>' +
@@ -125,13 +125,13 @@ describe("the front door", () => {
 })
 
 describe("arrivalStep", () => {
-  it("sends a reopened chest on once the gates have run on a current build (23 Oct)", () => {
+  it("sends a reopened collectables screen on once the gates have run on a current build (23 Oct)", () => {
     expect(step({})).toBe("go")
     expect(step({ status: { kind: "none" } })).toBe("go")
     expect(step({ status: { kind: "processing" } })).toBe("go")
   })
 
-  it("holds a stale build at home: the update screen, not the chest", () => {
+  it("holds a stale build at home: the update screen, not the collectables screen", () => {
     expect(step({ build: STALE })).toBe("hold")
     expect(step({ href: "/prize-draw?game=7", build: STALE, status: { kind: "processing" } })).toBe("hold")
   })
@@ -170,7 +170,7 @@ describe("arrivalStep", () => {
   })
 
   it("leaves a game to go into to home's own handover, with its own check", () => {
-    // a late joiner, and a fresh load on yesterday's chest while today's room is open
+    // a late joiner, and a fresh load on yesterday's collectables screen while today's room is open
     expect(step({ href: "/game", status: live(true), now: 150 })).toBe("drop")
     expect(step({ status: live(true), now: 150, joined: true })).toBe("drop")
     expect(step({ status: { kind: "waiting", gameAt: 1000 }, now: 900 })).toBe("drop")

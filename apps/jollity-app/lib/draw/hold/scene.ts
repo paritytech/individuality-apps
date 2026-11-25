@@ -5,7 +5,7 @@
 // @ts-nocheck
 /**
  * THE HOLD — from the draw's ending to the collectables, with no button.
- * LOGIC ONLY, no React (architecture rule 6): components/draw/hold-to-chest
+ * LOGIC ONLY, no React (architecture rule 6): components/draw/hold-to-collectables
  * hosts it and forwards the finger.
  *
  * The draw page's part:
@@ -40,12 +40,12 @@
  *  rise   done: the bubble glides (RISE_S) to where the collectables' bubble
  *         blows up, the pieces circling in it, as the draw fades and the
  *         collectables' room (under the stage) shows. Then onRisen hands
- *         the bubble over (lib/chest-scene/carry) and the page goes on.
+ *         the bubble over (lib/collectables-scene/carry) and the page goes on.
  *
  * The collectables' part (each claim lit from a share of the pieces, the
- * swell, the pop) is the chest engine's (lib/chest-scene/engine `carried`).
+ * swell, the pop) is the collectables engine's (lib/collectables-scene/engine `carried`).
  *
- * Kept untyped, like the chest engine: a frame loop over plain numbers.
+ * Kept untyped, like the collectables engine: a frame loop over plain numbers.
  *
  * API: createHoldScene(canvas, { stage, hintEl, onRisen, onPick, onBusy, onPhase, hint }) ->
  *   { pointerDown(id, x, y), pointerMove(id, x, y), pointerUp(id), zoomBy(k),
@@ -54,7 +54,7 @@
  */
 
 import { PRIZE } from "../wheel/proto/render-utils/prize/config.js"
-import { drawStars } from "../../chest-scene/stars"
+import { drawStars } from "../../collectables-scene/stars"
 import { exploreOf } from "../wheel/explore"
 import { createLook } from "./look"
 import { createWarp, drainPoint } from "./warp"
@@ -93,7 +93,7 @@ const ZOOM_OUT_MS = 700
 const DISC_TRIES = 4       // the player's disc not found (still landing): looked for again, this often…
 const DISC_RETRY_MS = 300  // …this far apart
 /* where the collectables' bubble blows up on a 390 × 844 phone (where the
-   chest engine blows it up): the engine glides the rest of the way on any other screen */
+   collectables engine blows it up): the engine glides the rest of the way on any other screen */
 const SPOT = { x: 195 / 390, y: 361 / 844 }
 const R0_390 = 47
 /* what counts as a piece of the draw: a blob that stands out from what is
@@ -118,7 +118,7 @@ const seg = (t, a, b) => c01((t - a) / (b - a))
 const lerp = (a, b, k) => a + (b - a) * k
 function rng(seed) { let s = seed >>> 0; return () => ((s = (1664525 * s + 1013904223) >>> 0) / 4294967296); }
 const rgbStr = (c) => `rgb(${c[0]},${c[1]},${c[2]})`
-/** seconds, on the clock the chest engine reads too, so the swirl carries on across the hand-off */
+/** seconds, on the clock the collectables engine reads too, so the swirl carries on across the hand-off */
 const nowS = () => performance.now() / 1000
 
 /** the brightest colour at a point of the picture (`px`: its pixels, read once), as [r, g, b] */
@@ -623,16 +623,16 @@ export function createHoldScene(canvas, opts = {}) {
     }
   }
 
-  /* where a piece circles inside the bubble, all at one pace: the same on the chest's side */
+  /* where a piece circles inside the bubble, all at one pace: the same on the collectables screen's side */
   const swirl = (d, t) => t * ORBIT_SPEED + d.k * 2.39
   const reach = (d) => (8 + ((d.k * 7) % 22)) / 47
 
-  /* the room's stars (lib/chest-scene/stars, the collectables' too): the bubble clears them where it is */
+  /* the room's stars (lib/collectables-scene/stars, the collectables' too): the bubble clears them where it is */
   function paintDust(g, t, bx, by, R, alpha) {
     drawStars(g, W, H, t, alpha, { x: bx, y: by, r: R })
   }
 
-  /* the light gathered round the bubble: on the collectables' room too (app/globals.css .chest-backdrop) */
+  /* the light gathered round the bubble: on the collectables' room too (app/globals.css .collectables-backdrop) */
   function paintGlow(g, bx, by, a) {
     const u = unit(), gy = by + 30 * u
     const glow = g.createRadialGradient(bx, gy, 0, bx, gy, 260 * u)
@@ -856,7 +856,7 @@ export function createHoldScene(canvas, opts = {}) {
     if (active || s.dirty) { ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, W, H); }
     s.dirty = active
     const tp = nowS()
-    // the film's time is the swirl's: the clock the bubble keeps between the screens and in the chest
+    // the film's time is the swirl's: the clock the bubble keeps between the screens and in the collectables screen
     if (s.phase === "rise") paintRise(ctx, tp, tp)
     else paintHold(ctx, tp, tp)
     paintHint(clock)

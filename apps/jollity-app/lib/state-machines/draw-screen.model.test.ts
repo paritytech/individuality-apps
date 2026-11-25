@@ -56,7 +56,7 @@ describe("draw-screen state-machine model", () => {
     const names = drawScreenRegressions.map((entry) => entry.name)
     expect(new Set(names).size).toBe(names.length)
     for (const fixed of [
-      "a failed read says so, and Continue goes on to the chest",
+      "a failed read says so, and Continue goes on to the collectables screen",
       "a spectator is never moved on before their Continue",
       "the words move on after a minute too",
     ])

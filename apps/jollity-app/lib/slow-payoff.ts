@@ -6,7 +6,7 @@
  * reducer can read them without React.
  */
 
-/** How long a payoff screen waits on the chain before it says so. The chest's
+/** How long a payoff screen waits on the chain before it says so. The collectables screen's
  *  own wait (`payoff.chest.show`, measured over 320 opens) had a median of
  *  3.3 s and a 95th percentile of 15 s; 5 of them (1.6%) ran past 60 s. */
 export const SLOW_PAYOFF_MS = 60_000

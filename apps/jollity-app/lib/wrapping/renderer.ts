@@ -5,7 +5,7 @@
 // The GL half of the wrapping effect. One context, two programs, N wrappings.
 //
 // This is the ONLY module in the wrapping tree that touches WebGL. Load it
-// lazily (the chest scene and the Pocket claim import it dynamically), so the
+// lazily (the collectables scene and the Pocket claim import it dynamically), so the
 // GL code never joins the first-load chunk.
 //
 // SHADING AND POSITION TRACKING ARE DECOUPLED. A wrapping is shaded into its own
@@ -44,7 +44,7 @@ interface WrappingPlacement {
   opacity: number
 }
 
-/** One wrapping, fully resolved, ready to draw. The canvas host (the chest scene
+/** One wrapping, fully resolved, ready to draw. The canvas host (the collectables scene
  *  or the Pocket claim) computes the placement each frame and hands the
  *  renderer plain numbers; the renderer only reads them. */
 export interface WrappingDrawEntry {
@@ -146,7 +146,7 @@ export class WrappingRenderer {
     // `alpha` and `premultipliedAlpha` together with the blend below and the
     // shader's own `outC * outA`. See the header.
     // NO MSAA. The only geometry drawn here is the blit quads, and a shaded
-    // wrapping is transparent at its quad's border (measured on the chest: alpha
+    // wrapping is transparent at its quad's border (measured on the collectables screen: alpha
     // 0 on every border texel at rest, in focus and through the shatter, bar one
     // shard frame), so the multisample buffer smoothed nothing. It was four more
     // copies of a full-screen canvas: ~18 MB at DPR 2.

@@ -197,7 +197,7 @@ export function ctaLabel(
   if (s.reportWindowClosed) return "Voting has closed · Continue"
   if (s.votesLoading) return "Loading your votes…"
   if (s.submitState === "submitting") return "Submitting..."
-  // a rejected report reads as a retry, never a silent jump to the chest
+  // a rejected report reads as a retry, never a silent jump to the collectables screen
   if (s.submitState === "error") return "Vote didn't send — tap to retry"
   if (!s.autoActive) return "Confirm votes"
   return s.autoCount > 0 ? `Confirming in ${s.autoCount}` : "Confirming..."
@@ -413,7 +413,7 @@ export interface GameSessionView {
   confirmVotes: () => void
   /** the report's status: "submitting" while the end-of-game report is in
    *  flight, "error" if it never landed (a tap retries), "idle" otherwise.
-   *  Only a resolved submit advances to the chest. */
+   *  Only a resolved submit advances to the collectables screen. */
   submitState: "idle" | "submitting" | "error"
   autoActive: boolean
   /** the confirm stage stands but what it judges on (the stored votes and the
@@ -421,7 +421,7 @@ export interface GameSessionView {
   votesLoading: boolean
   /** the chain's report window has closed with no report filed: the CTA
    *  reads "Voting has closed", nothing is filed, and the session hands over
-   *  by itself (the draw if the chain holds the report, else the chest as a
+   *  by itself (the draw if the chain holds the report, else the collectables screen as a
    *  missed report, #303) */
   reportWindowClosed: boolean
   /** whole seconds still on the auto-confirm countdown, `autoConfirmSeconds`
@@ -503,14 +503,14 @@ export function useGameSession(): GameSessionView {
   const [liveView, setLiveView] = useState<LiveGameView | null>(null)
   const [submitted, setSubmitted] = useState(false)
   // the report counted: the payoff normally opens on the DRAW, whose winners
-  // are drawn before play ends while the chest waits for THIS game to settle.
+  // are drawn before play ends while the collectables waits for THIS game to settle.
   // When the waiting-room game-row read already proved that no draw was
   // scheduled, there is no ceremony to show and the payoff begins at the
-  // chest instead. Unknown stays on the draw route for a fresh read.
-  // Name the game for every screen after. From here to the chest every step
+  // collectables screen instead. Unknown stays on the draw route for a fresh read.
+  // Name the game for every screen after. From here to the collectables screen every step
   // REPLACES the page, never pushes one (#427): the end screens share one
   // history entry, so Android's Back cannot walk back into the game or the
-  // draw, and on the chest it finds no history and the host collapses us.
+  // draw, and on the collectables screen it finds no history and the host collapses us.
   const finishReport = (gameIndex: number) => {
     setSubmitted(true)
     reportLanded(gameIndex)
@@ -672,7 +672,7 @@ export function useGameSession(): GameSessionView {
       else recordCount(step.metric, step.value, {})
     }
   }
-  // the report's own status. We celebrate (navigate to the chest) ONLY on a
+  // the report's own status. We celebrate (navigate to the collectables screen) ONLY on a
   // resolved submit: a rejected report must not look like a counted vote.
   const [submitState, setSubmitState] = useState<"idle" | "submitting" | "error">("idle")
   /** Pure report decisions. React remains the command interpreter until the
@@ -2168,7 +2168,7 @@ export function useGameSession(): GameSessionView {
   const reportWindowClosed = confirming && (!windowOpen || chainClosed)
   // THE WINDOW HAS CLOSED, so the chain says where the player goes (#303): a
   // report it holds opens the draw (a submit that failed here but landed is
-  // not a miss), none at all is a MISSED report — no retry, no draw, the chest
+  // not a miss), none at all is a MISSED report — no retry, no draw, the collectables screen
   // starts on "preparing your collectables" and says why. "Missed" is read off
   // the chain (`reportSent`) at the source's clock, never off the local error.
   // It needs no tap: a player who never touches the CTA must not sit on /game
@@ -2180,7 +2180,7 @@ export function useGameSession(): GameSessionView {
   // Reporting at report_ends (or earlier, once every attendance is decided)
   // and gameView() then reads null for good (#596). A status the chain no
   // longer holds ("gone": processed, not attended) still leaves /game, for the
-  // chest, which reads attendance itself, and claims no failure.
+  // collectables screen, which reads attendance itself, and claims no failure.
   const handOverClosed = reportWindowClosed && submitState !== "submitting" && !submitted
   const gameIndex = liveView?.gameIndex
   useEffect(() => {
@@ -2206,13 +2206,13 @@ export function useGameSession(): GameSessionView {
         }
         trail("report missed", { gameIndex })
         outboxRef.current = reportOutbox(outboxRef.current, { kind: "handover-result", result: "missed" }).state
-        router.replace(`/chest?game=${gameIndex}`)
+        router.replace(`/collectables?game=${gameIndex}`)
         return
       }
       if (status?.closed && status.report === "gone") {
         trail("report unknown after the game", { gameIndex })
         outboxRef.current = reportOutbox(outboxRef.current, { kind: "handover-result", result: "gone" }).state
-        router.replace(`/chest?game=${gameIndex}`)
+        router.replace(`/collectables?game=${gameIndex}`)
         return
       }
       const reduced = reportOutbox(outboxRef.current, { kind: "handover-result", result: "pending" })

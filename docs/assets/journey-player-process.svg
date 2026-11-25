@@ -27,7 +27,7 @@
   <text x="26" y="201" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">alt</text>
   <text x="86" y="201" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ the waiting room's read proved no draw was scheduled ]</text>
   <path d="M 590 228 H 630 V 242 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="638" y="239" text-anchor="start" fill="#606060">router.replace(`/chest?game=${gameIndex}`)</text>
+  <text x="638" y="239" text-anchor="start" fill="#606060">router.replace(`/collectables?game=${gameIndex}`)</text>
   <line x1="20" y1="284" x2="1160" y2="284" stroke="#606060" stroke-width="1" stroke-dasharray="6,4"/>
   <text x="32" y="299" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ else ]</text>
   <path d="M 590 326 H 630 V 340 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
@@ -85,7 +85,7 @@
   <path d="M 590 1322 H 630 V 1336 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
   <text x="638" y="1333" text-anchor="start" fill="#606060">draws.find((d) =&gt; d.phase !== "over") ?? draws[0]</text>
   <path d="M 590 1420 H 630 V 1434 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="638" y="1431" text-anchor="start" fill="#606060">preloadChest(): the chest's claims are read while the wheel plays</text>
+  <text x="638" y="1431" text-anchor="start" fill="#606060">preloadCollectables(): the collectables screen's claims are read while the wheel plays</text>
   <rect x="20" y="1476" width="1140" height="778" fill="none" stroke="#606060" stroke-width="1.2"/>
   <path d="M 20 1476 H 64 L 72 1484 V 1496 H 20 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
   <text x="26" y="1491" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">alt</text>
@@ -124,7 +124,7 @@
   <line x1="20" y1="2156" x2="1160" y2="2156" stroke="#606060" stroke-width="1" stroke-dasharray="6,4"/>
   <text x="32" y="2171" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ the draw reads as none ]</text>
   <path d="M 590 2198 H 630 V 2212 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="638" y="2209" text-anchor="start" fill="#606060">no ceremony: on to the chest</text>
+  <text x="638" y="2209" text-anchor="start" fill="#606060">no ceremony: on to the collectables screen</text>
   <rect x="20" y="2296" width="1140" height="476" fill="none" stroke="#606060" stroke-width="1.2"/>
   <path d="M 20 2296 H 64 L 72 2304 V 2316 H 20 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
   <text x="26" y="2311" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">opt</text>
@@ -155,13 +155,13 @@
   <line x1="136" y1="2814" x2="584" y2="2814" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
   <text x="360" y="2808" text-anchor="middle" fill="#606060">Taps Continue (or 60 s pass)</text>
   <path d="M 590 2856 H 630 V 2870 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="638" y="2867" text-anchor="start" fill="#606060">router.replace(postGameHref("/chest"))</text>
+  <text x="638" y="2867" text-anchor="start" fill="#606060">router.replace(postGameHref("/collectables"))</text>
   <text x="638" y="2881" text-anchor="start" font-size="8" fill="#606060">lib/draw/draw-screen-deps.ts</text>
-  <text x="28" y="2912" text-anchor="start" font-size="11" font-weight="bold" fill="#909090">THE CHEST</text>
+  <text x="28" y="2912" text-anchor="start" font-size="11" font-weight="bold" fill="#909090">THE COLLECTABLES SCREEN</text>
   <rect x="20" y="2954" width="1140" height="1148" fill="none" stroke="#606060" stroke-width="1.2"/>
   <path d="M 20 2954 H 64 L 72 2962 V 2974 H 20 Z" fill="#ffffff" stroke="#606060" stroke-width="1.2"/>
   <text x="26" y="2969" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">par</text>
-  <text x="86" y="2969" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ the chest feed: the first read ]</text>
+  <text x="86" y="2969" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ the collectables feed: the first read ]</text>
   <line x1="596" y1="2996" x2="1044" y2="2996" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
   <text x="820" y="2990" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">getClaims(chain, { claimant: { tag: "Account", address }, individualityAt: "best" })</text>
   <text x="820" y="3009" text-anchor="middle" font-size="8" fill="#606060">@parity/product-sdk-nfts</text>
@@ -192,7 +192,7 @@
   <text x="114" y="3389" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ per preview ]</text>
   <path d="M 590 3416 H 630 V 3430 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
   <text x="638" y="3427" text-anchor="start" fill="#606060">items.get(`${collection}:${item}`); name = titleCase(archetype)</text>
-  <text x="638" y="3441" text-anchor="start" font-size="8" fill="#606060">packages/jollity-collectables/src/chest.ts</text>
+  <text x="638" y="3441" text-anchor="start" font-size="8" fill="#606060">packages/jollity-collectables/src/collectables.ts</text>
   <line x1="596" y1="3472" x2="1044" y2="3472" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
   <text x="820" y="3466" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">getVerifiedArtwork({ hex, text: manifest }, { source })</text>
   <text x="820" y="3485" text-anchor="middle" font-size="8" fill="#606060">@parity/product-sdk-nfts</text>
@@ -215,7 +215,7 @@
   <text x="32" y="3907" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ the picks ]</text>
   <line x1="596" y1="3934" x2="1044" y2="3934" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
   <text x="820" y="3928" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">readJSON("jollity.chest")</text>
-  <text x="820" y="3947" text-anchor="middle" font-size="8" fill="#606060">getHostLocalStorage(), lib/chest-picks.ts</text>
+  <text x="820" y="3947" text-anchor="middle" font-size="8" fill="#606060">getHostLocalStorage(), lib/collectables-picks.ts</text>
   <line x1="1044" y1="3976" x2="596" y2="3976" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
   <text x="820" y="3970" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">{ [hash]: { collectionId } }</text>
   <line x1="596" y1="4018" x2="1044" y2="4018" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
@@ -231,8 +231,8 @@
   <text x="26" y="4215" text-anchor="start" font-size="11" font-weight="bold" fill="#3a3a3a">opt</text>
   <text x="86" y="4215" text-anchor="start" font-size="11" font-weight="bold" fill="#606060">[ the game is still settling ]</text>
   <line x1="596" y1="4242" x2="1044" y2="4242" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="820" y="4236" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">watchChest: the claims that land, then one read after the settle</text>
-  <text x="820" y="4255" text-anchor="middle" font-size="8" fill="#606060">lib/game-source.ts, lib/chest/chest-feed.ts</text>
+  <text x="820" y="4236" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">watchCollectables: the claims that land, then one read after the settle</text>
+  <text x="820" y="4255" text-anchor="middle" font-size="8" fill="#606060">lib/game-source.ts, lib/collectables/collectables-feed.ts</text>
   <line x1="1044" y1="4284" x2="596" y2="4284" stroke="#909090" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
   <text x="820" y="4278" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">the new claims</text>
   <path d="M 590 4368 H 630 V 4382 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
@@ -245,7 +245,7 @@
   <text x="360" y="4460" text-anchor="middle" fill="#606060">Taps a collectable</text>
   <path d="M 590 4508 H 630 V 4522 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
   <text x="638" y="4519" text-anchor="start" fill="#606060">onShelfTap(index, rect)</text>
-  <text x="638" y="4533" text-anchor="start" font-size="8" fill="#606060">components/chest/chest-scene.tsx</text>
+  <text x="638" y="4533" text-anchor="start" font-size="8" fill="#606060">components/collectables/collectables-scene.tsx</text>
   <line x1="136" y1="4564" x2="584" y2="4564" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
   <text x="360" y="4558" text-anchor="middle" fill="#606060">Turns the coin to another collection</text>
   <rect x="34" y="4606" width="1112" height="140" fill="none" stroke="#606060" stroke-width="1.2"/>
@@ -255,8 +255,8 @@
   <path d="M 590 4648 H 630 V 4662 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
   <text x="638" y="4659" text-anchor="start" fill="#606060">send({ type: "pick", index, collectionId }): save-pick</text>
   <line x1="596" y1="4704" x2="1044" y2="4704" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="820" y="4698" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">writeJSON("jollity.chest", chestValue(known))</text>
-  <text x="820" y="4717" text-anchor="middle" font-size="8" fill="#606060">getHostLocalStorage(), lib/chest-picks.ts</text>
+  <text x="820" y="4698" text-anchor="middle" font-family="monospace" font-size="11" fill="#606060">writeJSON("jollity.chest", collectablesValue(known))</text>
+  <text x="820" y="4717" text-anchor="middle" font-size="8" fill="#606060">getHostLocalStorage(), lib/collectables-picks.ts</text>
   <line x1="136" y1="4830" x2="584" y2="4830" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>
   <text x="360" y="4824" text-anchor="middle" fill="#606060">Taps Continue</text>
   <path d="M 590 4872 H 630 V 4886 H 596" fill="none" stroke="#909090" stroke-width="1.5" marker-end="url(#arrow)"/>

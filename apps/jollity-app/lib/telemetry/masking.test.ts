@@ -8,7 +8,7 @@
  * vocabularies to this file.
  */
 import { describe, expect, it } from "vitest"
-import { CHEST_REASONS, DRAW_REASONS } from "../journeys/payoff-facts"
+import { COLLECTABLES_REASONS, DRAW_REASONS } from "../journeys/payoff-facts"
 import { LAYER_NAMES, layerName } from "../journeys/game-trace"
 import { FUNNEL_STAGES } from "../webrtc/funnel"
 import { FAILURE_KINDS } from "./failures"
@@ -86,7 +86,7 @@ describe("masking-safe page lifecycle and host retry vocabulary", () => {
     ...["visibilitychange", "pagehide", "pageshow", "freeze", "resume", "hidden", "visible"],
     "host.retry", "host.retry.operation", "host.retry.attempt", "host.retry.reason", "host.retry.waited_ms",
     ...["host-interrupted", "block-not-pinned", "read-timeout", "read-failed", "turn"],
-    ...["host-read", "storage.read", "storage.open", "identity.user-id", "host.system-info", "sdk.accounts", "sdk.truapi", "chain-read.settle", "chain-read.chest", "turn.ice-servers"],
+    ...["host-read", "storage.read", "storage.open", "identity.user-id", "host.system-info", "sdk.accounts", "sdk.truapi", "chain-read.settle", "chain-read.collectables", "turn.ice-servers"],
     ...["signup-route", "signup-seat", "signup-tx", "person-bind", "report", "chain-health"],
     ...["host-reconnect", "foreground-return"],
   ]
@@ -148,7 +148,7 @@ describe("masking-safe journey vocabulary", () => {
 describe("masking-safe payoff vocabulary", () => {
   it.each(
     [
-      ...CHEST_REASONS, ...DRAW_REASONS, "no-score-row", "suspended", "not-attested", "chain", "derived",
+      ...COLLECTABLES_REASONS, ...DRAW_REASONS, "no-score-row", "suspended", "not-attested", "chain", "derived",
       "draw.invited", "draw.reason", "draw.won", "draw.skipped", "chest.outcome", "chest.count", "chest.settling", "chest.reason", "chest.recovered", "chest.recovery_ms", "collectables", "none",
       "membership.standing", "membership.change", "membership.remaining", "membership.reason", "membership.reason_source",
       "became-member", "lost-membership", "member", "candidate", "payoff.stage", "chest.load", "winners-disagree", "result-disagree",

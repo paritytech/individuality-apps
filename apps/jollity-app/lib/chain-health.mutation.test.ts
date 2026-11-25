@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { classifyHostFailure } from "@individuality/people-chain"
 import {
   armChainLostRecheck,
-  chestRestartCardCopy,
+  collectablesRestartCardCopy,
   confirmTurnProofTimeoutWithProbe,
   isTurnCredentialTimeout,
   reduceHostStuckEvidence,
@@ -182,12 +182,12 @@ describe("the restart card's words and gate, pinned for mutation testing", () =>
     expect(restartCardCopy("host-unanswered", 0, "", true)).toMatchObject({ eyebrow: "Reconnecting…", heading: "Getting the connection back" })
     expect(restartCardCopy("chain-lost", 0, "", true).eyebrow).toBe("Reconnecting…")
     expect(restartCardCopy("chain-lost", 2, " 5s").escalated).toBe(true)
-    expect(chestRestartCardCopy()).toMatchObject({
+    expect(collectablesRestartCardCopy()).toMatchObject({
       eyebrow: "No answer",
       heading: "Restart the Polkadot app",
-      body: "Your Polkadot app is not answering. Close it fully (swipe it away) and open it again. Your chest and collectables are kept.",
+      body: "Your Polkadot app is not answering. Close it fully (swipe it away) and open it again. Your collectables are kept.",
     })
-    expect(chestRestartCardCopy(true).heading).toBe("Getting the connection back")
+    expect(collectablesRestartCardCopy(true).heading).toBe("Getting the connection back")
   })
 })
 

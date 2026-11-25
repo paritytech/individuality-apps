@@ -34,7 +34,7 @@
   --font: var(--font-inter), system-ui, -apple-system, sans-serif;
 }
 
-/* THE HOLD (components/draw/hold-to-chest, lib/draw/hold/scene): the way on
+/* THE HOLD (components/draw/hold-to-collectables, lib/draw/hold/scene): the way on
    is a hold, so the stage's own Continue is never shown; while a hold has
    the draw's frame ([data-holding]) the draw's words fade on their own
    (--hold-text, a filter, so it multiplies the draw's own opacity and what

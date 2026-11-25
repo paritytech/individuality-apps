@@ -24,7 +24,7 @@ vi.mock("@jollity/protocol", async (original) => ({
 import { localEnv } from "../../../packages/jollity-protocol/src/local-network.fixture"
 
 import { indexFor } from "@jollity/collectables"
-import { ChestReadError, readChest, readChestPinned } from "./scarcity"
+import { CollectablesReadError, readCollectables, readCollectablesPinned } from "./scarcity"
 import type { ScarcityChain } from "./engine"
 
 const chain = { raw: { assetHub: {} } } as unknown as ScarcityChain
@@ -118,13 +118,13 @@ function creditsAre(list: Claim[]) {
   sdk.getClaims.mockResolvedValue({ ok: true, value: { at: { individuality: at, assetHub: at }, claims: list } })
 }
 
-describe("chest reading works", () => {
+describe("collectables screen reading works", () => {
   it("keeps only the credits of the asked game", async () => {
     // Given
     creditsAre([credit({ hash: "0x01" }), credit({ hash: "0x02", gameIndex: 93 })])
 
     // When
-    const view = await readChest(chain, "5x", 92)
+    const view = await readCollectables(chain, "5x", 92)
 
     // Then
     expect(view.items.map((item) => item.hash)).toEqual(["0x01"])
@@ -139,7 +139,7 @@ describe("chest reading works", () => {
     ])
 
     // When
-    const view = await readChest(chain, "5x", 92)
+    const view = await readCollectables(chain, "5x", 92)
 
     // Then
     expect(view).toMatchObject({ unprovable: 1, pending: 1 })
@@ -151,7 +151,7 @@ describe("chest reading works", () => {
     creditsAre([credit({})])
 
     // When
-    const [item] = (await readChest(chain, "5x", 92)).items
+    const [item] = (await readCollectables(chain, "5x", 92)).items
 
     // Then
     expect(item).toMatchObject({
@@ -170,7 +170,7 @@ describe("chest reading works", () => {
     creditsAre([credit({})])
 
     // When
-    const [item] = (await readChest(chain, "5x", 92)).items
+    const [item] = (await readCollectables(chain, "5x", 92)).items
 
     // Then
     expect(item!.choices.map((choice) => choice.collectionId)).toEqual([17])
@@ -182,7 +182,7 @@ describe("chest reading works", () => {
     sdk.previewClaim.mockResolvedValue({ ok: true, value: { at, previews: [mints(18, 0)] } })
 
     // When
-    const [item] = (await readChest(chain, "5x", 92)).items
+    const [item] = (await readCollectables(chain, "5x", 92)).items
 
     // Then
     expect(item).toMatchObject({ name: "Engineer", tier: "common", rarity: "common", collection: "Jobs" })
@@ -193,7 +193,7 @@ describe("chest reading works", () => {
     creditsAre([credit({})])
 
     // When
-    await readChest(chain, "5x", 92)
+    await readCollectables(chain, "5x", 92)
 
     // Then
     expect(sdk.getApprovedCollections).toHaveBeenCalledWith("paseo")
@@ -212,7 +212,7 @@ describe("chest reading works", () => {
     })
 
     // When
-    await readChest(chain, "5x", 92)
+    await readCollectables(chain, "5x", 92)
 
     // Then
     expect(sdk.previewClaim).toHaveBeenCalledWith(chain, expect.objectContaining({ collections: [17, 18] }))
@@ -231,7 +231,7 @@ describe("chest reading works", () => {
     }))
 
     // When
-    const [item] = (await readChest(chain, "5x", 92)).items
+    const [item] = (await readCollectables(chain, "5x", 92)).items
 
     // Then
     expect(item).toMatchObject({ name: "Tea", collection: "Coffee and Tea" })
@@ -252,7 +252,7 @@ describe("chest reading works", () => {
       })
 
     // When
-    await readChest(chain, "5x", 92)
+    await readCollectables(chain, "5x", 92)
 
     // Then
     expect(sdk.getClaimableCollections).toHaveBeenNthCalledWith(1, chain, { at })
@@ -291,7 +291,7 @@ describe("chest reading works", () => {
     })
 
     // When
-    const [item] = (await readChest(chain, "5x", 92)).items
+    const [item] = (await readCollectables(chain, "5x", 92)).items
 
     // Then
     expect(sdk.getCollectionItems).toHaveBeenCalledWith(chain, 17, { at, attributes: true, fromId: 1 })
@@ -308,7 +308,7 @@ describe("chest reading works", () => {
     })
 
     // When
-    const [item] = (await readChest(chain, "5x", 92)).items
+    const [item] = (await readCollectables(chain, "5x", 92)).items
 
     // Then
     expect(item!.choices.map((choice) => choice.collectionId)).toEqual([17, 18])
@@ -325,7 +325,7 @@ describe("chest reading works", () => {
     })
 
     // When
-    const view = await readChest(chain, "5x", 92)
+    const view = await readCollectables(chain, "5x", 92)
 
     // Then
     expect(indexFor(fullHash, 3)).toBe(2)
@@ -343,7 +343,7 @@ describe("chest reading works", () => {
     })
 
     // When
-    const [item] = (await readChest(chain, "5x", 92)).items
+    const [item] = (await readCollectables(chain, "5x", 92)).items
 
     // Then
     expect(item!.choices.map((choice) => choice.collectionId)).toEqual([28, 26])
@@ -362,7 +362,7 @@ describe("chest reading works", () => {
     }))
 
     // When
-    const view = await readChest(chain, "5x", 92)
+    const view = await readCollectables(chain, "5x", 92)
 
     // Then
     expect(view.items[0]!.choices.map((choice) => choice.collectionId)).toEqual([28, 26])
@@ -379,7 +379,7 @@ describe("chest reading works", () => {
     })
 
     // When
-    const [item] = (await readChest(chain, "5x", 92)).items
+    const [item] = (await readCollectables(chain, "5x", 92)).items
 
     // Then
     expect(indexFor(fullHash, 2)).toBe(0)
@@ -397,7 +397,7 @@ describe("chest reading works", () => {
     })
 
     // When
-    const [item] = (await readChest(chain, "5x", 92)).items
+    const [item] = (await readCollectables(chain, "5x", 92)).items
 
     // Then
     expect([indexFor(hash, 3), indexFor(hash, 2)]).toEqual([2, 1])
@@ -409,21 +409,21 @@ describe("chest reading works", () => {
     creditsAre([credit({ hash: null, state: "unprovable" })])
 
     // When
-    await readChest(chain, "5x", 92)
+    await readCollectables(chain, "5x", 92)
 
     // Then
     expect(sdk.getClaimableCollections).not.toHaveBeenCalled()
   })
 
   it("previews only the claims not already shown, and nothing when none are new", async () => {
-    // Given a chest that already shows 0x01
+    // Given a collectables screen that already shows 0x01
     creditsAre([credit({ hash: "0x01" }), credit({ hash: "0x02" })])
 
     // When it is read again, with one new claim and then with none
-    const more = await readChest(chain, "5x", 92, { except: new Set(["0x01"]) })
+    const more = await readCollectables(chain, "5x", 92, { except: new Set(["0x01"]) })
     vi.clearAllMocks()
     creditsAre([credit({ hash: "0x01" }), credit({ hash: "0x02" })])
-    const none = await readChest(chain, "5x", 92, { except: new Set(["0x01", "0x02"]) })
+    const none = await readCollectables(chain, "5x", 92, { except: new Set(["0x01", "0x02"]) })
 
     // Then
     expect(more.items.map((item) => item.hash)).toEqual(["0x02"])
@@ -440,7 +440,7 @@ describe("chest reading works", () => {
 
     try {
       // When
-      const view = await readChest(chain, "5x", 92)
+      const view = await readCollectables(chain, "5x", 92)
 
       // Then
       expect(sdk.getApprovedCollections).toHaveBeenCalledWith("previewnet")
@@ -456,7 +456,7 @@ describe("chest reading works", () => {
     sdk.getApprovedCollections.mockReturnValue([])
 
     // When
-    const read = readChest(chain, "5x", 92)
+    const read = readCollectables(chain, "5x", 92)
 
     // Then
     await expect(read).rejects.toThrow(/no approved collections on paseo/)
@@ -464,13 +464,13 @@ describe("chest reading works", () => {
   })
 })
 
-describe("chest reading of fresh and spent claims works", () => {
+describe("collectables screen reading of fresh and spent claims works", () => {
   it("keeps a claim whose game is not known yet in the latest game", async () => {
     // Given
     creditsAre([credit({ hash: "0x09", gameIndex: null, state: "earned", proof: null })])
 
     // When
-    const view = await readChest(chain, "5x", 92, { latestGame: true })
+    const view = await readCollectables(chain, "5x", 92, { latestGame: true })
 
     // Then
     expect(view.items.map((item) => item.hash)).toEqual(["0x09"])
@@ -482,7 +482,7 @@ describe("chest reading of fresh and spent claims works", () => {
     creditsAre([credit({ hash: "0x09", gameIndex: null, state: "earned", proof: null })])
 
     // When
-    const view = await readChest(chain, "5x", 92)
+    const view = await readCollectables(chain, "5x", 92)
 
     // Then
     expect(view.items).toEqual([])
@@ -498,7 +498,7 @@ describe("chest reading of fresh and spent claims works", () => {
     )
 
     // When
-    const view = await readChest(chain, "5x", 92)
+    const view = await readCollectables(chain, "5x", 92)
 
     // Then
     expect(view.items.map((item) => item.hash)).toEqual(["0x01"])
@@ -513,19 +513,19 @@ describe("chest reading of fresh and spent claims works", () => {
     )
 
     // When
-    const view = await readChest(chain, "5x", 92)
+    const view = await readCollectables(chain, "5x", 92)
 
     // Then
     expect(sdk.previewClaim).toHaveBeenCalledWith(chain, expect.objectContaining({ collections: [17] }))
     expect(view.partial).toBe(true)
   })
 
-  it("counts a minted claim without dealing it into the chest", async () => {
+  it("counts a minted claim without dealing it into the collectables screen", async () => {
     // Given
     creditsAre([credit({ hash: "0x07", state: "claimed" })])
 
     // When
-    const view = await readChest(chain, "5x", 92)
+    const view = await readCollectables(chain, "5x", 92)
 
     // Then
     expect(view.items).toEqual([])
@@ -533,16 +533,16 @@ describe("chest reading of fresh and spent claims works", () => {
   })
 })
 
-describe("chest reading fails", () => {
+describe("collectables screen reading fails", () => {
   it("throws when the credits cannot be read", async () => {
     // Given
     sdk.getClaims.mockResolvedValue({ ok: false, error: new Error("connection lost") })
 
     // When
-    const read = readChest(chain, "5x", 92)
+    const read = readCollectables(chain, "5x", 92)
 
     // Then
-    await expect(read).rejects.toBeInstanceOf(ChestReadError)
+    await expect(read).rejects.toBeInstanceOf(CollectablesReadError)
   })
 
   it("throws when a claim preview is refused", async () => {
@@ -551,10 +551,10 @@ describe("chest reading fails", () => {
     sdk.previewClaim.mockResolvedValue({ ok: false, error: new Error("refused") })
 
     // When
-    const read = readChest(chain, "5x", 92)
+    const read = readCollectables(chain, "5x", 92)
 
     // Then
-    await expect(read).rejects.toBeInstanceOf(ChestReadError)
+    await expect(read).rejects.toBeInstanceOf(CollectablesReadError)
   })
 
   it("throws when a held claim has no collection to be minted in", async () => {
@@ -566,10 +566,10 @@ describe("chest reading fails", () => {
     })
 
     // When
-    const read = readChest(chain, "5x", 92)
+    const read = readCollectables(chain, "5x", 92)
 
     // Then
-    await expect(read).rejects.toBeInstanceOf(ChestReadError)
+    await expect(read).rejects.toBeInstanceOf(CollectablesReadError)
   })
 
   it("throws when a collection cannot be read", async () => {
@@ -578,14 +578,14 @@ describe("chest reading fails", () => {
     sdk.getCollectionItems.mockResolvedValue({ ok: false, error: new Error("pruned") })
 
     // When
-    const read = readChest(chain, "5x", 92)
+    const read = readCollectables(chain, "5x", 92)
 
     // Then
-    await expect(read).rejects.toBeInstanceOf(ChestReadError)
+    await expect(read).rejects.toBeInstanceOf(CollectablesReadError)
   })
 })
 
-describe("pinned chest reading works", () => {
+describe("pinned collectables screen reading works", () => {
   it("reads again when the node dropped the pinned block", async () => {
     // Given
     sdk.getClaims
@@ -593,7 +593,7 @@ describe("pinned chest reading works", () => {
       .mockResolvedValueOnce({ ok: true, value: { at: { individuality: at, assetHub: at }, claims: [credit({})] } })
 
     // When
-    const view = await readChestPinned(chain, "5x", 92)
+    const view = await readCollectablesPinned(chain, "5x", 92)
 
     // Then
     expect(view.items).toHaveLength(1)
@@ -601,21 +601,21 @@ describe("pinned chest reading works", () => {
   })
 })
 
-describe("pinned chest reading fails", () => {
+describe("pinned collectables screen reading fails", () => {
   it("does not retry a failure that is not about pinning", async () => {
     // Given
     sdk.getClaims.mockResolvedValue({ ok: false, error: new Error("connection lost") })
 
     // When
-    const read = readChestPinned(chain, "5x", 92)
+    const read = readCollectablesPinned(chain, "5x", 92)
 
     // Then
-    await expect(read).rejects.toBeInstanceOf(ChestReadError)
+    await expect(read).rejects.toBeInstanceOf(CollectablesReadError)
     expect(sdk.getClaims).toHaveBeenCalledTimes(1)
   })
 })
 
-describe("partial chest reading fails", () => {
+describe("partial collectables screen reading fails", () => {
   it("throws a dropped block from one collection so the whole read is retried", async () => {
     // Given
     creditsAre([credit({})])
@@ -624,7 +624,7 @@ describe("partial chest reading fails", () => {
     )
 
     // When
-    const read = readChest(chain, "5x", 92)
+    const read = readCollectables(chain, "5x", 92)
 
     // Then
     await expect(read).rejects.toThrow(/not pinned/)
@@ -640,7 +640,7 @@ describe("partial chest reading fails", () => {
     )
 
     // When
-    const read = readChest(chain, "5x", 92)
+    const read = readCollectables(chain, "5x", 92)
 
     // Then
     await expect(read).rejects.toThrow(/not pinned/)
@@ -653,7 +653,7 @@ it("reads local collections from explicit ids without asking the SDK registry", 
   vi.stubEnv("NEXT_PUBLIC_LOCAL_APPROVED_COLLECTIONS", "18")
   sdk.getClaims.mockResolvedValue({ ok: true, value: { at: { assetHub: at }, claims: [credit({})] } })
   sdk.previewClaim.mockResolvedValue({ ok: true, value: { at, previews: [mints(18, 0)] } })
-  const view = await readChest(chain, "account", 92)
+  const view = await readCollectables(chain, "account", 92)
   expect(view.items[0]?.choices.map((choice) => choice.collectionId)).toEqual([18])
   expect(sdk.getApprovedCollections).not.toHaveBeenCalled()
   expect(sdk.getCollectionItems).toHaveBeenCalledWith(chain, 18, expect.anything())

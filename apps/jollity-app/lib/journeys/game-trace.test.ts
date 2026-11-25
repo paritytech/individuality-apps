@@ -537,9 +537,9 @@ describe("payoff telemetry characterisation", () => {
     }
   }
 
-  const finishChest = () => {
-    trace.chestOpened()
-    trace.chestShown({ "chest.outcome": "collectables", "chest.count": "1" })
+  const finishCollectables = () => {
+    trace.collectablesOpened()
+    trace.collectablesShown({ "chest.outcome": "collectables", "chest.count": "1" })
     trace.payoffHandedOff()
   }
 
@@ -547,33 +547,33 @@ describe("payoff telemetry characterisation", () => {
     landed()
     trace.gameSettledFor(5)
     trace.drawShown({ kind: "ready", draw: { userTicket: "t", wheel: {}, won: false } as never }, null, 5)
-    finishChest()
+    finishCollectables()
     expect(payoffSnapshot()).toEqual({ steps: ["draw.show", "attestations.ready", "chest.show"], stalledAt: undefined, outcome: "shown" })
   })
 
-  it("records a chest stall before ending stalled", () => {
+  it("records a collectables screen stall before ending stalled", () => {
     landed()
     trace.gameSettledFor(5)
     trace.drawShown({ kind: "ready", draw: { userTicket: "t", wheel: {}, won: false } as never }, null, 5)
-    trace.chestOpened()
+    trace.collectablesOpened()
     trace.payoffStalled("chest.load")
-    trace.chestShown({ "chest.outcome": "none", "chest.reason": "failed" })
+    trace.collectablesShown({ "chest.outcome": "none", "chest.reason": "failed" })
     trace.payoffHandedOff()
     expect(payoffSnapshot()).toEqual({ steps: ["draw.show", "attestations.ready", "chest.show"], stalledAt: "chest.load", outcome: "stalled" })
   })
 
-  it("records a skipped draw before the chest and shown ending", () => {
+  it("records a skipped draw before the collectables screen and shown ending", () => {
     landed()
     trace.gameSettledFor(5)
     trace.drawShown({ kind: "none" }, null, 5)
-    finishChest()
+    finishCollectables()
     expect(payoffSnapshot()).toEqual({ steps: ["draw.show", "attestations.ready", "chest.show"], stalledAt: undefined, outcome: "shown" })
   })
 
   it("reloading directly into payoff pages re-emits no payoff facts", () => {
     trace.drawShown({ kind: "ready", draw: { userTicket: "t", wheel: {}, won: false } as never }, null, 5)
-    trace.chestOpened()
-    trace.chestShown({ "chest.outcome": "collectables", "chest.count": "1" })
+    trace.collectablesOpened()
+    trace.collectablesShown({ "chest.outcome": "collectables", "chest.count": "1" })
     trace.payoffHandedOff()
     expect(journeysNamed("payoff")).toEqual([])
     expect(recorded.gameLogs).toEqual([])
@@ -801,7 +801,7 @@ describe("journey.payoff", () => {
 
   it("ends attestations.ready when the chain settles this game, and only this game", () => {
     landed()
-    trace.chestOpened()
+    trace.collectablesOpened()
     trace.gameSettledFor(4)
     expect(journeysNamed("payoff")[0].steps.find((step) => step.name === "attestations.ready")?.ended).toBe(false)
     trace.gameSettledFor(5)
@@ -815,11 +815,11 @@ describe("journey.payoff", () => {
     expect(recorded.failures).toHaveLength(0)
   })
 
-  it("sends attestations-late once, 60 s after the chest opens", async () => {
+  it("sends attestations-late once, 60 s after the collectables screen opens", async () => {
     vi.useFakeTimers()
     landed()
     await vi.advanceTimersByTimeAsync(trace.ATTESTATIONS_LATE_MS)
-    trace.chestOpened()
+    trace.collectablesOpened()
     await vi.advanceTimersByTimeAsync(trace.ATTESTATIONS_LATE_MS - 1)
     expect(recorded.failures).toHaveLength(0)
     await vi.advanceTimersByTimeAsync(1)
@@ -834,12 +834,12 @@ describe("journey.payoff", () => {
     expect(trace.currentSignupSkip()).toBe("no draw scheduled")
   })
 
-  it("collects the draw and the chest, ends shown at the hand-off and sends the game log", () => {
+  it("collects the draw and the collectables screen, ends shown at the hand-off and sends the game log", () => {
     landed()
     trace.gameSettledFor(5)
     trace.drawShown({ kind: "ready", draw: { userTicket: "t", wheel: {}, won: false } as never }, null, 5)
-    trace.chestOpened()
-    trace.chestShown({ "chest.outcome": "collectables", "chest.count": "3" })
+    trace.collectablesOpened()
+    trace.collectablesShown({ "chest.outcome": "collectables", "chest.count": "3" })
     trace.payoffHandedOff()
     const [payoff] = journeysNamed("payoff")
     expect(payoff.steps.map((step) => [step.name, step.ended])).toEqual([
@@ -871,22 +871,22 @@ describe("journey.payoff", () => {
     expect(recorded.gameLogs.map((request) => request.stage)).toEqual(["report", "payoff"])
   })
 
-  it("ends stalled at the chest's stall escape", () => {
+  it("ends stalled at the collectables screen's stall escape", () => {
     landed()
-    trace.chestOpened()
+    trace.collectablesOpened()
     trace.payoffStalled("chest.load")
-    trace.chestShown({ "chest.outcome": "none", "chest.reason": "failed" })
+    trace.collectablesShown({ "chest.outcome": "none", "chest.reason": "failed" })
     trace.payoffHandedOff()
     const [payoff] = journeysNamed("payoff")
     expect(payoff.outcome).toBe("stalled")
     expect(payoff.endAttrs).toMatchObject({ "payoff.stage": "chest.load" })
   })
 
-  it("records how long a later chest read took to recover", () => {
+  it("records how long a later collectables read took to recover", () => {
     landed()
-    trace.chestOpened()
-    trace.chestReadRecovered(33_000)
-    trace.chestShown({ "chest.outcome": "collectables", "chest.count": "2" })
+    trace.collectablesOpened()
+    trace.collectablesReadRecovered(33_000)
+    trace.collectablesShown({ "chest.outcome": "collectables", "chest.count": "2" })
     const [payoff] = journeysNamed("payoff")
     expect(payoff.attrs).toMatchObject({ "chest.recovered": "true" })
     expect(recorded.metrics).toContainEqual({
@@ -898,9 +898,9 @@ describe("journey.payoff", () => {
     })
   })
 
-  it("ignores the payoff pages when there is no payoff (a reload into /chest)", () => {
-    trace.chestOpened()
-    trace.chestShown({ "chest.outcome": "none", "chest.reason": "absent" })
+  it("ignores the payoff pages when there is no payoff (a reload into /collectables)", () => {
+    trace.collectablesOpened()
+    trace.collectablesShown({ "chest.outcome": "none", "chest.reason": "absent" })
     trace.payoffHandedOff()
     expect(journeysNamed("payoff")).toHaveLength(0)
     expect(recorded.gameLogs).toHaveLength(0)
@@ -1046,7 +1046,7 @@ describe("smoothness scenes", () => {
   it("the payoff screens own their scenes (useScene): the trace enters none, so none is left behind", () => {
     trace.drawShown({ kind: "loading" }, null, 5)
     trace.drawShown(ready, null, 5)
-    trace.chestOpened()
+    trace.collectablesOpened()
     trace.payoffHandedOff()
     expect(scenes.calls.filter((call) => call.startsWith("enter"))).toEqual([])
   })

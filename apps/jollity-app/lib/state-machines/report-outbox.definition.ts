@@ -239,8 +239,8 @@ function normalizeCommands(commands: readonly OutboxCommand[]): string[] {
         return `schedule-retry:${command.delayMs}:${command.generation}`
       case "poll-handover":
         return `poll-handover:${command.delayMs}`
-      case "navigate-chest":
-        return `navigate-chest:${command.missed ? "missed" : "gone"}`
+      case "navigate-collectables":
+        return `navigate-collectables:${command.missed ? "missed" : "gone"}`
       default:
         return command.kind
     }
@@ -388,13 +388,13 @@ function modelStep(before: ModelOutboxState, event: ReportOutboxTestEvent): { st
     case "handover-missed":
       if (state.phase === "handover") {
         state.phase = "missed"
-        output.push("navigate-chest:missed")
+        output.push("navigate-collectables:missed")
       }
       break
     case "handover-gone":
       if (state.phase === "handover") {
         state.phase = "missed"
-        output.push("navigate-chest:gone")
+        output.push("navigate-collectables:gone")
       }
       break
     case "handover-pending":

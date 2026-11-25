@@ -77,12 +77,12 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    // The chest's UI renders and nothing more: the chain, the payoff's
-    // journey, storage and telemetry are its host's (lib/chest/chest-screen-host).
-    files: ["apps/jollity-app/app/chest/**/*.{ts,tsx}", "apps/jollity-app/components/chest/**/*.{ts,tsx}"],
+    // The collectables screen's UI renders and nothing more: the chain, the payoff's
+    // journey, storage and telemetry are its host's (lib/collectables/collectables-screen-host).
+    files: ["apps/jollity-app/app/collectables/**/*.{ts,tsx}", "apps/jollity-app/components/collectables/**/*.{ts,tsx}"],
     plugins: { architecture },
     rules: {
-      "architecture/no-chain-in-chest-ui": ["error", { allowlist }],
+      "architecture/no-chain-in-collectables-ui": ["error", { allowlist }],
     },
   },
   // Override default ignores of eslint-config-next.

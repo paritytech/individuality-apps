@@ -64,9 +64,9 @@ describe("the game the post-game screens are about", () => {
   it("carries the game on in the next screen's link", () => {
     vi.stubGlobal("window", { location: { search: "" } })
     rememberPostGame(150)
-    expect(postGameHref("/chest")).toBe("/chest?game=150")
+    expect(postGameHref("/collectables")).toBe("/collectables?game=150")
     forgetPostGame()
-    expect(postGameHref("/chest")).toBe("/chest")
+    expect(postGameHref("/collectables")).toBe("/collectables")
     vi.unstubAllGlobals()
     vi.stubGlobal("sessionStorage", {
       getItem: (key: string) => store.get(key) ?? null,
