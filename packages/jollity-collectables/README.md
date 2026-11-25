@@ -2,7 +2,7 @@
 
 The collectables of a Jollity player: which claims the player holds, the item
 each one would mint in every collection it can be claimed from, the item's
-rarity, and the verified art. The app draws this on its chest screen and the
+rarity, and the verified art. The app draws this on its collectables screen and the
 chat worker on the results card, so both read it from one place and never
 disagree. Nothing here imports React or a host; the caller passes how art is
 read.
@@ -11,14 +11,14 @@ read.
 
 `.` (`src/index.ts`, which re-exports every module):
 
-- `chest.ts`: `readChest`, `readChestPinned`, `ChestReadError`, and the types
-  `ChestView`, `ChestItem`, `ChestChoice`, `ChestRarity`, `ChestLog`,
-  `ScarcityChain`, `ReadChestOptions`. Reads go through
+- `collectables.ts`: `readCollectables`, `readCollectablesPinned`, `CollectablesReadError`, and the types
+  `CollectablesView`, `CollectablesItem`, `CollectablesChoice`, `CollectablesRarity`, `CollectablesLog`,
+  `ScarcityChain`, `ReadCollectablesOptions`. Reads go through
   `@parity/product-sdk-nfts`, pinned to one Asset Hub block.
 - `picks.ts`: the collection picked for each claim, under Jollity's key and
   the Stash's, whose picks win (`JOLLITY_PICKS_KEY`, `STASH_PICKS_KEY`,
-  `parseChestPicks`, `collectionFor`, `defaultCollectionFor`, `indexFor`,
-  `chestValue`, `normalizeCreditHash`, `storedJSON`).
+  `parseCollectablesPicks`, `collectionFor`, `defaultCollectionFor`, `indexFor`,
+  `collectablesValue`, `normalizeCreditHash`, `storedJSON`).
 - `with-picks.ts`: `withPicks`, `canChangePick`.
 - `rarity.ts`: `DEFAULT_RARITIES`, `parseRarities`, `rarityName`,
   `compareRarities`, `effectiveRarities`, `rarerThanCommonest`, `Tier`.

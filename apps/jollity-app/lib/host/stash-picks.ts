@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { network } from "@jollity/protocol"
-import { parseChestPicks, STASH_PICKS_KEY, storedJSON, type ChestPicks } from "@jollity/collectables"
+import { parseCollectablesPicks, STASH_PICKS_KEY, storedJSON, type CollectablesPicks } from "@jollity/collectables"
 import { devLog } from "../debug/log-store"
 import { withTimeout } from "../with-timeout"
 
@@ -23,10 +23,10 @@ export interface ReadStashPicksOptions {
  * unavailable, refused, malformed, and timed-out reads are null so callers can
  * distinguish fallback from a successful empty value.
  */
-export async function readStashPicks(options: ReadStashPicksOptions = {}): Promise<ChestPicks | null> {
+export async function readStashPicks(options: ReadStashPicksOptions = {}): Promise<CollectablesPicks | null> {
   const product = stashProduct()
   try {
-    const read = (async (): Promise<ChestPicks | null> => {
+    const read = (async (): Promise<CollectablesPicks | null> => {
       const sdk = await import("@parity/product-sdk-host")
       const api = await sdk.getTruApi()
       if (!api) return null
@@ -47,7 +47,7 @@ export async function readStashPicks(options: ReadStashPicksOptions = {}): Promi
       if (!response.value) return new Map()
       const json = storedJSON(response.value)
       if (typeof json !== "object" || json === null || Array.isArray(json)) throw new Error("stash.picks is not an object")
-      return parseChestPicks(json)
+      return parseCollectablesPicks(json)
     })()
     const picks = await withTimeout(read, options.timeoutMs ?? READ_TIMEOUT_MS)
     if (picks === null) {

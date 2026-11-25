@@ -7,7 +7,7 @@
  * The pallet takes a player's report only while the game is in Reporting.
  * Once the chain has left Reporting and holds no report for this player in
  * this game, the report is MISSED: the session stops retrying, skips the
- * prize draw (no attendance, no draw) and hands over to the chest, which
+ * prize draw (no attendance, no draw) and hands over to the collectables screen, which
  * shows what the chain gives a non-reporter.
  *
  * Both facts are the chain's, read at one block: the window is shut by the

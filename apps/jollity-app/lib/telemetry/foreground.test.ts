@@ -422,7 +422,7 @@ describe("foreground context", () => {
     ["/game", undefined, undefined, { screen: "game", stage: "connecting", playStarted: false }],
     ["/game", "game.round", "warn", { screen: "game", stage: "game.round.warn", playStarted: true }],
     ["/game", "game.confirm", undefined, { screen: "game", stage: "game.confirm", playStarted: true }],
-    ["/chest", "chest", undefined, { screen: "payoff", stage: "none", playStarted: false }],
+    ["/collectables", "chest", undefined, { screen: "payoff", stage: "none", playStarted: false }],
   ] as const)("classifies %s / %s / %s", (pathname, scene, moment, expected) => {
     expect(foregroundContext(pathname, scene, moment)).toEqual(expected)
   })

@@ -4,15 +4,15 @@
 // Part of the wrapping effect: its names are Wrapping*, except the shader exports (SHELL_*).
 // Can this screen actually draw wrappings?
 //
-// The answer must be available OUTSIDE the lazy GL chunk. The chest scene
-// (components/chest/chest-scene.tsx) and the Pocket's scene
+// The answer must be available OUTSIDE the lazy GL chunk. The collectables scene
+// (components/collectables/collectables-scene.tsx) and the Pocket's scene
 // (lib/pocket/scene.ts) decide from it whether to import
-// `WrappingRenderer` at all, and the chest decides at the same moment whether
+// `WrappingRenderer` at all, and the collectables screen decides at the same moment whether
 // its flat sprites show the art or leave it to the wrapping, so both need the
 // answer synchronously. Nothing here imports the renderer.
 //
 // Reduced motion does not turn the wrapping off. The renderer can freeze the
-// sway per entry (`WrappingDrawEntry.still`); the chest does not use it yet.
+// sway per entry (`WrappingDrawEntry.still`); the collectables screen does not use it yet.
 //
 // The unavailable latch is ONE-WAY. Recovery would need a full screen remount,
 // so once the wrapping is gone for a session it stays gone. A flickering broken
@@ -43,7 +43,7 @@ function webglSupported(): boolean {
     const c = document.createElement('canvas')
     const gl = c.getContext('webgl') || c.getContext('experimental-webgl')
     // Hand the probe context straight back. Browsers cap live contexts at
-    // around sixteen, and the chest screen runs other canvases too.
+    // around sixteen, and the collectables screen runs other canvases too.
     const lose = gl && (gl as WebGLRenderingContext).getExtension('WEBGL_lose_context')
     if (lose) lose.loseContext()
     if (!gl) return false

@@ -21,7 +21,7 @@ export interface PayoffSessionRunner {
 
 /**
  * Client-side route replacements mount a new page without reloading this
- * module. Keep one reducer state per game so /prize-draw and /chest are
+ * module. Keep one reducer state per game so /prize-draw and /collectables are
  * adapters over one payoff journey. A document reload naturally clears
  * the registry and preserves the silent reload bootstrap contract.
  */

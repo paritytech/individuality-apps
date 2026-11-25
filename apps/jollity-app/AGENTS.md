@@ -92,8 +92,8 @@ apps/jollity-app/       ① APP, @jollity/app — Next.js (App Router), static-e
 │                              lands on the chain's winners
 │     lib/draw/hold/           THE WAY ON FROM THE DRAW: hold anywhere and
 │                              the draw is gathered into the collectables'
-│                              bubble (scene.ts), carried on to /chest
-│                              (lib/chest-scene/carry.ts); look.ts looks
+│                              bubble (scene.ts), carried on to /collectables
+│                              (lib/collectables-scene/carry.ts); look.ts looks
 │                              round the wheel before the hold
 └── scripts/                   the bakes (bake-*.mjs: cash-wordmark, draw-coin,
                                prize-ticket, signup-ring)
@@ -120,8 +120,8 @@ packages/
 │                              the app and the chat both import
 ├── shared-records/            @individuality/shared-records — what Jollity and
 │                              Humanity share (the game registration record)
-├── jollity-collectables/      @jollity/collectables — the chest read: which item
-│                              each claim mints and its art, shared by /chest of
+├── jollity-collectables/      @jollity/collectables — the collectables read: which item
+│                              each claim mints and its art, shared by /collectables of
 │                              the app and the results card of the chat
 ├── jollity-statement-core/    ③ @jollity/statement-core — statement-store engine
 │   └── src/                   statement.ts, rpc.ts, store.ts, transport.ts,
@@ -271,7 +271,7 @@ instead of a silent UI behaviour change.
 **5. HOST CAPABILITIES GO BEHIND A DOORWAY TOO.** `lib/host/identity.ts`
 (the permissioned name: `requestLogin` → `getUserId`), `lib/host/navigate.ts`
 (`navigateTo`, browser fallback), `lib/permissions.ts`, `lib/host/storage.ts`
-(host storage, where `lib/worker-bridge.ts` and `lib/chest-picks.ts` keep
+(host storage, where `lib/worker-bridge.ts` and `lib/collectables-picks.ts` keep
 their keys), `lib/host/sign-up.ts` (the sign-up's host capabilities: the
 draw tickets and peopl's personhood keys), `lib/host/game-reminder.ts` (the next-game reminder of the host,
 which the chat keeps through `apps/jollity-worker/src/host.ts`), `lib/host/game-registration.ts`
@@ -284,7 +284,7 @@ components never import `@parity/product-sdk-host`.
 
 **6. ANIMATION LOGIC IS FRAMEWORK-FREE; COMPONENTS ONLY FEED IT PARAMS.**
 Every scene keeps its brains in `lib/` with no React import at all —
-`lib/chest-scene/engine.ts`, `lib/draw/wheel/mount.ts`, `lib/draw/hold/*`,
+`lib/collectables-scene/engine.ts`, `lib/draw/wheel/mount.ts`, `lib/draw/hold/*`,
 `lib/pocket/*`, `lib/coin3d/*`, `lib/wrapping/*`, `lib/game-session.ts` — and the component is a host that
 passes props and forwards gestures. It is why a scene can be ported, tuned
 and tested apart from React, and why the prize draw's wheel can run as a
@@ -299,7 +299,7 @@ the peer check corrects the game clock, and how server-judged stamps retry) is
 **docs/time-and-clocks.md**. Read it before touching any clock read.
 
 **8. OVERLAYS STAY ON THEIR SCREEN; THE LAYERING IS THE DISCIPLINE.** The
-hologram picker is a component of `/chest`, not a route — an opened
+hologram picker is a component of `/collectables`, not a route — an opened
 collectable opens it in place and it flies back into that piece on close. Two
 WebGL contexts therefore live on one page, which is fine, but only because
 of how the layers are built: the picker's stage is STATIC and never
@@ -535,7 +535,7 @@ player's help, when a deployment turns telemetry on.
   @sentry/react (the lib/host rule). Everything else calls startJourney,
   reportFailure, setPlayer, setGameIndex and sendGameLog, and none of them
   throws because of Sentry. lib/journeys/ (app open, and the game trace across
-  /game, /prize-draw and /chest) is written against those, with no
+  /game, /prize-draw and /collectables) is written against those, with no
   Sentry of its own. Verify: in apps/jollity-app, grep -rn '@sentry/react' app
   lib components, minus lib/telemetry/, prints nothing.
 - **Configuration** is the deployer's: no DSN, no telemetry. The variables and

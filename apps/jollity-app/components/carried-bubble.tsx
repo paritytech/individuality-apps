@@ -5,18 +5,18 @@
 
 /**
  * THE BUBBLE BETWEEN THE SCREENS. The draw's hold carries the bubble to
- * /chest (lib/chest-scene/carry), and for the moment of the route change
- * neither page draws it: the draw page is gone, and the chest's engine has
+ * /collectables (lib/collectables-scene/carry), and for the moment of the route change
+ * neither page draws it: the draw page is gone, and the collectables screen's engine has
  * not drawn its first frame. This holds it there, still swirling, from the
  * draw page's leaving until the engine has drawn its own (carryShown), then
  * lets go in a breath. It is the one layer that outlives a screen, and it
  * draws nothing at all unless a bubble is in flight.
  */
 import { useEffect, useRef, useState } from "react"
-import { CARRY_MAX_AGE_MS, watchCarried, type CarriedBubble } from "@/lib/chest-scene/carry"
+import { CARRY_MAX_AGE_MS, watchCarried, type CarriedBubble } from "@/lib/collectables-scene/carry"
 import { drawCarriedBubble } from "@/lib/draw/hold/film"
 
-/** how long it takes to let go, once the chest has the bubble */
+/** how long it takes to let go, once the collectables screen has the bubble */
 const LET_GO_MS = 160
 
 export function CarriedBubbleLayer() {
@@ -50,7 +50,7 @@ export function CarriedBubbleLayer() {
     let raf = 0
     const frame = () => {
       raf = requestAnimationFrame(frame)
-      // the chest never took it (it was reached some other way): let go
+      // the collectables screen never took it (it was reached some other way): let go
       if (performance.now() - bubble.at > CARRY_MAX_AGE_MS) setLetGo(true)
       const dpr = Math.min(2, devicePixelRatio || 1)
       const w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr)

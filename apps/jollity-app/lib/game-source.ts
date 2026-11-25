@@ -34,7 +34,7 @@
 import { AccountId } from "polkadot-api"
 import type { CommonSignerTxCreator } from "@polkadot-api/signers-common"
 import type { ProductAccount, TruApi } from "@parity/product-sdk-host"
-// Every Game pallet read and write goes through the GameEngine. The chest is the
+// Every Game pallet read and write goes through the GameEngine. The collectables screen is the
 // exception: lib/scarcity.ts reads the People + Asset Hub pair lib/engine.ts builds.
 import { groupSeats } from "@parity/product-sdk-individuality"
 import type { GameTimingInfo } from "@jollity/game-chain"
@@ -58,7 +58,7 @@ import { claimWithRetry } from "@individuality/prize"
 import type { RegistrationPhase } from "@individuality/shared-records"
 import { statementTransport, type CreateTransport, type ResolveStore } from "@jollity/statement-core"
 import { resolveDevEngine, resolveHostEngine, resolveScarcityChain, withExtrinsicLogging } from "./engine"
-import { readChestPinned, type ChestItem, type ChestView } from "./scarcity"
+import { readCollectablesPinned, type CollectablesItem, type CollectablesView } from "./scarcity"
 import type { DrawPhase, PrizeDrawView } from "./draw/prize-draw"
 import { rememberDrawMiss } from "./draw/draw-miss"
 import {
@@ -280,8 +280,8 @@ export interface LiveGameView {
   reportSent: boolean | undefined
 }
 
-/** what a chest read before the settle needs of the votes on the player */
-interface ChestVotes {
+/** what a collectables read before the settle needs of the votes on the player */
+interface CollectablesVotes {
   /** the votes in so far fail the player, whatever comes */
   failed: boolean
   votesToCome: number
@@ -374,31 +374,31 @@ export interface GameSource {
    *  pallet's error name when the chain refuses it. */
   claimPrize?: (gameIndex: number, airdropIndex: number) => Promise<void>
   /**
-   * What the chest shows: the claims of the player for one game (default: their
+   * What the collectables screen shows: the claims of the player for one game (default: their
    * last attended), resolved to collectables with loadable artwork. Null when
    * there is no player identity to read for. A game still in reporting answers
    * with the claims that have arrived, `settling`; `afterSettle` waits for the
    * settle and its credits instead.
    */
-  chestView: (options?: {
+  collectablesView: (options?: {
     player?: string
     gameIndex?: number
     signal?: AbortSignal
     afterSettle?: boolean
     /** keep reading while votes are out, for the read that follows a `voting` answer */
     holdWhileVoting?: boolean
-  }) => Promise<ChestView | null>
+  }) => Promise<CollectablesView | null>
   /**
-   * The claims that come into a chest opened before its game settled, as they
+   * The claims that come into a collectables screen opened before its game settled, as they
    * come: read again whenever the player's row moves (a vote for them landed)
    * until the game settles, and each claim not in `shown` handed to `onItems`
    * once. Resolves once the game has settled; rejects on `signal`.
    */
-  watchChest?: (options: {
+  watchCollectables?: (options: {
     player?: string
     gameIndex: number
     shown: readonly string[]
-    onItems: (items: ChestItem[]) => void
+    onItems: (items: CollectablesItem[]) => void
     signal: AbortSignal
   }) => Promise<void>
   /**
@@ -444,7 +444,7 @@ function drawPhase(status: string): DrawPhase {
   return "waiting"
 }
 
-export type { ChestChoice, ChestItem, ChestView } from "./scarcity"
+export type { CollectablesChoice, CollectablesItem, CollectablesView } from "./scarcity"
 
 /** How early a registered player may enter the waiting room (T−5:00). A
  *  product choice, not a chain rule; the camera warm-up starts later
@@ -651,8 +651,8 @@ async function warnOnForeignProduct(truApi: TruApi): Promise<void> {
   console.warn(`[game-source] served as ${mismatch.servedAs}, signing as ${mismatch.signsAs}`)
 }
 
-/** the chest's look for one player and one game: the same on every device */
-export function chestSeed(account: string, gameIndex: number | null): string {
+/** the collectables screen's look for one player and one game: the same on every device */
+export function collectablesSeed(account: string, gameIndex: number | null): string {
   return `${account}:${gameIndex ?? "all"}`
 }
 
@@ -1604,9 +1604,9 @@ export function makeSource(
   const gameSettled = settle.settled
 
   /**
-   * What wakes a chest read before the settle: the player's own row, which a
+   * What wakes a collectables read before the settle: the player's own row, which a
    * co-player's Person vote moves in the block that awards its credit
-   * (pallet-game `report`). Its first row is the one the chest is read at.
+   * (pallet-game `report`). Its first row is the one the collectables screen is read at.
    */
   const playerRowMoves =
     (who: string) =>
@@ -1630,7 +1630,7 @@ export function makeSource(
    * weight co-players can still cast on them, 0 once every vote is in. Null
    * while the row holds no verdict for that game.
    */
-  const watchChestVotes = (who: string, gameIndex: number, cb: (votes: ChestVotes | null) => void): (() => void) => {
+  const watchCollectablesVotes = (who: string, gameIndex: number, cb: (votes: CollectablesVotes | null) => void): (() => void) => {
     let game: GameSlot | undefined
     let row: AttendanceRow | undefined
     let gameRead = false
@@ -1676,9 +1676,9 @@ export function makeSource(
   }
 
   /**
-   * The chest of a game still in reporting, once anything has arrived in it
+   * The collectables screen of a game still in reporting, once anything has arrived in it
    * (@individuality/game-outcome, before-settle.ts), or once the votes on the
-   * player say what an empty chest means: read as it stands, again until
+   * player say what an empty collectables screen means: read as it stands, again until
    * then. Claims open it `settling`. With none, it opens `voting` while
    * co-players can still vote (unless `holdWhileVoting`), and with the
    * verdict once every vote is in and none recognised the player. `view` is
@@ -1686,21 +1686,21 @@ export function makeSource(
    * read: the caller then reads it as a settled game, with `last`, the last
    * votes seen in reporting.
    */
-  const chestBeforeSettle = async (
+  const collectablesBeforeSettle = async (
     who: string,
     gameIndex: number,
     settles: Promise<void>,
     signal?: AbortSignal,
     holdWhileVoting?: boolean,
-  ): Promise<{ view: ChestView | null; last: ChestVotes | null }> => {
+  ): Promise<{ view: CollectablesView | null; last: CollectablesVotes | null }> => {
     const chain = await resolveScarcityChain()
     if (!chain) return { view: null, last: null }
-    let votes: ChestVotes | null = null
-    let last: ChestVotes | null = null
+    let votes: CollectablesVotes | null = null
+    let last: CollectablesVotes | null = null
     let wake: (() => void) | null = null
     let stopVotes = () => {}
     try {
-      stopVotes = watchChestVotes(who, gameIndex, (next) => {
+      stopVotes = watchCollectablesVotes(who, gameIndex, (next) => {
         votes = next
         if (next) last = next
         wake?.()
@@ -1708,8 +1708,8 @@ export function makeSource(
     } catch (error) {
       devLog("chest", "the votes watch failed", { gameIndex, detail: describeError(error) }, "warn")
     }
-    type Read = Omit<ChestView, "seed">
-    const decided: { value: { votes: ChestVotes; final: boolean } | null } = { value: null }
+    type Read = Omit<CollectablesView, "seed">
+    const decided: { value: { votes: CollectablesVotes; final: boolean } | null } = { value: null }
     const arrived = (view: Read) => {
       if (view.items.length > 0) return true
       if (!votes || view.pending !== 0 || view.partial === true) return false
@@ -1722,7 +1722,7 @@ export function makeSource(
     try {
       found = await readBeforeSettle({
         // the newest game, so a claim whose award block has no root yet is its own
-        read: () => withTimeout(readChestPinned(chain, who, gameIndex, { latestGame: true }), READ_ATTEMPT_MS),
+        read: () => withTimeout(readCollectablesPinned(chain, who, gameIndex, { latestGame: true }), READ_ATTEMPT_MS),
         arrived,
         settles,
         watch: (changed, failed) => {
@@ -1740,7 +1740,7 @@ export function makeSource(
     }
     if (!found) return { view: null, last }
     const { value: view, attempt: read } = found
-    const seed = chestSeed(who, gameIndex)
+    const seed = collectablesSeed(who, gameIndex)
     const decision = decided.value
     if (view.items.length === 0 && decision) {
       const counted = decision.votes
@@ -1760,16 +1760,16 @@ export function makeSource(
   }
 
   /**
-   * A chest opened before the settle, kept up to date until it (the source's
-   * `watchChest`), each read woken by the player's row (playerRowMoves). A
-   * claim already shown is not previewed again (readChest `except`), so a read
+   * A collectables screen opened before the settle, kept up to date until it (the source's
+   * `watchCollectables`), each read woken by the player's row (playerRowMoves). A
+   * claim already shown is not previewed again (readCollectables `except`), so a read
    * with nothing new is one claims query.
    */
-  const watchChest = async (options: {
+  const watchCollectables = async (options: {
     player?: string
     gameIndex: number
     shown: readonly string[]
-    onItems: (items: ChestItem[]) => void
+    onItems: (items: CollectablesItem[]) => void
     signal: AbortSignal
   }): Promise<void> => {
     const who = options.player ?? player
@@ -1789,7 +1789,7 @@ export function makeSource(
       )
       await readUntilSettle({
         read: () =>
-          withTimeout(readChestPinned(chain, who, gameIndex, { latestGame: true, except: shown }), READ_ATTEMPT_MS),
+          withTimeout(readCollectablesPinned(chain, who, gameIndex, { latestGame: true, except: shown }), READ_ATTEMPT_MS),
         watch: playerRowMoves(who),
         onWatchError: logPlayerWatchError(gameIndex),
         onRead: (view, read) => {
@@ -1811,19 +1811,19 @@ export function makeSource(
     }
   }
 
-  const chestView = async (options?: {
+  const collectablesView = async (options?: {
     player?: string
     gameIndex?: number
     signal?: AbortSignal
     /** Read only once the game has settled, for the credits the settle adds. */
     afterSettle?: boolean
     holdWhileVoting?: boolean
-  }): Promise<ChestView | null> => {
+  }): Promise<CollectablesView | null> => {
     const who = options?.player ?? player
     if (!who) return null
     const requested: number | null = options?.gameIndex ?? null
     let gameIndex = requested
-    let lastVotes: ChestVotes | null = null
+    let lastVotes: CollectablesVotes | null = null
     try {
       // A game still in reporting opens on the claims that have arrived. With
       // none yet, the settle is waited for: the pallet writes
@@ -1834,7 +1834,7 @@ export function makeSource(
         const forward = () => watch.abort(options?.signal?.reason)
         options?.signal?.addEventListener("abort", forward, { once: true })
         let settles = whenGameSettles(requested, watch.signal)
-        // awaited below; this keeps a watch the early chest stops from surfacing as unhandled
+        // awaited below; this keeps a watch the early collectables screen stops from surfacing as unhandled
         settles.catch(() => {})
         try {
           if (!options?.afterSettle) {
@@ -1845,7 +1845,7 @@ export function makeSource(
                 () => true,
                 () => false,
               )
-              const early = await chestBeforeSettle(who, requested, settles, options?.signal, options?.holdWhileVoting)
+              const early = await collectablesBeforeSettle(who, requested, settles, options?.signal, options?.holdWhileVoting)
               if (early.view) return early.view
               lastVotes = early.last ?? lastVotes
               if (!options?.holdWhileVoting || (await settled)) break
@@ -1858,7 +1858,7 @@ export function makeSource(
           await settles
         } finally {
           options?.signal?.removeEventListener("abort", forward)
-          // stops the watch an early chest leaves running; a no-op once it settled
+          // stops the watch an early collectables screen leaves running; a no-op once it settled
           watch.abort()
         }
       }
@@ -1868,22 +1868,22 @@ export function makeSource(
           // older game would hide them behind a false "you earned nothing".
           const lastAttended = (await engine.participant(who))?.last_attended_game ?? null
           gameIndex = requested ?? lastAttended
-          const seed = chestSeed(who, gameIndex)
+          const seed = collectablesSeed(who, gameIndex)
           const chain = await resolveScarcityChain()
           if (!chain) {
-            console.warn(`[chest] no Asset Hub to read game ${gameIndex} from`)
+            console.warn(`[collectables screen] no Asset Hub to read game ${gameIndex} from`)
             return { gameIndex, seed, items: [], unprovable: 0, pending: 0, claimed: 0, failed: "no Asset Hub" }
           }
-          const read = await readChestPinned(chain, who, gameIndex, {
+          const read = await readCollectablesPinned(chain, who, gameIndex, {
             latestGame: gameIndex !== null && gameIndex === lastAttended,
           })
           const attended = gameIndex !== null && gameIndex === lastAttended
-          // only an empty chest needs the fact of the report, and a failed read is "not known"
+          // only an empty collectables screen needs the fact of the report, and a failed read is "not known"
           const row =
             !attended && read.items.length === 0
               ? await engine.player(who).catch(unknownOnFailure(PLAYER_ROW_READ_FAILED))
               : undefined
-          // the settle resets the row, so a chest open across it keeps the votes reporting closed on
+          // the settle resets the row, so a collectables open across it keeps the votes reporting closed on
           const empty = read.items.length === 0 && read.pending === 0 && read.claimed === 0 && read.unprovable === 0 && read.partial !== true
           if (empty && !attended && lastVotes?.reported === true && !lastVotes.atClose && !lastVotes.recognised)
             return { ...read, seed, attended, reportSent: true, verdict: "failed" as const }
@@ -1895,8 +1895,8 @@ export function makeSource(
       if (options?.signal?.aborted) throw readAbortReason(options.signal)
       const failed = describeError(error)
       devLog("chest", "chest read failed", { gameIndex, detail: failed }, "warn")
-      console.warn(`[chest] read failed for game ${gameIndex}: ${failed}`)
-      return { gameIndex, seed: chestSeed(who, gameIndex), items: [], unprovable: 0, pending: 0, claimed: 0, failed }
+      console.warn(`[collectables screen] read failed for game ${gameIndex}: ${failed}`)
+      return { gameIndex, seed: collectablesSeed(who, gameIndex), items: [], unprovable: 0, pending: 0, claimed: 0, failed }
     }
   }
 
@@ -2012,8 +2012,8 @@ export function makeSource(
     submitReport,
     probeChainHealth,
     claimPrize,
-    chestView,
-    watchChest,
+    collectablesView,
+    watchCollectables,
     prizeDrawView,
     gameSettled,
     watchAttendance: player ? (gameIndex, cb) => attendance.watch(player, gameIndex, cb) : undefined,

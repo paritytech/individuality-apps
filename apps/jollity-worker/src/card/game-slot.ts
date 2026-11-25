@@ -17,7 +17,7 @@
  * no React, no host and no storage.
  *
  * After the game the card keeps changing without the game changing. The player
- * opens the chest, the draw is held, they watch it, and a win is claimed.
+ * opens the collectables screen, the draw is held, they watch it, and a win is claimed.
  * `payoff()` reads those off the results, from what the app recorded the
  * player doing in `seen` and where the draw is in `prize.phase`, and hands the
  * card the short list of what is still to do. When that list is empty the card
@@ -88,7 +88,7 @@ export interface SlotPrize {
 export interface GameResults {
   endedAt: number
   passed: boolean
-  /** Null until the worker has read the chest on Asset Hub, then the tiles the stash would mint. */
+  /** Null until the worker has read the collectables on Asset Hub, then the tiles the stash would mint. */
   collectables: SlotCollectable[] | null
   /** How many collectibles the game earned the player, from the claims on Asset
    *  Hub. Absent until the worker has read them. */

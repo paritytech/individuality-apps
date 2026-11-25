@@ -5,7 +5,7 @@
  * THE DRAW SCREEN'S WORLD — what lib/draw/draw-screen-host runs its commands
  * against, for real: the chain (the source, the draw's read, the claim), the
  * journey (the payoff, the seen-mark, the draw's facts), the browser (the
- * idle watch, the chest's claims read early, the page's visibility, the stage) and the
+ * idle watch, the collectables screen's claims read early, the page's visibility, the stage) and the
  * debug log. The screen's one module that imports them.
  */
 import { getGameSource } from "@/lib/game-source"
@@ -25,7 +25,7 @@ import { describeError } from "@/lib/host/error-detail"
 import { contactUsernames } from "@/lib/host/contacts"
 import { postGameIndex } from "@/lib/post-game"
 import { devUrlParam } from "@/lib/debug/dev-url"
-import { chestHref } from "@/lib/draw/chest-href"
+import { collectablesHref } from "@/lib/draw/collectables-href"
 import type { DrawScreenDeps } from "@/lib/draw/draw-screen-host"
 
 export function browserDrawScreenDeps(router: { replace(href: string): void }): DrawScreenDeps {
@@ -52,11 +52,11 @@ export function browserDrawScreenDeps(router: { replace(href: string): void }): 
     payoff: createPrizeDrawPayoffRunner(game ?? -1),
     drawShown,
     markSeen: (index) => void markSeen(index, "draw"),
-    // the draw plays FIRST, while the chain is still tallying what the chest will hold
-    toChest: () => router.replace(chestHref()),
-    // the chest comes next: its claims are read while the wheel plays
-    preloadChest: () => {
-      void import("@/lib/chest/chest-screen-deps").then(({ preloadChestFeed }) => preloadChestFeed()).catch(() => {})
+    // the draw plays FIRST, while the chain is still tallying what the collectables screen will hold
+    toCollectables: () => router.replace(collectablesHref()),
+    // the collectables screen comes next: its claims are read while the wheel plays
+    preloadCollectables: () => {
+      void import("@/lib/collectables/collectables-screen-deps").then(({ preloadCollectablesFeed }) => preloadCollectablesFeed()).catch(() => {})
     },
     idle: createBrowserDrawIdle,
     touch: touchOnPointerDown,

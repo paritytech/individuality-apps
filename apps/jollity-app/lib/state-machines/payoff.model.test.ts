@@ -18,7 +18,7 @@ describe("payoff state-machine model", () => {
     expect(coverage.missing).toEqual([])
     expect(coverage.impossibleObserved).toEqual([])
     expect(coverage.hit).toBe(coverage.declared)
-    expect(coverage.hits["chest-reading|draw:0|stalled:0::draw-result|current::transition"]).toBeGreaterThan(0)
+    expect(coverage.hits["collectables-reading|draw:0|stalled:0::draw-result|current::transition"]).toBeGreaterThan(0)
     expect(coverage.hits["draw-waiting|draw:0|stalled:1::payoff-stalled|current::no-op"]).toBeGreaterThan(0)
     expect(coverage.generatedSequenceLengths).toMatchObject({ count: 300, min: 0 })
     expect(coverage.generatedSequenceLengths?.p95).toBeGreaterThanOrEqual(45)
@@ -33,14 +33,14 @@ describe("payoff state-machine model", () => {
 
   it("keeps a typed named regression corpus on every run", () => {
     expect(payoffRegressionCorpus.map((entry) => entry.name)).toEqual([
-      "normal draw-chest-humanity journey",
+      "normal draw-collectables-humanity journey",
       "idle draw advance",
       "stale and duplicate async answers are inert",
       "stalled payoff keeps stalled outcome and sends the log at the hand-off",
-      "a slow chest hands off without the chest",
-      "reload on chest",
+      "a slow collectables screen hands off without the collectables screen",
+      "reload on collectables screen",
       "reload after payoff already ended",
-      "saved chest epoch rejects old read and accepts current read",
+      "saved collectables screen epoch rejects old read and accepts current read",
     ])
   })
 
@@ -52,7 +52,7 @@ describe("payoff state-machine model", () => {
       "stale-epoch-older",
       "stale-epoch-newer",
     ])
-    expect(payoffInitialCases.map((entry) => entry.name)).toEqual(["prize draw", "chest reload", "ended reload"])
+    expect(payoffInitialCases.map((entry) => entry.name)).toEqual(["prize draw", "collectables screen reload", "ended reload"])
     expect(payoffInitialCases[1].real.epoch).toBe(2)
     expect(payoffInitialCases[1].model.epoch).toBe(2)
     expect(payoffInitialCases[2].real.epoch).toBe(2)

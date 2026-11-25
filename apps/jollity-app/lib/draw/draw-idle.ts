@@ -4,8 +4,8 @@
 /**
  * THE DRAW LEFT WAITING MOVES ON BY ITSELF. The wheel (lib/draw/wheel/proto)
  * goes on only when the player taps, and a player who walks away has probably
- * put the app in the background, and would otherwise never reach the chest.
- * After DRAW_IDLE_MS without a tap the host takes the player to the chest.
+ * put the app in the background, and would otherwise never reach the collectables screen.
+ * After DRAW_IDLE_MS without a tap the host takes the player to the collectables screen.
  *
  * Framework-free (architecture rule 6): lib/draw/draw-screen-deps.ts wires
  * it. It does NOT mark the draw seen, so the chat card keeps offering what

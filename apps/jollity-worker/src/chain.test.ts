@@ -24,7 +24,7 @@ vi.mock("@parity/product-sdk-nfts", () => ({ getClaims: vi.fn(), preimageSource:
 
 vi.mock("@jollity/collectables", async (original) => ({
   ...(await original<typeof import("@jollity/collectables")>()),
-  readChestPinned: vi.fn(),
+  readCollectablesPinned: vi.fn(),
 }))
 
 vi.mock("polkadot-api", async (original) => ({
@@ -825,7 +825,7 @@ describe("earned reading works", () => {
   }
   const hub = { getUnsafeApi: () => ({}) } as never
 
-  it("counts the claims of the game the way the chest does, leaving out unprovable ones", async () => {
+  it("counts the claims of the game the way the collectables screen does, leaving out unprovable ones", async () => {
     // Given
     const chain = await claims(9, [
       { gameIndex: 7, state: "earned" },
@@ -885,11 +885,11 @@ describe("collectables reading works", () => {
     return { collectionId, collection: `Collection ${collectionId}`, name, rarity, image: `cid-${name}` }
   }
 
-  async function chest(picks: { jollity: number; stash: number }) {
+  async function collectablesRead(picks: { jollity: number; stash: number }) {
     const { chain } = await personhood(member, 7)
     const collectables = await import("@jollity/collectables")
     const choices = [choice(0, "Hare"), choice(1, "Pizza"), choice(2, "Acropolis", "rare")]
-    vi.mocked(collectables.readChestPinned).mockResolvedValue({
+    vi.mocked(collectables.readCollectablesPinned).mockResolvedValue({
       gameIndex: 7,
       items: [{ hash: HARE, proof: null, state: "claimable", ...choices[0]!, choices }],
       unprovable: 0,
@@ -907,7 +907,7 @@ describe("collectables reading works", () => {
 
   it("deals the collection Scarcity picked over the one Jollity picked", async () => {
     // Given
-    const { chain, host, readJSON, readProductJSON } = await chest({ jollity: 1, stash: 2 })
+    const { chain, host, readJSON, readProductJSON } = await collectablesRead({ jollity: 1, stash: 2 })
 
     // When
     const read = await chain.readCollectables(host, people(), hub, ADDRESS, 7)
@@ -918,16 +918,16 @@ describe("collectables reading works", () => {
     expect(readProductJSON).toHaveBeenCalledWith("stash.paseo", "stash.picks")
   })
 
-  /** The art loader the worker hands the chest read, with the host lookup present and the SDK check answering `verified`. */
+  /** The art loader the worker hands the collectables read, with the host lookup present and the SDK check answering `verified`. */
   async function artLoader(verified: unknown) {
-    const { chain, host } = await chest({ jollity: 0, stash: 0 })
+    const { chain, host } = await collectablesRead({ jollity: 0, stash: 0 })
     vi.mocked(host.preimages).mockResolvedValue({} as never)
     const nfts = await import("@parity/product-sdk-nfts")
     vi.mocked(nfts.preimageSource).mockReturnValue(async () => null)
     vi.mocked(nfts.getVerifiedArtwork).mockResolvedValue(verified as never)
     await chain.readCollectables(host, people(), hub, ADDRESS, 7)
     const collectables = await import("@jollity/collectables")
-    return vi.mocked(collectables.readChestPinned).mock.calls.at(-1)![3].loadArt
+    return vi.mocked(collectables.readCollectablesPinned).mock.calls.at(-1)![3].loadArt
   }
 
   it("keeps the thumbnail CID of a manifest the host lookup verifies", async () => {

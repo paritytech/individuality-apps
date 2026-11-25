@@ -5,7 +5,7 @@
  * THE GAME THE POST-GAME SCREENS ARE ABOUT — remembered by the app, not only
  * carried in the URL.
  *
- * The draw, the chest and the recap are all about the game the player just
+ * The draw, the collectables screen and the recap are all about the game the player just
  * played, and the game session knows exactly which one that is. The links the
  * app builds carry it as `?game=N`, but a host can drop the query on the way:
  * on iOS the draw screen can open with no `?game=` at all, fall back to "the

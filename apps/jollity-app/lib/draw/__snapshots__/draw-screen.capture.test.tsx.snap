@@ -15,7 +15,7 @@ exports[`the prize draw screen today, captured > a draw preloaded on the confirm
     "     0 drawShown ready ok game=7",
     "     0 dom: wheel",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "     0 loadBakedCoins",
     "     0 loadPrizeCoin 200 CASH",
     "     0 mountWheel ticket won=true tickets=24 held=false",
@@ -26,9 +26,9 @@ exports[`the prize draw screen today, captured > a draw preloaded on the confirm
     "  4000 — the stage is done (its Continue pressed, a loss's fall played)",
     "  4000 reportDrawCeremony {"totalMs":4000,"loadMs":0,"endingMs":3000,"continueVisibleMs":1000,"hiddenMs":0,"ended":true,"tapped":true,"idleAdvanced":false,"fallbackReason":"none"}",
     "  4000 markSeen 7 draw",
-    "  4000 router.replace /chest?game=7",
+    "  4000 router.replace /collectables?game=7",
     "  4000 startAutoClaim 7:0",
-    "  4000 preloadChestFeed",
+    "  4000 preloadCollectablesFeed",
   ],
 }
 `;
@@ -42,12 +42,12 @@ exports[`the prize draw screen today, captured > a draw still drawing says so, a
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read says the chain is still drawing",
     "   100 dom: h1 "Drawing the winners…" · buttons [Continue]",
     "  2000 — Continue pressed",
-    "  2000 router.replace /chest?game=7",
-    "  2000 preloadChestFeed",
+    "  2000 router.replace /collectables?game=7",
+    "  2000 preloadCollectablesFeed",
   ],
 }
 `;
@@ -66,7 +66,7 @@ exports[`the prize draw screen today, captured > a draw still drawing that then 
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read says the chain is still drawing",
     "   100 dom: h1 "Drawing the winners…" · buttons [Continue]",
     "  3100 — the read answers: a loss",
@@ -79,13 +79,13 @@ exports[`the prize draw screen today, captured > a draw still drawing that then 
     "  9000 — the stage is done (its Continue pressed, a loss's fall played)",
     "  9000 reportDrawCeremony {"totalMs":5900,"loadMs":0,"endingMs":2900,"continueVisibleMs":3000,"hiddenMs":0,"ended":true,"tapped":true,"idleAdvanced":false,"fallbackReason":"none"}",
     "  9000 markSeen 7 draw",
-    "  9000 router.replace /chest?game=7",
-    "  9000 preloadChestFeed",
+    "  9000 router.replace /collectables?game=7",
+    "  9000 preloadCollectablesFeed",
   ],
 }
 `;
 
-exports[`the prize draw screen today, captured > a failed read says so, and Continue goes on to the chest 1`] = `
+exports[`the prize draw screen today, captured > a failed read says so, and Continue goes on to the collectables screen 1`] = `
 {
   "logs": [
     "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
@@ -94,12 +94,12 @@ exports[`the prize draw screen today, captured > a failed read says so, and Cont
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read fails",
     "   100 dom: h1 "Couldn't load the draw" · buttons [Continue]",
     "  3000 — Continue pressed",
-    "  3000 router.replace /chest?game=7",
-    "  3000 preloadChestFeed",
+    "  3000 router.replace /collectables?game=7",
+    "  3000 preloadCollectablesFeed",
   ],
 }
 `;
@@ -117,7 +117,7 @@ exports[`the prize draw screen today, captured > a loser plays the wheel, and go
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: a loss",
     "   100 drawShown ready ok game=7",
     "   100 loadBakedCoins",
@@ -128,8 +128,8 @@ exports[`the prize draw screen today, captured > a loser plays the wheel, and go
     "  9000 — the stage is done (its Continue pressed, a loss's fall played)",
     "  9000 reportDrawCeremony {"totalMs":8900,"loadMs":0,"endingMs":3900,"continueVisibleMs":5000,"hiddenMs":0,"ended":true,"tapped":true,"idleAdvanced":false,"fallbackReason":"none"}",
     "  9000 markSeen 7 draw",
-    "  9000 router.replace /chest?game=7",
-    "  9000 preloadChestFeed",
+    "  9000 router.replace /collectables?game=7",
+    "  9000 preloadCollectablesFeed",
   ],
 }
 `;
@@ -144,14 +144,14 @@ exports[`the prize draw screen today, captured > a loss the wheel cannot tell is
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: a loss with no wheel",
     "   100 drawShown ready no-check game=7",
     "   100 dom: h1 "Not this time" · buttons [Continue]",
     "  3000 — Continue pressed",
     "  3000 markSeen 7 draw",
-    "  3000 router.replace /chest?game=7",
-    "  3000 preloadChestFeed",
+    "  3000 router.replace /collectables?game=7",
+    "  3000 preloadCollectablesFeed",
   ],
 }
 `;
@@ -170,7 +170,7 @@ exports[`the prize draw screen today, captured > a page hidden for good reports 
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: a win",
     "   100 drawShown ready ok game=7",
     "   100 loadBakedCoins",
@@ -184,9 +184,9 @@ exports[`the prize draw screen today, captured > a page hidden for good reports 
     "  3000 dom: wheel · buttons [Continue to your collectables]",
     "  4000 — the stage is done (its Continue pressed, a loss's fall played)",
     "  4000 markSeen 7 draw",
-    "  4000 router.replace /chest?game=7",
+    "  4000 router.replace /collectables?game=7",
     "  4000 startAutoClaim 7:0",
-    "  4000 preloadChestFeed",
+    "  4000 preloadCollectablesFeed",
   ],
 }
 `;
@@ -204,7 +204,7 @@ exports[`the prize draw screen today, captured > a player left idle is moved on 
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: a loss",
     "   100 drawShown ready ok game=7",
     "   100 loadBakedCoins",
@@ -213,8 +213,8 @@ exports[`the prize draw screen today, captured > a player left idle is moved on 
     "  4000 — the stage offers its Continue",
     "  4000 dom: wheel · buttons [Continue to your collectables]",
     " 64000 reportDrawCeremony {"totalMs":63900,"loadMs":0,"endingMs":3900,"continueVisibleMs":60000,"hiddenMs":0,"ended":true,"tapped":false,"idleAdvanced":true,"fallbackReason":"none"}",
-    " 64000 router.replace /chest?game=7",
-    " 64000 preloadChestFeed",
+    " 64000 router.replace /collectables?game=7",
+    " 64000 preloadCollectablesFeed",
   ],
 }
 `;
@@ -232,7 +232,7 @@ exports[`the prize draw screen today, captured > a spectator gets a full minute 
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: no ticket of theirs",
     "   100 drawShown ready ok game=7",
     "   100 mountWheel spectator won=false tickets=12 held=true",
@@ -243,8 +243,8 @@ exports[`the prize draw screen today, captured > a spectator gets a full minute 
     " 22000 — the stage offers its Continue",
     " 22000 dom: wheel · buttons [Continue to your collectables]",
     " 82000 reportDrawCeremony {"totalMs":81900,"loadMs":0,"endingMs":21900,"continueVisibleMs":60000,"hiddenMs":0,"ended":true,"tapped":false,"idleAdvanced":true,"fallbackReason":"none"}",
-    " 82000 router.replace /chest?game=7",
-    " 82000 preloadChestFeed",
+    " 82000 router.replace /collectables?game=7",
+    " 82000 preloadCollectablesFeed",
   ],
 }
 `;
@@ -262,7 +262,7 @@ exports[`the prize draw screen today, captured > a spectator is told what the dr
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: no ticket of theirs",
     "   100 drawShown ready ok game=7",
     "   100 mountWheel spectator won=false tickets=12 held=true",
@@ -275,8 +275,8 @@ exports[`the prize draw screen today, captured > a spectator is told what the dr
     " 22000 — the stage is done (its Continue pressed, a loss's fall played)",
     " 22000 reportDrawCeremony {"totalMs":21900,"loadMs":0,"endingMs":19900,"continueVisibleMs":2000,"hiddenMs":0,"ended":true,"tapped":true,"idleAdvanced":false,"fallbackReason":"none"}",
     " 22000 markSeen 7 draw",
-    " 22000 router.replace /chest?game=7",
-    " 22000 preloadChestFeed",
+    " 22000 router.replace /collectables?game=7",
+    " 22000 preloadCollectablesFeed",
   ],
 }
 `;
@@ -293,7 +293,7 @@ exports[`the prize draw screen today, captured > a stage that does not mount fal
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: a loss",
     "   100 drawShown ready ok game=7",
     "   100 loadBakedCoins",
@@ -302,8 +302,8 @@ exports[`the prize draw screen today, captured > a stage that does not mount fal
     "  3000 — Continue pressed",
     "  3000 reportDrawCeremony {"totalMs":2900,"loadMs":2900,"endingMs":-1,"continueVisibleMs":2900,"hiddenMs":0,"ended":false,"tapped":true,"idleAdvanced":false,"fallbackReason":"mount-failed"}",
     "  3000 markSeen 7 draw",
-    "  3000 router.replace /chest?game=7",
-    "  3000 preloadChestFeed",
+    "  3000 router.replace /collectables?game=7",
+    "  3000 preloadCollectablesFeed",
   ],
 }
 `;
@@ -321,7 +321,7 @@ exports[`the prize draw screen today, captured > a stage that never ends falls b
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: a win",
     "   100 drawShown ready ok game=7",
     "   100 loadBakedCoins",
@@ -333,9 +333,9 @@ exports[`the prize draw screen today, captured > a stage that never ends falls b
     " 45000 — Continue pressed",
     " 45000 reportDrawCeremony {"totalMs":44900,"loadMs":0,"endingMs":44900,"continueVisibleMs":4900,"hiddenMs":0,"ended":false,"tapped":true,"idleAdvanced":false,"fallbackReason":"never-ended","stall":{"frames":1}}",
     " 45000 markSeen 7 draw",
-    " 45000 router.replace /chest?game=7",
+    " 45000 router.replace /collectables?game=7",
     " 45000 startAutoClaim 7:0",
-    " 45000 preloadChestFeed",
+    " 45000 preloadCollectablesFeed",
   ],
 }
 `;
@@ -352,7 +352,7 @@ exports[`the prize draw screen today, captured > a stage whose code does not loa
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: a win",
     "   100 drawShown ready ok game=7",
     "   100 loadBakedCoins",
@@ -362,9 +362,9 @@ exports[`the prize draw screen today, captured > a stage whose code does not loa
     "  3000 — Continue pressed",
     "  3000 reportDrawCeremony {"totalMs":2900,"loadMs":2900,"endingMs":-1,"continueVisibleMs":2900,"hiddenMs":0,"ended":false,"tapped":true,"idleAdvanced":false,"fallbackReason":"load-failed"}",
     "  3000 markSeen 7 draw",
-    "  3000 router.replace /chest?game=7",
+    "  3000 router.replace /collectables?game=7",
     "  3000 startAutoClaim 7:0",
-    "  3000 preloadChestFeed",
+    "  3000 preloadCollectablesFeed",
   ],
 }
 `;
@@ -379,21 +379,21 @@ exports[`the prize draw screen today, captured > a win the wheel cannot tell is 
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: a win with no wheel",
     "   100 drawShown ready no-check game=7",
     "   100 startAutoClaim 7:0",
     "   100 dom: h1 "You won" · buttons [Continue]",
     "  3000 — Continue pressed",
     "  3000 markSeen 7 draw",
-    "  3000 router.replace /chest?game=7",
+    "  3000 router.replace /collectables?game=7",
     "  3000 startAutoClaim 7:0",
-    "  3000 preloadChestFeed",
+    "  3000 preloadCollectablesFeed",
   ],
 }
 `;
 
-exports[`the prize draw screen today, captured > a winner plays the wheel and goes on to the chest 1`] = `
+exports[`the prize draw screen today, captured > a winner plays the wheel and goes on to the collectables screen 1`] = `
 {
   "logs": [
     "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
@@ -406,7 +406,7 @@ exports[`the prize draw screen today, captured > a winner plays the wheel and go
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: a win",
     "   100 drawShown ready ok game=7",
     "   100 loadBakedCoins",
@@ -419,9 +419,9 @@ exports[`the prize draw screen today, captured > a winner plays the wheel and go
     "  7000 — the stage is done (its Continue pressed, a loss's fall played)",
     "  7000 reportDrawCeremony {"totalMs":6900,"loadMs":0,"endingMs":3900,"continueVisibleMs":3000,"hiddenMs":0,"ended":true,"tapped":true,"idleAdvanced":false,"fallbackReason":"none"}",
     "  7000 markSeen 7 draw",
-    "  7000 router.replace /chest?game=7",
+    "  7000 router.replace /collectables?game=7",
     "  7000 startAutoClaim 7:0",
-    "  7000 preloadChestFeed",
+    "  7000 preloadCollectablesFeed",
   ],
 }
 `;
@@ -438,7 +438,7 @@ exports[`the prize draw screen today, captured > leaving the screen tears the st
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: a win",
     "   100 drawShown ready ok game=7",
     "   100 loadBakedCoins",
@@ -453,7 +453,7 @@ exports[`the prize draw screen today, captured > leaving the screen tears the st
 }
 `;
 
-exports[`the prize draw screen today, captured > no draw this game goes straight to the chest 1`] = `
+exports[`the prize draw screen today, captured > no draw this game goes straight to the collectables screen 1`] = `
 {
   "logs": [
     "info [draw] draw screen opened {"game":7,"player":null,"preloaded":"nothing"}",
@@ -462,11 +462,11 @@ exports[`the prize draw screen today, captured > no draw this game goes straight
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: no draw",
     "   100 drawShown none no-check game=7",
-    "   100 router.replace /chest?game=7",
-    "   100 preloadChestFeed",
+    "   100 router.replace /collectables?game=7",
+    "   100 preloadCollectablesFeed",
   ],
 }
 `;
@@ -479,11 +479,11 @@ exports[`the prize draw screen today, captured > no player identity says so, and
   ],
   "trace": [
     "     0 dom: busy",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "    50 dom: h1 "Player identity needed" · buttons [Continue]",
     "  1000 — Continue pressed",
-    "  1000 router.replace /chest?game=7",
-    "  1000 preloadChestFeed",
+    "  1000 router.replace /collectables?game=7",
+    "  1000 preloadCollectablesFeed",
   ],
 }
 `;
@@ -498,12 +498,12 @@ exports[`the prize draw screen today, captured > the words move on after a minut
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: a loss with no wheel",
     "   100 drawShown ready no-check game=7",
     "   100 dom: h1 "Not this time" · buttons [Continue]",
-    " 60100 router.replace /chest?game=7",
-    " 60100 preloadChestFeed",
+    " 60100 router.replace /collectables?game=7",
+    " 60100 preloadCollectablesFeed",
   ],
 }
 `;
@@ -523,7 +523,7 @@ exports[`the prize draw screen today, captured > time hidden is counted in the c
   "trace": [
     "     0 dom: busy",
     "     0 loadDraw game=7 player=-",
-    "     0 preloadChestFeed",
+    "     0 preloadCollectablesFeed",
     "   100 — the read answers: a win",
     "   100 drawShown ready ok game=7",
     "   100 loadBakedCoins",
@@ -538,9 +538,9 @@ exports[`the prize draw screen today, captured > time hidden is counted in the c
     "  6000 — the stage is done (its Continue pressed, a loss's fall played)",
     "  6000 reportDrawCeremony {"totalMs":5900,"loadMs":0,"endingMs":4900,"continueVisibleMs":1000,"hiddenMs":3000,"ended":true,"tapped":true,"idleAdvanced":false,"fallbackReason":"none"}",
     "  6000 markSeen 7 draw",
-    "  6000 router.replace /chest?game=7",
+    "  6000 router.replace /collectables?game=7",
     "  6000 startAutoClaim 7:0",
-    "  6000 preloadChestFeed",
+    "  6000 preloadCollectablesFeed",
   ],
 }
 `;

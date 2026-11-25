@@ -20,14 +20,14 @@ const ACTIVE_STATE_KEYS = [
   "draw-waiting|draw:0|stalled:1",
   "draw-showing|draw:1|stalled:0",
   "draw-showing|draw:1|stalled:1",
-  "chest-reading|draw:0|stalled:0",
-  "chest-reading|draw:0|stalled:1",
-  "chest-reading|draw:1|stalled:0",
-  "chest-reading|draw:1|stalled:1",
-  "chest-showing|draw:0|stalled:0",
-  "chest-showing|draw:0|stalled:1",
-  "chest-showing|draw:1|stalled:0",
-  "chest-showing|draw:1|stalled:1",
+  "collectables-reading|draw:0|stalled:0",
+  "collectables-reading|draw:0|stalled:1",
+  "collectables-reading|draw:1|stalled:0",
+  "collectables-reading|draw:1|stalled:1",
+  "collectables-showing|draw:0|stalled:0",
+  "collectables-showing|draw:0|stalled:1",
+  "collectables-showing|draw:1|stalled:0",
+  "collectables-showing|draw:1|stalled:1",
 ] as const
 
 type ActiveStateKey = (typeof ACTIVE_STATE_KEYS)[number]
@@ -88,12 +88,12 @@ const INPUTS = [
   { type: "draw-idle" },
   { type: "draw-error" },
   { type: "draw-offered" },
-  { type: "chest-opened" },
-  { type: "chest-result" },
-  { type: "chest-error" },
-  { type: "chest-reread-due" },
-  { type: "chest-continue" },
-  { type: "chest-skip" },
+  { type: "collectables-opened" },
+  { type: "collectables-result" },
+  { type: "collectables-error" },
+  { type: "collectables-reread-due" },
+  { type: "collectables-continue" },
+  { type: "collectables-skip" },
   { type: "payoff-stalled", stage: "chest.load" },
   { type: "next-game" },
   { type: "return-after-long-absence" },
@@ -159,7 +159,7 @@ const modelStart = (): ModelPayoffState => ({
   drawFactSent: false,
 })
 
-/** the chest is left: the payoff ends, its log goes, and so does the player */
+/** the collectables screen is left: the payoff ends, its log goes, and so does the player */
 const modelHandOff = (state: ModelActivePayoff): { state: ModelPayoffState; output: string[] } => {
   const outcome: PayoffOutcome = state.stalled ? "stalled" : "shown"
   return {
@@ -198,45 +198,45 @@ function modelPayoff(state: ModelPayoffState, testEvent: PayoffTestEvent): { sta
       if (state.drawFactSent) return noChange()
       if (state.kind !== "draw-waiting") return { state: { ...state, drawFactSent: true }, output: ["telemetry:drawShown"] }
       return {
-        state: { ...modelActive(state, "chest-reading", "/chest"), drawFactSent: true },
-        output: ["telemetry:drawShown", "cancel-draw-idle", "load-chest", "replace-route:/chest"],
+        state: { ...modelActive(state, "collectables-reading", "/collectables"), drawFactSent: true },
+        output: ["telemetry:drawShown", "cancel-draw-idle", "load-collectables", "replace-route:/collectables"],
       }
     case "draw-continue":
     case "draw-idle":
       if (state.kind !== "draw-showing") return noChange()
       return {
-        state: modelActive(state, "chest-reading", "/chest"),
+        state: modelActive(state, "collectables-reading", "/collectables"),
         output: [
           ...(event.type === "draw-continue" ? ["mark-draw-seen"] : []),
           "cancel-draw-idle",
-          "load-chest",
-          "replace-route:/chest",
+          "load-collectables",
+          "replace-route:/collectables",
         ],
       }
     case "draw-bypass":
       return state.kind === "draw-waiting"
-        ? { state: modelActive(state, "chest-reading", "/chest"), output: ["load-chest", "replace-route:/chest"] }
+        ? { state: modelActive(state, "collectables-reading", "/collectables"), output: ["load-collectables", "replace-route:/collectables"] }
         : noChange()
     case "payoff-stalled":
       return state.stalled
         ? noChange()
         : { state: { ...state, stalled: true }, output: [`telemetry:payoffStalled:${event.stage}`] }
-    case "chest-opened":
-      return state.kind === "chest-reading" ? { state, output: ["telemetry:chestOpened"] } : noChange()
-    case "chest-result":
-      return state.kind === "chest-reading"
-        ? { state: modelActive(state, "chest-showing"), output: ["telemetry:chestShown"] }
+    case "collectables-opened":
+      return state.kind === "collectables-reading" ? { state, output: ["telemetry:collectablesOpened"] } : noChange()
+    case "collectables-result":
+      return state.kind === "collectables-reading"
+        ? { state: modelActive(state, "collectables-showing"), output: ["telemetry:collectablesShown"] }
         : noChange()
-    case "chest-error":
+    case "collectables-error":
       return noChange()
-    case "chest-reread-due":
-      return state.kind === "chest-reading"
-        ? { state: { ...state, epoch: state.epoch + 1 }, output: ["load-chest"] }
+    case "collectables-reread-due":
+      return state.kind === "collectables-reading"
+        ? { state: { ...state, epoch: state.epoch + 1 }, output: ["load-collectables"] }
         : noChange()
-    case "chest-continue":
-      return state.kind === "chest-showing" ? modelHandOff(state) : noChange()
-    case "chest-skip":
-      return state.kind === "chest-reading" ? modelHandOff(state) : noChange()
+    case "collectables-continue":
+      return state.kind === "collectables-showing" ? modelHandOff(state) : noChange()
+    case "collectables-skip":
+      return state.kind === "collectables-reading" ? modelHandOff(state) : noChange()
     case "next-game":
       return {
         state: { kind: "ended", gameIndex: state.gameIndex, epoch: state.epoch, route: state.route, outcome: "stalled" },
@@ -258,12 +258,12 @@ const NO_OP_INPUT_ROW: Record<PayoffInputType, "no-op"> = {
   "draw-idle": "no-op",
   "draw-error": "no-op",
   "draw-offered": "no-op",
-  "chest-opened": "no-op",
-  "chest-result": "no-op",
-  "chest-error": "no-op",
-  "chest-reread-due": "no-op",
-  "chest-continue": "no-op",
-  "chest-skip": "no-op",
+  "collectables-opened": "no-op",
+  "collectables-result": "no-op",
+  "collectables-error": "no-op",
+  "collectables-reread-due": "no-op",
+  "collectables-continue": "no-op",
+  "collectables-skip": "no-op",
   "payoff-stalled": "no-op",
   "next-game": "no-op",
   "return-after-long-absence": "no-op",
@@ -289,8 +289,8 @@ function transitionsForState(stateKey: ActiveStateKey): readonly PayoffInputType
   if (!stalled) transitions.push("payoff-stalled")
   if (kind === "draw-waiting") transitions.push("draw-bypass")
   if (kind === "draw-showing") transitions.push("draw-offered", "draw-continue", "draw-idle")
-  if (kind === "chest-reading") transitions.push("chest-opened", "chest-result", "chest-reread-due", "chest-skip")
-  if (kind === "chest-showing") transitions.push("chest-continue")
+  if (kind === "collectables-reading") transitions.push("collectables-opened", "collectables-result", "collectables-reread-due", "collectables-skip")
+  if (kind === "collectables-showing") transitions.push("collectables-continue")
   return transitions
 }
 
@@ -301,13 +301,13 @@ export const payoffTransitionTable = defineTransitionTable<PayoffStateKey, Payof
   ]) as Record<PayoffStateKey, Record<PayoffEventKey, "transition" | "no-op">>,
 )
 
-const routeForKind = (kind: PayoffActiveKind): PayoffRoute => (kind.startsWith("draw-") ? "/prize-draw" : "/chest")
+const routeForKind = (kind: PayoffActiveKind): PayoffRoute => (kind.startsWith("draw-") ? "/prize-draw" : "/collectables")
 
 function initialForStateKey(stateKey: PayoffStateKey): { real: PayoffState; model: ModelPayoffState } {
   if (stateKey === "ended") {
     return {
-      real: startPayoff(5, "/chest", { ended: "shown" }),
-      model: { kind: "ended", gameIndex: 5, epoch: 0, route: "/chest", outcome: "shown" },
+      real: startPayoff(5, "/collectables", { ended: "shown" }),
+      model: { kind: "ended", gameIndex: 5, epoch: 0, route: "/collectables", outcome: "shown" },
     }
   }
   const [kind, drawPart, stalledPart] = stateKey.split("|") as [PayoffActiveKind, `draw:${0 | 1}`, `stalled:${0 | 1}`]
@@ -339,51 +339,51 @@ export const payoffWitnesses: NamedSequence<PayoffTestEvent, PayoffState, ModelP
 export const payoffInitialCases = [
   { name: "prize draw", ...initialForStateKey("draw-waiting|draw:0|stalled:0") },
   {
-    name: "chest reload",
-    real: startPayoff(5, "/chest", { epoch: 2 }),
-    model: { kind: "chest-reading", gameIndex: 5, epoch: 2, route: "/chest", stalled: false, drawFactSent: false },
+    name: "collectables screen reload",
+    real: startPayoff(5, "/collectables", { epoch: 2 }),
+    model: { kind: "collectables-reading", gameIndex: 5, epoch: 2, route: "/collectables", stalled: false, drawFactSent: false },
   },
   {
     name: "ended reload",
-    real: startPayoff(5, "/chest", { ended: "shown", epoch: 2 }),
-    model: { kind: "ended", gameIndex: 5, epoch: 2, route: "/chest", outcome: "shown" },
+    real: startPayoff(5, "/collectables", { ended: "shown", epoch: 2 }),
+    model: { kind: "ended", gameIndex: 5, epoch: 2, route: "/collectables", outcome: "shown" },
   },
 ] as const satisfies readonly { name: string; real: PayoffState; model: ModelPayoffState }[]
 
 export const payoffRegressionCorpus: NamedSequence<PayoffTestEvent, PayoffState, ModelPayoffState>[] = [
   {
-    name: "normal draw-chest-humanity journey",
-    events: ["draw-result", "draw-continue", "chest-result", "chest-continue"].map((type) => current(type as PayoffInputType)),
+    name: "normal draw-collectables-humanity journey",
+    events: ["draw-result", "draw-continue", "collectables-result", "collectables-continue"].map((type) => current(type as PayoffInputType)),
   },
   {
     name: "idle draw advance",
-    events: ["draw-result", "draw-offered", "draw-idle", "chest-result", "chest-continue"].map((type) => current(type as PayoffInputType)),
+    events: ["draw-result", "draw-offered", "draw-idle", "collectables-result", "collectables-continue"].map((type) => current(type as PayoffInputType)),
   },
   {
     name: "stale and duplicate async answers are inert",
     events: [
       current("draw-none"),
-      current("chest-reread-due"),
-      { input: inputByType["chest-result"], tag: "stale-game-older" },
-      { input: inputByType["chest-result"], tag: "stale-game-newer" },
-      { input: inputByType["chest-result"], tag: "stale-epoch-older" },
-      { input: inputByType["chest-result"], tag: "stale-epoch-newer" },
-      current("chest-result"),
-      current("chest-result"),
+      current("collectables-reread-due"),
+      { input: inputByType["collectables-result"], tag: "stale-game-older" },
+      { input: inputByType["collectables-result"], tag: "stale-game-newer" },
+      { input: inputByType["collectables-result"], tag: "stale-epoch-older" },
+      { input: inputByType["collectables-result"], tag: "stale-epoch-newer" },
+      current("collectables-result"),
+      current("collectables-result"),
     ],
   },
   {
     name: "stalled payoff keeps stalled outcome and sends the log at the hand-off",
-    events: ["draw-none", "payoff-stalled", "chest-result", "chest-continue"].map((type) => current(type as PayoffInputType)),
+    events: ["draw-none", "payoff-stalled", "collectables-result", "collectables-continue"].map((type) => current(type as PayoffInputType)),
   },
   {
-    name: "a slow chest hands off without the chest",
-    events: ["draw-none", "payoff-stalled", "chest-skip", "chest-result", "chest-continue"].map((type) => current(type as PayoffInputType)),
+    name: "a slow collectables screen hands off without the collectables screen",
+    events: ["draw-none", "payoff-stalled", "collectables-skip", "collectables-result", "collectables-continue"].map((type) => current(type as PayoffInputType)),
   },
   {
-    name: "reload on chest",
+    name: "reload on collectables screen",
     initial: payoffInitialCases[1],
-    events: [current("chest-result")],
+    events: [current("collectables-result")],
   },
   {
     name: "reload after payoff already ended",
@@ -391,13 +391,13 @@ export const payoffRegressionCorpus: NamedSequence<PayoffTestEvent, PayoffState,
     events: [current("next-game"), current("draw-result")],
   },
   {
-    name: "saved chest epoch rejects old read and accepts current read",
+    name: "saved collectables screen epoch rejects old read and accepts current read",
     initial: payoffInitialCases[1],
-    events: [{ input: inputByType["chest-result"], tag: "stale-epoch-older" }, current("chest-result")],
+    events: [{ input: inputByType["collectables-result"], tag: "stale-epoch-older" }, current("collectables-result")],
   },
 ]
 
-const routeOrder: PayoffRoute[] = ["/prize-draw", "/chest"]
+const routeOrder: PayoffRoute[] = ["/prize-draw", "/collectables"]
 const assert = (condition: unknown, message: string): void => {
   if (!condition) throw new Error(message)
 }

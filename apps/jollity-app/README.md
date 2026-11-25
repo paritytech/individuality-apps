@@ -101,8 +101,8 @@ shows a gate, with `NEXT_PUBLIC_PEOPLE_WS` as a read-only dev override.
 | `/` | The one home screen, descending through time bands: no game → scheduled → register → you're in → starting → waiting room → final minute |
 | `/permissions` | The one-time gate — camera, network, peer connections, game messages |
 | `/game` | 12 turns across 2 rounds. Copy the host, tap tiles to vote, confirm |
-| `/chest` | The reveal: the bubble (carried in from the draw when you held there) finds your claims as they land, pops, and your collectables float in the frame wrapped in glass shells you break by hand. Broken-open pieces float up to the top; tapping one opens the hologram picker over it. Once every piece is open, the scene gives way to a grid of their cards. The collection picked there is kept in host storage, so the next visit deals the same item. Dragging the Pocket's cover across puts them away, and the screen hands you over to your Humanity card by itself |
-| `/prize-draw` | The prize draw: the wheel replays the chain's draw and lands on its winners, and its timeline takes you back to any point of the spin. A won prize is claimed by itself. Your contacts among the entrants (the host's `contacts.usernames`) are marked in a colour each and visited before the spin. Holding anywhere gathers the draw into the collectables' bubble and carries it on to `/chest` |
+| `/collectables` | The reveal: the bubble (carried in from the draw when you held there) finds your claims as they land, pops, and your collectables float in the frame wrapped in glass shells you break by hand. Broken-open pieces float up to the top; tapping one opens the hologram picker over it. Once every piece is open, the scene gives way to a grid of their cards. The collection picked there is kept in host storage, so the next visit deals the same item. Dragging the Pocket's cover across puts them away, and the screen hands you over to your Humanity card by itself |
+| `/prize-draw` | The prize draw: the wheel replays the chain's draw and lands on its winners, and its timeline takes you back to any point of the spin. A won prize is claimed by itself. Your contacts among the entrants (the host's `contacts.usernames`) are marked in a colour each and visited before the spin. Holding anywhere gathers the draw into the collectables' bubble and carries it on to `/collectables` |
 
 ### Architecture
 
@@ -112,14 +112,14 @@ Two doorways, and everything else is downstream of them:
 
 - **`lib/game-source.ts`** — the one doorway to chain state, over the
   `GameEngine` that `lib/engine.ts` (the only module that value-imports
-  `@jollity/game-chain`) builds. Views (`GameStatus`, `ChestView`,
+  `@jollity/game-chain`) builds. Views (`GameStatus`, `CollectablesView`,
   `PrizeDrawView`) in, no papi out.
 - **`lib/host/*`** + `lib/permissions.ts` — the host's capabilities: the
   permissioned name (`requestLogin` → `getUserId`), navigation between
   products, device and remote permissions.
 
 Screens read one view value and render it. Animation logic is framework-free
-and lives in `lib/` (`chest-scene/engine.ts`, `draw/wheel/*`, `draw/hold/*`,
+and lives in `lib/` (`collectables-scene/engine.ts`, `draw/wheel/*`, `draw/hold/*`,
 `pocket/*`, `coin3d/*`, `wrapping/*`, `game-session.ts`); components are hosts that pass params and
 forward gestures. The full rules, and the two working guides — UI vs. the
 game — are in [AGENTS.md](AGENTS.md).

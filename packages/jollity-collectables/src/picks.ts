@@ -1,9 +1,9 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-export type ChestPicks = ReadonlyMap<string, number>
+export type CollectablesPicks = ReadonlyMap<string, number>
 
-/** The host storage key of Jollity under which the chest keeps the collection picked for each claim. */
+/** The host storage key of Jollity under which the collectables screen keeps the collection picked for each claim. */
 export const JOLLITY_PICKS_KEY = "jollity.chest"
 /** The key of the stash product under which Scarcity keeps its own picks, which win over Jollity's. */
 export const STASH_PICKS_KEY = "stash.picks"
@@ -27,7 +27,7 @@ export function storedJSON(hex: string): unknown {
 }
 
 /** Keeps only the canonical wire entries accepted by Scarcity. */
-export function parseChestPicks(value: unknown): Map<string, number> {
+export function parseCollectablesPicks(value: unknown): Map<string, number> {
   const picks = new Map<string, number>()
   if (typeof value !== "object" || value === null) return picks
   for (const [rawHash, rawPick] of Object.entries(value)) {
@@ -41,7 +41,7 @@ export function parseChestPicks(value: unknown): Map<string, number> {
 }
 
 /** The shared JSON wire shape, with canonical prefixed credit hashes. */
-export function chestValue(picks: ReadonlyMap<string, number>): Record<string, { collectionId: number }> {
+export function collectablesValue(picks: ReadonlyMap<string, number>): Record<string, { collectionId: number }> {
   const value: Record<string, { collectionId: number }> = {}
   for (const [rawHash, collectionId] of picks) {
     const hash = normalizeCreditHash(rawHash)

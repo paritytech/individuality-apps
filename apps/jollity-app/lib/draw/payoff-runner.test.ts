@@ -15,13 +15,13 @@ describe("prize-draw payoff runner", () => {
     const runner = createPrizeDrawPayoffRunner(5)
     expect(kinds(runner.send({ type: "draw-result" }))).toEqual(["telemetry:drawShown"])
     expect(kinds(runner.send({ type: "draw-offered" }))).toEqual(["arm-draw-idle"])
-    expect(kinds(runner.send({ type: "draw-idle" }))).toEqual(["cancel-draw-idle", "load-chest", "replace-route"])
+    expect(kinds(runner.send({ type: "draw-idle" }))).toEqual(["cancel-draw-idle", "load-collectables", "replace-route"])
   })
 
   it("records one late draw fact after bypass and no second navigation", () => {
     const runner = createPrizeDrawPayoffRunner(5)
     const load = runner.capture()
-    expect(kinds(runner.send({ type: "draw-bypass" }))).toEqual(["load-chest", "replace-route"])
+    expect(kinds(runner.send({ type: "draw-bypass" }))).toEqual(["load-collectables", "replace-route"])
     expect(kinds(runner.send({ type: "draw-result" }, load))).toEqual(["telemetry:drawShown"])
     expect(runner.send({ type: "draw-result" }, load)).toEqual([])
   })
@@ -30,24 +30,24 @@ describe("prize-draw payoff runner", () => {
     const runner = createPrizeDrawPayoffRunner(5)
     const load = runner.capture()
     runner.send({ type: "draw-bypass" })
-    runner.send({ type: "chest-reread-due" })
+    runner.send({ type: "collectables-reread-due" })
     expect(runner.send({ type: "draw-result" }, load)).toEqual([])
   })
 
-  it("gets the chest ready when the payoff says so, and lets the chest's own commands pass", () => {
-    const handlers = { drawShown: vi.fn(), markDrawSeen: vi.fn(), replaceChest: vi.fn(), armIdle: vi.fn(), cancelIdle: vi.fn(), loadChest: vi.fn() }
+  it("gets the collectables screen ready when the payoff says so, and lets the collectables screen's own commands pass", () => {
+    const handlers = { drawShown: vi.fn(), markDrawSeen: vi.fn(), replaceCollectables: vi.fn(), armIdle: vi.fn(), cancelIdle: vi.fn(), loadCollectables: vi.fn() }
     executePrizeDrawCommands(
       [
-        { kind: "load-chest" },
-        { kind: "telemetry", fact: "chestShown" },
+        { kind: "load-collectables" },
+        { kind: "telemetry", fact: "collectablesShown" },
         { kind: "replace-route", route: "/prize-draw" },
         { kind: "hand-off" },
         { kind: "end-payoff", outcome: "shown", cause: "handed-off", sendGameLog: true },
       ],
       handlers,
     )
-    expect(handlers.loadChest).toHaveBeenCalledOnce()
+    expect(handlers.loadCollectables).toHaveBeenCalledOnce()
     expect(handlers.drawShown).not.toHaveBeenCalled()
-    expect(handlers.replaceChest).not.toHaveBeenCalled()
+    expect(handlers.replaceCollectables).not.toHaveBeenCalled()
   })
 })

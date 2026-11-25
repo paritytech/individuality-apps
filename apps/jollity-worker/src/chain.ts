@@ -43,8 +43,8 @@ import {
   JOLLITY_PICKS_KEY,
   STASH_PICKS_KEY,
   manifestPicture,
-  parseChestPicks,
-  readChestPinned,
+  parseCollectablesPicks,
+  readCollectablesPinned,
   withPicks,
 } from "@jollity/collectables"
 import { deriveAttendance, type AttendanceRow, type AttendanceView } from "@individuality/game-outcome"
@@ -258,13 +258,13 @@ export async function readEarned(people: People, hub: PolkadotClient, address: s
 const ART_TIMEOUT_MS = 10_000
 
 /**
- * The collectibles one game earned the player, as the chest of the app deals
+ * The collectibles one game earned the player, as the collectables screen of the app deals
  * them, each with the Bulletin CID of its picture, or null when the read fails.
  * `pending` counts the claims whose award block has no root on Asset Hub yet,
- * which the chest cannot deal until it has.
+ * which the collectables screen cannot deal until it has.
  *
- * The chest is read by `@jollity/collectables`, the same read lib/scarcity.ts
- * runs, so a claim shows the item the chest would show, under the picks of
+ * The collectables screen is read by `@jollity/collectables`, the same read lib/scarcity.ts
+ * runs, so a claim shows the item the collectables screen would show, under the picks of
  * Scarcity and then of Jollity. The worker keeps only the CID of the picture,
  * read from the manifest of the item through the preimages of the host, which
  * checks the manifest against its digest.
@@ -290,11 +290,11 @@ export async function readCollectables(
   }
   try {
     const [view, jollity, stash] = await Promise.all([
-      readChestPinned(nftsChain(people, hub), address, gameIndex, { loadArt, latestGame }),
+      readCollectablesPinned(nftsChain(people, hub), address, gameIndex, { loadArt, latestGame }),
       host.storage.readJSON(JOLLITY_PICKS_KEY).catch(() => null),
       host.storage.readProductJSON(stashProduct(), STASH_PICKS_KEY).catch(() => null),
     ])
-    const items = withPicks(view.items, parseChestPicks(jollity), parseChestPicks(stash)).map((item) => ({
+    const items = withPicks(view.items, parseCollectablesPicks(jollity), parseCollectablesPicks(stash)).map((item) => ({
       name: item.name,
       rarity: item.rarity,
       ...(item.image ? { image: item.image } : {}),
@@ -706,9 +706,9 @@ function kept(game: SeenGame): Pick<StoredOutcome, "gameIndex" | "registered" | 
  * `GameResults` shape of src/card that the results card draws.
  *
  * The chain says whether the player attended and where their membership
- * stands, but not what their chest holds, since that lives on Asset Hub. So a
+ * stands, but not what their collectables screen holds, since that lives on Asset Hub. So a
  * played game carries `collectables: null`, earned and unnamed, and the card
- * points at the chest until the app says it was opened. There are no names
+ * points at the collectables screen until the app says it was opened. There are no names
  * for the group either. It is null when a read fails.
  */
 export async function readOutcome(people: People, address: string, game: SeenGame): Promise<StoredOutcome | null> {

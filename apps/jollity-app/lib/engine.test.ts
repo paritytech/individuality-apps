@@ -29,7 +29,7 @@ async function engineSeam(assetHubWs = "") {
   return seam
 }
 
-describe("the chest chain pair", () => {
+describe("the collectables screen chain pair", () => {
   beforeEach(() => {
     vi.mocked(createClient).mockReset()
     vi.mocked(createClient).mockImplementation(() => ({ getUnsafeApi: () => ({}) }) as never)

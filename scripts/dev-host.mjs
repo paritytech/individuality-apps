@@ -150,7 +150,7 @@ if (peopleWs !== NETWORKS[network].peopleWs) {
 
 const assetHubWs = process.env.NEXT_PUBLIC_ASSET_HUB_WS?.trim() || NETWORKS[network].assetHubWs
 if (!assetHubWs) {
-  console.log(`• no Asset Hub endpoint for ${network}: set NEXT_PUBLIC_ASSET_HUB_WS, or the chest cannot open`)
+  console.log(`• no Asset Hub endpoint for ${network}: set NEXT_PUBLIC_ASSET_HUB_WS, or the collectables screen cannot open`)
 }
 
 const slot = process.env.HOST_SESSION?.trim() || "default"

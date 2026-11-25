@@ -68,8 +68,8 @@ export interface DrawScreenDeps {
   payoff: PrizeDrawPayoffRunner
   drawShown(state: DrawState, check: WheelCheck | null, game: number | undefined): void
   markSeen(game: number): void
-  toChest(): void
-  preloadChest(): void
+  toCollectables(): void
+  preloadCollectables(): void
   /** keyed by the draw's game, so a reload keeps counting */
   idle(key: string, onAdvance: () => void): DrawIdleWatch
   /** a tap anywhere on the stage restarts the idle; returns its cancel */
@@ -164,7 +164,7 @@ export function createDrawScreenHost(deps: DrawScreenDeps): DrawScreenHost {
         const answer = shown()
         if (answer) deps.markSeen(answer.draw.gameIndex)
       },
-      replaceChest: deps.toChest,
+      replaceCollectables: deps.toCollectables,
       // the payoff arms the idle once the screen offers a way on, and cancels it on the way out
       armIdle: () => {
         idle ??= deps.idle(String(shown()?.draw.gameIndex), () => dispatch({ type: "idle-elapsed" }))
@@ -172,8 +172,8 @@ export function createDrawScreenHost(deps: DrawScreenDeps): DrawScreenHost {
         idle.start()
       },
       cancelIdle: () => idle?.stop(),
-      // the chest's clips, already on their way since the screen opened (preload-chest): fetched once
-      loadChest: deps.preloadChest,
+      // the collectables screen's clips, already on their way since the screen opened (preload-collectables): fetched once
+      loadCollectables: deps.preloadCollectables,
     })
   }
 
@@ -319,8 +319,8 @@ export function createDrawScreenHost(deps: DrawScreenDeps): DrawScreenHost {
         if (command.cause === "tap") return void ceremony?.tap()
         if (command.cause === "idle") return void ceremony?.idleAdvance()
         return ceremony?.leave()
-      case "preload-chest":
-        return deps.preloadChest()
+      case "preload-collectables":
+        return deps.preloadCollectables()
       case "log":
         return log(command.note)
       default: {

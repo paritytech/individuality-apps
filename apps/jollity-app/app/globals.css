@@ -654,7 +654,7 @@
   50% { transform: scaleX(1.35); }
 }
 
-/* THE HOLD'S INVITATION (components/draw/hold-to-chest, lib/draw/hold/scene):
+/* THE HOLD'S INVITATION (components/draw/hold-to-collectables, lib/draw/hold/scene):
    a ring breathing over the bottom of the draw and HOLD ANYWHERE under it, on
    a 390 × 844 phone at 640 and 692. A layer of its own the compositor
    animates, so nothing is redrawn while it waits; the scene only fades it */
@@ -756,24 +756,24 @@
   outline-offset: 2px;
 }
 
-/* ── THE CHEST'S ROOM ──
+/* ── THE COLLECTABLES SCREEN'S ROOM ──
    The dark the draw's hold leaves: the draw's own ground (its #080808), and
    the light that gathered round the bubble as it was held, still there where
    the bubble blows up (the hold's glow: 260 px on a 390-wide phone, 30 px
    under the bubble's middle). Its stars are drawn over it
-   (components/chest/starfield). Static: it costs nothing a frame. On the
+   (components/collectables/starfield). Static: it costs nothing a frame. On the
    draw's page, under the stage, the glow is the hold's own, moving with the
    bubble: there the room is the dark alone (--plain). */
-.chest-backdrop {
+.collectables-backdrop {
   background:
     radial-gradient(circle calc(100vw * 260 / 390) at 50% calc(100% * 391 / 844), rgb(150 165 255 / 0.1), rgb(150 165 255 / 0)),
     #080808;
 }
-.chest-backdrop--plain {
+.collectables-backdrop--plain {
   background: #080808;
 }
 
-/* The chest's collectables put away in the Pocket (components/pocket/pocket-claim.tsx): drag the open book's cover across to close it. Its scene (lib/pocket/scene.ts) places the book, turns its cover and lights its cells every frame; these are the parts it moves. */
+/* The collectables screen's collectables put away in the Pocket (components/pocket/pocket-claim.tsx): drag the open book's cover across to close it. Its scene (lib/pocket/scene.ts) places the book, turns its cover and lights its cells every frame; these are the parts it moves. */
 .pocket-claim {
   position: fixed;
   inset: 0;

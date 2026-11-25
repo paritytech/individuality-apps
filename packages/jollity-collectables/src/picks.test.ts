@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { describe, expect, it } from "vitest"
-import { chestValue, collectionFor, defaultCollectionFor, indexFor, parseChestPicks } from "./picks"
+import { collectablesValue, collectionFor, defaultCollectionFor, indexFor, parseCollectablesPicks } from "./picks"
 
 const HASH = "0123456789abcdef".repeat(4)
 
 describe("Scarcity-shaped pick wire contract", () => {
   it("normalizes valid hashes and rejects loose collection ids", () => {
-    const parsed = parseChestPicks({
+    const parsed = parseCollectablesPicks({
       [` 0X${HASH.toUpperCase()} `]: { collectionId: 0 },
       [`0x${"a".repeat(64)}`]: { collectionId: 19 },
       [`0x${"b".repeat(64)}`]: { collectionId: -1 },
@@ -23,13 +23,13 @@ describe("Scarcity-shaped pick wire contract", () => {
   })
 
   it("lets the last duplicate normalized hash win", () => {
-    expect([...parseChestPicks({ [HASH]: { collectionId: 17 }, [`0x${HASH}`]: { collectionId: 18 } })]).toEqual([
+    expect([...parseCollectablesPicks({ [HASH]: { collectionId: 17 }, [`0x${HASH}`]: { collectionId: 18 } })]).toEqual([
       [HASH, 18],
     ])
   })
 
   it("serializes canonical prefixed keys for Scarcity", () => {
-    expect(chestValue(new Map([[HASH, 18]]))).toEqual({ [`0x${HASH}`]: { collectionId: 18 } })
+    expect(collectablesValue(new Map([[HASH, 18]]))).toEqual({ [`0x${HASH}`]: { collectionId: 18 } })
   })
 })
 

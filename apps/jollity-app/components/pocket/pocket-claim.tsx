@@ -6,9 +6,9 @@
 /* eslint-disable @next/next/no-img-element -- gateway collectable art and a static cover asset */
 
 /**
- * The chest's way into the Pocket: an open book at the foot of the screen. Drag the book's cover across to close
+ * The collectables screen's way into the Pocket: an open book at the foot of the screen. Drag the book's cover across to close
  * it: every piece its edge sweeps past drops through the middle of the screen into its cell, and let go past CLAIM_AT the cover shuts by itself on the rest and lands with a thud. The book then grows
- * into the middle of the screen under "Added to your Pocket", everything fades, and the chest goes on by itself;
+ * into the middle of the screen under "Added to your Pocket", everything fades, and the collectables screen goes on by itself;
  * only a hand-off the host refused puts up a Continue.
  *
  * This component is the book's markup and nothing more (architecture rule 6): lib/pocket/scene runs it, frame by
@@ -19,7 +19,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react"
 import { asset } from "@/lib/asset"
 import { Button } from "@/components/ui/button"
-import { orbTint, type PieceSpot } from "@/components/chest/chest-scene"
+import { orbTint, type PieceSpot } from "@/components/collectables/collectables-scene"
 import { cellOrder, onCover as cellsOnCover } from "@/lib/pocket/book"
 import { FADE_AT_MS, createPocketScene, fadeAndGo, fadeBack, type PocketScene } from "@/lib/pocket/scene"
 

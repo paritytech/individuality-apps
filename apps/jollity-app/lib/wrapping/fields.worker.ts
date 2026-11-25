@@ -3,7 +3,7 @@
 
 // THE WRAPPING'S FIELDS, BUILT OFF THE MAIN THREAD. One art in (an
 // ImageBitmap, transferred), its field set out (the typed arrays, transferred).
-// The build is ~90 ms of a low-end phone's time per art, and the chest asks for
+// The build is ~90 ms of a low-end phone's time per art, and the collectables screen asks for
 // up to ten while its bubble collects; here it costs the page no frames.
 // wrapping/fieldsOffThread.ts is the other end.
 

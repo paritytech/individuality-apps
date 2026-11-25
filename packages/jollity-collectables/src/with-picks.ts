@@ -1,11 +1,11 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { ChestItem } from "./chest"
-import { normalizeCreditHash, type ChestPicks } from "./picks"
+import type { CollectablesItem } from "./collectables"
+import { normalizeCreditHash, type CollectablesPicks } from "./picks"
 
 /** Deals each claim as the item of its picked collection, or as it came when that collection is not on offer. */
-export function withPicks(items: ChestItem[], picks: ChestPicks, stashPicks: ChestPicks = new Map()): ChestItem[] {
+export function withPicks(items: CollectablesItem[], picks: CollectablesPicks, stashPicks: CollectablesPicks = new Map()): CollectablesItem[] {
   return items.map((item) => {
     const hash = normalizeCreditHash(item.hash)
     if (!hash) return item
@@ -30,6 +30,6 @@ export function withPicks(items: ChestItem[], picks: ChestPicks, stashPicks: Che
 }
 
 /** Scarcity owns its selected collection; Jollity must not fork that choice. */
-export function canChangePick(item: ChestItem): boolean {
+export function canChangePick(item: CollectablesItem): boolean {
   return item.selectionSource !== "stash"
 }

@@ -107,7 +107,7 @@ export function resetInvariantsForTests(): void {
 // ── the pure checks the four sites call ─────────────────────────────────────
 
 /** A payoff for a game this session did not play. Unknown (no live game, a
- *  relaunch straight onto /chest) is not evidence: it says nothing. */
+ *  relaunch straight onto /collectables) is not evidence: it says nothing. */
 export function payoffForAnotherGame(playedGame: number | null, payoffGame: number): boolean {
   return playedGame !== null && Number.isInteger(playedGame) && Number.isInteger(payoffGame) && playedGame !== payoffGame
 }
