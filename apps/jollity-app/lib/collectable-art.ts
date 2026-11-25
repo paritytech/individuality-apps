@@ -165,7 +165,7 @@ async function verifiedBytes(cid: string): Promise<Uint8Array | null> {
  *
  * Both the manifest and the image it points at are verified against their
  * CIDs, so an image a gateway swapped never renders. It resolves to an empty
- * string when either read fails, and the chest draws its placeholder for that.
+ * string when either read fails, and the collectables screen draws its placeholder for that.
  */
 export function loadManifestArt(manifestCid: string): Promise<string> {
   return verified.ensure(manifestCid, async () => {

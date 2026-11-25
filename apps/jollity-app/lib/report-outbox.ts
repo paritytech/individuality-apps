@@ -157,7 +157,7 @@ export type OutboxCommand =
   | { kind: "terminal-failure"; detail: string; reason: SubmitFailureReason }
   | { kind: "poll-handover"; delayMs: number }
   | { kind: "finish-report" }
-  | { kind: "navigate-chest"; missed: boolean }
+  | { kind: "navigate-collectables"; missed: boolean }
   | { kind: "clear-votes" }
   | { kind: "save-votes"; entry: StoredVotes }
 
@@ -425,7 +425,7 @@ export function reportOutbox(before: OutboxState, event: OutboxEvent): OutboxRes
         commands.push({ kind: "finish-report" }, { kind: "clear-votes" })
       } else if (event.result === "missed" || event.result === "gone") {
         state.phase = "missed"
-        commands.push({ kind: "navigate-chest", missed: event.result === "missed" })
+        commands.push({ kind: "navigate-collectables", missed: event.result === "missed" })
       } else {
         state.phase = "handover"
         commands.push({ kind: "poll-handover", delayMs: state.handoverPauseMs })

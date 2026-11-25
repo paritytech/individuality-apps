@@ -12,7 +12,7 @@ import { isHostChannelInterruption, waitForSdkReconnect } from "./host/safe-call
 
 export type ChainRetryOperation = "signup-route" | "signup-seat" | "signup-tx" | "person-bind" | "report" | "chain-health"
 
-// Keep this in step with packages/jollity-collectables/src/chest.ts's `unpinned`:
+// Keep this in step with packages/jollity-collectables/src/collectables.ts's `unpinned`:
 // both doors recognize papi's stable "not pinned" phrase.
 export function isBlockNotPinned(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error ?? "")

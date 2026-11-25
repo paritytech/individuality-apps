@@ -34,7 +34,7 @@ vi.mock("./joined", () => ({ hasJoined: () => M.joined }))
 vi.mock("./game-votes", () => ({ storedVotesGame: () => Promise.resolve(M.stored) }))
 vi.mock("./draw/draw-schedule", () => ({
   peekDrawSchedule: () => M.scheduled,
-  drawEntryPath: (scheduled: number | undefined) => scheduled === 0 ? "/chest" : "/prize-draw",
+  drawEntryPath: (scheduled: number | undefined) => scheduled === 0 ? "/collectables" : "/prize-draw",
 }))
 
 const { handoffFromStatus, playedGameIndex, resolvePostGameHandoff, tapDestination, waitForPostGameHandoff } =
@@ -55,12 +55,12 @@ beforeEach(() => {
 
 describe("post-game handoff", () => {
 
-  it("routes a counted report to the draw and a no-draw game to the chest", () => {
+  it("routes a counted report to the draw and a no-draw game to the collectables screen", () => {
     expect(handoffFromStatus({ gameIndex: 7, closed: true, report: "sent" })?.href)
       .toBe("/prize-draw?game=7")
     M.scheduled = 0
     expect(handoffFromStatus({ gameIndex: 7, closed: true, report: "sent" })?.href)
-      .toBe("/chest?game=7")
+      .toBe("/collectables?game=7")
   })
 
   it("tells the card that a counted report landed", async () => {
@@ -80,9 +80,9 @@ describe("post-game handoff", () => {
     expect(host.values.has("jollity.seen:7")).toBe(false)
   })
 
-  it.each(["not-sent", "gone"] as const)("routes final %s to the chest", (report) => {
+  it.each(["not-sent", "gone"] as const)("routes final %s to the collectables screen", (report) => {
     expect(handoffFromStatus({ gameIndex: 1097, closed: true, report })?.href)
-      .toBe("/chest?game=1097")
+      .toBe("/collectables?game=1097")
   })
 
   it("does not redirect an open or unknown game", () => {
@@ -119,7 +119,7 @@ describe("post-game handoff", () => {
     const read = vi.fn(async () => statuses.shift()!)
     const abort = new AbortController()
     const result = await waitForPostGameHandoff(source(read), { signal: abort.signal, pollMs: 0 })
-    expect(result).toEqual({ gameIndex: 1097, href: "/chest?game=1097", report: "gone" })
+    expect(result).toEqual({ gameIndex: 1097, href: "/collectables?game=1097", report: "gone" })
     expect(read).toHaveBeenCalledTimes(2)
     expect(result?.href).not.toBe("/game")
   })
@@ -157,12 +157,12 @@ describe("post-game handoff", () => {
     ])
     controller.abort()
     expect(result).not.toBe("timeout")
-    expect(result).toEqual({ gameIndex: 7, href: "/chest?game=7", report: "not-sent" })
+    expect(result).toEqual({ gameIndex: 7, href: "/collectables?game=7", report: "not-sent" })
   })
 
   // H-P3 (formal lane P, variant 2): the watcher hands off while a tap is
   // between its read and its route; the tap's own handoff is then refused and
-  // the page replaced /game after the chest. The tap must route nowhere.
+  // the page replaced /game after the collectables screen. The tap must route nowhere.
   it("H-P3: a tap that resolves after a handoff routes nowhere", async () => {
     M.remembered = 7
     M.joined = true

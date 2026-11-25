@@ -4,7 +4,7 @@
 // The main thread's end of wrapping/fields.worker.ts: `buildFields`, off the
 // main thread where it can be, on it where it cannot (no Worker, no
 // OffscreenCanvas, or the worker failed to start). One worker at a time, let go
-// when the chest leaves (stopFieldsWorker).
+// when the collectables screen leaves (stopFieldsWorker).
 
 import { buildFields, type WrappingFields } from './fields'
 
@@ -43,7 +43,7 @@ function start(): Worker | null {
 
 /** Let the worker go once nothing waits on it. Its heap holds the builds'
  *  scratch arrays until its own GC runs, which nothing on the page can force
- *  (measured: 3 to 19 MB still held through the chest), and they go with it.
+ *  (measured: 3 to 19 MB still held through the collectables screen), and they go with it.
  *  The next build starts a new one. */
 export function stopFieldsWorker(): void {
   if (!worker || pending.size) return

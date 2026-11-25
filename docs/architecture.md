@@ -22,7 +22,7 @@ reads.
 
 The boxes and arrows between the device, the host, the chains and the TURN
 service. **Current, with two arrows missing:** the chat worker also reads the
-chest on Asset Hub (`apps/jollity-worker/src/chain.ts`), and the app's arrow
+collectables on Asset Hub (`apps/jollity-worker/src/chain.ts`), and the app's arrow
 to Asset Hub carries the collectables it reads and the DotNS name link it
 writes (`packages/jollity-collectables`, `packages/individuality-name-link`).
 Host storage shows three of the keys the app and the worker share; the full
@@ -89,9 +89,9 @@ the report `packages/jollity-game-chain/src/engine.ts`. Hand-drawn.
 ![Player Process](assets/journey-player-process.svg)
 
 From the report through the prize draw, the claim of a won prize and the
-chest, to the hand-off to the player's Humanity card in Pocket. **Current.**
+collectables screen, to the hand-off to the player's Humanity card in Pocket. **Current.**
 The code: `lib/draw/` (the draw screen's reducer, its load and the claim),
-`lib/chest/` and `packages/jollity-collectables` (the chest), and
+`lib/collectables/` and `packages/jollity-collectables` (the collectables screen and its read), and
 `lib/membership/humanity-target.ts` (the hand-off). Generated from
 `assets/journey-player-process.py`.
 

@@ -12,7 +12,7 @@
  */
 import { withTimeout } from "./with-timeout"
 
-/** Five times a healthy chest read, which takes about three seconds on paseo. */
+/** Five times a healthy collectables read, which takes about three seconds on paseo. */
 export const READ_ATTEMPT_MS = 15_000
 
 /** The waits between attempts. Their count is the number of retries. */

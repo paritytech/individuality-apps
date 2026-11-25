@@ -3,7 +3,7 @@
 
 /**
  * ONE GAME, ONE TRACE: journey.join, journey.game and journey.payoff for this
- * device, kept in module memory across /game, /prize-draw and /chest
+ * device, kept in module memory across /game, /prize-draw and /collectables
  * (client-side navigation keeps it; a reload starts afresh).
  *
  * The session (lib/game-session.ts), the mesh (lib/webrtc/useMesh.ts), the
@@ -139,7 +139,7 @@ interface Trace {
   attestations: Step | null
   attestationsTimer: ReturnType<typeof setTimeout> | null
   draw: Step | null
-  chest: Step | null
+  collectables: Step | null
   stalledStage: string | null
   /** the sign-up's reason for skipping the draws, carried to the payoff */
   signupSkip: string | null
@@ -196,7 +196,7 @@ function fresh(): Trace {
     attestations: null,
     attestationsTimer: null,
     draw: null,
-    chest: null,
+    collectables: null,
     stalledStage: null,
     signupSkip: null,
     unplayableSent: false,
@@ -1172,7 +1172,7 @@ function beginPayoff(gameIndex: number): void {
   trace.draw = payoff.step("draw.show")
 }
 
-/** the doorway's gameSettled resolved: the chain holds what the chest needs */
+/** the doorway's gameSettled resolved: the chain holds what the collectables screen needs */
 export function gameSettledFor(gameIndex: number): void {
   if (trace.payoffGame !== gameIndex) return
   trace.attestations?.end()
@@ -1201,29 +1201,29 @@ export function drawShown(state: DrawState, check: WheelCheck | null, gameIndex:
   if (firstResult) checkpointGameLog("draw")
 }
 
-export function chestOpened(): void {
+export function collectablesOpened(): void {
   const payoff = live(trace.payoff)
-  if (!payoff || trace.chest) return
+  if (!payoff || trace.collectables) return
   trace.attestations = payoff.step("attestations.ready")
   trace.attestationsTimer = setTimeout(() => {
     trace.attestationsTimer = null
     if (trace.attestations && !trace.attestations.ended)
       reportFailure("attestations-late", { reason: "60s", context: { seconds: "60" } }, live(trace.payoff) ?? undefined)
   }, ATTESTATIONS_LATE_MS)
-  trace.chest = payoff.step("chest.show")
+  trace.collectables = payoff.step("chest.show")
 }
 
-export function chestShown(attrs: Attrs): void {
+export function collectablesShown(attrs: Attrs): void {
   const payoff = live(trace.payoff)
   if (!payoff) return
-  const firstResult = !!trace.chest && !trace.chest.ended
-  trace.chest?.end(attrs)
+  const firstResult = !!trace.collectables && !trace.collectables.ended
+  trace.collectables?.end(attrs)
   payoff.set(attrs)
   if (firstResult) checkpointGameLog("chest")
 }
 
-/** A bounded chest read failed, but a later in-place read opened it. */
-export function chestReadRecovered(elapsedMs: number): void {
+/** A bounded collectables read failed, but a later in-place read opened it. */
+export function collectablesReadRecovered(elapsedMs: number): void {
   recordDistribution("chest.recovery_ms", Math.max(0, elapsedMs), "millisecond", {})
   const payoff = live(trace.payoff)
   if (!payoff) return
@@ -1294,7 +1294,7 @@ function endPayoff(stalledAt: string | null): void {
   clearGameSessionState()
 }
 
-/** the player left the chest for Humanity: the payoff is over, and the
+/** the player left the collectables screen for Humanity: the payoff is over, and the
  *  game's log goes */
 export function payoffHandedOff(): void {
   const payoff = live(trace.payoff)
@@ -1304,7 +1304,7 @@ export function payoffHandedOff(): void {
     void sendGameLog({ gameIndex: trace.payoffGame, since: trace.joinedAt, trace: payoff.trace, stage: "payoff" })
 }
 
-/** The player requested a hand-off to Humanity, from the chest.
+/** The player requested a hand-off to Humanity, from the collectables screen.
  *  The payoff has ended by now (payoffHandedOff ends it), so this is its own
  *  short journey in the same trace. The host/browser cannot reliably report
  *  destination arrival, so this records only the synchronous tap/request. */
@@ -1333,7 +1333,7 @@ export function currentSignupSkip(): string | null {
 function openPayoffStage(): string {
   if (trace.attestations && !trace.attestations.ended) return "attestations.ready"
   if (trace.draw && !trace.draw.ended) return "draw.show"
-  if (trace.chest && !trace.chest.ended) return "chest.show"
+  if (trace.collectables && !trace.collectables.ended) return "chest.show"
   return "hand-off"
 }
 

@@ -84,7 +84,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <FrontDoor>{children}</FrontDoor>
         </CrashBoundary>
         <DebugBoot />
-        {/* the draw's hold carrying its bubble to /chest, over the route change */}
+        {/* the draw's hold carrying its bubble to /collectables, over the route change */}
         <CarriedBubbleLayer />
       </body>
     </html>

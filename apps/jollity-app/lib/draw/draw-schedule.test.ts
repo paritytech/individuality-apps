@@ -34,7 +34,7 @@ describe("the waiting-room draw schedule", () => {
     expect(drawEntryPath(peekDrawSchedule(index))).toBe("/prize-draw")
   })
 
-  it("uses the chest only for a successful authoritative zero", async () => {
+  it("uses the collectables screen only for a successful authoritative zero", async () => {
     const index = gameIndex++
     const gameAt = 1_800_000_000 + index
     const source = {
@@ -43,7 +43,7 @@ describe("the waiting-room draw schedule", () => {
 
     await preloadDrawSchedule(source, gameAt)
     expect(peekDrawSchedule(index)).toBe(0)
-    expect(drawEntryPath(0)).toBe("/chest")
+    expect(drawEntryPath(0)).toBe("/collectables")
     expect(drawEntryPath(undefined)).toBe("/prize-draw")
     expect(drawEntryPath(2)).toBe("/prize-draw")
   })

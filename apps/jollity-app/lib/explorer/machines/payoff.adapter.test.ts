@@ -11,12 +11,12 @@ import { MACHINES } from "./registry"
 
 const EVENT_TYPES = [
   "app-gone",
-  "chest-continue",
-  "chest-error",
-  "chest-opened",
-  "chest-reread-due",
-  "chest-result",
-  "chest-skip",
+  "collectables-continue",
+  "collectables-error",
+  "collectables-opened",
+  "collectables-reread-due",
+  "collectables-result",
+  "collectables-skip",
   "draw-bypass",
   "draw-continue",
   "draw-error",

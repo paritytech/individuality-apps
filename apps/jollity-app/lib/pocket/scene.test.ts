@@ -322,7 +322,7 @@ describe("the Pocket scene", () => {
     expect(pocket.holding()).toBe(false)
   })
 
-  it("leaves a press on a piece to the chest", () => {
+  it("leaves a press on a piece to the collectables screen", () => {
     // Given: a piece floating over the book's open cover
     const { pocket, play, open } = scene([spot(0, 60)])
     play(2.5)
@@ -357,7 +357,7 @@ describe("the Pocket scene", () => {
     expect(word.pocket.press({ x: 100, y: 700 }, 1)).toBe(false)
   })
 
-  it("follows a held cover's finger and tells the chest how far it has closed", () => {
+  it("follows a held cover's finger and tells the collectables screen how far it has closed", () => {
     // Given
     const { pocket, heard, play, open } = scene([spot(0, 330)])
     play(2.5)

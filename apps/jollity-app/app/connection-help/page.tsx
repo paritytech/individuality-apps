@@ -78,7 +78,7 @@ export default function ConnectionHelpPage() {
     try {
       // the watcher can hand off while this read is in flight, so the ref is
       // checked AGAIN inside, after the await (H-P3): a tap that loses the race
-      // must not put /game after the chest the watcher already opened.
+      // must not put /game after the collectables screen the watcher already opened.
       const next = await tapDestination(await getGameSource(), () => handedOff.current)
       if (!next) return
       if (next === "/game") {

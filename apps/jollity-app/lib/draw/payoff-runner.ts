@@ -18,12 +18,12 @@ export function createPrizeDrawPayoffRunner(gameIndex: number): PrizeDrawPayoffR
 export interface PrizeDrawCommandHandlers {
   drawShown(): void
   markDrawSeen(): void
-  replaceChest(): void
+  replaceCollectables(): void
   /** the 60 s idle watch (lib/draw/draw-idle): start it, or stop it on the way out */
   armIdle(): void
   cancelIdle(): void
-  /** the chest comes next: get it ready (start reading its claims) */
-  loadChest(): void
+  /** the collectables screen comes next: get it ready (start reading its claims) */
+  loadCollectables(): void
 }
 
 /**
@@ -35,7 +35,7 @@ export function executePrizeDrawCommands(commands: PayoffCommand[], handlers: Pr
   for (const command of commands) {
     switch (command.kind) {
       case "telemetry":
-        // the draw's own fact; the chest's and a stall's come from the chest's inputs, never this page's
+        // the draw's own fact; the collectables screen's and a stall's come from the collectables screen's inputs, never this page's
         if (command.fact === "drawShown") handlers.drawShown()
         break
       case "mark-draw-seen":
@@ -43,7 +43,7 @@ export function executePrizeDrawCommands(commands: PayoffCommand[], handlers: Pr
         break
       case "replace-route":
         // "/prize-draw" is where this page already is
-        if (command.route === "/chest") handlers.replaceChest()
+        if (command.route === "/collectables") handlers.replaceCollectables()
         break
       case "arm-draw-idle":
         handlers.armIdle()
@@ -51,13 +51,13 @@ export function executePrizeDrawCommands(commands: PayoffCommand[], handlers: Pr
       case "cancel-draw-idle":
         handlers.cancelIdle()
         break
-      case "load-chest":
-        handlers.loadChest()
+      case "load-collectables":
+        handlers.loadCollectables()
         break
       case "hand-off":
       case "end-payoff":
-        // the hand-off and the payoff's end follow the chest (chest-continue,
-        // chest-skip) or the session (next-game, app-gone), never this page's inputs
+        // the hand-off and the payoff's end follow the collectables screen (collectables-continue,
+        // collectables-skip) or the session (next-game, app-gone), never this page's inputs
         break
       default: {
         const unhandled: never = command

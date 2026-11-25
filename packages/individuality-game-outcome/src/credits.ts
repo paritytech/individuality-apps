@@ -9,7 +9,7 @@
  * earned, and how many still wait for their root, before the game settles.
  *
  * Which collectable each credit becomes, and its art, is a product's own read
- * (Jollity's chest); this is the plain count every surface can show.
+ * (Jollity's collectables screen); this is the plain count every surface can show.
  *
  * Pure, over the credits `getClaims` of `@parity/product-sdk-nfts` returns
  * (./chain, credits.ts, reads them).

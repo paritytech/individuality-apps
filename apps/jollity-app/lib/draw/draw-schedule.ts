@@ -73,6 +73,6 @@ export function peekDrawSchedule(gameIndex: number): number | undefined {
 }
 
 /** Unknown and positive schedules keep the draw route; only confirmed zero skips. */
-export function drawEntryPath(scheduled: number | undefined): "/prize-draw" | "/chest" {
-  return scheduled === 0 ? "/chest" : "/prize-draw"
+export function drawEntryPath(scheduled: number | undefined): "/prize-draw" | "/collectables" {
+  return scheduled === 0 ? "/collectables" : "/prize-draw"
 }

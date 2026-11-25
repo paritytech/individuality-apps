@@ -6,8 +6,8 @@
  *
  * `process.env.NODE_ENV` is inlined at build time, so a production build
  * reads none of these and the branch folds away. They are:
- *  - `?player=<ss58>` on /prize-draw and /chest: show that account's draw or
- *    chest instead of the player's (never claims; lib/draw/draw-screen.ts D15);
+ *  - `?player=<ss58>` on /prize-draw and /collectables: show that account's draw or
+ *    collectables screen instead of the player's (never claims; lib/draw/draw-screen.ts D15);
  *  - `?sendRung=<full|lean|low|minimum|survival>`: cap outgoing video at one
  *    rung of the upload ladder (lib/webrtc/send-rung-override.ts);
  *  - `?tutorial=1`: open the how-to-play carousel in a plain browser, which has

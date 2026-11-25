@@ -4,7 +4,7 @@
 /**
  * THE PRIZE DRAW SCREEN, as one pure reducer: what /prize-draw shows, and
  * when it lets go. It is this screen's authority; the payoff (lib/payoff-machine)
- * stays the journey's (draw → chest), and is told by `payoff` commands.
+ * stays the journey's (draw → collectables screen), and is told by `payoff` commands.
  *
  * lib/draw/draw-screen-host runs it for app/prize-draw/page.tsx;
  * components/draw/wheel-stage.tsx draws it, and lib/draw/wheel/ceremony.ts
@@ -147,7 +147,7 @@ export type DrawScreenCommand =
   | { kind: "ceremony"; mark: "load-started" | "mounted" | "ended" | "hidden" | "visible" }
   | { kind: "ceremony-fallback"; reason: DrawFallback }
   | { kind: "ceremony-report"; cause: "tap" | "idle" | "left" }
-  | { kind: "preload-chest" }
+  | { kind: "preload-collectables" }
   | { kind: "log"; note: DrawScreenNote }
 
 export interface DrawScreenTransition {
@@ -156,12 +156,12 @@ export interface DrawScreenTransition {
 }
 
 export type DrawScreenView =
-  | { kind: "blank"; label?: "Opening the chest" }
+  | { kind: "blank"; label?: "Opening your collectables" }
   | { kind: "message"; message: "waiting" | "failed" | "no-identity" }
   | { kind: "words"; draw: PrizeDrawView; miss: DrawSkipKind | null | undefined }
   /** `fallback`: the words over the stage, and the page's own Continue.
    *  `offered`: the stage has ended and offers its way on (the page's hold,
-   *  components/draw/hold-to-chest) */
+   *  components/draw/hold-to-collectables) */
   | { kind: "wheel"; draw: PrizeDrawView; miss: DrawSkipKind | null | undefined; intro: "up" | "leaving" | null; fallback: boolean; offered: boolean }
 
 export function startDrawScreen({ game, override }: { game: number | undefined; override: string | undefined }): DrawScreenState {
@@ -238,7 +238,7 @@ function opened(state: DrawScreenState, event: Extract<DrawScreenEvent, { type: 
   const next = { ...base(state), epoch: state.epoch + 1 }
   const opening: DrawScreenCommand[] = [
     log({ what: "opened", preloaded: preloaded === undefined ? "nothing" : preloaded.kind === "no-identity" ? "no identity" : preloaded.kind }),
-    { kind: "preload-chest" },
+    { kind: "preload-collectables" },
     { kind: "load-draw", epoch: next.epoch },
   ]
   if (preloaded?.kind === "ready" || preloaded?.kind === "none") {
@@ -417,7 +417,7 @@ export function drawScreenView(state: DrawScreenState): DrawScreenView {
     case "no-identity":
       return { kind: "message", message: state.phase }
     case "none":
-      return { kind: "blank", label: "Opening the chest" }
+      return { kind: "blank", label: "Opening your collectables" }
     case "words":
       return { kind: "words", draw: state.answer.draw, miss: state.answer.miss }
     case "wheel":

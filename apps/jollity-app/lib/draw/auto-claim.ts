@@ -16,7 +16,7 @@
  * fee.
  *
  * The draw screen starts it once the player has seen the result, and it
- * carries on when they move on to the chest: one claim per draw for the life
+ * carries on when they move on to the collectables screen: one claim per draw for the life
  * of the page, whichever screen is up. Whatever it could not do is left to the
  * chat, which claims the same prize by itself only once the game has settled,
  * so the two meet only on a draw held after that

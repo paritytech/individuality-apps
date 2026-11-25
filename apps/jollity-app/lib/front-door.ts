@@ -6,7 +6,7 @@
  * after home.
  *
  * Home runs the entry gates, the update check (lib/release) among them. The
- * game's pages (/game, /prize-draw, /chest) are reached from home by
+ * game's pages (/game, /prize-draw, /collectables) are reached from home by
  * client-side moves, which keep home's verdict. A FRESH LOAD on one of them
  * skipped home: the host reopening the last page it showed, a reload, the
  * app's own self-reload. A host can reopen a results page on a build many
@@ -15,8 +15,8 @@
  * So until home has been on screen in this page load, those pages are not
  * drawn: <FrontDoor> (components/front-door.tsx, in the root layout) sends the
  * load home and holds the URL it was going to. Home runs its gates, then
- * sends the player on to that URL (`arrivalStep`), so a reopened chest is
- * still the chest. A stale build is held on the update screen instead, and a
+ * sends the player on to that URL (`arrivalStep`), so a reopened collectables screen is
+ * still the collectables screen. A stale build is held on the update screen instead, and a
  * device already in the running game goes straight back in, unchecked, as
  * the game is never interrupted.
  *
@@ -28,7 +28,8 @@ import { homeSituation } from "./home-screen"
 import type { BuildAnswer } from "./release/stale-build"
 
 /** the pages a page load opens only after home */
-const BEHIND_HOME: readonly string[] = ["/game", "/prize-draw", "/chest"]
+// "/chest": the old address of /collectables, which app/chest/page.tsx sends on
+const BEHIND_HOME: readonly string[] = ["/game", "/prize-draw", "/collectables", "/chest"]
 
 /** undefined until the load's first look (`frontDoorOpen`) */
 let open: boolean | undefined
@@ -76,8 +77,8 @@ const HOME_ROOT = '[data-testid="home"]'
 /**
  * A held load can arrive carrying HOME's markup. A host that finds no file of
  * its own for a game URL answers with the root index.html: the Android host's
- * archive resolver tries `chest` and `chest/index.html`, never the export's
- * `chest.html`, then falls back to the root page. That document is home's
+ * archive resolver tries `collectables` and `collectables/index.html`, never the export's
+ * `collectables.html`, then falls back to the root page. That document is home's
  * prerender, and the hydration render of a held game page draws nothing, so
  * React claims none of it and leaves it where it is, directly under <body>.
  * Home's loading screen (its bare "Jollity" title) would stay above the page

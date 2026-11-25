@@ -11,7 +11,7 @@
  * not the hold (its warp, the wheel's explore, the prize's config).
  */
 
-/** a piece circling in the bubble: a dot of its colour this big (the chest draws them so too) */
+/** a piece circling in the bubble: a dot of its colour this big (the collectables screen draws them so too) */
 export const PIECE_R = 3
 export const FILM = ["#ff9ad5", "#c7a4ff", "#86d4ff", "#9cf0cf", "#ffe3a0", "#ffad8c", "#ff9ad5"]
 
@@ -29,7 +29,7 @@ export function orb(g, x, y, r, col, a = 1) {
   g.globalAlpha = a; g.fillStyle = gr; g.beginPath(); g.arc(x, y, r * 3.2, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1
 }
 
-/* ── the soap film: the chest engine's drawBubble, copied ── */
+/* ── the soap film: the collectables engine's drawBubble, copied ── */
 export const jelly = () => ({ sq: 0, sqVel: 0, tri: 0, triVel: 0, dir: -Math.PI / 2 })
 export function stepJelly(b, dt) {
   b.sqVel += (-b.sq * 120 - b.sqVel * 6) * dt; b.sq = clamp(b.sq + b.sqVel * dt, -0.12, 0.12)
@@ -100,8 +100,8 @@ function stillFilm(g, x, y, R, t, a) {
 }
 /**
  * The carried bubble between the screens (components/carried-bubble): where
- * the rise left it, the pieces swirling on, until the chest's engine has
- * drawn its own (lib/chest-scene/carry carryShown). `tp`: performance.now()
+ * the rise left it, the pieces swirling on, until the collectables screen's engine has
+ * drawn its own (lib/collectables-scene/carry carryShown). `tp`: performance.now()
  * in seconds, the clock the swirl is on.
  */
 export function drawCarriedBubble(g, c, tp) {

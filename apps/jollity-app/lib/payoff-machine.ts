@@ -5,19 +5,19 @@
  * The post-game payoff policy. This reducer owns ordering only: pages perform
  * chain reads, timers, navigation and telemetry, then feed their results back.
  *
- * The draw, then the chest, then out: the chest's Continue ends the payoff,
+ * The draw, then the collectables screen, then out: the collectables screen's Continue ends the payoff,
  * sends the game's log, and hands the player over to Humanity
  * (lib/membership/humanity-target). A won prize is claimed on the draw screen
  * by itself (lib/draw/auto-claim), outside this reducer.
  */
 
-export type PayoffRoute = "/prize-draw" | "/chest"
+export type PayoffRoute = "/prize-draw" | "/collectables"
 export type PayoffOutcome = "shown" | "stalled"
 export type PayoffActiveKind =
   | "draw-waiting"
   | "draw-showing"
-  | "chest-reading"
-  | "chest-showing"
+  | "collectables-reading"
+  | "collectables-showing"
 
 interface ActivePayoff {
   kind: PayoffActiveKind
@@ -49,14 +49,14 @@ export type PayoffInput =
     | { type: "draw-result" | "draw-none" | "draw-bypass" | "draw-continue" | "draw-idle" | "draw-error" }
     /** the draw screen has a way on up (its Continue, the words, a fallback): the idle may start */
     | { type: "draw-offered" }
-    | { type: "chest-opened" | "chest-result" | "chest-error" | "chest-reread-due" | "chest-continue" | "chest-skip" }
+    | { type: "collectables-opened" | "collectables-result" | "collectables-error" | "collectables-reread-due" | "collectables-continue" | "collectables-skip" }
     | { type: "payoff-stalled"; stage: string }
     | { type: "next-game" | "return-after-long-absence" | "app-gone" }
     | { type: "hidden" | "visible"; at: number }
 
 export type PayoffEvent = TaggedEvent & PayoffInput
 
-type PayoffFact = "drawShown" | "chestOpened" | "chestShown" | "payoffStalled"
+type PayoffFact = "drawShown" | "collectablesOpened" | "collectablesShown" | "payoffStalled"
 
 export type PayoffCommand =
   | { kind: "telemetry"; fact: Exclude<PayoffFact, "payoffStalled"> }
@@ -65,7 +65,7 @@ export type PayoffCommand =
   | { kind: "arm-draw-idle" }
   | { kind: "cancel-draw-idle" }
   | { kind: "mark-draw-seen" }
-  | { kind: "load-chest" }
+  | { kind: "load-collectables" }
   /** leave the game for the player's Humanity card (lib/membership/humanity-target) */
   | { kind: "hand-off" }
   | { kind: "end-payoff"; outcome: PayoffOutcome; cause: "handed-off" | "next-game" | "app-gone"; sendGameLog: boolean }
@@ -75,7 +75,7 @@ export interface PayoffTransition {
   commands: PayoffCommand[]
 }
 
-const routeKind = (route: PayoffRoute): PayoffActiveKind => (route === "/prize-draw" ? "draw-waiting" : "chest-reading")
+const routeKind = (route: PayoffRoute): PayoffActiveKind => (route === "/prize-draw" ? "draw-waiting" : "collectables-reading")
 
 /**
  * A reload bootstrap is deliberately silent. The payoff journey itself opens
@@ -94,7 +94,7 @@ export const payoffTag = (state: PayoffState): PayoffTag => ({ gameIndex: state.
 
 const unchanged = (state: PayoffState): PayoffTransition => ({ state, commands: [] })
 
-/** the chest is left: the payoff is over, its log goes, and so does the player */
+/** the collectables screen is left: the payoff is over, its log goes, and so does the player */
 const handOff = (state: ActivePayoff): PayoffTransition => {
   const outcome: PayoffOutcome = state.stalled ? "stalled" : "shown"
   return {
@@ -137,57 +137,57 @@ export function payoff(state: PayoffState, event: PayoffEvent): PayoffTransition
       if (state.kind !== "draw-waiting")
         return { state: { ...state, drawFactSent: true }, commands: [{ kind: "telemetry", fact: "drawShown" }] }
       return {
-        state: { ...active(state, "chest-reading", "/chest"), drawFactSent: true },
+        state: { ...active(state, "collectables-reading", "/collectables"), drawFactSent: true },
         commands: [
           { kind: "telemetry", fact: "drawShown" },
           { kind: "cancel-draw-idle" },
-          { kind: "load-chest" },
-          { kind: "replace-route", route: "/chest" },
+          { kind: "load-collectables" },
+          { kind: "replace-route", route: "/collectables" },
         ],
       }
     case "draw-continue":
     case "draw-idle":
       if (state.kind !== "draw-showing") return unchanged(state)
       return {
-        state: active(state, "chest-reading", "/chest"),
+        state: active(state, "collectables-reading", "/collectables"),
         commands: [
           ...(event.type === "draw-continue" ? ([{ kind: "mark-draw-seen" }] as const) : []),
           { kind: "cancel-draw-idle" },
-          { kind: "load-chest" },
-          { kind: "replace-route", route: "/chest" },
+          { kind: "load-collectables" },
+          { kind: "replace-route", route: "/collectables" },
         ],
       }
     case "draw-bypass":
       if (state.kind !== "draw-waiting") return unchanged(state)
       return {
-        state: active(state, "chest-reading", "/chest"),
-        commands: [{ kind: "load-chest" }, { kind: "replace-route", route: "/chest" }],
+        state: active(state, "collectables-reading", "/collectables"),
+        commands: [{ kind: "load-collectables" }, { kind: "replace-route", route: "/collectables" }],
       }
     case "payoff-stalled":
       if (state.stalled) return unchanged(state)
       return { state: { ...state, stalled: true }, commands: [{ kind: "telemetry", fact: "payoffStalled", stage: event.stage }] }
-    case "chest-opened":
-      if (state.kind !== "chest-reading") return unchanged(state)
-      return { state, commands: [{ kind: "telemetry", fact: "chestOpened" }] }
-    case "chest-result":
-      if (state.kind !== "chest-reading") return unchanged(state)
-      return { state: active(state, "chest-showing"), commands: [{ kind: "telemetry", fact: "chestShown" }] }
-    case "chest-error":
+    case "collectables-opened":
+      if (state.kind !== "collectables-reading") return unchanged(state)
+      return { state, commands: [{ kind: "telemetry", fact: "collectablesOpened" }] }
+    case "collectables-result":
+      if (state.kind !== "collectables-reading") return unchanged(state)
+      return { state: active(state, "collectables-showing"), commands: [{ kind: "telemetry", fact: "collectablesShown" }] }
+    case "collectables-error":
       return unchanged(state)
-    case "chest-reread-due":
-      if (state.kind !== "chest-reading") return unchanged(state)
+    case "collectables-reread-due":
+      if (state.kind !== "collectables-reading") return unchanged(state)
       return {
         state: { ...state, epoch: state.epoch + 1 },
-        commands: [{ kind: "load-chest" }],
+        commands: [{ kind: "load-collectables" }],
       }
-    case "chest-continue":
-      if (state.kind !== "chest-showing") return unchanged(state)
+    case "collectables-continue":
+      if (state.kind !== "collectables-showing") return unchanged(state)
       return handOff(state)
-    case "chest-skip":
-      // the chest is taking longer than usual (lib/chest/chest-screen C9): the
-      // player leaves without it, and the chest stays unseen for the chat to
+    case "collectables-skip":
+      // the collectables screen is taking longer than usual (lib/collectables/collectables-screen C9): the
+      // player leaves without it, and the collectables screen stays unseen for the chat to
       // point at
-      if (state.kind !== "chest-reading") return unchanged(state)
+      if (state.kind !== "collectables-reading") return unchanged(state)
       return handOff(state)
     case "next-game":
       return {

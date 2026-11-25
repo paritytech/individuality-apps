@@ -166,7 +166,7 @@ const REMINDER_VALUE = "reminder"
 const MOMENT_PARAM = "moment"
 let notificationMoment: string | null = null
 
-const PAYOFF_PATHS = ["/chest", "/prize-draw"]
+const PAYOFF_PATHS = ["/collectables", "/prize-draw"]
 
 /** Classify the route and the chain-driven game scene into stable metric tags. */
 export function foregroundContext(pathname: string, scene?: SceneName, moment?: MomentName): ForegroundContext {

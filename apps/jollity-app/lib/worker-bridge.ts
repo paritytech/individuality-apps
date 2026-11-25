@@ -10,7 +10,7 @@
  * from the worker to the app: How to play on a card opens /nux as a deep link,
  * and the flag covers the hosts that drop the path of a navigation and open
  * the product root instead, where this hook routes to /nux.
- * `jollity.seen:<gameIndex>` goes the other way: the chest and the draw screens
+ * `jollity.seen:<gameIndex>` goes the other way: the collectables screen and the draw screens
  * report that the player has been through them, and the card of that game
  * then shows the won ticket. The game screen adds that the report landed, so
  * a player who played and was not confirmed is not told they missed the game.

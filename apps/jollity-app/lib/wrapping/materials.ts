@@ -105,7 +105,7 @@ export const BASE = {
   pad: 1.02, expand: 2.4,
   fit: 0.86,          // the art's share of the wrapping's box
   growMs: 700,        // a new wrapping grows to full size over this (unused here)
-  breakMs: 620,       // the shatter's length (unused here; the chest has its own)
+  breakMs: 620,       // the shatter's length (unused here; the collectables screen has its own)
   effectScale: 1,
 }
 

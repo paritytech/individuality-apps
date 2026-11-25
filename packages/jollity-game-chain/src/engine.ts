@@ -348,7 +348,7 @@ export function createChainEngine(client: PeopleClient, options: { tld: string }
       //
       // RESOLVE AT THE BEST BLOCK, NOT AT FINALITY. The player sits on
       // "Submitting..." until this resolves, and finality on the People chain
-      // trails the best block by ~20 s. Every read the chest then makes
+      // trails the best block by ~20 s. Every read the collectables then makes
       // (`watchGame`, the credits, the score row) is at the best block too,
       // so waiting for finality bought nothing but the pause.
       return submitToBestBlock(reportTx(chain, { fullReport }).createSubmitAndWatch(withScoreParticipant(signer)), signal)

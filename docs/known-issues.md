@@ -29,7 +29,7 @@ storage, so a channel that keeps dropping cannot reload the page forever
 backoff (`lib/crash-reload.ts`).
 
 **A product cannot close itself.** The host offers no call for it, and the
-Android host brings a tab back as it was. After the chest hands the player to
+Android host brings a tab back as it was. After the collectables screen hands the player to
 their Humanity card, the first return to Jollity starts the app over at the
 home on a fresh load (`lib/start-over.ts`).
 

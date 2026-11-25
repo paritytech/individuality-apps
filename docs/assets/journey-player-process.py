@@ -1,7 +1,7 @@
 # Copyright 2026 Parity Technologies (UK) Ltd.
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""The payoff, from the report through the prize draw and the chest to the hand-off, as the app does it today.
+"""The payoff, from the report through the prize draw and the collectables screen to the hand-off, as the app does it today.
 
 Run it from the repository root:
 
@@ -9,16 +9,16 @@ Run it from the repository root:
 
 Every step is current behaviour. When the report lands the game session
 replaces the page with the draw (lib/game-session.ts `finishReport`), or with
-the chest when the waiting room's read proved that no draw was scheduled
+the collectables screen when the waiting room's read proved that no draw was scheduled
 (lib/draw/draw-schedule.ts). Each end screen runs on a reducer: the draw on
-lib/draw/draw-screen.ts, the chest on lib/chest/chest-screen.ts, and the order
+lib/draw/draw-screen.ts, the collectables screen on lib/collectables/collectables-screen.ts, and the order
 of the two on lib/payoff-machine.ts. The draw is read in
 packages/jollity-game-chain/src/chain/airdrop.ts through the SDK's
 `readAirdropDraw`, at one best block. A won prize is claimed by itself, with
-nothing on screen (lib/draw/auto-claim.ts over @individuality/prize). The chest
-is read in packages/jollity-collectables/src/chest.ts through
-`@parity/product-sdk-nfts`, fed by lib/chest/chest-feed.ts, and the picks are
-kept under `jollity.chest` (lib/chest-picks.ts). App paths are under
+nothing on screen (lib/draw/auto-claim.ts over @individuality/prize). The collectables screen
+is read in packages/jollity-collectables/src/collectables.ts through
+`@parity/product-sdk-nfts`, fed by lib/collectables/collectables-feed.ts, and the picks are
+kept under `jollity.chest` (lib/collectables-picks.ts). App paths are under
 apps/jollity-app/.
 """
 
@@ -54,19 +54,19 @@ d.package("startStage", "lib/draw/wheel/stage-runner.ts")
 d.package("startAutoClaim", "lib/draw/auto-claim.ts")
 d.package("claimWhenPayable", "@individuality/prize")
 d.package("postGameHref", "lib/draw/draw-screen-deps.ts")
-d.package("items.get", "packages/jollity-collectables/src/chest.ts")
+d.package("items.get", "packages/jollity-collectables/src/collectables.ts")
 d.package("manifestPicture", "packages/jollity-collectables/src/manifest.ts")
 d.package("URL.createObjectURL", "lib/collectable-art.ts")
-d.package("jollity.chest", "getHostLocalStorage(), lib/chest-picks.ts")
+d.package("jollity.chest", "getHostLocalStorage(), lib/collectables-picks.ts")
 d.package("stash.picks", "lib/host/stash-picks.ts")
 d.package("withPicks", "@jollity/collectables")
-d.package("watchChest", "lib/game-source.ts, lib/chest/chest-feed.ts")
-d.package("onShelfTap", "components/chest/chest-scene.tsx")
+d.package("watchCollectables", "lib/game-source.ts, lib/collectables/collectables-feed.ts")
+d.package("onShelfTap", "components/collectables/collectables-scene.tsx")
 d.package("navigateTo", "lib/membership/humanity-target.ts, lib/host/navigate.ts")
 
 d.selfcall("app", "finishReport(gameIndex): the report landed")
 with d.frag("alt", "[ the waiting room's read proved no draw was scheduled ]") as f:
-    d.selfcall("app", "router.replace(`/chest?game=${gameIndex}`)")
+    d.selfcall("app", "router.replace(`/collectables?game=${gameIndex}`)")
     f.divider("[ else ]")
     d.selfcall("app", "router.replace(`/prize-draw?game=${gameIndex}`)")
 
@@ -89,7 +89,7 @@ with d.frag("loop", '[ draw.phase === "waiting" ]'):
     d.ret("host", "app", "{ recognition, reached_personhood, last_attended_game }")
     d.selfcall("app", "claimEligibility(participant, gameIndex)")
     d.selfcall("app", 'draws.find((d) => d.phase !== "over") ?? draws[0]')
-d.selfcall("app", "preloadChest(): the chest's claims are read while the wheel plays")
+d.selfcall("app", "preloadCollectables(): the collectables screen's claims are read while the wheel plays")
 
 with d.frag("alt", "[ checkWheel({ tickets, target, winners, mine, winningTickets, won }).ok ]") as f:
     with d.frag("opt", "[ !draw.userTicket ]"):
@@ -104,7 +104,7 @@ with d.frag("alt", "[ checkWheel({ tickets, target, winners, mine, winningTicket
         words.divider("[ else ]")
         d.sees("app", "user", ["Not this time", "3 tickets won $10 CASH."])
     f.divider("[ the draw reads as none ]")
-    d.selfcall("app", "no ceremony: on to the chest")
+    d.selfcall("app", "no ceremony: on to the collectables screen")
 
 with d.frag("opt", "[ draw.won ]"):
     d.selfcall("app", "startAutoClaim(source, draw): no button, nothing on screen")
@@ -118,10 +118,10 @@ with d.frag("opt", "[ draw.won ]"):
     d.selfcall("app", "every outcome goes to the debug log; a claim left undone is the chat's")
 
 d.call("user", "app", "Taps Continue (or 60 s pass)", mono=False)
-d.selfcall("app", 'router.replace(postGameHref("/chest"))')
+d.selfcall("app", 'router.replace(postGameHref("/collectables"))')
 
-d.section("THE CHEST")
-with d.frag("par", "[ the chest feed: the first read ]") as f:
+d.section("THE COLLECTABLES SCREEN")
+with d.frag("par", "[ the collectables feed: the first read ]") as f:
     d.call("app", "host", 'getClaims(chain, { claimant: { tag: "Account", address }, individualityAt: "best" })')
     d.ret("host", "app", "{ claims: [{ hash, gameIndex, state, proof }, ...], at: { assetHub } }")
     d.call("app", "host", "getClaimableCollections(chain, { at, fromId? }), filtered to getApprovedCollections(network)")
@@ -147,7 +147,7 @@ with d.frag("par", "[ the chest feed: the first read ]") as f:
     d.ret("host", "app", "Stash's picks")
 d.selfcall("app", "withPicks(claims.slice(0, 10), picks, stash): Stash's picks win")
 with d.frag("opt", "[ the game is still settling ]"):
-    d.call("app", "host", "watchChest: the claims that land, then one read after the settle")
+    d.call("app", "host", "watchCollectables: the claims that land, then one read after the settle")
     d.ret("host", "app", "the new claims")
 
 d.selfcall("app", "the vessel collects the claims as they fly in, then opens")
@@ -158,7 +158,7 @@ with d.frag("loop", "[ per collectable tapped ]"):
     d.call("user", "app", "Turns the coin to another collection", mono=False)
     with d.frag("opt", "[ picked, and Stash has not picked it ]"):
         d.selfcall("app", 'send({ type: "pick", index, collectionId }): save-pick')
-        d.call("app", "host", 'writeJSON("jollity.chest", chestValue(known))')
+        d.call("app", "host", 'writeJSON("jollity.chest", collectablesValue(known))')
 
 d.call("user", "app", "Taps Continue", mono=False)
 d.selfcall("app", 'send({ type: "cta" }): the Pocket album opens')

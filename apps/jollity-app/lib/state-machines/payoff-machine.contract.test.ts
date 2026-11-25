@@ -6,7 +6,7 @@
  * contract and its five gates, not from the implementation, plus the
  * settled rules: the payoff ends once per journey, outcomes are
  * shown | stalled only, the game log goes only with the hand-off to Humanity
- * that leaving the chest makes, stale
+ * that leaving the collectables screen makes, stale
  * async answers never change state, and the draw moves on after 60 s idle.
  *
  * Black-box through the exported API: the reducer (`payoff`, `startPayoff`,
@@ -29,7 +29,7 @@ import {
   type PayoffState,
   type PayoffTag,
 } from "../payoff-machine"
-import { createPayoffScreenRunner, executeChestCommands, sendChestPageResult } from "../payoff-screen-runner"
+import { createPayoffScreenRunner, executeCollectablesCommands, sendCollectablesPageResult } from "../payoff-screen-runner"
 import { createPrizeDrawPayoffRunner, executePrizeDrawCommands } from "../draw/payoff-runner"
 import { DRAW_IDLE_MS, createDrawIdle } from "../draw/draw-idle"
 import { resetPayoffSessionsForTest } from "../payoff-session"
@@ -79,12 +79,12 @@ const EVERY_INPUT: PayoffInput[] = [
   { type: "draw-idle" },
   { type: "draw-error" },
   { type: "draw-offered" },
-  { type: "chest-opened" },
-  { type: "chest-result" },
-  { type: "chest-error" },
-  { type: "chest-reread-due" },
-  { type: "chest-continue" },
-  { type: "chest-skip" },
+  { type: "collectables-opened" },
+  { type: "collectables-result" },
+  { type: "collectables-error" },
+  { type: "collectables-reread-due" },
+  { type: "collectables-continue" },
+  { type: "collectables-skip" },
   { type: "payoff-stalled", stage: "chest.load" },
   { type: "next-game" },
   { type: "return-after-long-absence" },
@@ -97,9 +97,9 @@ const EVERY_INPUT: PayoffInput[] = [
 function normalPath(j: Journey): void {
   j.send({ type: "draw-result" })
   j.send({ type: "draw-continue" })
-  j.send({ type: "chest-opened" })
-  j.send({ type: "chest-result" })
-  j.send({ type: "chest-continue" })
+  j.send({ type: "collectables-opened" })
+  j.send({ type: "collectables-result" })
+  j.send({ type: "collectables-continue" })
 }
 
 describe("step 0 contract — one end per payoff journey", () => {
@@ -125,7 +125,7 @@ describe("step 0 contract — one end per payoff journey", () => {
       j.send({ type: "draw-result" })
       j.send(end)
       j.send(end)
-      j.send({ type: "chest-continue" })
+      j.send({ type: "collectables-continue" })
       expect(j.ends()).toHaveLength(1)
     }
   })
@@ -134,10 +134,10 @@ describe("step 0 contract — one end per payoff journey", () => {
     const outcomes = new Set<string>()
     for (const end of ["handed-off", "next-game", "app-gone"] as const)
       for (const stall of [false, true]) {
-        const j = new Journey("/chest")
+        const j = new Journey("/collectables")
         if (stall) j.send({ type: "payoff-stalled", stage: "chest.load" })
-        j.send({ type: "chest-result" })
-        j.send({ type: end === "handed-off" ? "chest-continue" : end })
+        j.send({ type: "collectables-result" })
+        j.send({ type: end === "handed-off" ? "collectables-continue" : end })
         const [ended] = j.ends()
         expect(ended, `${end} ${stall}`).toBeDefined()
         outcomes.add(ended.outcome)
@@ -148,38 +148,38 @@ describe("step 0 contract — one end per payoff journey", () => {
   })
 
   it("a payoff that stalled and then handed off ends stalled, and still sends the log", () => {
-    const j = new Journey("/chest")
+    const j = new Journey("/collectables")
     j.send({ type: "payoff-stalled", stage: "chest.load" })
-    j.send({ type: "chest-result" })
-    j.send({ type: "chest-continue" })
+    j.send({ type: "collectables-result" })
+    j.send({ type: "collectables-continue" })
     expect(j.ends()).toEqual([{ kind: "end-payoff", outcome: "stalled", cause: "handed-off", sendGameLog: true }])
   })
 
-  it("only a shown chest's Continue, or the skip of a chest still reading, hands off", () => {
+  it("only a shown collectables screen's Continue, or the skip of a collectables screen still reading, hands off", () => {
     const draw = new Journey("/prize-draw")
-    draw.send({ type: "chest-continue" })
-    draw.send({ type: "chest-skip" })
+    draw.send({ type: "collectables-continue" })
+    draw.send({ type: "collectables-skip" })
     expect(draw.ends()).toEqual([])
-    const reading = new Journey("/chest")
-    reading.send({ type: "chest-continue" })
+    const reading = new Journey("/collectables")
+    reading.send({ type: "collectables-continue" })
     expect(reading.ends()).toEqual([])
-    const showing = new Journey("/chest")
-    showing.send({ type: "chest-result" })
-    showing.send({ type: "chest-skip" })
+    const showing = new Journey("/collectables")
+    showing.send({ type: "collectables-result" })
+    showing.send({ type: "collectables-skip" })
     expect(showing.ends()).toEqual([])
     for (const j of [draw, reading, showing]) expect(j.state.kind).not.toBe("ended")
   })
 })
 
 describe("step 0 contract — stale async answers never change state", () => {
-  it("a chest read from an earlier attempt is ignored after the re-read", () => {
-    const j = new Journey("/chest")
+  it("a collectables read from an earlier attempt is ignored after the re-read", () => {
+    const j = new Journey("/collectables")
     const first = j.tag()
-    j.send({ type: "chest-reread-due" })
+    j.send({ type: "collectables-reread-due" })
     const before = j.state
-    expect(j.send({ type: "chest-result" }, first)).toEqual([])
+    expect(j.send({ type: "collectables-result" }, first)).toEqual([])
     expect(j.state).toEqual(before)
-    expect(j.send({ type: "chest-result" })).toEqual([{ kind: "telemetry", fact: "chestShown" }])
+    expect(j.send({ type: "collectables-result" })).toEqual([{ kind: "telemetry", fact: "collectablesShown" }])
   })
 
   it("an answer for another game is ignored, every event type", () => {
@@ -192,14 +192,14 @@ describe("step 0 contract — stale async answers never change state", () => {
   })
 
   it("the epoch never goes back, and a duplicated re-read answer counts once", () => {
-    const j = new Journey("/chest")
-    j.send({ type: "chest-reread-due" })
-    j.send({ type: "chest-reread-due" })
+    const j = new Journey("/collectables")
+    j.send({ type: "collectables-reread-due" })
+    j.send({ type: "collectables-reread-due" })
     const tag = j.tag()
     expect(tag.epoch).toBe(2)
-    j.send({ type: "chest-result" }, tag)
-    j.send({ type: "chest-result" }, tag)
-    expect(j.facts().filter((f) => f === "chestShown")).toHaveLength(1)
+    j.send({ type: "collectables-result" }, tag)
+    j.send({ type: "collectables-result" }, tag)
+    expect(j.facts().filter((f) => f === "collectablesShown")).toHaveLength(1)
     expect(j.state.epoch).toBe(2)
   })
 
@@ -213,26 +213,26 @@ describe("step 0 contract — stale async answers never change state", () => {
     expect(j.routes()).toEqual([])
   })
 
-  it("a chest answer that lands after the player left for Humanity changes nothing", () => {
-    const j = new Journey("/chest")
+  it("a collectables answer that lands after the player left for Humanity changes nothing", () => {
+    const j = new Journey("/collectables")
     const read = j.tag()
-    j.send({ type: "chest-result" })
-    j.send({ type: "chest-continue" })
+    j.send({ type: "collectables-result" })
+    j.send({ type: "collectables-continue" })
     const before = j.state
-    expect(j.send({ type: "chest-result" }, read)).toEqual([])
+    expect(j.send({ type: "collectables-result" }, read)).toEqual([])
     expect(j.state).toEqual(before)
   })
 })
 
-describe("step 0 contract — the draw never holds the chest past the idle rule", () => {
-  it("a way on offered arms the 60 s idle, the draw coming up does not; the idle moves on to the chest without marking the draw seen", () => {
+describe("step 0 contract — the draw never holds the collectables screen past the idle rule", () => {
+  it("a way on offered arms the 60 s idle, the draw coming up does not; the idle moves on to the collectables screen without marking the draw seen", () => {
     const j = new Journey()
     expect(j.send({ type: "draw-result" })).not.toContainEqual({ kind: "arm-draw-idle" })
     expect(j.send({ type: "draw-offered" })).toEqual([{ kind: "arm-draw-idle" }])
     const cmds = j.send({ type: "draw-idle" })
-    expect(j.state.kind).toBe("chest-reading")
-    expect(cmds).toContainEqual({ kind: "replace-route", route: "/chest" })
-    expect(cmds).toContainEqual({ kind: "load-chest" })
+    expect(j.state.kind).toBe("collectables-reading")
+    expect(cmds).toContainEqual({ kind: "replace-route", route: "/collectables" })
+    expect(cmds).toContainEqual({ kind: "load-collectables" })
     expect(cmds).not.toContainEqual({ kind: "mark-draw-seen" })
   })
 
@@ -244,12 +244,12 @@ describe("step 0 contract — the draw never holds the chest past the idle rule"
     expect(cmds).toContainEqual({ kind: "cancel-draw-idle" })
   })
 
-  it("a game with no draw goes straight to the chest, emitting drawShown once", () => {
+  it("a game with no draw goes straight to the collectables screen, emitting drawShown once", () => {
     const j = new Journey()
     j.send({ type: "draw-none" })
-    expect(j.state.kind).toBe("chest-reading")
+    expect(j.state.kind).toBe("collectables-reading")
     expect(j.facts()).toEqual(["drawShown"])
-    expect(j.routes()).toEqual(["/chest"])
+    expect(j.routes()).toEqual(["/collectables"])
   })
 
   it("an idle that fires after Continue already moved on is a no-op (one route change)", () => {
@@ -257,7 +257,7 @@ describe("step 0 contract — the draw never holds the chest past the idle rule"
     j.send({ type: "draw-result" })
     j.send({ type: "draw-continue" })
     j.send({ type: "draw-idle" })
-    expect(j.routes()).toEqual(["/chest"])
+    expect(j.routes()).toEqual(["/collectables"])
   })
 
   describe("the idle timer (the executor of the 60 s rule)", () => {
@@ -348,51 +348,51 @@ describe("step 0 gates", () => {
   it("gate 1: the normal path's facts in order", () => {
     const j = new Journey()
     normalPath(j)
-    expect(j.facts()).toEqual(["drawShown", "chestOpened", "chestShown", "end:shown:handed-off:log", "hand-off"])
+    expect(j.facts()).toEqual(["drawShown", "collectablesOpened", "collectablesShown", "end:shown:handed-off:log", "hand-off"])
   })
 
   it("gate 1: the 60 s idle advance's facts in order", () => {
     const j = new Journey()
     j.send({ type: "draw-result" })
     j.send({ type: "draw-idle" })
-    j.send({ type: "chest-opened" })
-    j.send({ type: "chest-result" })
-    j.send({ type: "chest-continue" })
-    expect(j.facts()).toEqual(["drawShown", "chestOpened", "chestShown", "end:shown:handed-off:log", "hand-off"])
+    j.send({ type: "collectables-opened" })
+    j.send({ type: "collectables-result" })
+    j.send({ type: "collectables-continue" })
+    expect(j.facts()).toEqual(["drawShown", "collectablesOpened", "collectablesShown", "end:shown:handed-off:log", "hand-off"])
   })
 
-  it("gate 1: a chest stall's facts in order, the stall reported once", () => {
+  it("gate 1: a collectables screen stall's facts in order, the stall reported once", () => {
     const j = new Journey()
     j.send({ type: "draw-result" })
     j.send({ type: "draw-continue" })
-    j.send({ type: "chest-opened" })
-    j.send({ type: "chest-error" })
+    j.send({ type: "collectables-opened" })
+    j.send({ type: "collectables-error" })
     j.send({ type: "payoff-stalled", stage: "chest.load" })
-    j.send({ type: "chest-reread-due" })
+    j.send({ type: "collectables-reread-due" })
     j.send({ type: "payoff-stalled", stage: "chest.load" })
-    j.send({ type: "chest-result" })
-    j.send({ type: "chest-continue" })
-    expect(j.facts()).toEqual(["drawShown", "chestOpened", "payoffStalled", "chestShown", "end:stalled:handed-off:log", "hand-off"])
+    j.send({ type: "collectables-result" })
+    j.send({ type: "collectables-continue" })
+    expect(j.facts()).toEqual(["drawShown", "collectablesOpened", "payoffStalled", "collectablesShown", "end:stalled:handed-off:log", "hand-off"])
   })
 
   it("gate 1: a game with no draw", () => {
     const j = new Journey()
     j.send({ type: "draw-none" })
-    j.send({ type: "chest-opened" })
-    j.send({ type: "chest-result" })
-    j.send({ type: "chest-continue" })
-    expect(j.facts()).toEqual(["drawShown", "chestOpened", "chestShown", "end:shown:handed-off:log", "hand-off"])
+    j.send({ type: "collectables-opened" })
+    j.send({ type: "collectables-result" })
+    j.send({ type: "collectables-continue" })
+    expect(j.facts()).toEqual(["drawShown", "collectablesOpened", "collectablesShown", "end:shown:handed-off:log", "hand-off"])
   })
 
   it("gate 2: a reload bootstrap emits nothing, on every route", () => {
-    for (const route of ["/prize-draw", "/chest"] as PayoffRoute[]) {
+    for (const route of ["/prize-draw", "/collectables"] as PayoffRoute[]) {
       const state = startPayoff(GAME, route)
       expect(state.kind).not.toBe("ended")
       expect(state.route).toBe(route)
     }
   })
 
-  it.each(["/prize-draw", "/chest"] as PayoffRoute[])("gate 2: a reload of an ended payoff on %s never re-opens it", (route) => {
+  it.each(["/prize-draw", "/collectables"] as PayoffRoute[])("gate 2: a reload of an ended payoff on %s never re-opens it", (route) => {
     const state = startPayoff(GAME, route, { ended: "shown", epoch: 3 })
     expect(state.kind).toBe("ended")
     for (const event of EVERY_INPUT) {
@@ -406,33 +406,33 @@ describe("step 0 gates", () => {
     const handlers = {
       drawShown: vi.fn(),
       markDrawSeen: vi.fn(),
-      replaceChest: vi.fn(),
-      chestOpened: vi.fn(),
-      chestShown: vi.fn(),
+      replaceCollectables: vi.fn(),
+      collectablesOpened: vi.fn(),
+      collectablesShown: vi.fn(),
       payoffStalled: vi.fn(),
       payoffEnded: vi.fn(),
       handOff: vi.fn(),
       armIdle: vi.fn(),
       cancelIdle: vi.fn(),
-      loadChest: vi.fn(),
+      loadCollectables: vi.fn(),
     }
     const j = new Journey()
     normalPath(j)
     executePrizeDrawCommands(j.commands, handlers)
-    executeChestCommands(j.commands, handlers)
-    for (const fact of ["drawShown", "markDrawSeen", "chestOpened", "chestShown", "payoffEnded", "handOff", "cancelIdle"] as const)
+    executeCollectablesCommands(j.commands, handlers)
+    for (const fact of ["drawShown", "markDrawSeen", "collectablesOpened", "collectablesShown", "payoffEnded", "handOff", "cancelIdle"] as const)
       expect(handlers[fact], fact).toHaveBeenCalledTimes(1)
   })
 
-  it.each(["draw-waiting", "draw-showing", "chest-reading", "chest-showing"])(
+  it.each(["draw-waiting", "draw-showing", "collectables-reading", "collectables-showing"])(
     "gate 4: a return after a long absence in %s keeps the screen and its route",
     (kind) => {
       const j = new Journey()
       const steps: Record<string, PayoffInput[]> = {
         "draw-waiting": [],
         "draw-showing": [{ type: "draw-result" }],
-        "chest-reading": [{ type: "draw-result" }, { type: "draw-continue" }],
-        "chest-showing": [{ type: "draw-result" }, { type: "draw-continue" }, { type: "chest-result" }],
+        "collectables-reading": [{ type: "draw-result" }, { type: "draw-continue" }],
+        "collectables-showing": [{ type: "draw-result" }, { type: "draw-continue" }, { type: "collectables-result" }],
       }
       for (const step of steps[kind]) j.send(step)
       expect(j.state.kind).toBe(kind)
@@ -454,34 +454,34 @@ describe("adversarial — the page runners", () => {
   beforeEach(() => resetPayoffSessionsForTest())
 
   it("the next game starting during the payoff ends it once, without the log, and later answers are ignored", () => {
-    const runner = createPayoffScreenRunner(GAME, "/chest")
+    const runner = createPayoffScreenRunner(GAME, "/collectables")
     const read = runner.capture()
     const end = runner.send({ type: "next-game" })
     expect(end).toEqual([{ kind: "end-payoff", outcome: "stalled", cause: "next-game", sendGameLog: false }])
-    expect(runner.send({ type: "chest-result" }, read)).toEqual([])
-    expect(runner.send({ type: "chest-continue" })).toEqual([])
+    expect(runner.send({ type: "collectables-result" }, read)).toEqual([])
+    expect(runner.send({ type: "collectables-continue" })).toEqual([])
   })
 
-  it("a chest restart card uses the current epoch, so it is not dropped as stale", () => {
-    const runner = createPayoffScreenRunner(GAME, "/chest")
+  it("a collectables screen restart card uses the current epoch, so it is not dropped as stale", () => {
+    const runner = createPayoffScreenRunner(GAME, "/collectables")
     const oldRead = runner.capture()
-    runner.send({ type: "chest-reread-due" })
-    expect(sendChestPageResult(runner, oldRead, true)).toEqual([{ kind: "telemetry", fact: "chestShown" }])
+    runner.send({ type: "collectables-reread-due" })
+    expect(sendCollectablesPageResult(runner, oldRead, true)).toEqual([{ kind: "telemetry", fact: "collectablesShown" }])
   })
 
-  it("a normal chest result from a superseded read is dropped", () => {
-    const runner = createPayoffScreenRunner(GAME, "/chest")
+  it("a normal collectables result from a superseded read is dropped", () => {
+    const runner = createPayoffScreenRunner(GAME, "/collectables")
     const oldRead = runner.capture()
-    runner.send({ type: "chest-reread-due" })
-    expect(sendChestPageResult(runner, oldRead, false)).toEqual([])
+    runner.send({ type: "collectables-reread-due" })
+    expect(sendCollectablesPageResult(runner, oldRead, false)).toEqual([])
   })
 
-  it("reload mid-chest: the new runner starts silent at the chest read", () => {
-    const before = createPayoffScreenRunner(GAME, "/chest")
-    before.send({ type: "chest-opened" })
+  it("reload mid-collectables: the new runner starts silent at the collectables read", () => {
+    const before = createPayoffScreenRunner(GAME, "/collectables")
+    before.send({ type: "collectables-opened" })
     resetPayoffSessionsForTest()
-    const after = createPayoffScreenRunner(GAME, "/chest")
-    expect(after.current().kind).toBe("chest-reading")
+    const after = createPayoffScreenRunner(GAME, "/collectables")
+    expect(after.current().kind).toBe("collectables-reading")
     expect(after.current().epoch).toBe(0)
   })
 
@@ -492,15 +492,15 @@ describe("adversarial — the page runners", () => {
   })
 
   // The shared per-game payoff session keeps a stall on the draw across the
-  // client-side /prize-draw -> /chest route replacement.
-  it("a stall on the draw is still the payoff's outcome when the chest hands off", () => {
+  // client-side /prize-draw -> /collectables route replacement.
+  it("a stall on the draw is still the payoff's outcome when the collectables screen hands off", () => {
     const draw = createPrizeDrawPayoffRunner(GAME)
     draw.send({ type: "payoff-stalled", stage: "draw.load" })
     draw.send({ type: "draw-result" })
     draw.send({ type: "draw-continue" })
-    const chest = createPayoffScreenRunner(GAME, "/chest")
-    chest.send({ type: "chest-result" })
-    const [end] = chest.send({ type: "chest-continue" }).filter((c) => c.kind === "end-payoff")
+    const collectables = createPayoffScreenRunner(GAME, "/collectables")
+    collectables.send({ type: "collectables-result" })
+    const [end] = collectables.send({ type: "collectables-continue" }).filter((c) => c.kind === "end-payoff")
     expect(end).toMatchObject({ outcome: "stalled" })
   })
 })

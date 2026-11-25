@@ -77,7 +77,7 @@ async function hostChainClient(sdk: HostSdk, attempt = 0): Promise<PeopleClient 
 }
 
 // The truapi-host CLI serves chains from 0.21, but its provider refuses
-// `archive_v1_storage`, so a read papi routes there never answers and the chest
+// `archive_v1_storage`, so a read papi routes there never answers and the collectables screen
 // hangs. A dev-host run therefore reads over the WebSocket it already names.
 const DEV_HOST =
   process.env.NODE_ENV === "development" && Boolean(process.env.NEXT_PUBLIC_TRUAPI_HOST_PORT)
@@ -156,7 +156,7 @@ export function peopleChainClient(): PolkadotClient | null {
 }
 
 /**
- * Builds the chain pair the chest reads from.
+ * Builds the chain pair the collectables reads from.
  *
  * The People chain the engine already holds serves the credits. Asset Hub
  * serves the collections, what a credit would mint, and whether it is spent.
@@ -172,7 +172,7 @@ export function resolveScarcityChain(): Promise<ScarcityChain | null> {
   scarcity ??= assetHubProvider().then((provider) => {
     if (!provider) {
       devLog("engine", "no Asset Hub to read the chest from", undefined, "warn")
-      // the next chest read asks again, since a host can gain the chain later
+      // the next collectables read asks again, since a host can gain the chain later
       scarcity = null
       return null
     }

@@ -359,7 +359,7 @@ function modelDrawScreen(previous: ModelDrawScreen, event: DrawScreenTestEvent):
     m.epoch += 1
     out.push(
       `log:opened:${preload === "nothing" ? "nothing" : preload === "no-identity" ? "no identity" : preload === "none" ? "none" : "ready"}`,
-      "preload-chest",
+      "preload-collectables",
       `load-draw:${m.epoch}`,
     )
     if (preload !== "nothing" && preload !== "no-identity") land(preload, OPENED_TAG)
@@ -453,7 +453,7 @@ function modelKey(m: ModelDrawScreen): DrawScreenStateKey {
 }
 
 function modelView(m: ModelDrawScreen): string {
-  if (m.life === "open" && m.read === "none") return "blank:Opening the chest"
+  if (m.life === "open" && m.read === "none") return "blank:Opening your collectables"
   if (m.life === "open" && (m.read === "waiting" || m.read === "failed" || m.read === "no-identity")) return `message:${m.read}`
   if (m.life !== "open" || m.read !== "shown" || m.draw === null) return "blank"
   const what = `${m.draw}:miss=${missOf(m.draw) ?? "-"}`
@@ -567,7 +567,7 @@ const wheelAnswer = (draw: "won" | "lost"): DrawScreenTestEvent => ({ key: "load
 const wordsAnswer = (draw: "words-won" | "words-lost" | "words-out" | "disagree"): DrawScreenTestEvent => ({ key: "load-answered:words", draw })
 
 export const drawScreenRegressions: NamedSequence<DrawScreenTestEvent, DrawScreenState, ModelDrawScreen>[] = [
-  { name: "a winner plays the wheel and goes on to the chest", events: [ev("opened"), wheelAnswer("won"), ev("stage-mounted"), ev("stage-ended"), ev("stage-done"), ev("unmounted")] },
+  { name: "a winner plays the wheel and goes on to the collectables screen", events: [ev("opened"), wheelAnswer("won"), ev("stage-mounted"), ev("stage-ended"), ev("stage-done"), ev("unmounted")] },
   { name: "a loser plays the wheel, and goes on once the fall has played", events: [ev("opened"), wheelAnswer("lost"), ev("stage-mounted"), ev("stage-ended"), ev("stage-done")] },
   {
     name: "a spectator is told what the draw is over the held stage, then watches it",
@@ -576,14 +576,14 @@ export const drawScreenRegressions: NamedSequence<DrawScreenTestEvent, DrawScree
   { name: "a loss the wheel cannot tell is told in words", events: [ev("opened"), wordsAnswer("words-lost"), ev("continue")] },
   { name: "a win the wheel cannot tell is told in words, and claimed at once", events: [ev("opened"), wordsAnswer("words-won"), ev("continue")] },
   { name: "a win the rule disagrees with is told in words", events: [ev("opened"), wordsAnswer("disagree"), ev("continue"), ev("continue")] },
-  { name: "no draw this game goes straight to the chest", events: [ev("opened"), ev("load-answered:none"), ev("bypass"), ev("continue")] },
+  { name: "no draw this game goes straight to the collectables screen", events: [ev("opened"), ev("load-answered:none"), ev("bypass"), ev("continue")] },
   { name: "a draw still drawing says so, and Continue skips it", events: [ev("opened"), ev("load-waiting"), ev("bypass"), ev("bypass")] },
   {
     name: "a draw still drawing that then lands plays the wheel",
     events: [ev("opened"), ev("load-waiting"), wheelAnswer("lost"), ev("stage-mounted"), ev("stage-ended"), ev("stage-done")],
   },
   { name: "no player identity says so, and Continue skips it", events: [ev("opened"), ev("load-answered:no-identity"), ev("bypass")] },
-  { name: "a failed read says so, and Continue goes on to the chest", events: [ev("opened"), ev("load-failed"), ev("continue"), ev("bypass"), ev("idle-elapsed"), ev("bypass")] },
+  { name: "a failed read says so, and Continue goes on to the collectables screen", events: [ev("opened"), ev("load-failed"), ev("continue"), ev("bypass"), ev("idle-elapsed"), ev("bypass")] },
   { name: "a failed read while drawing says so too", events: [ev("opened"), ev("load-waiting"), ev("load-failed"), ev("load-waiting"), ev("bypass")] },
   { name: "a stage whose code does not load falls back to words and the page's Continue", events: [ev("opened"), wheelAnswer("won"), { key: "stage-failed", reason: "load" }, ev("continue"), ev("continue")] },
   { name: "a stage that does not mount falls back to words and the page's Continue", events: [ev("opened"), wheelAnswer("lost"), { key: "stage-failed", reason: "mount" }, ev("continue")] },
@@ -606,7 +606,7 @@ export const drawScreenRegressions: NamedSequence<DrawScreenTestEvent, DrawScree
   },
   { name: "preloaded words claim again when the page's own read lands", events: [{ key: "opened:preloaded", preload: "words-won" }, wordsAnswer("words-won"), ev("continue")] },
   { name: "a preloaded no-identity still opens on the black frame", events: [{ key: "opened:preloaded", preload: "no-identity" }, ev("load-answered:no-identity"), ev("bypass")] },
-  { name: "a preloaded no-draw goes straight to the chest", events: [{ key: "opened:preloaded", preload: "none" }, ev("load-answered:none")] },
+  { name: "a preloaded no-draw goes straight to the collectables screen", events: [{ key: "opened:preloaded", preload: "none" }, ev("load-answered:none")] },
   { name: "a spectator whose intro outlasts the import mounts unheld", events: [ev("opened"), ev("load-answered:spectator"), ev("timer:intro-auto"), ev("stage-mounted"), ev("timer:intro-out")] },
   { name: "a fallback under the intro releases the stage and clears the intro", events: [ev("opened"), ev("load-answered:spectator"), held, ev("timer:progress"), ev("timer:intro-auto"), ev("continue")] },
   {

@@ -9,7 +9,7 @@
  * out-of-order answers. After every event the transition is checked against
  * a small independent model of §7's diagram and the step 0 contract:
  *
- *   draw-waiting → draw-showing → chest-reading → chest-showing
+ *   draw-waiting → draw-showing → collectables-reading → collectables-showing
  *        └─(no draw / bypass)──────┘        └─(skip)──┐     ↓ (Continue)
  *                                                    ended(shown | stalled) + hand-off
  *
@@ -34,13 +34,13 @@ type Kind = PayoffActiveKind | "ended"
 
 /** §7's edges; every other kind change is a violation */
 const EDGES: Record<Kind, Kind[]> = {
-  "draw-waiting": ["draw-showing", "chest-reading", "ended"],
-  "draw-showing": ["chest-reading", "ended"],
-  "chest-reading": ["chest-showing", "ended"],
-  "chest-showing": ["ended"],
+  "draw-waiting": ["draw-showing", "collectables-reading", "ended"],
+  "draw-showing": ["collectables-reading", "ended"],
+  "collectables-reading": ["collectables-showing", "ended"],
+  "collectables-showing": ["ended"],
   ended: [],
 }
-const ROUTE_ORDER: PayoffRoute[] = ["/prize-draw", "/chest"]
+const ROUTE_ORDER: PayoffRoute[] = ["/prize-draw", "/collectables"]
 
 const INPUTS: PayoffInput[] = [
   { type: "draw-result" },
@@ -50,12 +50,12 @@ const INPUTS: PayoffInput[] = [
   { type: "draw-idle" },
   { type: "draw-error" },
   { type: "draw-offered" },
-  { type: "chest-opened" },
-  { type: "chest-result" },
-  { type: "chest-error" },
-  { type: "chest-reread-due" },
-  { type: "chest-continue" },
-  { type: "chest-skip" },
+  { type: "collectables-opened" },
+  { type: "collectables-result" },
+  { type: "collectables-error" },
+  { type: "collectables-reread-due" },
+  { type: "collectables-continue" },
+  { type: "collectables-skip" },
   { type: "payoff-stalled", stage: "chest.load" },
   { type: "next-game" },
   { type: "return-after-long-absence" },
@@ -68,13 +68,13 @@ const FORWARD: PayoffInput[] = [
   { type: "draw-result" },
   { type: "draw-offered" },
   { type: "draw-continue" },
-  { type: "chest-opened" },
-  { type: "chest-result" },
-  { type: "chest-continue" },
+  { type: "collectables-opened" },
+  { type: "collectables-result" },
+  { type: "collectables-continue" },
 ]
 /** the event that makes each end */
 const END_EVENT: Record<string, string[]> = {
-  "handed-off": ["chest-continue", "chest-skip"],
+  "handed-off": ["collectables-continue", "collectables-skip"],
   "next-game": ["next-game"],
   "app-gone": ["app-gone"],
 }
@@ -146,11 +146,11 @@ function journey(seed: number): Journey {
       if (c.outcome !== expected) violations.push(`${what}: outcome ${c.outcome}, model ${expected}`)
       if (after.kind === "ended" && after.outcome !== c.outcome) violations.push(`${what}: state outcome differs from command`)
     }
-    // the hand-off: only leaving a shown chest, or skipping one still reading, and only with the end
+    // the hand-off: only leaving a shown collectables screen, or skipping one still reading, and only with the end
     const handOffs = commands.filter((c) => c.kind === "hand-off").length
     if (handOffs !== (endCommands.some((c) => c.kind === "end-payoff" && c.cause === "handed-off") ? 1 : 0))
       violations.push(`${what}: ${handOffs} hand-offs`)
-    if (handOffs > 0 && !(before.kind === "chest-showing" && event.type === "chest-continue") && !(before.kind === "chest-reading" && event.type === "chest-skip"))
+    if (handOffs > 0 && !(before.kind === "collectables-showing" && event.type === "collectables-continue") && !(before.kind === "collectables-reading" && event.type === "collectables-skip"))
       violations.push(`${what}: handed off from ${before.kind}`)
     // facts at most once
     for (const c of commands) {
@@ -162,7 +162,7 @@ function journey(seed: number): Journey {
       // the idle is armed only once the shown draw offers a way on, and cancelled whenever the draw is left onward
       if (c.kind === "arm-draw-idle" && !(before.kind === "draw-showing" && event.type === "draw-offered")) violations.push(`${what}: armed the idle`)
     }
-    if (before.kind === "draw-showing" && after.kind === "chest-reading" && !commands.some((c) => c.kind === "cancel-draw-idle"))
+    if (before.kind === "draw-showing" && after.kind === "collectables-reading" && !commands.some((c) => c.kind === "cancel-draw-idle"))
       violations.push(`${what}: left the draw without cancelling the idle`)
     if (after.kind === "draw-showing" && before.kind !== "draw-showing" && event.type !== "draw-result") violations.push(`${what}: draw shown without a draw result`)
 

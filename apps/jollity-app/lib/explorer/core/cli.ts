@@ -12,7 +12,7 @@ export type MachineName =
   | "peer-actor"
   | "camera"
   | "read-retry"
-  | "chest-reread"
+  | "collectables-reread"
   | "launch-stall"
   | "clock-sync"
   | "report-outbox"
@@ -24,7 +24,7 @@ export type MachineName =
   | "signup-retry"
   | "store-calibration"
   | "draw-screen"
-  | "chest-screen"
+  | "collectables-screen"
   | "sweeps"
   | "self"
 
@@ -149,7 +149,7 @@ export function leafChecks(seed: number, checkUnowned = false): {
   }
 }
 
-const USAGE = `Usage: npm run explore -- --machine <mesh-pair|payoff|peer-actor|camera|read-retry|chest-reread|launch-stall|clock-sync|report-outbox|report-retry|send-adaptation|evidence-projection|chain-health|message-expiry-clock|signup-retry|store-calibration|draw-screen|chest-screen|sweeps|self>
+const USAGE = `Usage: npm run explore -- --machine <mesh-pair|payoff|peer-actor|camera|read-retry|collectables-reread|launch-stall|clock-sync|report-outbox|report-retry|send-adaptation|evidence-projection|chain-health|message-expiry-clock|signup-retry|store-calibration|draw-screen|collectables-screen|sweeps|self>
   [--depth N] [--faults F] [--seed S] [--replay file]
   [--scenario name] [--horizon-s H] [--sample N]
   [--budget-min T] [--self-test|--no-self-test] [--emit-test] [--out dir]
@@ -166,7 +166,7 @@ const MACHINES = new Set<MachineName>([
   "peer-actor",
   "camera",
   "read-retry",
-  "chest-reread",
+  "collectables-reread",
   "launch-stall",
   "clock-sync",
   "report-outbox",
@@ -178,7 +178,7 @@ const MACHINES = new Set<MachineName>([
   "signup-retry",
   "store-calibration",
   "draw-screen",
-  "chest-screen",
+  "collectables-screen",
   "sweeps",
   "self",
 ])

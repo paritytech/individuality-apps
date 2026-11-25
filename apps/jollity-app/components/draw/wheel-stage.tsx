@@ -45,7 +45,7 @@ export function WheelStage({
 }: {
   /** the element the stage mounts in */
   stageRef: (element: HTMLDivElement | null) => void
-  /** the way on is the hold (components/draw/hold-to-chest): the stage's own
+  /** the way on is the hold (components/draw/hold-to-collectables): the stage's own
    *  Continue is never shown (stage.css [data-hold]) */
   hold?: boolean
   /** the stage's own element, for the hold to read and move */

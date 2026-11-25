@@ -8,7 +8,7 @@ import type { PlayerId } from "../game-source"
 import { voteForRound } from "../round-vote"
 import type { StoredVotes } from "../game-votes"
 import { payoffHandedOff, reportLanded, resetGameTraceForTests } from "../journeys/game-trace"
-import { createPayoffScreenRunner, executeChestCommands, type ChestCommandHandlers } from "../payoff-screen-runner"
+import { createPayoffScreenRunner, executeCollectablesCommands, type CollectablesCommandHandlers } from "../payoff-screen-runner"
 import { resetPayoffSessionsForTest } from "../payoff-session"
 import { journeysNamed, recorded, resetRecorded } from "../telemetry/testing"
 import type { TurnVotes } from "../game-roster"
@@ -172,37 +172,37 @@ describe("state-machine regression corpus", () => {
       resetGameTraceForTests()
     })
 
-    it("F3: a chest stall remains the final outcome when the hand-off ends the same payoff", () => {
-      const chest = createPayoffScreenRunner(71, "/chest")
-      chest.send({ type: "payoff-stalled", stage: "chest.load" })
-      chest.send({ type: "chest-result" })
-      expect(chest.send({ type: "chest-continue" })).toEqual([
+    it("F3: a collectables screen stall remains the final outcome when the hand-off ends the same payoff", () => {
+      const collectables = createPayoffScreenRunner(71, "/collectables")
+      collectables.send({ type: "payoff-stalled", stage: "chest.load" })
+      collectables.send({ type: "collectables-result" })
+      expect(collectables.send({ type: "collectables-continue" })).toEqual([
         { kind: "end-payoff", outcome: "stalled", cause: "handed-off", sendGameLog: true },
         { kind: "hand-off" },
       ])
     })
 
-    it("F4: a fresh chest session cannot end or log the already-closed payoff journey twice", () => {
+    it("F4: a fresh collectables screen session cannot end or log the already-closed payoff journey twice", () => {
       reportLanded(72)
-      const handlers: ChestCommandHandlers = {
-        chestOpened: () => {},
-        chestShown: () => {},
+      const handlers: CollectablesCommandHandlers = {
+        collectablesOpened: () => {},
+        collectablesShown: () => {},
         payoffStalled: () => {},
         payoffEnded: payoffHandedOff,
         handOff: () => {},
-        loadChest: () => {},
+        loadCollectables: () => {},
       }
-      const first = createPayoffScreenRunner(72, "/chest")
-      first.send({ type: "chest-result" })
-      const firstEnd = first.send({ type: "chest-continue" })
+      const first = createPayoffScreenRunner(72, "/collectables")
+      first.send({ type: "collectables-result" })
+      const firstEnd = first.send({ type: "collectables-continue" })
       expect(firstEnd).toHaveLength(2)
-      executeChestCommands(firstEnd, handlers)
+      executeCollectablesCommands(firstEnd, handlers)
 
-      const again = createPayoffScreenRunner(72, "/chest")
-      again.send({ type: "chest-result" })
-      const secondEnd = again.send({ type: "chest-continue" })
+      const again = createPayoffScreenRunner(72, "/collectables")
+      again.send({ type: "collectables-result" })
+      const secondEnd = again.send({ type: "collectables-continue" })
       expect(secondEnd).toHaveLength(2)
-      executeChestCommands(secondEnd, handlers)
+      executeCollectablesCommands(secondEnd, handlers)
 
       expect(journeysNamed("payoff")).toHaveLength(1)
       expect(journeysNamed("payoff")[0]).toMatchObject({ ended: true, outcome: "shown" })
@@ -210,14 +210,14 @@ describe("state-machine regression corpus", () => {
     })
   })
 
-  it("#1199: same-document draw/chest re-entry has a live Continue after the prior payoff ended", () => {
+  it("#1199: same-document draw/collectables re-entry has a live Continue after the prior payoff ended", () => {
     resetPayoffSessionsForTest()
-    const first = createPayoffScreenRunner(73, "/chest")
-    first.send({ type: "chest-result" })
-    first.send({ type: "chest-continue" })
-    const revisit = createPayoffScreenRunner(73, "/chest")
-    revisit.send({ type: "chest-result" })
-    expect(revisit.send({ type: "chest-continue" })).toEqual([
+    const first = createPayoffScreenRunner(73, "/collectables")
+    first.send({ type: "collectables-result" })
+    first.send({ type: "collectables-continue" })
+    const revisit = createPayoffScreenRunner(73, "/collectables")
+    revisit.send({ type: "collectables-result" })
+    expect(revisit.send({ type: "collectables-continue" })).toEqual([
       { kind: "end-payoff", outcome: "shown", cause: "handed-off", sendGameLog: true },
       { kind: "hand-off" },
     ])

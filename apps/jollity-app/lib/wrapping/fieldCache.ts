@@ -6,8 +6,8 @@
 //
 // The build costs real time (an exact euclidean distance transform over
 // 256x256, twice, plus four box blurs), so it must never run twice for the
-// same picture. The chest scene warms this cache while the bubble collects, so
-// the fields are ready before the chest opens.
+// same picture. The collectables scene warms this cache while the bubble collects, so
+// the fields are ready before the collectables screen opens.
 //
 // THE IMAGE STAYS ON THE ENTRY. The renderer uploads it as `uItem`, and the
 // element is already decoded here, so the renderer waits for nothing.
@@ -18,7 +18,7 @@
 // `access-control-allow-origin: *`, so `crossOrigin = 'anonymous'` is enough.
 //
 // A CORS request and a plain request do not share a cache entry. The display
-// images in this app (the chest pins, the Pocket claim, the picker) are plain
+// images in this app (the collectables screen pins, the Pocket claim, the picker) are plain
 // `<img>`s without `crossOrigin`, so the wrapping pays for a second download
 // of the same art (about 400 kB). Setting `crossOrigin="anonymous"` on every
 // display image would remove it, as long as the gateway keeps the header.
@@ -39,9 +39,9 @@ export interface WrappingFieldEntry extends WrappingFields {
   buildMs: number
 }
 
-/** How many field sets stay in memory. A chest holds up to ten, so twelve
+/** How many field sets stay in memory. A collectables screen holds up to ten, so twelve
  *  leaves room for a replayed flow without churn. Each entry costs about
- *  272 kB of typed arrays plus the decoded image. The chest empties it as it
+ *  272 kB of typed arrays plus the decoded image. The collectables screen empties it as it
  *  unmounts (`releaseFields`), so the bound holds within one showing. */
 const CACHE_MAX = 12
 
@@ -49,7 +49,7 @@ const CACHE_MAX = 12
 const cache = new AsyncCache<WrappingFieldEntry>({ max: CACHE_MAX })
 
 /** The dev probe. `window.__wrappingFields` maps an art URL to its build time and
- *  its mask bounds. Read it in the console once the chest has built its art. */
+ *  its mask bounds. Read it in the console once the collectables screen has built its art. */
 function recordProbe(url: string, ms: number, bbox: readonly [number, number, number, number]): void {
   const w = window as unknown as {
     __wrappingFields?: Record<string, { ms: number; bbox: readonly number[] }>
@@ -59,7 +59,7 @@ function recordProbe(url: string, ms: number, bbox: readonly [number, number, nu
 }
 
 /** Let go of every field set and the decoded art it holds, and of the idle
- *  worker that built them. The chest screen is the only reader and calls
+ *  worker that built them. The collectables screen is the only reader and calls
  *  this as it unmounts, so a showing's ten images and their typed arrays do
  *  not outlive it for the whole session. A build still in flight finishes for
  *  its own callers and is not kept. */

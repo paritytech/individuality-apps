@@ -6,8 +6,8 @@
  *
  * `/game` and `/connection-help` can both outlive the playable game.  This
  * module keeps their answer identical: a counted report goes to the draw (or
- * straight to the chest when no draw was scheduled), while every final
- * non-report state goes to the chest.  Unknown/open reads wait; they are never
+ * straight to the collectables screen when no draw was scheduled), while every final
+ * non-report state goes to the collectables screen.  Unknown/open reads wait; they are never
  * evidence that the player missed their report.
  */
 import type { GameSource } from "./game-source"
@@ -31,7 +31,7 @@ export function handoffFromStatus(status: ReportStatus): PostGameHandoff | null 
   if (status.report === "sent") void markSeen(gameIndex, "report")
   const path = status.report === "sent"
     ? drawEntryPath(peekDrawSchedule(gameIndex))
-    : "/chest"
+    : "/collectables"
   return { gameIndex, href: `${path}?game=${gameIndex}`, report: status.report }
 }
 
@@ -113,7 +113,7 @@ export async function waitForPostGameHandoff(
 
 /** The tap's decision, made AFTER its own read returns. `handedOff` is read
  * again here, never only before the await: the watcher can hand off while the
- * read is in flight, and routing /game then would replace the chest it already
+ * read is in flight, and routing /game then would replace the collectables screen it already
  * opened with an extra hop. Null means: another writer already routed, so
  * this tap does nothing. */
 export async function tapDestination(

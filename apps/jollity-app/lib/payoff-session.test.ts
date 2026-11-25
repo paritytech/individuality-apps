@@ -7,13 +7,13 @@ import { payoffSession, resetPayoffSessionsForTest } from "./payoff-session"
 describe("payoff session", () => {
   beforeEach(() => resetPayoffSessionsForTest())
 
-  it("starts the chest fresh when an unfinished draw session belongs to another screen", () => {
+  it("starts the collectables screen fresh when an unfinished draw session belongs to another screen", () => {
     expect(payoffSession(9, "/prize-draw").current().kind).toBe("draw-waiting")
 
-    const chest = payoffSession(9, "/chest")
-    expect(chest.current().kind).toBe("chest-reading")
-    expect(chest.send({ type: "chest-result" })).toEqual([{ kind: "telemetry", fact: "chestShown" }])
-    expect(chest.send({ type: "chest-continue" })).toEqual([
+    const collectables = payoffSession(9, "/collectables")
+    expect(collectables.current().kind).toBe("collectables-reading")
+    expect(collectables.send({ type: "collectables-result" })).toEqual([{ kind: "telemetry", fact: "collectablesShown" }])
+    expect(collectables.send({ type: "collectables-continue" })).toEqual([
       { kind: "end-payoff", outcome: "shown", cause: "handed-off", sendGameLog: true },
       { kind: "hand-off" },
     ])
@@ -21,11 +21,11 @@ describe("payoff session", () => {
 
   it.each([
     ["/prize-draw", "draw-waiting"],
-    ["/chest", "chest-reading"],
+    ["/collectables", "collectables-reading"],
   ] as const)("starts a new %s visit after the retained journey ended", (route, kind) => {
-    const first = payoffSession(9, "/chest")
-    first.send({ type: "chest-result" })
-    expect(first.send({ type: "chest-continue" })).toHaveLength(2)
+    const first = payoffSession(9, "/collectables")
+    first.send({ type: "collectables-result" })
+    expect(first.send({ type: "collectables-continue" })).toHaveLength(2)
 
     expect(payoffSession(9, route).current().kind).toBe(kind)
   })

@@ -2,17 +2,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * THE PAYOFF IN FIXED WORDS — the draw and the chest as the journey.payoff
+ * THE PAYOFF IN FIXED WORDS — the draw and the collectables screen as the journey.payoff
  * attributes. Pure: each takes the view the page already
  * renders from and returns text attributes.
  */
 import type { PrizeDrawView } from "../draw/prize-draw"
 import type { WheelCheck } from "../draw/wheel/rule"
-import type { ChestViewState } from "../chest/view-state"
+import type { CollectablesViewState } from "../collectables/view-state"
 import type { Attrs } from "../telemetry"
 
 export const DRAW_REASONS = ["not-entered", "not-in-draw", "entries-cleared", "no-draw"] as const
-export const CHEST_REASONS = ["absent", "no-attestations", "report-missed", "on-the-way", "pocketed", "pruned", "failed", "no-identity", "not-recognised", "voting"] as const
+export const COLLECTABLES_REASONS = ["absent", "no-attestations", "report-missed", "on-the-way", "pocketed", "pruned", "failed", "no-identity", "not-recognised", "voting"] as const
 
 export type DrawState = { kind: "loading" } | { kind: "no-identity" } | { kind: "none" } | { kind: "ready"; draw: PrizeDrawView }
 
@@ -34,7 +34,7 @@ export function drawUnplayable(check: WheelCheck | null): "winners-disagree" | "
   return check?.code === "winners-disagree" || check?.code === "result-disagree" ? check.code : null
 }
 
-export function chestFacts(state: ChestViewState): Attrs | null {
+export function collectablesFacts(state: CollectablesViewState): Attrs | null {
   switch (state.kind) {
     case "loading":
     case "retrying":

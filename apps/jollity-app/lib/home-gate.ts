@@ -26,7 +26,7 @@
  * the build says.
  *
  * A fresh page load held here on its way to a game page (lib/front-door) is
- * covered too, whatever the status: a reopened chest is not shown on an old
+ * covered too, whatever the status: a reopened collectables screen is not shown on an old
  * build either (#1137).
  */
 import type { GameStatus } from "./game-source"

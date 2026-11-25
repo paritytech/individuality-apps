@@ -38,7 +38,7 @@ describe("draw-screen mutation guards", () => {
     expect(start).toEqual({ phase: "new", game: 7, override: undefined, epoch: 0 })
     expect(drawScreenStep(start, { type: "opened", payoffTag: OPENED })).toEqual({
       state: { phase: "loading", game: 7, override: undefined, epoch: 1 },
-      commands: [{ kind: "log", note: { what: "opened", preloaded: "nothing" } }, { kind: "preload-chest" }, { kind: "load-draw", epoch: 1 }],
+      commands: [{ kind: "log", note: { what: "opened", preloaded: "nothing" } }, { kind: "preload-collectables" }, { kind: "load-draw", epoch: 1 }],
     })
   })
 
@@ -48,7 +48,7 @@ describe("draw-screen mutation guards", () => {
       state: { phase: "wheel", game: 7, override: undefined, epoch: 1, answer: shown("won"), stage: "loading", intro: "off", exit: null },
       commands: [
         { kind: "log", note: { what: "opened", preloaded: "ready" } },
-        { kind: "preload-chest" },
+        { kind: "preload-collectables" },
         { kind: "load-draw", epoch: 1 },
         { kind: "log", note: { what: "shows", shown: "the wheel", draw: drawScreenDraw("won") } },
         { kind: "payoff", input: { type: "draw-result" }, tag: OPENED },
@@ -58,7 +58,7 @@ describe("draw-screen mutation guards", () => {
     })
     expect(drawScreenStep(start, { type: "opened", preloaded: { kind: "no-identity" }, payoffTag: OPENED })).toEqual({
       state: { phase: "loading", game: 7, override: undefined, epoch: 1 },
-      commands: [{ kind: "log", note: { what: "opened", preloaded: "no identity" } }, { kind: "preload-chest" }, { kind: "load-draw", epoch: 1 }],
+      commands: [{ kind: "log", note: { what: "opened", preloaded: "no identity" } }, { kind: "preload-collectables" }, { kind: "load-draw", epoch: 1 }],
     })
     expect(drawScreenStep(start, { type: "opened", preloaded: { kind: "none" }, payoffTag: OPENED }).commands.slice(3)).toEqual([
       { kind: "log", note: { what: "no-draw" } },
@@ -117,7 +117,7 @@ describe("draw-screen mutation guards", () => {
     expect(walk([answer("none"), { type: "bypass" }]).commands).toEqual([])
   })
 
-  it("pins a failed read: said so, loading or still drawing, with Continue bypassing to the chest", () => {
+  it("pins a failed read: said so, loading or still drawing, with Continue bypassing to the collectables screen", () => {
     const failed = {
       state: { phase: "failed", game: 7, override: undefined, epoch: 1 },
       commands: [{ kind: "log", note: { what: "shows", shown: "Couldn't load the draw", draw: null } }, { kind: "payoff", input: { type: "draw-error" } }],
@@ -314,7 +314,7 @@ describe("draw-screen mutation guards", () => {
     expect(drawScreenView(walk([]).state)).toEqual({ kind: "blank" })
     expect(drawScreenView(walk([{ type: "load-waiting", epoch: 1 }]).state)).toEqual({ kind: "message", message: "waiting" })
     expect(drawScreenView(walk([answer("no-identity")]).state)).toEqual({ kind: "message", message: "no-identity" })
-    expect(drawScreenView(walk([answer("none")]).state)).toEqual({ kind: "blank", label: "Opening the chest" })
+    expect(drawScreenView(walk([answer("none")]).state)).toEqual({ kind: "blank", label: "Opening your collectables" })
     expect(drawScreenView(walk([answer("words-out")]).state)).toEqual({ kind: "words", draw: drawScreenDraw("words-out"), miss: null })
     const spectator = walk([answer("spectator")]).state
     expect(drawScreenView(spectator)).toEqual({ kind: "wheel", draw: drawScreenDraw("spectator"), miss: null, intro: "up", fallback: false, offered: false })

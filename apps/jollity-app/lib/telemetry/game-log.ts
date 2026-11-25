@@ -104,7 +104,7 @@ const gameInFlight = (gameIndex: number): boolean => [...inFlight].some((key) =>
 const fullLogInFlight = (gameIndex: number): boolean => inFlight.has(`${gameIndex}:late`) || inFlight.has(`${gameIndex}:flush`)
 
 /** Host storage in a container (it survives a webview cache clear), the page's
- *  localStorage anywhere else (lib/chest-picks.ts keeps its key the same way
+ *  localStorage anywhere else (lib/collectables-picks.ts keeps its key the same way
  *  in host storage alone). Null when neither holds the key. */
 async function readStored(key: string): Promise<unknown> {
   const raw = await readStoredString(key)

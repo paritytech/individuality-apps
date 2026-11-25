@@ -323,7 +323,7 @@ stateDiagram-v2
   Registration --> Registration: Register offered (chain accepts sign-ups)
   Registration --> Shuffle: registration_ends = game − shuffle − margin · ENOUGH players → groups of 6 formed
   Registration --> Cancelled: TOO FEW to form a group → on_game_cancelled · state Cancelling
-  Cancelled --> [*]: no play, no report, NO CHEST
+  Cancelled --> [*]: no play, no report, NO COLLECTABLES SCREEN
   Shuffle --> Margin: shuffle done (state Reporting on chain) · groups of 6 formed
   Margin --> Playing: game_date — everyone starts TOGETHER
   Playing --> Playing: 2 rounds × max_group_size turns, hosts wrap around the group · HOST_FULL_CYCLE 12 s · 7 s gap between rounds
@@ -342,7 +342,7 @@ is the scheduled instant AND the synchronized play-start:**
 | shuffle | `[gd−150, gd−30]` | `Shuffle`, then `Reporting` once done | **"registration closed — game starts in Xs"** (players being shuffled) |
 | post-shuffle margin | `[gd−30, gd]` | `Reporting` | same get-ready countdown → hands over to /game |
 | **play** | **starts at `gd`** | `Reporting` | the game (the dial, the tiles move in at T−2 → turns) |
-| reporting | `[gd, report_ends]`, where `report_ends` is about 15–35 s after the last turn: play takes `rounds × max_group_size × HOST_FULL_CYCLE + (rounds − 1) × ROUND_GAP` (`packages/jollity-game-chain/src/game/constants.ts`), and the pallet's `report_ends` is what `lib/game-session.ts` times the confirm stage against (`AUTO_CONFIRM_SEC`). It also ends once every player has reported | `Reporting` → `PlayerProcess` → `GameEnded` | play + "Check your choices!" → /chest |
+| reporting | `[gd, report_ends]`, where `report_ends` is about 15–35 s after the last turn: play takes `rounds × max_group_size × HOST_FULL_CYCLE + (rounds − 1) × ROUND_GAP` (`packages/jollity-game-chain/src/game/constants.ts`), and the pallet's `report_ends` is what `lib/game-session.ts` times the confirm stage against (`AUTO_CONFIRM_SEC`). It also ends once every player has reported | `Reporting` → `PlayerProcess` → `GameEnded` | play + "Check your choices!" → /collectables |
 
 **Registration is open the moment the game exists** (the Game pallet's
 `pallets/game/src/lib.rs`): `schedule_games` puts the game on chain
@@ -386,7 +386,7 @@ right after the countdown ran out."
   registration closes the pallet checks `GroupsSetting::acceptable_player_count`
   (the Game pallet's `pallets/game/src/types.rs`): if the sign-ups
   can't fill a group it runs `on_game_cancelled` and moves the game to
-  `Cancelling` → cancelled — **no shuffle, no play, no report, no chest, no
+  `Cancelling` → cancelled — **no shuffle, no play, no report, no collectables screen, no
   collectable.** On the default `max_group_size` 6 mainnet needs roughly
   `(g−1)(g−2)` players (a real handful); **on a testnet runtime the rule
   collapses to `player_count >= 1`** (the `T::TESTNET` branch), so a lone
@@ -411,7 +411,7 @@ right after the countdown ran out."
   (`System.Account.reserved` back to 0, `free` unchanged). The deposit is at
   stake, not parked. An archived account player idle past
   `NonPlayingKickoutTime` can be kicked out.
-- Collectables: each report session awards `NftCredits` credits; `/chest`
+- Collectables: each report session awards `NftCredits` credits; `/collectables`
   reads them back through `getClaims` from `@parity/product-sdk-nfts`.
 
 ## 5. Signalling and the mesh (JSON frames over the statement store)
