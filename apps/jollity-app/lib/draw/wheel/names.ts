@@ -3,7 +3,7 @@
 
 /**
  * WHO'S PLAYING, AS A REAL DRAW NAMES IT. The row along the top of the draw
- * (./proto's legend, the JOLLITY `chainDraw.nameOf` patch) shows every
+ * (./proto's legend, the JOLLITY `chainDraw.nameOf` edit) shows every
  * ticket's holder, so every ticket's name is read when the stage mounts: they
  * arrive while the coin is flipped and the wheel turns, before the row comes
  * on. A name that lands after the row is built is put in (`onName`).
@@ -45,6 +45,8 @@ export const unnamedLabel = (slot: string): string => `#${slot.replace(/^0x/i, "
 export interface RowLabels {
   /** the label of the ticket at `index` in `slots`: its holder's name once read, its code until then */
   labelOf(index: number): string
+  /** read these next, ahead of the rest still to read (the row's, once it is known) */
+  prefer(indices: readonly number[]): void
   /** the page is going: names that land after this are dropped */
   stop(): void
 }
@@ -52,12 +54,12 @@ export interface RowLabels {
 /**
  * Read every ticket's name, `first` (indices into `slots`: you and the
  * winners) ahead of the rest, NAME_READS_AT_ONCE at a time, and tell `onName`
- * each time one lands.
+ * each time one lands, and whose.
  */
-export function rowLabels(slots: readonly string[], nameOf: NameOf, onName: () => void, first: readonly number[] = []): RowLabels {
+export function rowLabels(slots: readonly string[], nameOf: NameOf, onName: (index: number) => void, first: readonly number[] = []): RowLabels {
   const known = new Map<number, string>()
   let live = true
-  const order = [...new Set([...first, ...slots.keys()])].filter((index) => !!slots[index])
+  let order = [...new Set([...first, ...slots.keys()])].filter((index) => !!slots[index])
   let next = 0
   const pump = (): void => {
     if (!live || next >= order.length) return
@@ -67,7 +69,7 @@ export function rowLabels(slots: readonly string[], nameOf: NameOf, onName: () =
       .then((name) => {
         if (live && name?.trim()) {
           known.set(index, rowName(name))
-          onName()
+          onName(index)
         }
         pump()
       })
@@ -75,6 +77,11 @@ export function rowLabels(slots: readonly string[], nameOf: NameOf, onName: () =
   for (let i = 0; i < NAME_READS_AT_ONCE; i++) pump()
   return {
     labelOf: (index) => known.get(index) ?? unnamedLabel(slots[index] ?? ""),
+    prefer: (indices) => {
+      const ahead = new Set(indices.filter((index) => order.indexOf(index) >= next))
+      if (!ahead.size) return
+      order = [...order.slice(0, next), ...ahead, ...order.slice(next).filter((index) => !ahead.has(index))]
+    },
     stop: () => {
       live = false
     },

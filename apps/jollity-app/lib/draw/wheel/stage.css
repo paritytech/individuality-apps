@@ -30,13 +30,78 @@
      this time) and, run on its own, fetches it from Google (loadFace in
      slit/scene.js). jollity ships Inter itself (app/fonts, next/font's
      --font-inter), so the scene's fallback face is
-     pointed at it and nothing is fetched (the JOLLITY font patch) */
+     pointed at it and nothing is fetched (the JOLLITY font edit) */
   --font: var(--font-inter), system-ui, -apple-system, sans-serif;
 }
 
-/* no timeline under the spin: the scene restyles its slider (#phase) into a
-   line along the bottom that fills as the wheel turns. Continue still grows
-   in where it was, and a drag along Continue still takes you through the draw */
+/* THE HOLD (components/draw/hold-to-chest, lib/draw/hold/scene): the way on
+   is a hold, so the stage's own Continue is never shown; while a hold has
+   the draw's frame ([data-holding]) the draw's words fade on their own
+   (--hold-text, a filter, so it multiplies the draw's own opacity and what
+   it hides stays hidden) and the live canvases are hidden under it
+   (.hold-off) */
+.wheel-host[data-hold] #slit-continue {
+  display: none !important;
+}
+/* a win goes back to the wheel by itself (lib/draw/hold/scene
+   autoBackToWheel), on every way on: its Back to the wheel is never shown */
+.wheel-host #flow-back {
+  display: none !important;
+}
+.wheel-host[data-holding] #app > :not(canvas) {
+  filter: opacity(var(--hold-text, 1));
+}
+.wheel-host .hold-off {
+  visibility: hidden !important;
+}
+
+/* who's playing, along the top (lib/draw/wheel/mount.ts namesY), a little
+   bigger than the scene's 12 px: the row measures its names, so it slides and
+   lines up to whatever size they are */
+.wheel-host #app .slit-legend-item {
+  font-size: calc(14px * var(--scale, 1));
+}
+
+/* EVERY NAME, BEFORE THE SPIN (lib/draw/wheel/name-ticker.ts): a strip of
+   who's playing's own names on its line, one every --pitch nominal px, each
+   centred on its slot (--x, the ticker's) and cut short past it; the ticker
+   sets how much of it shows */
+.wheel-host #app #jollity-ticker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--slit-names-y, 80) * 1px * var(--scale, 1));
+  transform: translateY(-50%);
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+}
+.wheel-host #app #jollity-ticker .slit-legend-item {
+  transform: translate(calc(var(--x, 0px) - 50%), 0);
+  max-width: calc((var(--pitch, 96) - 10) * 1px * var(--scale, 1));
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* YOUR FRIENDS' NAMES, BEFORE THE SPIN (friendsRow "friends"): who's
+   playing's own row, a second one (the JOLLITY friends edits under ./proto),
+   on the same line and in the same type; the scene says how much of it
+   shows, from just after your coin is down (friendsAfterSeatMs) until who's
+   playing takes the line */
+.wheel-host #app #jollity-friends {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--slit-names-y, 80) * 1px * var(--scale, 1));
+  transform: translateY(-50%);
+  z-index: 3;
+  opacity: var(--jollity-friends, 0);
+  pointer-events: none;
+}
+
+/* the scene's timeline (#phase), a line along the bottom that fills as the
+   wheel turns, is drawn by the page instead (components/draw/draw-timeline):
+   the hold's layer is over the stage once the draw is over, and the line
+   takes a hand then, so it lives over that layer, on the stage's frame */
 .wheel-host #app.scene-slit #phase {
   display: none;
 }

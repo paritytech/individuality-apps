@@ -12,7 +12,8 @@
  * whole screen to recorded traces. A failed read says so (D2), and the 60 s
  * idle counts from the way on (D5, D8, D9), not from the stage's mount.
  *
- * THE RULES (lib/state-machines/draw-screen.definition.ts models them):
+ * THE RULES (lib/state-machines/draw-screen.definition.ts models them, all
+ * but D7's `stage-waiting` and `stage-started`):
  *
  * D1. The screen opens on the preloaded answer, or on the read it starts.
  * D2. Still drawing → "Drawing the winners…" with Continue, which sends `draw-bypass`.
@@ -25,7 +26,9 @@
  *     Continue sends `draw-continue` and the idle `draw-idle`.
  * D6. A spectator: the intro over a held stage; release at 8 s, fade 0.5 s.
  * D7. On mount: the ceremony marks "mounted", and a progress bound is armed
- *     (+8 s if held).
+ *     (+8 s if held). `stage-waiting` swaps it for the coin's own, longer
+ *     bound while the stage waits for the player's coin (that time is theirs:
+ *     COIN_WAIT_MS, 5 min); `stage-started` arms the animation's bound again.
  * D8. On `stage-ended` the screen is offered: the bound is cleared, the claim
  *     starts, and the way on is offered (`draw-offered`).
  * D9. A load or mount failure, or the bound running out → fallback: the words
@@ -59,6 +62,13 @@ import { checkWheel, type WheelCheck } from "./wheel/rule"
  *  fade over INTRO_OUT_MS (stage.css .wheel-intro's transition) */
 const INTRO_AUTO_MS = 8_000
 const INTRO_OUT_MS = 500
+
+/** THE COIN'S WAIT: the player's time at the coin is theirs, so the stage's
+ *  bound is not the animation's while it waits for them. But a coin that can
+ *  never go in (a gesture the host's webview never delivers) must not hold the
+ *  screen for ever, so the wait has a bound of its own, long enough for anyone
+ *  still deciding: past it, the fallback words and the page's Continue (D9) */
+export const COIN_WAIT_MS = 5 * 60_000
 
 /** what a read of the draw says: `miss` is why a player with no ticket is not
  *  in it, when this phone knows (lib/draw/draw-miss) */
@@ -101,6 +111,10 @@ export type DrawScreenEvent =
   | { type: "load-answered"; epoch: number; answer: DrawAnswer; payoffTag: PayoffTag }
   | { type: "load-failed"; epoch: number }
   | { type: "stage-mounted"; held: boolean; progressMs: number }
+  /** the stage is up and waiting for the player's coin: its bound waits too */
+  | { type: "stage-waiting" }
+  /** the coin went in: the stage's story has started, and its bound starts again from here */
+  | { type: "stage-started"; progressMs: number }
   | { type: "stage-failed"; reason: StageFailure }
   | { type: "stage-ended" }
   | { type: "stage-done" }
@@ -145,8 +159,10 @@ export type DrawScreenView =
   | { kind: "blank"; label?: "Opening the chest" }
   | { kind: "message"; message: "waiting" | "failed" | "no-identity" }
   | { kind: "words"; draw: PrizeDrawView; miss: DrawSkipKind | null | undefined }
-  /** `fallback`: the words over the stage, and the page's own Continue */
-  | { kind: "wheel"; draw: PrizeDrawView; miss: DrawSkipKind | null | undefined; intro: "up" | "leaving" | null; fallback: boolean }
+  /** `fallback`: the words over the stage, and the page's own Continue.
+   *  `offered`: the stage has ended and offers its way on (the page's hold,
+   *  components/draw/hold-to-chest) */
+  | { kind: "wheel"; draw: PrizeDrawView; miss: DrawSkipKind | null | undefined; intro: "up" | "leaving" | null; fallback: boolean; offered: boolean }
 
 export function startDrawScreen({ game, override }: { game: number | undefined; override: string | undefined }): DrawScreenState {
   return { phase: "new", game, override, epoch: 0 }
@@ -299,6 +315,26 @@ function wheelStep(state: WheelState, event: DrawScreenEvent): DrawScreenTransit
           { kind: "arm-timer", timer: "progress", ms: event.progressMs + (event.held ? INTRO_AUTO_MS : 0) },
         ],
       }
+    case "stage-waiting":
+      // the player's own time at the coin is not the animation's: the wait's own, longer bound (COIN_WAIT_MS)
+      if (state.stage !== "mounted") return stay(state)
+      return {
+        state,
+        commands: [
+          { kind: "clear-timer", timer: "progress" },
+          { kind: "arm-timer", timer: "progress", ms: COIN_WAIT_MS },
+        ],
+      }
+    case "stage-started":
+      // the bound is the animation's: the player's own wait at the coin is not counted
+      if (state.stage !== "mounted") return stay(state)
+      return {
+        state,
+        commands: [
+          { kind: "clear-timer", timer: "progress" },
+          { kind: "arm-timer", timer: "progress", ms: event.progressMs },
+        ],
+      }
     case "stage-failed":
       return state.stage === "loading" ? fallback(state, event.reason === "load" ? "load-failed" : "mount-failed") : stay(state)
     case "stage-ended":
@@ -391,6 +427,7 @@ export function drawScreenView(state: DrawScreenState): DrawScreenView {
         miss: state.answer.miss,
         intro: state.intro === "off" ? null : state.intro,
         fallback: state.stage === "fallback",
+        offered: state.stage === "offered",
       }
     default:
       return { kind: "blank" }

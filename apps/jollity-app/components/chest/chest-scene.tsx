@@ -4,8 +4,8 @@
 "use client"
 
 /**
- * The chest scene's UI half — a thin canvas host. All the behavior lives in
- * lib/chest-scene (typed in index.ts over the untyped engine.ts); this component only feeds it params: the
+ * The chest scene's UI half — a dumb canvas host. All the behavior lives in
+ * lib/chest-scene/engine.ts; this component only feeds it params: the
  * collectable items, when to open, and the box it lives in. Pointer
  * gestures forward to the engine (drag pieces, tap to zoom).
  *
@@ -24,9 +24,24 @@
  * rarity's colour, into the bubble or, once it has popped, to its place
  * among the others. When the bubble pops is the page's (`open`); a tap pops
  * it early once something is in.
+ *
+ * AN OPENED PIECE STAYS IN THE SCENE, as a plain image ON THE PAGE. Once its
+ * shell has shattered the wrapping stops drawing it and its image — a button,
+ * there from the start but hidden — takes its place at the same size, moved
+ * every frame by `transform` alone (no layout, no canvas paint), floating up
+ * to the opened ones while the unopened ones settle below (the engine's
+ * float). A tap on it opens the picker over it, from the keyboard too, and
+ * the Pocket finds it by `data-chest-piece`. With every piece opened, the
+ * scene gives way to the scrolling inventory.
+ *
+ * THE POCKET TAKES THEM ONE BY ONE (components/pocket): a piece it has
+ * `taken` is gone from the scene, its shell, its sprite and its button, and
+ * the pieces still out dim as the book's `cover` closes. The words at the top
+ * say what to do next, and go as soon as the cover moves.
  */
-import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react"
 import { createChestScene, type ChestPlacement, type ChestScene as ChestSceneEngine } from "@/lib/chest-scene"
+import { carryShown, takeCarried } from "@/lib/chest-scene/carry"
 import { loadImage } from "@/lib/dom/image"
 // the grid-arrival feel is the game's, so the tuning is the game's too
 import { LAYOUT_EASE, LAYOUT_MS, PARK_MIN_PX } from "@/components/game/animations"
@@ -36,7 +51,7 @@ import { markWrappingUnavailable, wrappingExpected } from "@/lib/wrapping/availa
 import type { WrappingRenderer, WrappingDrawEntry } from "@/lib/wrapping/renderer"
 import { devLog } from "@/lib/debug/log-store"
 
-interface ChestItemView {
+export interface ChestItemView {
   image?: string
   rare?: boolean
   tier?: string
@@ -52,18 +67,22 @@ const TIER_TINT: Record<string, string> = {
   rare: "#6fb8ff",
   legendary: "#ffc94d",
 }
-function orbTint(item: ChestItemView): string {
+export function orbTint(item: ChestItemView): string {
   const tier = item.tier?.trim().toLowerCase()
   return (tier ? TIER_TINT[tier] : undefined) ?? (item.rare ? TIER_TINT.legendary! : TIER_TINT.common!)
 }
 
-/** Where a piece of the scatter is drawn this frame, in viewport pixels. */
+/** Where a piece is drawn this frame, in viewport pixels. */
 export interface PieceSpot {
   index: number
   cx: number
   cy: number
   size: number
   rotation: number
+  /** broken open: drawn as its plain art, the button that carries `data-chest-piece` */
+  opened: boolean
+  /** the Pocket has it: the scene keeps its place but does not draw it */
+  taken?: boolean
 }
 
 export interface ChestSceneProps {
@@ -71,10 +90,11 @@ export interface ChestSceneProps {
   seed?: string
   /** the collectables, one piece each (0–10; the page skips the scene at 0) */
   items: ChestItemView[]
-  /** a tap on a pinned collectable — the page opens the picker over it
-   *  (the rect is the pin's box, the zoom's starting frame) */
-  onShelfTap?: (index: number, rect: DOMRect) => void
-  /** the pin the picker is open over: it hides its art while the picker's
+  /** a tap on an opened collectable, in the scene or the inventory — the page
+   *  opens the picker over it (the rect is its art's box, the zoom's starting
+   *  frame) */
+  onInspect?: (index: number, rect: DOMRect) => void
+  /** the piece the picker is open over: it hides its art while the picker's
    *  hero stands in for it, or the hologram fronts a copy of itself */
   inspected?: number | null
   /** pop the bubble now (or the moment it is blown): the screen's timing */
@@ -89,15 +109,23 @@ export interface ChestSceneProps {
   onCollected?: (count: number) => void
   /** a piece zoomed in to the middle of the frame, or back out */
   onFocus?: (focused: boolean) => void
-  /** every frame, where the scatter draws each piece it still holds */
+  /** every frame, where the scene draws each piece it still holds */
   onPieces?: (spots: PieceSpot[]) => void
-  /** the pieces have been handed to another layer, which draws them now */
-  released?: boolean
+  /** the pieces handed to the Pocket, which draws them now */
+  taken?: readonly number[]
+  /** pieces opened elsewhere (in the Pocket's book, then given back): open here too, with no shatter */
+  openNow?: readonly number[]
+  /** how far the Pocket's cover has closed, 0 to 1, read every frame */
+  cover?: RefObject<number>
+  /** the pieces float above this, px down the screen (the Pocket's book, once it is up); none: the scene's own foot */
+  floor?: number | null
   className?: string
 }
 
-/** the strip's exit, before the inventory arrives */
-const STRIP_OUT_MS = 380
+/** with every piece opened: the last one's rise to the top, seen before the scene goes */
+const SCENE_HOLD_MS = 1800
+/** the scene's exit, before the inventory arrives */
+const SCENE_OUT_MS = 380
 /** one card after another, so the grid assembles rather than appearing */
 const CARD_STAGGER_MS = 70
 
@@ -113,10 +141,39 @@ const easeOut = (k: number) => 1 - Math.pow(1 - Math.min(1, k), 3)
 
 type DiscPlacement = ChestPlacement
 
+/** the canvas's place on the page is read again this often, frames (and on every resize) */
+const CANVAS_BOX_EVERY = 30
+
+/** an opened piece's button, in CSS px: it is scaled to the piece every frame */
+const OPENED_SIDE = 160
+
+/** the words at the top come in between these, ms after the pieces begin to float */
+const WORDS_FROM_MS = 900
+const WORDS_TO_MS = 1400
+/** with nothing opened yet, the words ask for the book this long after the float began, ms */
+const WORDS_LATE_MS = 5000
+/** the words are gone once the cover has closed this much */
+const WORDS_GONE_AT = 0.3
+/** a press this near a piece, of its box, is on it: the engine's own hit test */
+const PIECE_HIT = 0.575
+/** the pieces still out dim between these closings of the cover, by up to this much */
+const DIM_FROM = 0.45
+const DIM_TO = 0.75
+const DIM = 0.6
+
+/** nothing taken: one empty list, so a page without a Pocket does not hand a new one every render */
+const NONE_TAKEN: readonly number[] = []
+
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
+const smooth = (n: number) => {
+  const k = clamp01(n)
+  return k * k * (3 - 2 * k)
+}
+
 export function ChestScene({
   seed,
   items,
-  onShelfTap,
+  onInspect,
   inspected = null,
   open = false,
   onLanded,
@@ -124,7 +181,10 @@ export function ChestScene({
   onCollected,
   onPieces,
   onFocus,
-  released = false,
+  taken = NONE_TAKEN,
+  openNow = NONE_TAKEN,
+  cover,
+  floor = null,
   canOpen = false,
   className,
 }: ChestSceneProps) {
@@ -132,6 +192,42 @@ export function ChestScene({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLCanvasElement>(null)
   const sceneRef = useRef<ChestSceneEngine | null>(null)
+  // the bubble the draw's hold carried here (lib/chest-scene/carry), and how
+  // many of its claims have lit: one quiet line under it says so
+  const [carried, setCarried] = useState(false)
+  const [lit, setLit] = useState(0)
+  // the words at the top: what to do next, from when the pieces began to float
+  const [zoomed, setZoomed] = useState(false)
+  const [late, setLate] = useState(false)
+  const floatAt = useRef(-1)
+  const wordsRef = useRef<HTMLParagraphElement>(null)
+  const piecesRef = useRef<HTMLDivElement>(null)
+  // the Pocket's: gone from the scene, and where each was last drawn, so a
+  // press there is not a tap on a piece nobody can see
+  const takenRef = useRef(new Set<number>())
+  useEffect(() => {
+    takenRef.current = new Set(taken)
+  }, [taken])
+  const openNowRef = useRef(new Set<number>())
+  useEffect(() => {
+    openNowRef.current = new Set(openNow)
+  }, [openNow])
+  const lastSeen = useRef(new Map<number, { cx: number; cy: number; size: number }>())
+  const coverRef = useRef(cover)
+  useEffect(() => {
+    coverRef.current = cover
+  }, [cover])
+  // the floor, in the canvas's own px: said to the engine when it changes, and when the canvas moves
+  const floorRef = useRef(floor)
+  const applyFloor = () => {
+    const canvas = canvasRef.current
+    const f = floorRef.current
+    sceneRef.current?.setFloor(f == null || !canvas ? null : f - canvas.getBoundingClientRect().top)
+  }
+  useEffect(() => {
+    floorRef.current = floor
+    applyFloor()
+  }, [floor])
   const rendererRef = useRef<WrappingRenderer | null>(null)
   // the press point of each piece's LAST crack, in its own uv — computed once
   // per crack (hitUv inverts the current blit, so it must be read while the
@@ -142,27 +238,22 @@ export function ChestScene({
     itemsRef.current = items
   }, [items])
   // the page's callbacks, read when the engine speaks
-  const hostCallbacks = useRef({ onLanded, onOpened, onCollected, onPieces, onFocus })
+  const hostCallbacks = useRef({ onLanded, onOpened, onCollected, onInspect, onPieces, onFocus })
   useEffect(() => {
-    hostCallbacks.current = { onLanded, onOpened, onCollected, onPieces, onFocus }
-  }, [onLanded, onOpened, onCollected, onPieces, onFocus])
+    hostCallbacks.current = { onLanded, onOpened, onCollected, onInspect, onPieces, onFocus }
+  }, [onLanded, onOpened, onCollected, onInspect, onPieces, onFocus])
   // the items handed to the engine so far, and how many of them have arrived
   const addedRef = useRef(0)
   const collectedRef = useRef(0)
 
-  // ── PINNED: a broken-open
-  // piece flies to the top of the frame and stays pinned there — landing
-  // order, left to right. There is no shelf object; the collectables
-  // themselves are the row ────────────────────────────────────────────────
-  /** piece indices in landing order; a pin appears when its flight lands */
-  const [shelf, setShelf] = useState<number[]>([])
-  // the pins appear only once the chest animation is over (bubble popped,
-  // camera settled on the pieces) — nothing pinned while it collects or pops
-  const [staged, setStaged] = useState(false)
-  const stagedRef = useRef(false)
-  // every piece popped: the strip of pins gives way to the scrolling
-  // inventory (the unfold, below)
-  const complete = shelf.length >= Math.min(10, items.length) && items.length > 0
+  // ── OPENED: a broken-open piece stays in the scene as its plain art and
+  // rises to the opened ones at the top (the engine's float). This list is only the order
+  // they were opened in, which the inventory keeps ─────────────────────────
+  /** piece indices in the order they were opened */
+  const [opened, setOpened] = useState<number[]>([])
+  // every piece opened: the scene gives way to the scrolling inventory (the
+  // unfold, below)
+  const complete = opened.length >= Math.min(10, items.length) && items.length > 0
   // a tap pops the bubble only once the screen says something is in
   const canOpenRef = useRef(canOpen)
   useEffect(() => {
@@ -174,66 +265,69 @@ export function ChestScene({
   useEffect(() => {
     openRef_.current = open
   }, [open])
-  const slotRefs = useRef<(HTMLDivElement | null)[]>([])
-  const flightLayerRef = useRef<HTMLDivElement>(null)
-
+  const sceneLayerRef = useRef<HTMLDivElement>(null)
+  /** each piece's opened button (hidden until its shell breaks) */
+  const openedEls = useRef<(HTMLButtonElement | null)[]>([])
+  /** each piece's art as the sprite fits it: the image's box over the piece's, so the image is the wrapped art's size */
+  const spriteFit = useRef<number[]>([])
 
   /**
-   * THE UNFOLD, in two beats — the strip LEAVES, then the inventory ARRIVES.
+   * THE UNFOLD, in three beats — the last piece RISES, the scene LEAVES, then
+   * the inventory ARRIVES.
    *
-   * Not a morph. The strip and the inventory are different layouts (a flex
-   * row of 72px pins; a scrolling grid of half-width cards), and trying to
-   * carry elements between them is what made this look broken: a CSS
-   * transition animates a flex child's width while the layout snaps its
-   * position, and the wrap point moves mid-flight so cards jump rows.
-   *
-   * So the strip slides out the way it came in, and once it is gone the cards
-   * fly in from the nearest edge, staggered — the game's own language for a
-   * grid arriving (see components/game/animations: parked tiles clear the
-   * stage sideways, then glide in on LAYOUT_EASE).
+   * Not a morph. The scene and the inventory are different layouts (pieces
+   * floating on a canvas; a scrolling grid of half-width cards), so the scene
+   * lifts away once the last piece has had time to rise to the top, and
+   * once it is gone the cards fly in from the nearest edge, staggered — the
+   * game's own language for a grid arriving (see components/game/animations:
+   * parked tiles clear the stage sideways, then glide in on LAYOUT_EASE).
    */
-  // ONE piece of state — has the strip finished leaving — and the phase is
-  // derived from it. Setting the phase directly from an effect would be a
-  // cascading render; a timer callback is the honest place for it.
+  // Two timer callbacks set the phase: setting it directly from an effect
+  // would be a cascading render. The exit is for the count it started at: a
+  // claim that comes in during the hold brings the scene back, and opening
+  // it starts the hold over.
+  const [leftAt, setLeftAt] = useState(-1)
   const [cardsIn, setCardsIn] = useState(false)
+  const openedCount = opened.length
   useEffect(() => {
     if (!complete || cardsIn) return
-    const timer = setTimeout(() => setCardsIn(true), STRIP_OUT_MS)
-    return () => clearTimeout(timer)
-  }, [complete, cardsIn])
-  const unfold = !complete ? "strip" : cardsIn ? "cards" : "leaving"
+    const toLeave = setTimeout(() => setLeftAt(openedCount), SCENE_HOLD_MS)
+    const toCards = setTimeout(() => setCardsIn(true), SCENE_HOLD_MS + SCENE_OUT_MS)
+    return () => {
+      clearTimeout(toLeave)
+      clearTimeout(toCards)
+    }
+  }, [complete, cardsIn, openedCount])
+  const unfold = !complete ? "scene" : cardsIn ? "cards" : leftAt === openedCount ? "leaving" : "scene"
 
   const gridRef = useRef<HTMLDivElement>(null)
 
-  /**
-   * THE STRIP LEAVING. Imperative, not CSS: the strip arrives on a
-   * `shelf-slide` animation, and an exit written as a second CSS animation
-   * with THE SAME KEYFRAME NAME is treated as the same animation — the
-   * browser updates it in place instead of restarting it, and since the
-   * entrance had already finished the strip just snapped away with no
-   * animation at all. A WAAPI animation is its own thing and always plays.
-   */
+  /** THE SCENE LEAVING: up and out, the way the opened pieces were going */
   useLayoutEffect(() => {
-    const grid = gridRef.current
-    if (unfold !== "leaving" || !grid) return
-    const leaving = grid.animate(
+    const layer = sceneLayerRef.current
+    if (unfold !== "leaving" || !layer) return
+    const leaving = layer.animate(
       [
         { transform: "none", opacity: 1 },
         { transform: "translateY(-34px)", opacity: 0 },
       ],
       {
-        duration: STRIP_OUT_MS,
+        duration: SCENE_OUT_MS,
         // out fast and gone — it is leaving, not presenting itself
         easing: "cubic-bezier(0.4, 0, 1, 1)",
         // it must HOLD at gone: the phase flips a frame or two later, and a
-        // strip that snapped back to visible in between would flash
+        // scene that snapped back to visible in between would flash. Once the
+        // cards are in, the layer is hidden by its class instead, and a late
+        // claim that brings the scene back finds it without this hold.
         fill: "forwards",
       },
     )
-    // ...but this is the same element the inventory renders into, so the hold
-    // has to be released when the cards arrive. Left filling forwards, it
-    // pins the whole grid at opacity 0 and nothing is ever seen again.
     return () => leaving.cancel()
+  }, [unfold])
+
+  // no frames while the inventory covers the scene; a late claim brings it back
+  useEffect(() => {
+    sceneRef.current?.hold(unfold === "cards")
   }, [unfold])
 
   /** the cards' entrance: each one from whichever edge it is nearest */
@@ -264,46 +358,6 @@ export function ChestScene({
     })
   }, [unfold])
 
-  /** the freed art flies from where the piece was to its shelf slot */
-  const launchFlight = (index: number, from: { cx: number; cy: number; size: number }) => {
-    const host = hostRef.current
-    const layer = flightLayerRef.current
-    const order = openedRef.current.size - 1
-    const slot = slotRefs.current[order]
-    const src = itemsRef.current[index]?.image
-    const land = () => setShelf((prev) => (prev.includes(index) ? prev : [...prev, index]))
-    if (!host || !layer || !slot || !src) {
-      land()
-      return
-    }
-    const hostBox = host.getBoundingClientRect()
-    const slotBox = slot.getBoundingClientRect()
-    const startSide = from.size * 0.86 // the wrapped art's fit
-    const img = document.createElement("img")
-    img.src = src
-    img.alt = ""
-    img.style.cssText =
-      "position:absolute;left:0;top:0;object-fit:contain;pointer-events:none;" +
-      `width:${startSide}px;height:${startSide}px;`
-    layer.appendChild(img)
-    const sx = from.cx - startSide / 2
-    const sy = from.cy - startSide / 2
-    const tx = slotBox.left - hostBox.left + (slotBox.width - startSide) / 2
-    const ty = slotBox.top - hostBox.top + (slotBox.height - startSide) / 2
-    const scale = (slotBox.width * 0.86) / startSide
-    const anim = img.animate(
-      [
-        { transform: `translate(${sx}px, ${sy}px) scale(1)` },
-        { transform: `translate(${tx}px, ${ty}px) scale(${scale})` },
-      ],
-      { duration: 620, easing: "cubic-bezier(0.3, 0.8, 0.3, 1)", fill: "forwards" },
-    )
-    anim.onfinish = () => {
-      land()
-      img.remove()
-    }
-  }
-
   /** hand the engine every item it does not have yet: each flies in as an orb */
   const addPieces = (scene: ChestSceneEngine) => {
     const list = itemsRef.current
@@ -330,17 +384,44 @@ export function ChestScene({
     let disposed = false
     addedRef.current = 0
     collectedRef.current = 0
+    // the draw's hold brought the bubble: it starts where the draw left it
+    const carriedBubble = takeCarried()
+    setCarried(!!carriedBubble)
+    setLit(0)
+    setLate(false)
+    floatAt.current = -1
+    let saidLate = false
+    let canvasBox: DOMRect | null = null
+    let canvasBoxAge = 0
     const scene = createChestScene(canvas, {
       count: 0,
+      carried: carriedBubble,
+      onCarriedShown: carryShown,
       // a tap pops the bubble early, once something is in it
       canOpen: () => canOpenRef.current,
-      onEvent: (name: string, data?: { on?: boolean }) => {
-        if (name === "focus") hostCallbacks.current.onFocus?.(!!data?.on)
-        else if (name === "open") hostCallbacks.current.onOpened?.()
+      onEvent: (name: string, data?: { on?: boolean; index?: number; x?: number; y?: number; side?: number }) => {
+        if (name === "focus") {
+          setZoomed(!!data?.on)
+          hostCallbacks.current.onFocus?.(!!data?.on)
+        } else if (name === "open") {
+          if (floatAt.current < 0) floatAt.current = performance.now()
+          hostCallbacks.current.onOpened?.()
+        } else if (name === "burst") floatAt.current = performance.now()
         else if (name === "landed") hostCallbacks.current.onLanded?.()
         else if (name === "absorb" || name === "arrive") {
           collectedRef.current += 1
+          if (carriedBubble) setLit(collectedRef.current)
           hostCallbacks.current.onCollected?.(collectedRef.current)
+        } else if (name === "inspect" && data?.index !== undefined) {
+          // an opened piece tapped: the picker opens out of its image's box
+          const img = openedEls.current[data.index]?.querySelector("img")
+          const box = canvas.getBoundingClientRect()
+          const side = data.side ?? 0
+          hostCallbacks.current.onInspect?.(
+            data.index,
+            img?.getBoundingClientRect() ??
+              new DOMRect(box.left + (data.x ?? 0) - side / 2, box.top + (data.y ?? 0) - side / 2, side, side),
+          )
         }
       },
       // TODO(sound): the engine emits 'absorb' / 'burst' / 'pop' {index}
@@ -350,18 +431,54 @@ export function ChestScene({
       // every frame: where the pieces are — the wrapping layer draws its
       // shells there and hides the flat art it replaces
       onDiscs(placements: DiscPlacement[], blend: number) {
-        if (blend >= 0.999 && !stagedRef.current) {
-          stagedRef.current = true
-          setStaged(true)
-        }
         const renderer = rendererRef.current
-        const rect = wrapCanvas.getBoundingClientRect()
+        // where the canvas is on the page: read when it changes size, and now and then besides (the page above it may move it), not every frame
+        if (!canvasBox || ++canvasBoxAge >= CANVAS_BOX_EVERY) {
+          canvasBox = wrapCanvas.getBoundingClientRect()
+          canvasBoxAge = 0
+        }
+        const rect = canvasBox
         const entries: WrappingDrawEntry[] = []
         const spots: PieceSpot[] = []
+        const closed = coverRef.current?.current ?? 0
+        const now = performance.now()
+        // the words: in after the pop, out as the cover moves
+        const words = wordsRef.current
+        if (words) {
+          const since = floatAt.current < 0 ? -1 : now - floatAt.current
+          const shown = since < 0 ? 0 : clamp01((since - WORDS_FROM_MS) / (WORDS_TO_MS - WORDS_FROM_MS)) * (1 - smooth(closed / WORDS_GONE_AT))
+          words.style.opacity = shown.toFixed(3)
+          if (since > WORDS_LATE_MS && !saidLate) {
+            saidLate = true
+            setLate(true)
+          }
+        }
+        // the pieces still out dim as the book closes on them
+        if (piecesRef.current) piecesRef.current.style.opacity = (1 - DIM * smooth((closed - DIM_FROM) / (DIM_TO - DIM_FROM))).toFixed(3)
         for (const p of placements) {
           const item = itemsRef.current[p.index]
           const url = item?.image
           const id = String(p.index)
+
+          // the Pocket's now: it draws this piece, the scene does not
+          if (takenRef.current.has(p.index)) {
+            lastSeen.current.set(p.index, { cx: p.cx, cy: p.cy, size: p.size })
+            // where it would be: a piece the Pocket gives back flies home to here
+            spots.push({ index: p.index, cx: rect.left + p.cx, cy: rect.top + p.cy, size: p.size, rotation: p.rotation, opened: openedRef.current.has(p.index), taken: true })
+            scene.setSpriteHidden(p.index, true)
+            const el = openedEls.current[p.index]
+            if (el && el.style.display !== "none") el.style.display = "none"
+            continue
+          }
+          // given back (or never taken): its spot is a piece again, to press
+          lastSeen.current.delete(p.index)
+
+          // opened elsewhere (the Pocket's book): open here at once, no shatter; it floats up with the opened ones
+          if (openNowRef.current.has(p.index) && !openedRef.current.has(p.index)) {
+            openedRef.current.add(p.index)
+            scene.openPiece(p.index)
+            setOpened((prev) => (prev.includes(p.index) ? prev : [...prev, p.index]))
+          }
 
           // ── the pop: a single tap, and the shell shatters from zero ─────
           const stage = p.crack > 0 ? 1 : 0
@@ -372,19 +489,32 @@ export function ChestScene({
             brk = easeOut(ageMs / SHATTER_MS)
             animating = brk < 1
           }
-          const shattered = stage === 1 && !animating
+          const shattered = (stage === 1 && !animating) || openedRef.current.has(p.index)
 
           if (shattered) {
-            // fully broken: the freed art leaves the scatter for the shelf
-            scene.setSpriteHidden(p.index, true)
+            // fully broken: the shell is gone and the piece's image on the
+            // page takes its place, the SAME size as the wrapped art (the
+            // sprite's fit), so nothing jumps; the canvas draws it no more
             if (!openedRef.current.has(p.index)) {
               openedRef.current.add(p.index)
-              scene.removePiece(p.index)
-              launchFlight(p.index, p)
+              scene.openPiece(p.index)
+              setOpened((prev) => (prev.includes(p.index) ? prev : [...prev, p.index]))
             }
+            scene.setSpriteHidden(p.index, true)
+            const el = openedEls.current[p.index]
+            if (el) {
+              if (el.style.display === "none") el.style.display = ""
+              const k = (p.size * (spriteFit.current[p.index] ?? 1)) / OPENED_SIDE
+              el.style.transform =
+                `translate3d(${p.cx - OPENED_SIDE / 2}px, ${p.cy - OPENED_SIDE / 2}px, 0) ` +
+                `rotate(${p.rotation}deg) scale(${k * p.sx}, ${k * p.sy})`
+            } else {
+              scene.setSpriteHidden(p.index, false) // no button yet: the canvas stands in
+            }
+            spots.push({ index: p.index, cx: rect.left + p.cx, cy: rect.top + p.cy, size: p.size, rotation: p.rotation, opened: true })
             continue
           }
-          spots.push({ index: p.index, cx: rect.left + p.cx, cy: rect.top + p.cy, size: p.size, rotation: p.rotation })
+          spots.push({ index: p.index, cx: rect.left + p.cx, cy: rect.top + p.cy, size: p.size, rotation: p.rotation, opened: false })
           if (!renderer || !url || !renderer.has(url)) {
             scene.setSpriteHidden(p.index, false) // art not ready — flat sprite
             continue
@@ -435,9 +565,12 @@ export function ChestScene({
     if (openRef_.current) scene.open()
     const observer = new ResizeObserver(() => {
       scene.resize(host.clientWidth, host.clientHeight)
+      canvasBox = null
+      applyFloor()
     })
     observer.observe(host)
     scene.resize(host.clientWidth, host.clientHeight)
+    applyFloor()
 
     // the wrapping renderer — lazily, and only where it can actually run;
     // any failure leaves rendererRef null and the flat sprites stay
@@ -538,6 +671,7 @@ export function ChestScene({
           const image = wrappingExpected() && fits ? entry.image : await flat(entry.image)
           if (cancelled) return
           sprites[i] = { image, scale: span > 0 ? BASE.fit / span : 1 }
+          spriteFit.current[i] = sprites[i].scale
           sceneRef.current?.setSprites(sprites)
         })
         .catch(() => {
@@ -548,6 +682,7 @@ export function ChestScene({
             .then((image) => {
               if (cancelled) return
               sprites[i] = { image, scale: 1 }
+              spriteFit.current[i] = 1
               sceneRef.current?.setSprites(sprites)
             })
             .catch(() => {})
@@ -565,102 +700,131 @@ export function ChestScene({
 
   return (
     <div ref={hostRef} className={"relative overflow-hidden " + (className ?? "")}>
-      <canvas
-        ref={canvasRef}
-        className={"absolute inset-0 h-full w-full cursor-pointer touch-none" + (released ? " opacity-0" : "")}
-        onPointerDown={(event) => {
-          try {
-            event.currentTarget.setPointerCapture(event.pointerId)
-          } catch {
-            /* capture is a nicety — never lose the press */
-          }
-          const rect = event.currentTarget.getBoundingClientRect()
-          sceneRef.current?.press(event.clientX - rect.left, event.clientY - rect.top)
-        }}
-        onPointerMove={(event) => {
-          const rect = event.currentTarget.getBoundingClientRect()
-          sceneRef.current?.move(event.clientX - rect.left, event.clientY - rect.top)
-        }}
-        onPointerUp={() => sceneRef.current?.release()}
-        onPointerCancel={() => sceneRef.current?.release()}
-        aria-label="Your chest opening"
-        role="img"
-      />
-      {/* the wrapping layer: pointer-transparent — the engine canvas below
-          keeps owning every gesture */}
-      <canvas ref={wrapRef} className={"pointer-events-none absolute inset-0 h-full w-full" + (released ? " opacity-0" : "")} />
-      {/* flights in progress: freed art on its way up to the band */}
-      <div ref={flightLayerRef} aria-hidden className="pointer-events-none absolute inset-0 z-10" />
-      {/* PINNED — one slot per piece, top of the frame. A landed collectable
-          pins there and is the way into the picker. With EVERY piece opened
-          the strip slides out and the collectables come back as a scrolling
-          inventory (see the unfold above): the reveal is over, so they stop
-          being a strip along the top and become the screen. Nothing pins
-          until the chest animation has played out. */}
-      {staged ? (
+        {/* the scene: it lifts away once every piece is opened (the unfold) */}
+        <div ref={sceneLayerRef} className={"absolute inset-0" + (unfold === "cards" ? " invisible" : "")}>
+          {/* the pieces still out: they dim as the Pocket's cover closes */}
+          <div ref={piecesRef} className="absolute inset-0">
+            <canvas
+              ref={canvasRef}
+              className="absolute inset-0 h-full w-full cursor-pointer touch-none"
+              onPointerDown={(event) => {
+                const rect = event.currentTarget.getBoundingClientRect()
+                const x = event.clientX - rect.left
+                const y = event.clientY - rect.top
+                // where a piece the Pocket took was last drawn: nothing to tap there
+                for (const spot of lastSeen.current.values()) if (Math.hypot(spot.cx - x, spot.cy - y) < spot.size * PIECE_HIT) return
+                try {
+                  event.currentTarget.setPointerCapture(event.pointerId)
+                } catch {
+                  /* capture is a nicety — never lose the press */
+                }
+                sceneRef.current?.press(x, y)
+              }}
+              onPointerMove={(event) => {
+                const rect = event.currentTarget.getBoundingClientRect()
+                sceneRef.current?.move(event.clientX - rect.left, event.clientY - rect.top)
+              }}
+              onPointerUp={() => sceneRef.current?.release()}
+              onPointerCancel={() => sceneRef.current?.release()}
+              aria-label="Your chest opening"
+              role="img"
+            />
+            {/* the wrapping layer: pointer-transparent — the engine canvas below
+                keeps owning every gesture */}
+            <canvas ref={wrapRef} className="pointer-events-none absolute inset-0 h-full w-full" />
+            {/* OPENED — each piece's image on the page, hidden until its shell
+                breaks, then moved by transform every frame. Pointer-transparent:
+                the engine canvas below owns every gesture (a tap on one opens
+                the picker through the engine); a click here is the keyboard's. */}
+            {items.slice(0, 10).map((item, index) => (
+              <button
+                key={index}
+                type="button"
+                ref={(el) => {
+                  openedEls.current[index] = el
+                  if (el && !openedRef.current.has(index)) el.style.display = "none"
+                }}
+                className={
+                  "pointer-events-none absolute top-0 left-0 size-40 rounded-full will-change-transform focus-visible:outline-2 focus-visible:outline-white/70 " +
+                  // the INSPECTED piece hands off to the picker: it hides while
+                  // the projection stands in for it
+                  (inspected === index ? "opacity-0" : "opacity-100")
+                }
+                aria-label={`Inspect ${item.name || "collectable"}`}
+                onClick={(event) => {
+                  const img = event.currentTarget.querySelector("img")
+                  onInspect?.(index, (img ?? event.currentTarget).getBoundingClientRect())
+                }}
+              >
+                {item.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- gateway art
+                  <img
+                    src={item.image}
+                    alt=""
+                    draggable={false}
+                    // the Pocket lifts it from here; once the inventory is
+                    // in, from the card instead
+                    data-chest-piece={unfold === "cards" ? undefined : index}
+                    className="size-full object-contain"
+                  />
+                ) : null}
+              </button>
+            ))}
+          </div>
+          {/* a carried bubble (the draw's hold): what's happening, in one line under it */}
+          <p
+            aria-live="polite"
+            className={
+              "pointer-events-none absolute inset-x-0 top-[62%] text-center font-[family-name:var(--font-manrope)] text-[15px] font-medium tracking-[0.2px] text-[rgba(236,238,245,0.78)] transition-opacity duration-500 " +
+              (carried && !open ? "opacity-100" : "opacity-0")
+            }
+          >
+            {lit === 0 ? "Finding your collectables" : `Found ${lit}`}
+          </p>
+          {/* the words at the top: what to do next, gone once the cover moves */}
+          <p
+            ref={wordsRef}
+            aria-live="polite"
+            className="pointer-events-none absolute inset-x-0 top-[62px] text-center font-[family-name:var(--font-manrope)] text-[15px] leading-5 font-medium text-[rgba(232,236,255,0.72)] opacity-0"
+          >
+            {zoomed ? "Tap again to open it" : opened.length > 0 || late ? "Close the book to keep them" : "Tap one to look closer"}
+          </p>
+        </div>
+      {/* THE INVENTORY — with EVERY piece opened the scene lifts away and the
+          collectables come back as a scrolling grid of cards, in the order
+          they were opened (see the unfold above): the reveal is over, so
+          they become the screen. Until then the opened pieces float at the
+          top of the scene itself. */}
+      {unfold === "cards" ? (
       <div
         ref={gridRef}
         className={
-          "absolute z-10 flex " +
-          (unfold === "cards"
-            ? // the inventory: the whole frame, and it SCROLLS — ten
-              // collectables do not fit, and you came here to find one
-              "pointer-events-auto inset-0 flex-wrap content-start justify-center gap-3 overflow-y-auto p-5"
-            : // ONE strip, never a ragged wrap: the pins share the width and
-              // take as much of it as the count allows
-              "pointer-events-none inset-x-4 top-3 justify-center gap-1.5 " +
-              // the exit is animated imperatively below — a CSS animation
-              // here would still be on the element and fight it
-              (unfold === "strip"
-                ? "motion-safe:animate-[shelf-slide_500ms_cubic-bezier(0.22,0.9,0.3,1)_both]"
-                : ""))
+          // the whole frame, and it SCROLLS — ten collectables do not fit,
+          // and you came here to find one
+          "pointer-events-auto absolute inset-0 z-10 flex flex-wrap content-start justify-center gap-3 overflow-y-auto p-5"
         }
       >
-        {items.slice(0, 10).map((_, order) => {
-          const pieceIndex = shelf[order]
-          const landed = pieceIndex !== undefined
-          const item = landed ? items[pieceIndex] : undefined
+        {opened.map((pieceIndex) => {
+          const item = items[pieceIndex]
           const art = item?.image
           const name = item?.name ?? ""
           return (
             <div
-              key={order}
-              ref={(el) => {
-                slotRefs.current[order] = el
-              }}
+              key={pieceIndex}
               className={
-                // KEYED ON THE PHASE, not on `complete`. Keyed on complete,
-                // a pin became a card the instant the last piece landed — so
-                // the strip slid up already wearing card chrome, instead of
-                // taking the pinned collectables up as they were.
-                // No css transition either: the entrance is animated
-                // imperatively, and a `transition-all` here fights it.
-                (unfold === "cards"
-                  ? "flex w-[calc(50%-0.75rem)] max-w-44 flex-none flex-col overflow-hidden rounded-xl border border-white/15 bg-white/[0.06] "
-                  : "flex w-full max-w-[72px] min-w-0 flex-1 flex-col ") +
-                (landed
-                  ? "pointer-events-auto cursor-pointer"
-                  : // an empty pin is reserved air — there is no shelf under
-                    // it to draw, only the collectable that will land
-                    "opacity-0")
+                // No css transition: the entrance is animated imperatively,
+                // and a `transition-all` here fights it.
+                "flex w-[calc(50%-0.75rem)] max-w-44 flex-none cursor-pointer flex-col overflow-hidden rounded-xl border border-white/15 bg-white/[0.06]"
               }
-              onClick={
-                landed
-                  ? (event) => {
-                      // the ART's box, not the tile's: the picker aligns its
-                      // own projection onto this rect, and the tile carries
-                      // padding (and a label, in the inventory) that would throw
-                      // the handover off by its own margins
-                      const art = event.currentTarget.querySelector("img")
-                      onShelfTap?.(
-                        pieceIndex,
-                        (art ?? event.currentTarget).getBoundingClientRect(),
-                      )
-                    }
-                  : undefined
-              }
-              role={landed ? "button" : undefined}
-              aria-label={landed ? `Inspect ${name || "collectable"}` : undefined}
+              onClick={(event) => {
+                // the ART's box, not the card's: the picker aligns its own
+                // projection onto this rect, and the card carries padding and
+                // a label that would throw the handover off by its own margins
+                const img = event.currentTarget.querySelector("img")
+                onInspect?.(pieceIndex, (img ?? event.currentTarget).getBoundingClientRect())
+              }}
+              role="button"
+              aria-label={`Inspect ${name || "collectable"}`}
             >
               {art ? (
                 // eslint-disable-next-line @next/next/no-img-element -- gateway art
@@ -673,13 +837,8 @@ export function ChestScene({
                     // picker's stage, which lands exactly on this box. A fade
                     // here is a fade of NOTHING — the stage has already gone —
                     // so the new collectable appeared late on every swap.
-                    "aspect-square w-full object-contain " +
-                    (unfold === "cards"
-                      ? "p-3 "
-                      : // pinned: the art carries its own drop shadow so it
-                        // reads as an object stuck to the top of the frame
-                        "p-0.5 drop-shadow-[0_3px_6px_rgba(0,0,0,0.55)] ") +
-                    // the INSPECTED pin hands off to the picker: its art hides
+                    "aspect-square w-full object-contain p-3 " +
+                    // the INSPECTED card hands off to the picker: its art hides
                     // while the projection is parked over the beam
                     (inspected === pieceIndex ? "opacity-0" : "opacity-100")
                   }
@@ -687,19 +846,17 @@ export function ChestScene({
               ) : (
                 <div className="aspect-square w-full" />
               )}
-              {unfold === "cards" && landed ? (
-                <div className="flex flex-col gap-0.5 border-t border-white/[0.07] px-3 py-2 text-left">
-                  <span className="truncate text-sm font-semibold">{name || "Collectable"}</span>
-                  <span
-                    className={
-                      "text-[11px] font-semibold tracking-[0.08em] uppercase " +
-                      (item?.rare ? "text-warning" : "text-muted-foreground")
-                    }
-                  >
-                    {item?.rare ? `★ ${item.tier ?? "Rare"}` : (item?.tier ?? "Common")}
-                  </span>
-                </div>
-              ) : null}
+              <div className="flex flex-col gap-0.5 border-t border-white/[0.07] px-3 py-2 text-left">
+                <span className="truncate text-sm font-semibold">{name || "Collectable"}</span>
+                <span
+                  className={
+                    "text-[11px] font-semibold tracking-[0.08em] uppercase " +
+                    (item?.rare ? "text-warning" : "text-muted-foreground")
+                  }
+                >
+                  {item?.rare ? `★ ${item.tier ?? "Rare"}` : (item?.tier ?? "Common")}
+                </span>
+              </div>
             </div>
           )
         })}

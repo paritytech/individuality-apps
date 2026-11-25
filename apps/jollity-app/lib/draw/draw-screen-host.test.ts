@@ -72,6 +72,7 @@ function world({ preloaded, mountsAtOnce = false }: { preloaded?: DrawLoadResult
       return { release: () => calls.push("stage.release"), progress: () => ({ frames: 1 }), destroy: () => calls.push("stage.destroy") }
     },
     names: async () => null,
+    friends: () => [],
     ceremony: () =>
       createDrawCeremony({ devLog: (message, data) => calls.push(`ceremony: ${message} ${JSON.stringify(data)}`), report: () => calls.push("report") }),
     hidden: () => false,

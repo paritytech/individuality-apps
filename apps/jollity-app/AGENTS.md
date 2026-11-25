@@ -90,6 +90,11 @@ apps/jollity-app/       ① APP, @jollity/app — Next.js (App Router), static-e
 │                              (proto/README.md); mount.ts runs it on the
 │                              chain's tickets + target, rule.ts checks it
 │                              lands on the chain's winners
+│     lib/draw/hold/           THE WAY ON FROM THE DRAW: hold anywhere and
+│                              the draw is gathered into the collectables'
+│                              bubble (scene.ts), carried on to /chest
+│                              (lib/chest-scene/carry.ts); look.ts looks
+│                              round the wheel before the hold
 └── scripts/                   the bakes (bake-*.mjs: cash-wordmark, draw-coin,
                                prize-ticket, signup-ring)
 
@@ -279,8 +284,8 @@ components never import `@parity/product-sdk-host`.
 
 **6. ANIMATION LOGIC IS FRAMEWORK-FREE; COMPONENTS ONLY FEED IT PARAMS.**
 Every scene keeps its brains in `lib/` with no React import at all —
-`lib/chest-scene/engine.ts`, `lib/draw/wheel/mount.ts`, `lib/coin3d/*`,
-`lib/wrapping/*`, `lib/game-session.ts` — and the component is a host that
+`lib/chest-scene/engine.ts`, `lib/draw/wheel/mount.ts`, `lib/draw/hold/*`,
+`lib/pocket/*`, `lib/coin3d/*`, `lib/wrapping/*`, `lib/game-session.ts` — and the component is a host that
 passes props and forwards gestures. It is why a scene can be ported, tuned
 and tested apart from React, and why the prize draw's wheel can run as a
 plain-JavaScript scene (`lib/draw/wheel/proto/`).
@@ -294,15 +299,15 @@ the peer check corrects the game clock, and how server-judged stamps retry) is
 **docs/time-and-clocks.md**. Read it before touching any clock read.
 
 **8. OVERLAYS STAY ON THEIR SCREEN; THE LAYERING IS THE DISCIPLINE.** The
-hologram picker is a component of `/chest`, not a route — a pinned
-collectable opens it in place and it flies back into that pin on close. Two
+hologram picker is a component of `/chest`, not a route — an opened
+collectable opens it in place and it flies back into that piece on close. Two
 WebGL contexts therefore live on one page, which is fine, but only because
 of how the layers are built: the picker's stage is STATIC and never
 transformed (a transform on the wrapper rasterizes both canvases and poisons
 the wrapping layer's rect math, which measures its canvas), exactly one
 element moves (the hero `<img>`, on the engine's spring), and it is pinned
 pre-paint in `useLayoutEffect` with `visibility:hidden` so StrictMode's
-second run cannot measure the first run's transform. The inspected pin hides
+second run cannot measure the first run's transform. The inspected piece hides
 its own art while the hero stands in for it. Break any of those and the
 symptom is "the zoom is broken", three layers away from the cause.
 

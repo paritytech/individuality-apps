@@ -29,7 +29,7 @@
 // own furniture show unstyled until it does
 import { createSlit as createSlitJs, slitParams } from "./proto/scenes/wheel/slit/scene.js"
 import { SLIT } from "./proto/scenes/wheel/slit/config.js"
-import { FLOW } from "./proto/scenes/wheel/config.js"
+import { FLOW, PALETTE } from "./proto/scenes/wheel/config.js"
 import { cuesFor } from "./proto/scenes/wheel/slit/sequence.js"
 import { NAME_IN } from "./proto/scenes/wheel/slit/walk.js"
 import { stretchesFor, warpFor } from "./proto/scenes/wheel/timing.js"
@@ -38,8 +38,99 @@ import { createLoop as createLoopJs } from "./proto/render-utils/loop.js"
 import { readUrl } from "./proto/render-utils/url.js"
 import { DPR_CAP } from "./proto/render-utils/layout.js"
 import { keepBakes, releaseBakes } from "./baked-coin"
-import { nameCache, rowLabels } from "./names"
+import { nameCache, rowLabels, rowName } from "./names"
 import { slotHex, winnersByRule } from "./rule"
+import { registerExplore, STAGE_TIMELINE, type WheelExplore, type WheelTimeline } from "./explore"
+import { createNameTicker, type NameTicker } from "./name-ticker"
+
+/* THE DRAW'S PACE, set on the scene's config from outside, before anything
+   below reads it:
+   - who's playing and the winners are walked through a little slower (the
+     scene's own: 600 / 2500 / 250 / 600 ms);
+   - who's playing runs along the top of the screen (the scene's own: 183,
+     over the wedge), its names a little bigger (stage.css).
+   THE WHEEL STANDS before it turns. Its
+   tickets come on as the coin spirals in, the coin lands on a still wheel,
+   and the wheel stays still WHEEL_STANDS_MS more before it spins (with
+   friends, until their row has lit each of them: standsFor), so the
+   player sees the wheel first (the scene starts it as the coin lands). The
+   draw's timeline, at the bottom, takes the player back to any point of the
+   spin once it is over (explore.ts): let go, it stays there (at the very end, it lands).
+   The player's friends (WheelDraw.friends: their contacts, by name) are
+   marked on the wheel as their names are read, a colour each, FRIENDS_MAX at most */
+const WHEEL_STANDS_MS = 1500
+const TICKETS_BEFORE_LANDING_MS = 1200
+/* with friends in the draw, the wheel stands until their row (before the
+   spin, the JOLLITY friends edits under ./proto) has gone through them: it comes on
+   FRIENDS_AFTER_LANDING_MS after your coin is down, goes through the friends
+   (the ticker's TICK_* below; FRIEND_CYCLE_MS each for the "friends" row),
+   shows them all for FRIENDS_TAIL_MS, and then the wheel turns (standsFor) */
+const FRIENDS_AFTER_LANDING_MS = 400
+/* a draw marks at most this many friends: each one is visited before the
+   spin, so every one more holds the wheel a little longer */
+const FRIENDS_MAX = 6
+const FRIEND_CYCLE_MS = 1200
+const FRIENDS_TAIL_MS = 600
+/* how the friends are shown before the spin: "ticker", a strip of every name
+   round the wheel that rests on you and scrolls fast through everyone in
+   between to each friend (./name-ticker.ts); "all", who's playing's own row
+   visiting each friend; "friends", a row of only the friends */
+const FRIENDS_ROW: "ticker" | "all" | "friends" = "ticker"
+/* the ticker: on you this long, then to each friend a fast scroll of
+   TICK_SCROLL_MS and a rest of TICK_HOLD_MS on them */
+const TICK_FIRST_MS = 1000
+const TICK_SCROLL_MS = 600
+const TICK_HOLD_MS = 750
+const standsFor = (friends: number, spectator: boolean) => {
+  if (!friends) return WHEEL_STANDS_MS
+  const visit =
+    FRIENDS_ROW === "ticker"
+      ? TICK_FIRST_MS + (friends - (spectator ? 1 : 0)) * (TICK_SCROLL_MS + TICK_HOLD_MS)
+      : friends * FRIEND_CYCLE_MS
+  return Math.max(WHEEL_STANDS_MS, FRIENDS_AFTER_LANDING_MS + visit + FRIENDS_TAIL_MS)
+}
+Object.assign(SLIT, {
+  namesWalkMs: 900,
+  walkWinnersMaxMs: 4000,
+  nameSlideMs: 350,
+  walkMs: 800,
+  spinStartMs: WHEEL_STANDS_MS,
+  ticketsBeforeSeatMs: TICKETS_BEFORE_LANDING_MS,
+  pauseOnSlider: true,
+  namesY: 80,
+  // where you and your friends are: a ring round each marked ticket (the
+  // scene's own toggle, off there), and on a big wheel, where every ticket is
+  // a speck, the marked ones a little bigger
+  rings: true,
+  markMinPx: 5,
+  // before the spin, your friends' names on who's playing's own row, each lit this long in turn, its line drawn down over this
+  friendCycleMs: FRIEND_CYCLE_MS,
+  friendsAfterSeatMs: FRIENDS_AFTER_LANDING_MS,
+  friendLineDrawMs: 300,
+  // how: on who's playing's own row, every name in it, the friends highlighted
+  // and visited ('all'), or a row of only the friends ('friends')
+  friendsRow: FRIENDS_ROW,
+  friendNameA: 0.6,
+  tickFirstMs: TICK_FIRST_MS,
+  tickScrollMs: TICK_SCROLL_MS,
+  tickHoldMs: TICK_HOLD_MS,
+  spinStartMaxMs: 60_000,
+})
+
+/** a colour each for the player's friends on the wheel: the scene's own
+ *  family palette, less its blues (yours is the cyan), round again past six */
+const FRIEND_COLOURS = (PALETTE as string[]).filter((colour) => colour !== "#00ffd5" && colour !== "#2a6bff")
+
+/** how often, in frames, the stage looks whether the coin has gone in */
+const STARTED_EVERY = 10
+
+/** the event that tells the stage it is covered (detail true) or not: the
+ *  page's hold dispatches it from inside the stage, and it bubbles here */
+export const STAGE_COVERED = "jollity:stage-covered"
+/** the event that zooms the wheel out to the whole of it: the player's own
+ *  ticket tapped for them, as a tap while zoomed in does (the page's hold,
+ *  after a win). The listener sets `detail.done` when it took it */
+export const STAGE_ZOOM_OUT = "jollity:zoom-out"
 
 /** what the stage is handed: the chain's draw, already checked by rule.ts */
 export interface WheelDraw {
@@ -61,6 +152,13 @@ export interface WheelDraw {
    *  read as the stage mounts, for who's playing (./names.ts). Without it the
    *  row shows each ticket's code */
   names?: (ticket: string) => Promise<string | null>
+  /** the player's friends, by name (as who's playing reads them, `names`):
+   *  a ticket whose name is one of these is a friend's, marked on the wheel in
+   *  a colour of its own, its name on the row in it, and visited before the
+   *  spin. Any number may come (all of the player's contacts): the wheel
+   *  stands only for the ones it finds among its entrants. None found: no
+   *  friends shown, and the wheel stands its usual time */
+  friends: readonly string[]
 }
 
 /** Where the stage's own story is, for the log of a stage that never ended:
@@ -78,8 +176,18 @@ export interface WheelStage {
 interface ProtoScene {
   frame: (t: number, dt: number) => void
   dispose: () => void
-  /** the JOLLITY names patch: write who's playing again, with the names that came since */
+  /** the JOLLITY names edit: write who's playing again, with the names that came since */
   names: { refresh: () => void }
+  /** the JOLLITY friends edit: the ticker's visit has begun, its stops held: a friend found after is marked, not visited */
+  friendsHeld: () => boolean
+  /** the JOLLITY timeline edit: where the draw is along the spin, and the page's hand on it */
+  timeline: {
+    at: () => number
+    started: () => boolean
+    scrub: (at: number) => boolean
+    release: () => void
+    busy: () => boolean
+  }
   debug: () => {
     slit: {
       /** the page's Continue: on the stage, and pressed */
@@ -96,6 +204,18 @@ interface ProtoScene {
       landed: boolean
       /** the prize's coin brought up */
       upload: { done: boolean }
+      /** the player's slot */
+      mine: number
+      /** who's playing: each name's ticket on the stage now, nominal px */
+      names: { tickets: { k: number; x: number; y: number }[] } | null
+      /** a tap on the stage, nominal px: the slot it took, or null if the wheel takes none now */
+      tap: (x: number, y: number) => number | null
+      /** the JOLLITY explore edits: every ticket where it is drawn now (nominal px), whose it is, and the player's zoom */
+      ticketsNow?: () => { k: number; x: number; y: number; r: number; won: boolean; you: boolean }[] | null
+      whoIs?: (k: number) => { name: string } | null
+      pick?: (k: number) => boolean
+      userView?: { s: number; tx: number; ty: number }
+      viewScale?: number
     }
   }
 }
@@ -107,7 +227,13 @@ interface ChainDraw {
   won: boolean
   /** who's playing: the label of the ticket at this index of `values` */
   nameOf: (index: number) => string
-  /** Continue pressed on a win, or the fall played out on a loss: once */
+  /** the player's friends found so far: a ticket's index in `values`, and its
+   *  colour (the list grows as their names are read) */
+  friends: { index: number; colour: string }[]
+  /** every name round the wheel, before the spin (./name-ticker.ts; friendsRow "ticker") */
+  ticker: NameTicker | null
+  /** the stage's own Continue pressed on a win (hidden under the page's
+   *  hold), or the fall played out on a loss: once */
   onDone: () => void
   /** the page's Continue went up */
   onContinueShown: () => void
@@ -118,7 +244,7 @@ interface ProtoLoop {
   onFrame: ((t: number, dt: number) => void) | null
   start(): void
   stop(): void
-  /** the JOLLITY hold patch: the clock stands still, and goes on from there */
+  /** the JOLLITY hold edit: the clock stands still, and goes on from there */
   hold(): void
   release(): void
 }
@@ -182,6 +308,16 @@ const SETTLE_FRAMES = 45
  *  again until something makes it stale: a resize, which clears the canvases,
  *  or a face that loaded late */
 const HELD_SETTLE_FRAMES = 30
+/** RESTING, once the draw is over (ended, nothing up, the wheel not on its
+ *  way back): the picture does not change unless something changes it, so
+ *  it is drawn only for a while after each poke (a zoom, a ticket picked, a
+ *  name in, a resize, the hold uncovering it or asking for a frame to read),
+ *  then not at all. These are the frames each poke buys */
+const REST_SETTLE_FRAMES = 90
+const POKE_FRAMES = 30
+const PICK_FRAMES = 120
+/** the event that asks a resting stage for frames (the hold, before it reads the stage's canvases) */
+export const STAGE_POKE = "jollity:stage-poke"
 /** per opening: a level held under the flip page, whose GL was the whole
  *  screen, says nothing about the slit's, a window the size of the coin.
  *  A new key when LEVELS change, so a stored index never points at another level */
@@ -240,14 +376,21 @@ export interface WheelOptions {
    *  explains it (components/draw/wheel-stage.tsx), so the draw they then
    *  watch is the very picture they were looking at */
   held?: boolean
-  /** the stage's Continue is offered: once you have been lit, or, for a
-   *  spectator, once the winners have been walked through. Once. The host
-   *  shows its own Continue only if the stage fails */
+  /** the draw is over and offers its way on: once you have been lit, or,
+   *  for a spectator, once the winners have been walked through. Once. The
+   *  page then offers its hold (the stage's own Continue is hidden under
+   *  [data-hold]); its own Continue shows only if the stage fails */
   onEnded?: () => void
-  /** the player is through: the stage's Continue pressed (a win, a
+  /** the player is through: the stage's own Continue pressed (a win, a
    *  spectator's draw), or the fall it starts played out (a loss). Once. The
-   *  host moves on */
+   *  host moves on. Under the page's hold that Continue is hidden, and the
+   *  page's `continue` moves on instead */
   onDone?: () => void
+  /** the stage is drawn and waits for the player's coin: the time they take is theirs. Once */
+  onWaiting?: () => void
+  /** the coin went in (a spectator's: the story started by itself): the
+   *  animation's own run starts here. Once */
+  onStarted?: () => void
 }
 
 /** Mount the wheel's stage in `host` for one draw. A stage that cannot build
@@ -264,7 +407,7 @@ export function mountWheel(host: HTMLElement, draw: WheelDraw, options: WheelOpt
   }
 }
 
-function mountStage(host: HTMLElement, draw: WheelDraw, { held = false, onEnded, onDone }: WheelOptions): WheelStage {
+function mountStage(host: HTMLElement, draw: WheelDraw, { held = false, onEnded, onDone, onWaiting, onStarted }: WheelOptions): WheelStage {
   // the stage's furniture the scene in ./proto expects: #app, the #gl canvas, #phase
   const app = document.createElement("div")
   app.id = "app"
@@ -303,6 +446,12 @@ function mountStage(host: HTMLElement, draw: WheelDraw, { held = false, onEnded,
   const spectator = mine === ""
   const slots = spectator ? draw.tickets.map(slotHex) : [mine, ...draw.tickets.map(slotHex).filter((slot) => slot !== mine)]
   const values = slots.map(bytes)
+  // THE PLAYER'S FRIENDS, BY NAME: a ticket is a friend's once the name read
+  // for it (who's playing's, below) is one of theirs. It is marked from then
+  // on, a colour each in the order they turn up, FRIENDS_MAX at most; the
+  // scene reads this list as it grows
+  const friendNames = new Set(draw.friends.map(rowName).filter((name) => name !== ""))
+  const friends: { index: number; colour: string }[] = []
 
   // the scene reads the URL only through `u`, so nothing on the app's own URL
   // (a ?game=) is mistaken for one of its dials. The coin is YOUR ticket, so
@@ -312,9 +461,11 @@ function mountStage(host: HTMLElement, draw: WheelDraw, { held = false, onEnded,
   const u = readUrl(`?intro=${spectator ? 0 : 1}`)
   slitParams(u)
   Object.assign(SLIT, {
+    // the wheel stands its usual time until a friend is found (findFriend; slitParams clamps it to the scene's 2 s: set after)
+    spinStartMs: standsFor(0, spectator),
     n: values.length,
     winners: Math.max(1, Math.min(draw.winners, values.length)),
-    friends: 0, // no friends' tickets or names on a real draw
+    friends: 0, // the scene's own made-up friends off; real ones come in through chainDraw.friends
     // the prize or the fall is about YOUR ticket: a spectator's draw holds on the winners
     showWinOrLoss: !spectator,
   })
@@ -331,8 +482,51 @@ function mountStage(host: HTMLElement, draw: WheelDraw, { held = false, onEnded,
   let scene: ProtoScene | null = null
   const winners = new Set(winnersByRule(draw.tickets, draw.target, SLIT.winners).map(slotHex))
   const first = slots.flatMap((slot, i) => (i === 0 || winners.has(slot) ? [i] : []))
-  const labels = rowLabels(slots, nameCache(draw.names), () => scene?.names.refresh(), first)
+  // THE ROW'S NAMES FIRST, AND ONLY THEY REDRAW IT: the names the row shows
+  // are the ones it asks for as it is built (`nameOf`), so those reads go
+  // next, and a name landing redraws the row only if it is in it, at most once
+  // a frame. A big draw reads a name for every ticket; were each to rebuild
+  // the row, the row would twitch as long as they keep coming
+  const inRow = new Set<number>()
+  let asked: number[] = []
+  let redraw = 0
+  const onName = (index: number) => {
+    findFriend(index)
+    if (inRow.size && !inRow.has(index)) return
+    if (redraw) return
+    redraw = requestAnimationFrame(() => {
+      redraw = 0
+      scene?.names.refresh()
+      poke(POKE_FRAMES)
+    })
+  }
+  const labels = rowLabels(slots, nameCache(draw.names), onName, first)
+  // a name just read is a friend's: the ticket is theirs (never yours)
+  const findFriend = (index: number) => {
+    if (!friendNames.size || friends.length >= FRIENDS_MAX || slots[index] === mine || friends.some((friend) => friend.index === index)) return
+    if (!friendNames.has(labels.labelOf(index))) return
+    friends.push({ index, colour: FRIEND_COLOURS[friends.length % FRIEND_COLOURS.length]! })
+    // the wheel stands until every friend found is visited: the scene reads the
+    // stand each frame, so it may grow until the visit begins (its stops held)
+    // or the wheel turns, and never after, or the spin would run back
+    if (!scene?.friendsHeld() && !scene?.timeline.started()) SLIT.spinStartMs = standsFor(friends.length, spectator)
+    poke(POKE_FRAMES)
+  }
+  const labelOf = (index: number) => {
+    if (!inRow.has(index)) {
+      inRow.add(index)
+      if (!asked.length)
+        queueMicrotask(() => {
+          labels.prefer(asked)
+          asked = []
+        })
+      asked.push(index)
+    }
+    return labels.labelOf(index)
+  }
 
+  // every name round the wheel, for the friends' visit before the spin (friendsRow "ticker")
+  const ticker = friendNames.size && FRIENDS_ROW === "ticker" ? createNameTicker(app) : null
   const stats = { fps: 0 }
   const loop = createLoop({ stats })
   // set before the scene first measures the stage
@@ -348,7 +542,9 @@ function mountStage(host: HTMLElement, draw: WheelDraw, { held = false, onEnded,
         target: bytes(draw.target),
         spectator,
         won: !spectator && draw.won,
-        nameOf: labels.labelOf,
+        nameOf: labelOf,
+        friends,
+        ticker,
         onDone: () => {
           if (done) return
           done = true
@@ -357,6 +553,7 @@ function mountStage(host: HTMLElement, draw: WheelDraw, { held = false, onEnded,
         onContinueShown: () => {
           if (shown) return
           shown = true
+          ended = true
           onEnded?.()
         },
       },
@@ -369,15 +566,131 @@ function mountStage(host: HTMLElement, draw: WheelDraw, { held = false, onEnded,
   let heldFrames = HELD_SETTLE_FRAMES
   const stale = () => {
     heldFrames = HELD_SETTLE_FRAMES
+    poke(POKE_FRAMES)
   }
+  // RESTING (see REST_SETTLE_FRAMES): frames left to draw before the picture is still again
+  let ended = false
+  let resting = false
+  let restFrames = 0
+  const poke = (n: number) => {
+    restFrames = Math.max(restFrames, n)
+  }
+  const onPoke = (e: Event) => poke((e as CustomEvent<number | null>).detail ?? POKE_FRAMES)
+  host.addEventListener(STAGE_POKE, onPoke)
+  const onResize = () => poke(POKE_FRAMES)
+  addEventListener("resize", onResize)
+  // COVERED: the page's hold (lib/draw/hold/scene) lays its own picture of
+  // the stage over it while the player holds, so no frame of the stage is
+  // seen meanwhile, and none is drawn (`STAGE_COVERED`, on the stage's element)
+  let covered = false
+  const cover = (e: Event) => {
+    covered = !!(e as CustomEvent<boolean>).detail
+    // uncovered: what is under the hold's picture is drawn again
+    if (!covered) poke(POKE_FRAMES)
+  }
+  host.addEventListener(STAGE_COVERED, cover)
+  // ZOOM OUT: the player's ticket, where the stage draws it now, tapped
+  const zoomOut = (e: Event) => {
+    const slit = stage.debug().slit
+    const you = slit.names?.tickets.find((t) => t.k === slit.mine)
+    if (!you || slit.tap(you.x, you.y) == null) return
+    poke(PICK_FRAMES)
+    const detail = (e as CustomEvent<{ done: boolean } | null>).detail
+    if (detail) detail.done = true
+  }
+  host.addEventListener(STAGE_ZOOM_OUT, zoomOut)
+  // LOOKING ROUND THE WHEEL (./explore.ts): the stage's tickets on the page,
+  // and the player's zoom, in CSS px; the stage works in its own px, `viewScale` to one
+  const explore: WheelExplore = {
+    tickets() {
+      const slit = stage.debug().slit
+      const all = slit.ticketsNow?.()
+      if (!all) return null
+      const box = app.getBoundingClientRect()
+      const k = slit.viewScale || 1
+      return all.map((t) => ({ k: t.k, x: box.left + t.x * k, y: box.top + t.y * k, r: t.r * k, won: t.won, you: t.you }))
+    },
+    nameOf: (k) => stage.debug().slit.whoIs?.(k)?.name ?? null,
+    pick: (k) => {
+      poke(PICK_FRAMES)
+      return stage.debug().slit.pick?.(k) ?? false
+    },
+    view() {
+      const slit = stage.debug().slit
+      const v = slit.userView ?? { s: 1, tx: 0, ty: 0 }
+      const k = slit.viewScale || 1
+      return { s: v.s, x: v.tx * k, y: v.ty * k }
+    },
+    setView({ s, x, y }) {
+      const slit = stage.debug().slit
+      if (!slit.userView) return
+      const k = slit.viewScale || 1
+      Object.assign(slit.userView, { s, tx: x / k, ty: y / k })
+      stale()
+    },
+    box: () => app.getBoundingClientRect(),
+    timeline: () => timelineNow(),
+    scrub(at) {
+      poke(POKE_FRAMES)
+      return stage.timeline.scrub(at)
+    },
+    scrubEnd() {
+      poke(POKE_FRAMES)
+      stage.timeline.release()
+    },
+    busy: () => stage.timeline.busy(),
+  }
+  const unregisterExplore = registerExplore(app, explore)
+  // THE TIMELINE (explore.ts): said to the page as it changes, from the frames the stage draws
+  const timelineNow = (): WheelTimeline => ({
+    at: stage.timeline.at(),
+    started: stage.timeline.started(),
+    prizeUp: app.classList.contains("flow-prize-up"),
+  })
+  let saidTimeline = ""
+  const sayTimeline = () => {
+    const now = timelineNow()
+    const key = `${now.at.toFixed(4)}|${now.started}|${now.prizeUp}`
+    if (key === saidTimeline) return
+    saidTimeline = key
+    app.dispatchEvent(new CustomEvent<WheelTimeline>(STAGE_TIMELINE, { detail: now, bubbles: true }))
+  }
+  let started = false
+  let waiting = false
+  const wheelHost = host.closest(".wheel-host") as HTMLElement | null
   loop.onFrame = (t, dt) => {
+    if (covered) return
     if (held) {
       if (heldFrames <= 0) return
       heldFrames -= 1
     }
+    // over, nothing up and the wheel not on its way back: at rest from here
+    if (ended && !resting && !app.classList.contains("flow-prize-up") && wheelHost?.dataset.wheel !== "going") {
+      resting = true
+      poke(REST_SETTLE_FRAMES)
+    }
+    if (resting) {
+      // the spin played on from the timeline, or a hand on it: drawn until it is still again
+      if (stage.timeline.busy()) poke(POKE_FRAMES)
+      if (restFrames <= 0) return
+      restFrames -= 1
+    }
     frames += 1
     quality(dt)
     stage.frame(t, dt)
+    sayTimeline()
+    // drawn and waiting for the coin, then the story's clock started (the coin
+    // went in): each said once, looked at every few frames
+    if (!started && frames % STARTED_EVERY === 0) {
+      const slit = stage.debug().slit
+      if (Number.isFinite(slit.s)) {
+        started = true
+        onStarted?.()
+      } else if (!waiting && slit.painted) {
+        waiting = true
+        onWaiting?.()
+      }
+    }
   }
   if (held) {
     loop.hold()
@@ -422,7 +735,13 @@ function mountStage(host: HTMLElement, draw: WheelDraw, { held = false, onEnded,
     progress,
     destroy() {
       removeEventListener("resize", stale)
+      host.removeEventListener(STAGE_COVERED, cover)
+      host.removeEventListener(STAGE_ZOOM_OUT, zoomOut)
+      host.removeEventListener(STAGE_POKE, onPoke)
+      removeEventListener("resize", onResize)
+      unregisterExplore()
       labels.stop()
+      cancelAnimationFrame(redraw)
       loop.stop()
       // the prize's coin, kept for the next draw while its GL context is still here
       keepBakes()

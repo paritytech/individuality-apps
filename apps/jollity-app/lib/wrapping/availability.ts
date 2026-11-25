@@ -5,8 +5,8 @@
 // Can this screen actually draw wrappings?
 //
 // The answer must be available OUTSIDE the lazy GL chunk. The chest scene
-// (components/chest/chest-scene.tsx) and the Pocket claim
-// (components/pocket/pocket-claim.tsx) decide from it whether to import
+// (components/chest/chest-scene.tsx) and the Pocket's scene
+// (lib/pocket/scene.ts) decide from it whether to import
 // `WrappingRenderer` at all, and the chest decides at the same moment whether
 // its flat sprites show the art or leave it to the wrapping, so both need the
 // answer synchronously. Nothing here imports the renderer.

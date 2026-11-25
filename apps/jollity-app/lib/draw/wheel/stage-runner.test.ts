@@ -50,7 +50,7 @@ function start(draw: Partial<WheelDraw> = {}, held = false) {
   }
   const runner = startStage(
     {} as HTMLElement,
-    { tickets: ["aa", "bb"], mine: "aa", target: "cc", won: false, winners: 1, prize: { amount: "200", unit: "CASH", prefix: "$" }, ...draw },
+    { tickets: ["aa", "bb"], mine: "aa", target: "cc", won: false, winners: 1, prize: { amount: "200", unit: "CASH", prefix: "$" }, friends: [], ...draw },
     { held },
     on,
   )

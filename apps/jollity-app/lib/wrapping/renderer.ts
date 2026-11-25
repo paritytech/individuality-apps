@@ -137,6 +137,9 @@ export class WrappingRenderer {
   private wrappings = new Map<string, WrappingState>()
   private lastDraw = 0
   private disposed = false
+  /** the canvas's CSS size, as a ResizeObserver last said: no layout read a frame once it has */
+  private size: { width: number; height: number } | null = null
+  private sizer: ResizeObserver | null = null
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -204,6 +207,13 @@ export class WrappingRenderer {
     }
     this.noise = noise
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 128, 128, 0, gl.RGBA, gl.UNSIGNED_BYTE, noiseTex(128, 10))
+    // its size, told when it changes (one read on the first frame, before the observer has said)
+    if (typeof ResizeObserver === 'function') {
+      this.sizer = new ResizeObserver(([entry]) => {
+        if (entry) this.size = { width: entry.contentRect.width, height: entry.contentRect.height }
+      })
+      this.sizer.observe(canvas)
+    }
   }
 
   /** Upload one item's textures. Idempotent per URL, so every consumer of the
@@ -258,8 +268,10 @@ export class WrappingRenderer {
     this.lastDraw = wall
     stats.drew = true
 
-    // ONE layout read for the whole frame. Everything after this writes.
-    const rect = this.canvas.getBoundingClientRect()
+    // the canvas's size: the observer's, or ONE layout read on the first frame. Everything after this writes.
+    const rect = this.size
+      ? { width: this.size.width, height: this.size.height, left: 0, top: 0, right: this.size.width, bottom: this.size.height }
+      : this.canvas.getBoundingClientRect()
     const dpr = Math.min(BASE.maxDpr, window.devicePixelRatio || 1)
     const W = Math.max(1, Math.round(rect.width * dpr))
     const H = Math.max(1, Math.round(rect.height * dpr))
@@ -430,6 +442,7 @@ export class WrappingRenderer {
   dispose(): void {
     if (this.disposed) return
     this.disposed = true
+    this.sizer?.disconnect()
     const gl = this.gl
     for (const st of this.wrappings.values()) {
       if (st.tex) gl.deleteTexture(st.tex)

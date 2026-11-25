@@ -59,7 +59,7 @@ import { createFlipIntro, startPose } from './flip.js'
 import { dropPath } from './drop.js'
 import { createPainter, mixHex, colourOf } from './paint.js'
 import { createLegend } from './legend.js'
-import { nameFor, rowFor, rowXFor, nearestTurn } from './names.js'
+import { nameFor, rowFor, rowXFor, nearestTurn, roundFrom6 } from './names.js' // JOLLITY: roundFrom6, the ticker's order
 import { walkPlan, walkAt, nameIn, ticketAlpha, stateOf, NOBODY } from './walk.js'
 import { TAILS } from './trail-look/look.js'
 import './style.css'
@@ -176,6 +176,51 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
   const g = canvas.getContext('2d')
   const ga = arrowsEl.getContext('2d')
   const legend = createLegend(app)
+  // JOLLITY: the ticker's order (every ticket, round the wheel as the row goes) and its stops (you, then your friends, clockwise)
+  let tickRing = null
+  let tickOrder = []
+  let tickPos = new Map()
+  let tickStopsRing = null
+  let tickStopsCount = -1
+  let tickStopsHeld = false // the visit has begun: a friend found after it is marked, not visited
+  let tickStops = []
+  let tickX = null
+  const tickOrderNow = () => {
+    if (tickRing !== ring) {
+      tickRing = ring
+      const H = hub()
+      const round = new Float64Array(layout.n)
+      for (let k = 0; k < layout.n; k++) round[k] = roundFrom6(at(k, restPhi), H)
+      tickOrder = Array.from({ length: layout.n }, (_, k) => k).sort((a, b) => round[a] - round[b])
+      tickPos = new Map(tickOrder.map((k, i) => [k, i]))
+    }
+    return tickOrder
+  }
+  const tickStopsNow = () => {
+    const n = tickOrderNow().length
+    const fr = friendsNow().map((x) => x.k)
+    if (tickStopsRing === ring && (tickStopsHeld || tickStopsCount === fr.length)) return tickStops
+    if (tickStopsRing !== ring) tickStopsHeld = false
+    tickStopsRing = ring
+    tickStopsCount = fr.length
+    const start = mine >= 0 ? tickPos.get(mine) : fr.length ? tickPos.get(fr[0]) : 0
+    const fwd = (k) => (((tickPos.get(k) - start) % n) + n) % n
+    const ks = (mine >= 0 ? [mine] : []).concat(fr.slice().sort((a, b) => fwd(a) - fwd(b)))
+    tickStops = ks.map((k) => ({ k, j: start + fwd(k) }))
+    return tickStops
+  }
+  // JOLLITY: your friends' row, before who's playing (frame, below): a plain row, it never wraps
+  const friendsLegend = createLegend(app, 'jollity-friends', { wrap: false })
+  let friendsX = 0 //         the row's offset as drawn, nominal px
+  let friendsPlaced = false // …put in place on its first frame, eased from there
+  let friendsNA = new Float32Array(0) // each name's alpha, easing
+  let friendsLineFor = -1 //  the ticket the line is down to, and since when
+  let friendsLineT0 = 0
+  let friendsSeen = false // friendsRow 'all': who's playing has been up for your friends: the walk keeps its names in
+  let friendsVisit = -1 //  …the friend it is at this frame, and where it slides to for them
+  let friendsVisitTo = 0
+  let friendsLineK = -1
+  const isFriend = (k) => friendsNow().some((fr) => fr.k === k)
   const painter = createPainter()
   const fov = () => COIN.fov
 
@@ -357,7 +402,7 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
 
   /* the sizes: every ticket a flat circle — yours 14 px at 420,
      24 px at 8 — and its ring */
-  const markR = () => Math.max(0.5, (fitted?.dot ?? 1) / 2) // yours is a ticket like the rest — only its colour says so
+  const markR = () => Math.max(0.5, (SLIT.markMinPx ?? 0) / 2, (fitted?.dot ?? 1) / 2) // yours is a ticket like the rest — only its colour says so (JOLLITY: and on a big wheel, never smaller than markMinPx)
   const ringOf = (r) => Math.max(r * 1.6 + 0.8, 11.5)
   /* yours is the legend's YOU, everywhere — the coin on its way in, your
      ticket, its trail, its ring, the arrow, the fall's coin — whatever size
@@ -524,6 +569,7 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
     return { x: H.x + d * Math.cos(a), y: H.y - d * Math.sin(a) }
   }
   let zm = { s: 1, tx: 0, ty: 0, z: 0 }
+  const userView = { s: 1, tx: 0, ty: 0 } // JOLLITY: the player's own zoom, over the stage's (lib/draw/wheel/explore.ts)
   const onScreen = (p) => ({ x: zm.s * p.x + zm.tx, y: zm.s * p.y + zm.ty })
   function youOnScreen() {
     const p = onScreen(at(mine, phiNow()))
@@ -657,6 +703,10 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
   let unzoomed = false //    a ticket tapped while zoomed in: the zoom eases out, and stays out until the timeline crosses where it comes in
   let zKeep = 1 //           …how much of the zoom is kept, easing
   let fellFromHold = false // a loss, Continue pressed: the hold after the flip let go, straight into the fall (once)
+  let friendsA = 0 // JOLLITY: how much of the friends' bar shows, easing
+  let wonShown = false // JOLLITY: a win's prize has been up: a spin played again from the timeline stops on the wheel
+  let settledNow = false // JOLLITY: stopped, walked through, its ending up or over: the draw is still
+  let scrubAt = 0 // JOLLITY: where the page's hand last put the timeline, 0..1
   let headA = 0 //           Not this time, easing in once the flip is over
   let pillOn = false //      you have been lit: the timeline is Continue now, for the rest of the draw
   let pillT0 = 0 //          …since this loop time
@@ -670,21 +720,68 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
   let nShow = new Float32Array(0) // …as shown: stepped back while a loss's fall plays
   let fellA = 1
   const restZoom = () => zoomAt(zfit, SLIT.zoom ? 1 : 0)
-  // JOLLITY: a real draw's names are its holders' (chainDraw.nameOf, by the ticket's index in chainDraw.values)
-  const whoOf = (k) => ({ k, name: k === mine ? 'YOU' : chainDraw ? chainDraw.nameOf(ring.order[k]) : nameFor(seed, k), you: k === mine })
+  // JOLLITY: the player's friends (chainDraw.friends: a ticket's index in chainDraw.values, and a colour each), by their slot on this ring; the list grows as their names are read
+  let friendsRing = null
+  let friendsCount = -1
+  let friendKs = []
+  const friendsNow = () => {
+    if (!chainDraw?.friends?.length || !ring) return []
+    if (friendsRing !== ring || friendsCount !== chainDraw.friends.length) {
+      friendsRing = ring
+      friendsCount = chainDraw.friends.length
+      const kOf = new Map()
+      for (let k = 0; k < ring.order.length; k++) kOf.set(ring.order[k], k)
+      friendKs = chainDraw.friends.map((fr) => ({ k: kOf.get(fr.index), colour: fr.colour })).filter((fr) => fr.k != null && fr.k !== mine)
+    }
+    return friendKs
+  }
+  // JOLLITY: a real draw's names are its holders' (chainDraw.nameOf, by the ticket's index in chainDraw.values); a friend's in their colour
+  const whoOf = (k) => ({ k, name: k === mine ? 'YOU' : chainDraw ? chainDraw.nameOf(ring.order[k]) : nameFor(seed, k), you: k === mine, colour: k === mine ? null : (friendsNow().find((fr) => fr.k === k)?.colour ?? null) })
   function buildRow() {
     const n = layout.n
+    const rowWas = row // JOLLITY: the names' alphas carry over to the new row (below)
     const winners = Array.from({ length: winnersNow() }, (_, i) => (ranks.cut + i) % n)
     const H = hub()
-    row = rowFor({ n, mine, winners, pos: (k) => at(k, restPhi), focus: { x: H.x, y: H.y - wedge.reach / 2 }, hub: H }).filter((k) => k >= 0) // JOLLITY: a spectator has no ticket in the row
+    row = rowFor({ n, mine, winners: [...winners, ...friendsNow().map((fr) => fr.k)], pos: (k) => at(k, restPhi), focus: { x: H.x, y: H.y - wedge.reach / 2 }, hub: H }).filter((k) => k >= 0) // JOLLITY: a spectator has no ticket in the row; the friends are kept in it, as the winners are
     rowNo++
     plan = null
     tapped = -1
     opened = false
     if (tA.length < n) tA = new Float32Array(n)
-    nA = new Float32Array(row.length)
-    nIn = new Float32Array(row.length)
+    // JOLLITY: each name still in the row keeps how much of it showed
+    const at0 = new Map(rowWas.map((k, i) => [k, i]))
+    const a = new Float32Array(row.length)
+    const shown = new Float32Array(row.length)
+    row.forEach((k, i) => {
+      const o = at0.get(k)
+      if (o != null) {
+        a[i] = nA[o] ?? 0
+        shown[i] = nIn[o] ?? 0
+      }
+    })
+    nA = a
+    nIn = shown
     legend.set(row.map(whoOf)) // JOLLITY: whoOf, the chain's names on a real draw
+  }
+  /* JOLLITY: a ticket picked that is not in who's playing joins it, in its place round the ring
+     (rowFor keeps it as it keeps the winners and yours; the row's farthest other goes to make room).
+     Each name keeps how far in it was; the new one is in at once (lib/draw/wheel/explore.ts) */
+  function joinRow(k) {
+    if (row.includes(k)) return
+    const H = hub()
+    const winners = Array.from({ length: winnersNow() }, (_, i) => (ranks.cut + i) % layout.n)
+    const next = rowFor({ n: layout.n, mine, winners: [...winners, ...friendsNow().map((fr) => fr.k), k], pos: (j) => at(j, restPhi), focus: { x: H.x, y: H.y - wedge.reach / 2 }, hub: H }).filter((j) => j >= 0)
+    const a = new Float32Array(next.length)
+    const shown = new Float32Array(next.length)
+    next.forEach((j, i) => {
+      const o = row.indexOf(j)
+      a[i] = o >= 0 ? nA[o] : 0
+      shown[i] = o >= 0 ? nIn[o] : 1
+    })
+    row = next
+    nA = a
+    nIn = shown
+    legend.set(row.map(whoOf))
   }
   /* the seconds from the wheel's stop: negative while it spins (the spin's
      own clock, so the timeline's scrub moves it), −∞ before it has started */
@@ -712,7 +809,7 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
     })
     plan = walkPlan({ order: row, visible, winners: row.filter((k) => wonSlot(k)), mine, S: SLIT })
     plan.x0 = x0
-    rowX = x0
+    if (!friendsSeen) rowX = x0 // JOLLITY: up already for your friends: it stays where it is
     return plan
   }
   /* the wheel takes taps from the walk's start on — not under the prize, nor once a loss's fall has started */
@@ -1127,6 +1224,7 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
     const wk = walkAt(pl, ts)
     if (atRest && pl && ts >= pl.start) opened = true
     const free = atRest && wk.phase === 'free'
+    settledNow = atRest && !running && !scrubbing && (free || !!ending?.held || !!ending?.dismissed) // JOLLITY
 
     /* the ending, with the toggle on: decided as the spin starts, begun once
        you have been lit. A loss: the zoom out, your coin's flip — and there
@@ -1139,7 +1237,7 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
     } else if (ending?.kind) ending.stop()
     if (ending?.kind) {
       // a win once you are lit and the walk is over; a loss the moment you are lit (its zoom out from there)
-      const go = free || (ending.kind === 'lost' && atRest && wk.phase === 'you')
+      const go = (free || (ending.kind === 'lost' && atRest && wk.phase === 'you')) && !(ending.kind === 'won' && wonShown) // JOLLITY: a win's prize comes up once
       if (go && !ending.begun) {
         ending.begin(loop.time)
         endFromS = ts
@@ -1171,6 +1269,7 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
     // a ticket tapped zoomed in: the zoom eases out over zoomMs, back at once when the timeline crosses its start
     zKeep = unzoomed || scrubbedOut ? zKeep * (SLIT.tapZoomOutMs > 0 ? Math.exp((-dt * 1000 * 4) / SLIT.tapZoomOutMs) : 0) : 1 // JOLLITY: or Continue dragged
     zm = zfit && ok ? zoomAt(zfit, zin.z * zoomKeep * zKeep) : { s: 1, tx: 0, ty: 0, z: 0 }
+    if (userView.s !== 1 || userView.tx || userView.ty) zm = { s: zm.s * userView.s, tx: zm.tx * userView.s + userView.tx, ty: zm.ty * userView.s + userView.ty, z: zm.z } // JOLLITY: the player's zoom, on top
 
     /* ── the frame, described ── */
     const before = seqT0 == null // the coin is still up: the slit as the intro has it
@@ -1365,6 +1464,18 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
       f.tickets = T
     }
 
+    /* JOLLITY: your friends' tickets, a colour each: marked as yours is, from when the tickets
+       come on. Before yours, so where two meet yours is on top */
+    if (ok && !before && s >= cues.ticketsAt) {
+      for (const fr of friendsNow()) {
+        if (end?.gone?.has(fr.k)) continue
+        const appear = ramp(s, ticketAt(cues, ticketD[fr.k]), cues.ticketIn)
+        if (appear <= 0) continue
+        const p = (end?.dropOf ? end.dropOf(fr.k) : null) ?? at(fr.k, phi)
+        const r = markR()
+        f.markers.push({ x: p.x, y: p.y, r, colour: fr.colour, a: appear * wheelA * Math.max(0.6, tA[fr.k] > 0 ? tA[fr.k] : 1), ringR: ringOf(r), ringColour: fr.colour, ringA: ringsLeft, onWheel: true })
+      }
+    }
     /* yours: the coin on its way back, then your ticket on the wheel —
        the coin lands at the ticket's own place and speed, so they are one */
     let youAt = null
@@ -1433,6 +1544,13 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
 
     /* ── the DOM: who's playing, Not this time, Continue, the timeline ── */
     setVar('--slit-names-y', String(SLIT.namesY))
+    // JOLLITY: the friends' row, from just after your coin is down until who's playing takes the line
+    const friendsFrom = cues.seat + Math.max(0, SLIT.friendsAfterSeatMs ?? 0) / 1000
+    const friendsTo = ok && !before && s >= friendsFrom && friendsNow().length > 0 && !(pl && (opened || wk.phase !== 'off')) && !ending?.prizeUp ? 1 : 0 // JOLLITY: only once a friend is found among the entrants
+    friendsVisit = -1 // the friend the full row is at this frame (friendsRow 'all', below)
+    friendsLineK = -1 // …and the ticket a friends' line comes down to
+    friendsA += (friendsTo - friendsA) * (1 - Math.exp(-dt / 0.15))
+    setVar('--jollity-friends', friendsA.toFixed(3))
     legend.stage(Wn(), view.scale)
     if (pl && (opened || wk.phase !== 'off')) {
       /* the row: slid — the short way round its ring — so the lit name is
@@ -1445,9 +1563,29 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
       rowX += (target - rowX) * slide
       for (let i = 0; i < row.length; i++) {
         const k = row[i]
-        nIn[i] = opened ? 1 : nameIn(pl, i, ts)
-        const [, na] = alphaOf(k)
+        nIn[i] = opened || friendsSeen ? 1 : nameIn(pl, i, ts) // JOLLITY: up already for your friends: in
+        const [, na0] = alphaOf(k)
+        const na = friendsSeen && isFriend(k) ? Math.max(na0, SLIT.friendNameA ?? 0.6) : na0 // JOLLITY: your friends stay highlighted
         nA[i] = nIn[i] < 1 ? na : nA[i] + (na - nA[i]) * easeA
+      }
+    } else if (SLIT.friendsRow === 'all' && pl && friendsNow().length && friendsA > 0.002) {
+      // JOLLITY: your friends on who's playing's own row, before the stop (friendsRow)
+      const frs = friendsNow()
+      const step = Math.floor(Math.max(0, s - friendsFrom) / Math.max(0.2, (SLIT.friendCycleMs ?? 1200) / 1000))
+      const vk = step < frs.length && !(running && spinT0 != null) ? frs[step].k : -1
+      const ri = vk >= 0 ? row.indexOf(vk) : -1
+      const to = ri >= 0 ? rowXFor(legend.box(ri, view.scale), { x: onScreen(at(vk, phi)).x, r: markR() * zm.s }, Wn()) : rowX
+      if (!friendsSeen) rowX = to
+      friendsSeen = true
+      const slide = SLIT.nameSlideMs > 0 ? 1 - Math.exp((-dt * 1000 * 4) / SLIT.nameSlideMs) : 1
+      rowX += (nearestTurn(to, rowX, legend.span) - rowX) * slide
+      friendsVisit = ri >= 0 ? vk : -1
+      friendsVisitTo = to
+      const easeN = 1 - Math.exp(-dt / 0.14)
+      for (let i = 0; i < row.length; i++) {
+        const k = row[i]
+        nIn[i] = friendsA
+        nA[i] += ((k === vk ? SLIT.nameLitA : isFriend(k) ? SLIT.friendNameA ?? 0.6 : SLIT.nameA) - nA[i]) * easeN
       }
     } else {
       nIn.fill(0)
@@ -1480,6 +1618,155 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
       f.select.drawn = SLIT.lineDrawMs > 0 ? clamp01((loop.time - lineT0) / (SLIT.lineDrawMs / 1000)) : 1
       f.select.up = tapped >= 0 && lineOn === tapped && tapFrom === 'ticket' // a ticket tapped: up from it to its name
     }
+
+    /* JOLLITY: friendsRow 'ticker': EVERY NAME round the wheel (chainDraw.ticker, lib/draw/wheel/name-ticker.ts),
+       from just after your coin is down: it rests on you, then scrolls fast through everyone in between to each
+       friend in turn (round the wheel, clockwise), each landing over its ticket, lit, the line down to it; then
+       it stays where it is through the spin, until who's playing takes the line */
+    if (chainDraw?.ticker) {
+      const tk = chainDraw.ticker
+      if (SLIT.friendsRow === 'ticker' && friendsA > 0.002 && layout && ring) {
+        const order = tickOrderNow()
+        const n = order.length
+        const P = tk.pitch
+        const stops = tickStopsNow()
+        tickStopsHeld = true
+        const M = stops.length
+        const firstS = Math.max(0.1, (SLIT.tickFirstMs ?? 1000) / 1000)
+        const scrollS = Math.max(0.1, (SLIT.tickScrollMs ?? 600) / 1000)
+        const holdS = Math.max(0.1, (SLIT.tickHoldMs ?? 750) / 1000)
+        const u = Math.max(0, s - friendsFrom)
+        let m = 0
+        let v = 1
+        let held = u
+        if (u >= firstS && M > 1) {
+          const w = u - firstS
+          const seg = Math.floor(w / (scrollS + holdS)) + 1
+          if (seg >= M) {
+            m = M - 1
+            held = holdS + (w - (M - 1) * (scrollS + holdS))
+          } else {
+            m = seg
+            const r = w - (seg - 1) * (scrollS + holdS)
+            v = r < scrollS ? r / scrollS : 1
+            held = r - scrollS
+          }
+        }
+        const done = M === 0 || u >= firstS + (M - 1) * (scrollS + holdS)
+        // a stop's offset: its name's middle over its ticket, kept off the stage's edges
+        const xOf = (st) => {
+          const tx = onScreen(at(st.k, phi)).x
+          return Math.max(24 + P / 2 - 12, Math.min(Wn() - 24 - P / 2 + 12, tx)) - (st.j * P + P / 2)
+        }
+        const quint = (q) => (q < 0.5 ? 16 * q ** 5 : 1 - (-2 * q + 2) ** 5 / 2)
+        if (M && (!done || tickX == null)) tickX = v >= 1 ? xOf(stops[m]) : xOf(stops[m - 1]) + (xOf(stops[m]) - xOf(stops[m - 1])) * quint(v)
+        const litK = M && !done && v >= 1 ? stops[m].k : -1
+        const litU = clamp01(held / 0.18)
+        const fa = SLIT.friendNameA ?? 0.6
+        tk.frame({
+          x: tickX ?? 0,
+          scale: view.scale,
+          width: Wn(),
+          alpha: friendsA,
+          count: n,
+          nameAt: (i) => whoOf(order[i]),
+          shownAt: (j) => {
+            const k = order[((j % n) + n) % n]
+            const marked = k === mine || isFriend(k)
+            return k === litK ? fa + (SLIT.nameLitA - fa) * litU : marked ? fa : SLIT.nameA
+          },
+        })
+        // the line down to the one it rests on, once it has landed
+        if (litK >= 0 && !f.select && SLIT.select && held > 0.12) {
+          const a = friendsA * litU * wheelA
+          const p = at(litK, phi)
+          const r = markR()
+          const colour = litK === mine ? youColour() : (friendsNow().find((fr) => fr.k === litK)?.colour ?? SLIT.ticketColour)
+          f.select = { x: p.x, y: p.y, r, ringR: r + SLIT.selectGapPx / zm.s, w: SLIT.selectLinePx, a, discA: a, colour, ticketA: a, under: null, lineTop: null, up: false }
+          const box = tk.boxAt(stops[m].j)
+          if (box && SLIT.selectLine) {
+            const x = zm.s * p.x + zm.tx
+            f.select.lineTop = SLIT.namesY + LINE_FROM_NAME
+            if (SLIT.nameUnderline) f.select.under = { x0: Math.min(box[0], x), x1: Math.max(box[0] + box[1], x) }
+            friendsLineK = litK
+          }
+        }
+      } else {
+        tk.frame({ x: 0, scale: view.scale, width: Wn(), alpha: 0, count: 0, nameAt: () => ({ name: '' }), shownAt: () => 0 })
+        if (friendsTo === 0) tickX = null
+      }
+    }
+    /* JOLLITY: friendsRow 'all': the line down to the friend who's playing is at, once its name is over its ticket, as the walk's */
+    if (friendsVisit >= 0 && !f.select && SLIT.select) {
+      const k = friendsVisit
+      const ri = row.indexOf(k)
+      const litU = clamp01((nA[ri] - (SLIT.friendNameA ?? 0.6)) / Math.max(0.01, SLIT.nameLitA - (SLIT.friendNameA ?? 0.6)))
+      const a = friendsA * litU * wheelA
+      if (a > 0.002) {
+        const p = at(k, phi)
+        const r = markR()
+        f.select = { x: p.x, y: p.y, r, ringR: r + SLIT.selectGapPx / zm.s, w: SLIT.selectLinePx, a, discA: a, colour: friendsNow().find((fr) => fr.k === k)?.colour ?? SLIT.ticketColour, ticketA: a, under: null, lineTop: null, up: false }
+        const l = legend.leftOf(ri, rowX)
+        const w = legend.box(ri, view.scale)[1]
+        const x = zm.s * p.x + zm.tx
+        if (SLIT.selectLine && Math.abs(nearestTurn(friendsVisitTo, rowX, legend.span) - rowX) < 0.5 && x >= l - 2 && x <= l + w + 2) {
+          f.select.lineTop = SLIT.namesY + LINE_FROM_NAME
+          if (SLIT.nameUnderline) f.select.under = { x0: l, x1: l + w }
+          friendsLineK = k
+        }
+      }
+    }
+    /* JOLLITY: YOUR FRIENDS' ROW (see createLegend above), once your coin is down: name by name, left to right,
+       each lit friendCycleMs, its name easing up, the line from it along under the row and down to its ticket.
+       The row stands still where they all fit; else it eases on one name at a time, the lit one in the middle,
+       its ends kept in. Past the last, all of them, nobody lit, and the row stays where it is: the spin follows */
+    const frs = friendsNow()
+    friendsLegend.stage(Wn(), view.scale)
+    if ((SLIT.friendsRow ?? 'friends') === 'friends' && frs.length && friendsA > 0.002) {
+      friendsLegend.set(frs.map((fr) => whoOf(fr.k)))
+      const n = frs.length
+      const cycle = Math.max(0.2, (SLIT.friendCycleMs ?? 1200) / 1000)
+      const step = Math.floor(Math.max(0, s - friendsFrom) / cycle)
+      const i = step < n ? step : -1
+      const [l0] = friendsLegend.box(0, view.scale)
+      const [ln, wn] = friendsLegend.box(n - 1, view.scale)
+      const [lf, wf] = friendsLegend.box(i >= 0 ? i : n - 1, view.scale)
+      const side = 24 // names.js's SIDE: a name no nearer the stage's edge
+      const to = ln + wn - l0 <= Wn() - 2 * side ? (Wn() - (ln + wn - l0)) / 2 - l0 : Math.min(side - l0, Math.max(Wn() - side - (ln + wn), Wn() / 2 - (lf + wf / 2)))
+      const slide = SLIT.nameSlideMs > 0 ? 1 - Math.exp((-dt * 1000 * 4) / SLIT.nameSlideMs) : 1
+      friendsX = friendsPlaced ? friendsX + (to - friendsX) * slide : to
+      friendsPlaced = true
+      if (friendsNA.length !== n) friendsNA = new Float32Array(n).fill(SLIT.nameA)
+      const easeN = 1 - Math.exp(-dt / 0.14)
+      for (let j = 0; j < n; j++) friendsNA[j] += ((i < 0 || j === i ? SLIT.nameLitA : SLIT.nameA) - friendsNA[j]) * easeN
+      friendsLegend.frame(friendsX, view.scale, frs.map(() => 1), friendsNA)
+      friendsLegend.lit(SLIT.nameUnderline && i >= 0 ? i : -1)
+      if (i >= 0 && !f.select && SLIT.select && !(running && spinT0 != null)) {
+        const k = frs[i].k
+        const litU = clamp01((friendsNA[i] - SLIT.nameA) / Math.max(0.01, SLIT.nameLitA - SLIT.nameA))
+        const a = friendsA * litU * wheelA
+        if (a > 0.002) {
+          const p = at(k, phi)
+          const r = markR()
+          f.select = { x: p.x, y: p.y, r, ringR: r + SLIT.selectGapPx / zm.s, w: SLIT.selectLinePx, a, discA: a, colour: frs[i].colour, ticketA: a, under: null, lineTop: null, up: false }
+          // the line once the row is still: from the name, along under the row to over its ticket, and down
+          if (SLIT.selectLine && Math.abs(to - friendsX) < 0.5) {
+            const l = friendsLegend.leftOf(i, friendsX)
+            const w = friendsLegend.box(i, view.scale)[1]
+            const x = zm.s * p.x + zm.tx
+            f.select.lineTop = SLIT.namesY + LINE_FROM_NAME
+            if (SLIT.nameUnderline) f.select.under = { x0: Math.min(l, x), x1: Math.max(l + w, x) }
+            friendsLineK = k
+          }
+        }
+      }
+    } else if (friendsTo === 0 && friendsA <= 0.002) friendsPlaced = false
+    // JOLLITY: a friends' line (either row) draws down over friendLineDrawMs from the moment it may
+    if (friendsLineK !== friendsLineFor) {
+      friendsLineFor = friendsLineK
+      friendsLineT0 = loop.time
+    }
+    if (friendsLineK >= 0 && f.select) f.select.drawn = clamp01((loop.time - friendsLineT0) / Math.max(0.05, (SLIT.friendLineDrawMs ?? 300) / 1000))
     legend.live(tappable())
     /* a loss: Not this time over the row once your coin's flip is over (and it stays through the fall) */
     const lost = ending?.kind === 'lost'
@@ -1587,6 +1874,41 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
     },
     /* JOLLITY: names that came after the row was built, put in (lib/draw/wheel/mount.ts) */
     names: { refresh: () => void (row.length && legend.set(row.map(whoOf))) },
+    /* JOLLITY: the ticker's visit has begun, its stops held: a friend found after is marked, not visited,
+       so the page stops lengthening the stand for them (lib/draw/wheel/mount.ts) */
+    friendsHeld: () => tickStopsHeld,
+    /* JOLLITY: the timeline, in the page's hand (lib/draw/wheel/explore.ts): where the draw is
+       along the spin (0..1), and a drag along it, as the pill's own. Once the coin is down; let go,
+       the spin plays on from there */
+    timeline: {
+      at: () => sliderValue(),
+      started: () => spinT0 != null,
+      scrub(v) {
+        if (!touchable()) return false
+        if (ending?.kind === 'won' && ending.begun) wonShown = true
+        tapped = -1 // a hand on the timeline: nobody is lit
+        scrubbing = true
+        scrubbedOut = true
+        running = false
+        // never the very end, where the ending would begin from: the spin's own stop begins it
+        scrubAt = clamp01(v)
+        const at = Math.min(scrubAt, 0.9995)
+        if (ph) ph.value = at.toFixed(3)
+        seek(at)
+        return true
+      },
+      release() {
+        if (!scrubbing) return
+        scrubbing = false
+        // let go at the very end: the spin lands, its stop, the walk and the ending's end; elsewhere it stays where it was let go (pauseOnSlider)
+        if (scrubAt >= 0.999 && landing && spinT0 != null && phase < 1 && !running) {
+          spinT0 = loop.time - warp.realAt(phase * landing.durS)
+          running = true
+        } else resume()
+      },
+      // moving by itself: a hand on it, the spin running, or stopped and still being walked through (paused mid-spin is still)
+      busy: () => scrubbing || running || (!settledNow && !(spinT0 != null && phase < 1)),
+    },
     debug: () => ({
       slit: {
         get intro() {
@@ -1757,6 +2079,32 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
           }
         },
         /* a tap on the stage, nominal px: the slot it took (−1: you) — or null if the wheel takes none now */
+        /* JOLLITY: every ticket where the stage draws it now (nominal px, through the zoom), whose it
+           is, and the player's own zoom over the stage's (lib/draw/wheel/explore.ts) */
+        ticketsNow: () => {
+          if (!layout || !ring) return null
+          const phi = phiNow()
+          const out = []
+          for (let k = 0; k < layout.n; k++) out.push({ k, ...onScreen(at(k, phi)), r: (k === mine ? markR() : fitted.dot / 2) * zm.s, won: wonSlot(k), you: k === mine })
+          return out
+        },
+        whoIs: (k) => (layout && ring && k >= 0 && k < layout.n ? whoOf(k) : null),
+        userView,
+        get viewScale() {
+          return view.scale
+        },
+        /* JOLLITY: a ticket picked on the page, any of them: lit on the row, as a tapped one is (−1: nobody) */
+        pick: (k) => {
+          if (!tappable() || !layout || !ring) return false
+          if (k < 0 || k >= layout.n) {
+            tapped = NOBODY
+            return true
+          }
+          joinRow(k)
+          tapped = k
+          tapFrom = 'ticket'
+          return true
+        },
         tap: (x, y) => (tappable() ? tapAt(x, y) : null),
         get tappable() {
           return tappable()

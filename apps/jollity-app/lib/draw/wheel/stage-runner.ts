@@ -6,9 +6,12 @@
  * stops: the stage's chunk and the baked coins loaded, the stage mounted
  * (held under a spectator's intro until it is released), and what the stage
  * says as it plays passed on until the player is through. It tells the host, in this order:
- * `mounted`, then `ended` (the stage's Continue is offered), then `done` (the
- * player is through); or `failed`, when the chunk or the coins did not load
- * or the stage did not mount. Nothing comes after `destroy()`.
+ * `mounted`; `waiting` (a player's stage waits for their coin) and `started`
+ * (the coin went in, or a spectator's story began); then `ended` (the draw
+ * offers its way on: the page's hold, or the stage's own Continue where there
+ * is no hold), then `done` (that Continue pressed, or a loss's fall played
+ * out); or `failed`, when the chunk or the coins did not load or the stage did
+ * not mount. Nothing comes after `destroy()`.
  *
  * The stage is loaded with import(): the scene code in ./proto reads matchMedia
  * the moment it is evaluated, which a static prerender has no window for.
@@ -16,9 +19,9 @@
  * (components/draw/wheel-stage.tsx).
  *
  * Framework-free (architecture rule 6), and no clock of its own: the stage
- * calls back when its Continue goes up and when the player is through, and
- * the bound on how long it may take is the host's, from the `progressMs` it is
- * handed at `mounted`.
+ * calls back as it waits, starts, offers its way on and lets the player
+ * through, and the bound on how long it may take is the host's, from the
+ * `progressMs` it is handed at `mounted` and again at `started`.
  */
 import type { WheelDraw, WheelProgress, WheelStage } from "./mount"
 
@@ -34,10 +37,16 @@ export interface StageEvents {
   mounted(at: { held: boolean; progressMs: number }): void
   /** the stage's chunk or coins did not load, or the stage did not mount */
   failed(reason: StageFailure, error: unknown): void
-  /** the stage's Continue is offered; always before `done` */
+  /** the stage is drawn and waiting for the player's coin */
+  waiting?(): void
+  /** the coin went in: the story is running, and `progressMs` from now is how long it may take */
+  started?(at: { progressMs: number }): void
+  /** the draw offers its way on (the page's hold, or the stage's own Continue
+   *  where there is no hold); always before `done` */
   ended(): void
-  /** the player is through: the stage's Continue pressed (a win, a
-   *  spectator's draw), or the fall it starts played out (a loss) */
+  /** the player is through: the stage's own Continue pressed (a win, a
+   *  spectator's draw), or the fall it starts played out (a loss). Under the
+   *  page's hold that Continue is hidden, and the page moves on itself */
   done(): void
 }
 
@@ -86,9 +95,15 @@ export function startStage(host: HTMLElement, draw: WheelDraw, { held }: { held:
     .then(([{ mountWheel, WHEEL_PROGRESS_TIMEOUT_MS }]) => {
       if (destroyed) return
       try {
-        // ENDED: the stage's Continue is offered. DONE: the player pressed it
-        // (and a loss's fall has played)
-        stage = mountWheel(host, draw, { held, onEnded: end, onDone: finish })
+        // ENDED: the draw offers its way on. DONE: the stage's own Continue
+        // was pressed (and a loss's fall has played)
+        stage = mountWheel(host, draw, {
+          held,
+          onEnded: end,
+          onDone: finish,
+          onWaiting: () => on.waiting?.(),
+          onStarted: () => on.started?.({ progressMs: WHEEL_PROGRESS_TIMEOUT_MS }),
+        })
       } catch (error) {
         on.failed("mount", error)
         return

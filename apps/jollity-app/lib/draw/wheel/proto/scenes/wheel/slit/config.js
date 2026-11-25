@@ -213,8 +213,11 @@ export const SOLID_LOOK = {
   // GOOD LUCK is on its front now (the look's): it starts on it, face-on — no half turn (lucky.js faceBack)
   mapSize: '512',
 }
-/* the prize's coin: the coin lab's Winners coin (metal), at this page's map size */
-export const PRIZE_LOOK = { ...BASE_LOOK, mapSize: '512' }
+/* the prize's coin: the coin lab's Winners coin (metal), at this page's map size.
+   JOLLITY: its guilloche at half the rings and a shallower cut. The lab's 16
+   rings at 512² are lines about a texel wide, and on a phone they shimmer into a
+   moiré under the amount; 8 rings read as engine-turned loops at this size. */
+export const PRIZE_LOOK = { ...BASE_LOOK, mapSize: '512', patternScale: 0.5, patternDepth: 0.11 }
 
 /* the scene fills these in create(); the panel's buttons and applySlit()
    below call them. Empty until then, so a dial moved before the first frame

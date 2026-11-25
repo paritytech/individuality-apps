@@ -22,8 +22,10 @@ import { drawShown } from "@/lib/journeys/game-trace"
 import { reportDrawCeremony } from "@/lib/telemetry"
 import { devLog } from "@/lib/debug/log-store"
 import { describeError } from "@/lib/host/error-detail"
-import { postGameHref, postGameIndex } from "@/lib/post-game"
+import { contactUsernames } from "@/lib/host/contacts"
+import { postGameIndex } from "@/lib/post-game"
 import { devUrlParam } from "@/lib/debug/dev-url"
+import { chestHref } from "@/lib/draw/chest-href"
 import type { DrawScreenDeps } from "@/lib/draw/draw-screen-host"
 
 export function browserDrawScreenDeps(router: { replace(href: string): void }): DrawScreenDeps {
@@ -34,6 +36,10 @@ export function browserDrawScreenDeps(router: { replace(href: string): void }): 
   const game = browser ? postGameIndex() : undefined
   const override = browser ? devUrlParam("player") : undefined
   const log = (message: string, data?: unknown, level?: "info" | "warn") => devLog("draw", message, data, level)
+  // the player's contacts, asked for as the screen opens: the host answers
+  // long before the wheel mounts, and a draw that mounts first marks no friends
+  let friends: readonly string[] = []
+  if (browser) void contactUsernames().then((names) => (friends = names))
   return {
     game,
     override,
@@ -47,7 +53,7 @@ export function browserDrawScreenDeps(router: { replace(href: string): void }): 
     drawShown,
     markSeen: (index) => void markSeen(index, "draw"),
     // the draw plays FIRST, while the chain is still tallying what the chest will hold
-    toChest: () => router.replace(postGameHref("/chest")),
+    toChest: () => router.replace(chestHref()),
     // the chest comes next: its claims are read while the wheel plays
     preloadChest: () => {
       void import("@/lib/chest/chest-screen-deps").then(({ preloadChestFeed }) => preloadChestFeed()).catch(() => {})
@@ -56,6 +62,7 @@ export function browserDrawScreenDeps(router: { replace(href: string): void }): 
     touch: touchOnPointerDown,
     stage: startStage,
     names: readDrawName,
+    friends: () => friends,
     ceremony: () => createDrawCeremony({ devLog: log, report: reportDrawCeremony }),
     hidden: () => document.visibilityState === "hidden",
     log,

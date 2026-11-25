@@ -13,7 +13,10 @@
  * that decides between the wheel and the words, the stage, the claim of a won
  * prize, the idle, the payoff's way to the chest and the debug log.
  */
+import { useEffect, useState } from "react"
 import { WheelStage } from "@/components/draw/wheel-stage"
+import { HoldToChest } from "@/components/draw/hold-to-chest"
+import { autoBackToWheel } from "@/lib/draw/hold/scene"
 import { MessageScreen } from "@/components/ui/screen"
 import { PrizeText } from "@/components/prize-text"
 import { Button } from "@/components/ui/button"
@@ -22,6 +25,10 @@ import { drawIntro, drawMissReason, drawResultLine } from "@/lib/draw/draw-miss"
 
 export default function PrizeDrawPage() {
   const { view, host } = usePrizeDraw()
+  // the stage's own element, for the hold to read and move
+  const [stage, setStage] = useState<HTMLDivElement | null>(null)
+  // a win goes back to the wheel by itself, whatever the way on
+  useEffect(() => (stage ? autoBackToWheel(stage) : undefined), [stage])
   const bypass = () => host.send({ type: "bypass" })
   const next = () => host.send({ type: "continue" })
 
@@ -54,13 +61,20 @@ export default function PrizeDrawPage() {
     case "wheel":
       // not in the draw: they still watch it, told first what the draw is (the
       // intro); why they are not in it only where the stage fails (the words)
+      // the way on is a hold, not the stage's Continue (components/draw/hold-to-chest);
+      // a stage that failed keeps the page's own Continue
       return (
-        <WheelStage
-          stageRef={host.stageElement}
-          intro={view.intro ? { ...drawIntro(view.draw), leaving: view.intro === "leaving" } : null}
-          fallback={view.fallback ? drawResultLine(view.draw, view.draw.userTicket ? null : drawMissReason(view.miss)) : null}
-          onContinue={next}
-        />
+        <>
+          <WheelStage
+            stageRef={host.stageElement}
+            hostRef={setStage}
+            hold={!view.fallback}
+            intro={view.intro ? { ...drawIntro(view.draw), leaving: view.intro === "leaving" } : null}
+            fallback={view.fallback ? drawResultLine(view.draw, view.draw.userTicket ? null : drawMissReason(view.miss)) : null}
+            onContinue={next}
+          />
+          {view.fallback ? null : <HoldToChest stage={stage} offered={view.offered} onContinue={next} />}
+        </>
       )
   }
 }

@@ -8,6 +8,7 @@ import "./globals.css";
 import { CrashBoundary } from "@/components/telemetry/crash-boundary";
 import { DebugBoot } from "@/components/debug/debug-boot";
 import { FrontDoor } from "@/components/front-door";
+import { CarriedBubbleLayer } from "@/components/carried-bubble";
 import { RESOURCE_COUNTERS_INIT_SCRIPT } from "@/lib/telemetry/resource-counters";
 
 // Dev harness: run the app hosted, in a plain tab, against a local
@@ -83,6 +84,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <FrontDoor>{children}</FrontDoor>
         </CrashBoundary>
         <DebugBoot />
+        {/* the draw's hold carrying its bubble to /chest, over the route change */}
+        <CarriedBubbleLayer />
       </body>
     </html>
   );

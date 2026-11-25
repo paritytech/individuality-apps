@@ -18,14 +18,28 @@
  * and drift to their places. A claim that comes after the pop flies straight
  * to its place among the others, who make room.
  *
+ * OUT OF THE BUBBLE THEY FLOAT, in no grid (lib/chest-scene/float): the
+ * unopened ones settle toward the bottom of the frame, each keeping a halo of
+ * room, and a slow wander keeps them drifting. AN OPENED PIECE STAYS,
+ * unwrapped: once its shell has broken (openPiece, the host's word) it is
+ * drawn as its plain art, turns light, and floats up past the others to
+ * gather with the opened ones at the top.
+ *
+ * A BUBBLE CARRIED FROM THE DRAW (opts.carried, lib/chest-scene/carry): the
+ * draw's hold gathered the draw's pieces into it, so it starts blown where
+ * it was, and each claim is found from a share of those pieces, merged at
+ * its middle, instead of flying in (see THE CARRIED BUBBLE).
+ *
  * Kept untyped on purpose: it is a frame loop over plain numbers. Its API is
  * declared in ./index.ts, the only module that imports this file; callers
  * import "@/lib/chest-scene". Change the API here and mirror it there.
  *
- * API: createChestScene(canvas, { count, onEvent, onDiscs, canOpen }) ->
- *   { replay, tap, press, move, release, setSprites, removePiece, addPiece, open,
- *     setSpriteHidden, resize, destroy }
+ * API: createChestScene(canvas, { count, onEvent, onDiscs, canOpen, carried, onCarriedShown }) ->
+ *   { replay, tap, press, move, release, setSprites, openPiece, addPiece, open,
+ *     setSpriteHidden, hold, setFloor, resize, destroy }
  */
+import { floatLayout } from './float';
+
 export function createChestScene(canvasEl, opts = {}) {
 
 /* ================= seeded randomness ================= */
@@ -158,36 +172,20 @@ const MAX_PIECES = 10;
 const BALL_COUNT = Math.min(MAX_PIECES, Math.max(0, opts.count ?? 6));
 const FLOAT_Y = 1.28;     // where the cluster comes to rest
 
-// ── THE ARRANGEMENT: a scatter that fills the frame, not a ring ────────────
-// A ring puts its hole in the middle of the screen and spends the frame on
-// empty orbit, which caps how big the collectables can be — the more of them,
-// the wider the ring and the smaller they get. A scatter spends the frame on
-// the collectables instead. It is a JITTERED GRID rather than free darts:
-// the grid guarantees no overlap and no clumping at any count, the jitter
-// takes the regularity off, and the seeded rolls do the rest.
+// ── THE FRAME: sized as if the pieces sat in a grid, though they float ─────
+// The pieces float free (lib/chest-scene/float), but how BIG they are is
+// still a grid's question: the camera frames the grid that would hold the
+// whole chest, so one collectable fills the frame and ten share it, and the
+// float has just the room it needs.
 //
 // Everything below is in CELL units — one cell is one collectable's square —
-// so the camera scale alone decides the on-screen size. Fewer pieces means a
-// smaller grid means a bigger scale: one collectable fills the frame, ten
-// tile it, and neither needs its own constant.
+// so the camera scale alone decides the on-screen size.
 
-/** the piece, in cell units. The gaps below are all derived from it. */
+/** the piece, in cell units */
 const BALL_R = 0.38;
-/** how far a piece wanders off its cell centre — the whole scatter effect */
-const JITTER = 0.10;
-/** How far from a wall the edge push starts, in piece radii. Every radius of
- *  reach is a radius of frame the collectables do not get, so it is kept
- *  short — it only has to catch a piece being DRAGGED into the glass. */
-const EDGE_REACH_R = 0.55;
-/** Air around the grid, in cells. Every piece of it is frame the
- *  collectables do not get, so it is exactly what the edge force needs and
- *  no more: a jittered outer piece rests GRID_PAD + 0.02 from the wall,
- *  which has to clear EDGE_REACH_R · BALL_R = 0.209. Above that floor it is
- *  breathing room — it is what stops a chest of one filling the whole frame. */
+/** Air around the grid, in cells: breathing room for the float, and what
+ *  stops a chest of one filling the whole frame. */
 const GRID_PAD = 0.45;
-/** Extra height reserved at the TOP for the pinned collectables, which are
- *  DOM over this canvas. Without it the first row sits under the pin strip. */
-const PIN_ROOM = 0.45;
 
 /** the frame the scene resolves to while the bubble collects, world units,
  *  and its centre: the bubble needs room to grow, and at one collectable
@@ -207,17 +205,16 @@ function gridFor(count) {
   for (let cols = 1; cols <= Math.max(1, count); cols++) {
     const rows = Math.ceil(count / cols);
     const w = cols + GRID_PAD * 2;
-    const h = rows + GRID_PAD * 2 + PIN_ROOM;
+    const h = rows + GRID_PAD * 2;
     const scale = Math.min(TARGET / w, 1 / h);
     if (scale > best.scale) best = { cols, rows, w, h, scale };
   }
   return best;
 }
 
-/** the grid for the FULL chest — it is what the camera is framed to, and it
- *  does not move as pieces leave (the survivors close ranks instead of
- *  everything growing every time one is opened). It GROWS as pieces come in
- *  (addPiece), and the framing eases to it rather than jumping. */
+/** the grid for the FULL chest — it is what the camera is framed to. It
+ *  GROWS as pieces come in (addPiece), and the framing eases to it rather
+ *  than jumping. Opening a piece never changes it: the piece stays. */
 let fitW = gridFor(Math.max(1, BALL_COUNT)).w;
 let fitH = gridFor(Math.max(1, BALL_COUNT)).h;
 let targetW = fitW;
@@ -236,73 +233,166 @@ let sprites = [];
 const spriteHidden = new Set();
 
 function makeDisc(i) {
+  const rnd = mulberry32(hashSeed(SEED + ':wob' + i));
   return {
-    x: 0, y: 0, z: 0, up: 0, live: false, grow: 1,
+    x: 0, y: 0, z: 0, live: false, grow: 1,
     // in the bubble, to come out with the rest; a piece still on its way is not
     inBubble: true,
-    hx: 0, hy: 0, hz: 0,           // its fixed place in the frame
-    wob: [0, 0, 0, 0, 0, 0],
+    // where a claim that arrives after the pop lands (arrivalPoint)
+    hx: 0, hy: 0, hz: 0,
+    // its own slow rhythm: the float's wander and the wiggle's rock
+    wob: [range(rnd, 0.35, 0.7), range(rnd, 0.28, 0.6), range(rnd, 0.4, 0.75),
+          rnd() * 6.28, rnd() * 6.28, rnd() * 6.28],
     roll: 0, rollVel: 0, tilt: 0.3,
     skin: i % 3,
     // the pop: 0 intact → 1 burst; the tap stores where it hit so the shell
     // flies apart from the finger
     crack: 0, crackClock: -1, hitX: 0, hitY: 0,
-    // opened and pinned: out of the arrangement, so layoutHomes skips it
-    gone: false,
+    // broken open: drawn as its plain art, and light (it floats up)
+    opened: false,
+    // THE FLOAT (lib/chest-scene/float): the piece in the camera's plane —
+    // u right, v up, from the frame's centre — its speed there, its depth off
+    // the plane (kept), the spot the layout gave it, how far short of the
+    // frame's edge it rests (its own), and the finger's point while dragged
+    u: 0, v: 0, vu: 0, vv: 0, dep: 0,
+    tu: 0, tv: 0, lift: rnd(),
+    fu: 0, fv: 0,
+    // its rarity's colour (the orb it came in as), and the light it trails as it rises
+    tint: '#ffffff', trail: [],
   };
 }
 for (let i = 0; i < BALL_COUNT; i++) discs.push(makeDisc(i));
 
-/* the pieces settle into the jittered grid, laid out in the camera's own
-   plane so the arrangement reads flat on screen.
-   THE GRID IS FOR WHAT IS LEFT, not for what there was. Opening a piece calls
-   this again, so the survivors re-home onto a smaller, still-centred grid and
-   drift inward to close the gap — the home spring (see the settle) does the
-   moving, which is why it reads as a pull toward the middle rather than a
-   re-layout. The cell size never changes, so nothing resizes; only the extent
-   of the arrangement shrinks. */
-function layoutHomes() {
-  const rnd = mulberry32(hashSeed(SEED + ':scatter'));
-  const here = discs.filter((b) => !b.gone);
-  const { cols, rows } = gridFor(here.length);
-  here.forEach((b, i) => {
-    const row = Math.floor(i / cols);
-    // a short last row is CENTRED, or the arrangement reads as a ragged grid
-    const inRow = Math.min(cols, here.length - row * cols);
-    const u = (i - row * cols) - (inRow - 1) / 2 + range(rnd, -JITTER, JITTER);
-    // biased down by half the pin room, so the grid sits under the strip
-    const v = (rows - 1) / 2 - row - PIN_ROOM / 2 + range(rnd, -JITTER, JITTER);
-    b.hx = RIGHT.x * u + UP.x * v;
-    b.hy = FLOAT_Y + RIGHT.y * u + UP.y * v;
-    b.hz = RIGHT.z * u + UP.z * v;
-  });
+/* where a claim that comes after the pop lands: low in the frame, where the
+   unopened ones gather, a little off the middle. The float makes room. */
+function arrivalPoint(b, index) {
+  const { cols, rows } = gridFor(discs.length);
+  const rnd = mulberry32(hashSeed(SEED + ':arrive' + index));
+  const u = range(rnd, -0.5, 0.5) * Math.max(0, cols - 1);
+  const v = -(rows - 1) / 2;
+  b.hx = RIGHT.x * u + UP.x * v;
+  b.hy = FLOAT_Y + RIGHT.y * u + UP.y * v;
+  b.hz = RIGHT.z * u + UP.z * v;
 }
 
-/* out of the popped bubble, each from where its mote was, drifting to its place */
+/* a piece's shell has broken (the host's word, once the shatter has played):
+   it stays where it is as its plain art, and turns light — its new spot is
+   with the opened ones at the top, and it floats up past the unopened ones
+   to it. The camera eases back out if it was the focus, so the rise is seen. */
+function openPiece(index) {
+  const b = discs[index];
+  if (!b || b.opened) return;
+  b.opened = true;
+  if (focusDisc === b) setFocus(false);
+  relayout();
+}
+
+/* ── THE FLOAT: a spot for every piece, then a spring to it ───────────────
+   Not physics. floatLayout (lib/chest-scene/float) gives every live piece a
+   loose spot — the opened ones at the top of the frame, the rest at the
+   bottom — and only when something changes: the pop, an open, a claim
+   landing, a drag let go, a resize. Each frame a piece springs toward its
+   spot, breathing around it. The spot is laid out in the FINAL frame (the
+   camera settled on the pieces), so the camera's tightening after the pop
+   and its dive into a piece change nothing. */
+const FLOAT_EASE = 3.2;      // the spring's rate (1/s), critically damped: ~1.5 s to a new spot, no overshoot
+const BREATH_U = 0.07;       // how far a piece drifts around its spot, sideways and up and down
+const BREATH_V = 0.09;
+const DRAG_FOLLOW = 22;      // how fast a dragged piece catches up with the finger (1/s)
+const DRAG_HALO = 1.45;      // what a dragged piece pushes aside, in summed radii
+const MAKE_WAY = 0.3;        // how much of the overlap a piece gives way, each frame, to an opened one rising past (it springs back after)
+const RISING = 0.3;          // an opened piece further than this from its spot is on its way up
+const TRAIL_TIME = 0.3;      // s of the path a rising piece trails as light
+const EDGE_PAD = 0.04;       // air left between a piece and the screen's edge, units
+const EDGE_BOUNCE = 0.45;    // how much of a piece's speed into an edge comes back off it
+
+/* the view without any dive into a piece, as the frame last set it: its
+   scale (px a unit) and where its centre is. The screen's edges are its */
+let viewScale = 0;
+let viewCy = FLOAT_Y;
+/* THE FLOOR: the Pocket's book takes the foot of the screen once it is up,
+   and the pieces float above it, never behind it (setFloor: px from the
+   canvas's top; null, the canvas's own foot) */
+let floorPx = null;
+function setFloor(px) {
+  const next = px == null || !Number.isFinite(px) ? null : px;
+  if (next === floorPx || (next !== null && floorPx !== null && Math.abs(next - floorPx) < 1)) return;
+  floorPx = next;
+  if (seq.burstAt >= 0) relayout();
+}
+
+/* THE SCREEN'S EDGES: every piece stays on the screen, whole. Running into
+   an edge it stops there and comes back off it a little, as off a wall: the
+   pop's throw, a breath, a piece making way or a drag never take it off.
+   The edges are the view's without a dive into a piece (a camera zoomed in
+   shows less, and that is the camera's, not the pieces') */
+function keepOnScreen(b) {
+  if (!viewScale) return;
+  const r = BALL_R * Math.max(1, b.grow) + EDGE_PAD;
+  const hw = VW / 2 / viewScale - r, hh = VH / 2 / viewScale - r;
+  if (hw <= 0 || hh <= 0) return;
+  const cu = dot(RIGHT, 0, viewCy - FLOAT_Y, 0), cv = dot(UP, 0, viewCy - FLOAT_Y, 0);
+  if (b.u < cu - hw) { b.u = cu - hw; if (b.vu < 0) b.vu *= -EDGE_BOUNCE; }
+  else if (b.u > cu + hw) { b.u = cu + hw; if (b.vu > 0) b.vu *= -EDGE_BOUNCE; }
+  const low = floorPx === null ? cv - hh : Math.max(cv - hh, cv + (VH / 2 - floorPx) / viewScale + r);
+  if (b.v < low) { b.v = low; if (b.vv < 0) b.vv *= -EDGE_BOUNCE; }
+  else if (b.v > cv + hh) { b.v = cv + hh; if (b.vv > 0) b.vv *= -EDGE_BOUNCE; }
+}
+
+/** the piece in the camera's plane, from where it is in the world */
+function toPlane(b) {
+  const dy = b.y - FLOAT_Y;
+  b.u = dot(RIGHT, b.x, dy, b.z);
+  b.v = dot(UP, b.x, dy, b.z);
+  b.dep = dot(EYE, b.x, dy, b.z);
+}
+
+function relayout() {
+  const live = discs.filter((b) => b.live);
+  if (!live.length || !VW || !VH) return;
+  const s = Math.min(VW / targetW, VH / targetH);
+  const halfW = VW / 2 / s, halfH = VH / 2 / s;
+  const spots = floatLayout(
+    live.map((b) => ({ u: b.u, v: b.v, r: BALL_R, opened: b.opened, lift: b.lift })),
+    { left: -halfW, right: halfW, bottom: floorPx === null ? -halfH : Math.min(halfH * 0.5, Math.max(-halfH, (VH / 2 - floorPx) / s)), top: halfH },
+  );
+  live.forEach((b, i) => { b.tu = spots[i].u; b.tv = spots[i].v; });
+}
+
+/* out of the popped bubble, each from where its mote was, thrown outward by
+   the pop; the float takes it from there */
 function burst() {
   const rnd = mulberry32(hashSeed(SEED + ':burst'));
-  // a replay puts every piece back in play BEFORE the layout is asked for,
-  // or the grid would be sized for whatever survived the last run
-  for (const b of discs) b.gone = false;
-  layoutHomes();
+  // a replay starts every piece unopened and still
+  for (const b of discs) {
+    b.opened = false; b.vu = 0; b.vv = 0; b.trail.length = 0;
+  }
   const from = { x: 0, y: 0, z: 0 };
   for (const b of discs) {
-    // a piece still on its way flies to its place instead (stepOrbs)
-    if (!b.inBubble) continue;
+    const index = discs.indexOf(b);
+    // a piece still on its way flies to a landing place instead (stepOrbs)
+    if (!b.inBubble) { arrivalPoint(b, index); continue; }
     b.live = true;
     b.crack = 0; b.crackClock = -1;
-    const index = discs.indexOf(b);
     const mote = bub.motes.find((m) => m.index === index);
     if (mote) motePoint(mote, from); else { from.x = 0; from.y = BUBBLE_Y; from.z = 0; }
     b.x = from.x; b.y = from.y; b.z = from.z;
     b.grow = 0.25;
-    b.up = range(rnd, 0.5, 1.3);
+    // outward from the bubble's centre, with a lift
+    const du = dot(RIGHT, from.x, from.y - BUBBLE_Y, from.z);
+    const dv = dot(UP, from.x, from.y - BUBBLE_Y, from.z);
+    const len = Math.hypot(du, dv) || 1;
+    const speed = range(rnd, 1.2, 2.4);
+    b.vu = (du / len) * speed;
+    b.vv = (dv / len) * speed + range(rnd, 0.3, 0.9);
     b.wob = [range(rnd, 0.35, 0.7), range(rnd, 0.28, 0.6), range(rnd, 0.4, 0.75),
              rnd() * 6.28, rnd() * 6.28, rnd() * 6.28];
     b.roll = 0;
     b.rollVel = 0;
     b.tilt = range(rnd, 0.14, 0.34);
+    toPlane(b);
   }
+  relayout();
 }
 
 function hideDiscs() {
@@ -401,11 +491,13 @@ function stepOrbs(now) {
       }, now);
       emit('absorb', { index: o.index });
     } else {
-      // there: in its place, with a small hop
+      // there: among the others, with a small hop, and the float makes room
       b.inBubble = true;
       b.live = true;
       b.x = b.hx; b.y = b.hy; b.z = b.hz;
-      b.up = 0.9;
+      toPlane(b);
+      b.vu = 0; b.vv = 0.9;
+      relayout();
       b.grow = 0.3;
       b.crack = 0; b.crackClock = -1;
       flashes.push({ x: b.hx, y: b.hy, z: b.hz, t0: now, tint: o.tint });
@@ -466,10 +558,16 @@ function addPiece(tint) {
   const index = discs.length;
   const b = makeDisc(index);
   b.inBubble = false;
+  b.tint = tint;
   discs.push(b);
-  // the full chest is framed, and the others make room for it now, while it flies
+  // the full chest is framed; after the pop it lands low, among the unopened ones
   fitTo(discs.length);
-  if (seq.burstAt >= 0) layoutHomes();
+  if (seq.burstAt >= 0) arrivalPoint(b, index);
+  // a carried bubble lights it from the draw's pieces instead (THE CARRIED BUBBLE)
+  if (carry.on && seq.burstAt < 0) {
+    clusterQueue.push({ index, tint });
+    return index;
+  }
   orbQueue.push({ index, tint });
   return index;
 }
@@ -560,6 +658,7 @@ function catchMote(index, tint, dir, entry, now) {
     ph: rnd() * 6.28,
     ou: 0, ov: 0, vu: 0, vv: 0,   // how far off its orbit it still is, and how fast
     trail: entry.trail,
+    grow: 1, out: 1,              // whole, and in its place (a carried bubble's find grows into both)
   };
   moteAt(m, now, mAt);
   m.ou = entry.u - mAt.u;
@@ -758,17 +857,21 @@ function conic(g, angle, x, y, R, stops) {
 
 /* the motes on one side of the middle: the far ones smaller and dimmer, seen
    through the film; one that has just come in is still the orb it was, its
-   size, its glow and its tail, and settles into the swirl over MOTE_IN */
+   size, its glow and its tail, and settles into the swirl over MOTE_IN. A
+   carried bubble's find (THE CARRIED BUBBLE) grows at the middle, small,
+   over the drop it set from, a touch big as it leaves, and goes out to its
+   place (grow, out) */
 function drawMotes(c, R, t, front) {
   const orbUnit = Math.max(9, Math.min(VW, VH) * 0.034) * 1.15;   // the orb's core, in a mote's measure
   for (const m of bub.motes) {
+    if (m.grow <= 0) continue;
     moteAt(m, t, mAt);
-    if ((mAt.z >= 0) !== front) continue;
+    if ((m.out < 1 || mAt.z >= 0) !== front) continue;
     const near = (mAt.z + 1) / 2;
     const k = Math.min(1, (t - m.t0) / MOTE_IN), e = k * k * (3 - 2 * k);
-    const x = c.x + mAt.u * R, y = c.y - mAt.v * R;
-    const unit = orbUnit + (Math.max(4, R * 0.11) * (0.75 + 0.4 * near) - orbUnit) * e;
-    const alpha = 1 + (0.45 + 0.55 * near - 1) * e;
+    const x = c.x + mAt.u * R * m.out, y = c.y - mAt.v * R * m.out;
+    const unit = (orbUnit + (Math.max(4, R * 0.11) * (0.75 + 0.4 * near) - orbUnit) * e) * (0.35 + 0.85 * m.grow - 0.2 * m.out);
+    const alpha = (1 + (0.45 + 0.55 * near - 1) * e) * m.grow;
     const [r, g, b] = rgb(m.tint);
     // the tail it came in with, gone in 0.15 s as it slows
     if (m.trail) {
@@ -868,6 +971,8 @@ function reflection(c, R, t, a0, a1, r0, r1, alpha) {
 function drawBubble(t) {
   if (!seq.visible) return;
   const c = project(0, BUBBLE_Y + seq.bob, 0, bubAt);
+  // a carried bubble: where the draw left it, gliding to its spot
+  c.x += carry.dx; c.y += carry.dy;
   const R = bub.r * SCALE;
   if (R < 0.5) return;
   const swell = bub.swellAt >= 0 ? Math.min(1, (t - bub.swellAt) / POP_SWELL) : 0;
@@ -887,6 +992,8 @@ function drawBubble(t) {
   }
   // the far motes, behind the film
   drawMotes(c, R, t, false);
+  // a carried bubble's pieces, inside it
+  drawCarriedInside(c, R, t);
   ctx.globalCompositeOperation = 'source-over';
   // the film: clear in the middle, brighter towards the rim
   bubblePath(ctx, c.x, c.y, R, t);
@@ -947,6 +1054,7 @@ function drawBubble(t) {
     ctx.lineWidth = Math.max(1, R * 0.04 * (1 - k));
     ctx.stroke();
   }
+  drawCarriedFront(c, R, t);
   ctx.globalCompositeOperation = 'source-over';
   // the reflections: a softbox in the top left, its faint bounce in the bottom right
   reflection(c, R, t, -2.62, -1.72, 0.72, 0.86, 0.5);
@@ -1015,26 +1123,11 @@ function drawPop(t) {
   ctx.restore();
 }
 
-function stepDiscs(dt, t, since) {
-  // `since` is seconds since the pop, or -1 before it
-  const settle = since < 0 ? 0 : Math.min(1, Math.max(0, (since - 0.18) / 0.8));
+function stepDiscs(dt, t) {
   for (const b of discs) {
     if (!b.live) continue;
     // a piece that came out small (a claim landing, the bubble's pop) swells to its size
     b.grow += (1 - b.grow) * Math.min(1, dt * 7);
-
-    // the launch decays instead of falling back
-    b.up *= Math.max(0, 1 - 3.8 * dt);
-    b.y += b.up * dt;
-
-    // then each one eases onto its own place and stays there, only breathing
-    if (settle > 0) {
-      const k = Math.min(1, dt * settle * 7);
-      b.x += (b.hx + Math.sin(t * b.wob[0] + b.wob[3]) * 0.055 - b.x) * k;
-      b.y += (b.hy + Math.sin(t * b.wob[1] + b.wob[4]) * 0.065 - b.y) * k;
-      b.z += (b.hz + Math.cos(t * b.wob[2] + b.wob[5]) * 0.04 - b.z) * k;
-    }
-
     // no rotation — just a slight wiggle: a rock around upright plus the
     // usual breathing tilt
     b.roll = Math.sin(t * b.wob[2] * 1.2 + b.wob[5]) * 0.07;
@@ -1043,72 +1136,87 @@ function stepDiscs(dt, t, since) {
   }
 }
 
-/* every piece carries a push halo: overlapping pairs separate along their
-   line of centres — bodies for what you see, homes so the arrangement
-   stays apart after the settle. A piece held by the finger is immovable
-   and shoves the other one the full distance. */
-function pushApart(dt) {
-  // the halo reaches well past touching distance, and the shove is stronger
-  // up close — pieces start giving way before they ever meet
-  const minD = BALL_R * 2.9;
-  for (let i = 0; i < discs.length; i++) {
-    const a = discs[i];
-    if (!a.live) continue;
-    for (let j = i + 1; j < discs.length; j++) {
-      const c = discs[j];
-      if (!c.live) continue;
-      for (const [X, Y, Z] of [['x', 'y', 'z'], ['hx', 'hy', 'hz']]) {
-        let dx = c[X] - a[X], dy = c[Y] - a[Y], dz = c[Z] - a[Z];
-        let dist = Math.hypot(dx, dy, dz);
-        if (dist >= minD) continue;
-        if (dist < 1e-4) { dx = RIGHT.x; dy = RIGHT.y; dz = RIGHT.z; dist = 1e-4; }
-        const near = (minD - dist) / minD; // 0 at the halo's edge, 1 at contact
-        const push = (minD - dist) * near * Math.min(1, dt * 14);
-        const aShare = a === dragDisc ? 0 : c === dragDisc ? 1 : 0.5;
-        const nx = dx / dist, ny = dy / dist, nz = dz / dist;
-        a[X] -= nx * push * aShare; a[Y] -= ny * push * aShare; a[Z] -= nz * push * aShare;
-        c[X] += nx * push * (1 - aShare); c[Y] += ny * push * (1 - aShare); c[Z] += nz * push * (1 - aShare);
+/* every live piece springs toward its spot, breathing around it; a dragged
+   one follows the finger instead. What is on the move pushes what it meets
+   aside: the finger's piece firmly, an opened one rising past gently and
+   mostly sideways, so the pile edges out of its way and settles back. A
+   rising piece trails a little light in its rarity's colour. */
+function floatDiscs(dt, t) {
+  const k = FLOAT_EASE * FLOAT_EASE, c = 2 * FLOAT_EASE;
+  const held = dragging && dragDisc && dragDisc.live ? dragDisc : null;
+  for (const b of discs) {
+    if (!b.live) continue;
+    if (b === held) {
+      const f = Math.min(1, dt * DRAG_FOLLOW);
+      b.u += (b.fu - b.u) * f;
+      b.v += (b.fv - b.v) * f;
+      b.vu = 0; b.vv = 0;
+      continue;
+    }
+    const su = b.tu + Math.sin(t * b.wob[0] + b.wob[3]) * BREATH_U;
+    const sv = b.tv + Math.sin(t * b.wob[1] + b.wob[4]) * BREATH_V;
+    b.vu += ((su - b.u) * k - b.vu * c) * dt;
+    b.vv += ((sv - b.v) * k - b.vv * c) * dt;
+    b.u += b.vu * dt;
+    b.v += b.vv * dt;
+  }
+  const reach = BALL_R * 2 * DRAG_HALO;
+  for (const m of discs) {
+    if (!m.live) continue;
+    const firm = m === held;
+    if (!firm && !(m.opened && Math.hypot(m.tu - m.u, m.tv - m.v) > RISING)) continue;
+    for (const b of discs) {
+      if (b === m || b === held || !b.live) continue;
+      const du = b.u - m.u, dv = b.v - m.v;
+      const d = Math.hypot(du, dv);
+      if (d >= reach) continue;
+      if (firm) {
+        const nu = d < 1e-6 ? 1 : du / d, nv = d < 1e-6 ? 0 : dv / d;
+        b.u = m.u + nu * reach;
+        b.v = m.v + nv * reach;
+      } else {
+        // aside, not ahead: mostly sideways, so it is not carried up
+        const side = du >= 0 ? 1 : -1;
+        const len = Math.hypot(1, dv * 0.3) || 1;
+        const give = (reach - d) * MAKE_WAY;
+        b.u += (side / len) * give;
+        b.v += ((dv * 0.3) / len) * give;
       }
     }
   }
-}
-
-/* the screen edges push back too: a piece nearing the frame is eased inward
-   with the same soft falloff as the piece-to-piece halo, so nothing can be
-   parked (or shoved) out of view. Skipped while zoomed — a focused piece
-   deliberately fills the frame. */
-function edgeForce(dt) {
-  if (focusK > 0.05) return;
-  const r = BALL_R * SCALE;
-  // one radius of clearance, not two: with the frame now sized to the ring
-  // (GRID_PAD) a resting piece sits outside this, or the walls would deform
-  // the arrangement they are meant to protect
-  const reach = r * EDGE_REACH_R;
-  const k = Math.min(1, dt * 14);
   for (const b of discs) {
     if (!b.live) continue;
+    keepOnScreen(b);
+    b.x = RIGHT.x * b.u + UP.x * b.v + EYE.x * b.dep;
+    b.y = FLOAT_Y + RIGHT.y * b.u + UP.y * b.v + EYE.y * b.dep;
+    b.z = RIGHT.z * b.u + UP.z * b.v + EYE.z * b.dep;
+    if (b.opened && b !== held && Math.hypot(b.vu, b.vv) > 0.5) b.trail.push({ x: b.x, y: b.y, z: b.z, t });
+    while (b.trail.length && t - b.trail[0].t > TRAIL_TIME) b.trail.shift();
+  }
+}
+
+const trailing = () => discs.some((b) => b.live && b.trail.length > 0);
+
+/* a rising piece's light: a soft stroke from where it is back along its path,
+   in its rarity's colour, gone at the far end. Under the piece's own image. */
+function drawTrails() {
+  for (const b of discs) {
+    if (!b.live || b.trail.length < 2) continue;
+    project(b.trail[0].x, b.trail[0].y, b.trail[0].z, tmp);
+    const x0 = tmp.x, y0 = tmp.y;
     project(b.x, b.y, b.z, tmp);
-    let fx = 0, fy = 0; // screen-space, in px
-    const gaps = [
-      [tmp.x - r, 1, 0],            // left wall pushes right
-      [VW - (tmp.x + r), -1, 0],    // right wall pushes left
-      [tmp.y - r, 0, 1],            // top wall pushes down
-      [VH - (tmp.y + r), 0, -1],    // bottom wall pushes up
-    ];
-    for (const [gap, sx, sy] of gaps) {
-      if (gap >= reach) continue;
-      const over = reach - Math.max(gap, 0);
-      const push = over * (over / reach) * k;
-      fx += sx * push;
-      fy += sy * push;
-    }
-    if (!fx && !fy) continue;
-    // screen push → world push, same mapping as the drag
-    const wx = (RIGHT.x * fx - UP.x * fy) / SCALE;
-    const wy = (RIGHT.y * fx - UP.y * fy) / SCALE;
-    const wz = (RIGHT.z * fx - UP.z * fy) / SCALE;
-    b.x += wx; b.y += wy; b.z += wz;
-    b.hx += wx; b.hy += wy; b.hz += wz;
+    if (Math.hypot(tmp.x - x0, tmp.y - y0) < 2) continue;
+    const [r, g, bl] = rgb(b.tint);
+    const grad = ctx.createLinearGradient(tmp.x, tmp.y, x0, y0);
+    grad.addColorStop(0, `rgba(${r},${g},${bl},0.42)`);
+    grad.addColorStop(1, `rgba(${r},${g},${bl},0)`);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = BALL_R * SCALE * 0.9;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(tmp.x, tmp.y);
+    ctx.lineTo(x0, y0);
+    ctx.stroke();
   }
 }
 
@@ -1153,6 +1261,323 @@ function drawDisc(it) {
 }
 
 
+/* ── THE CARRIED BUBBLE: the draw's hold ─────────────────────────────────
+   Holding on the draw's ending (lib/draw/hold/scene) gathers the draw's own
+   pieces into a bubble and floats it up to where this one blows up, and hands
+   it over (lib/chest-scene/carry → opts.carried). Then the bubble does not
+   blow up from nothing: it is already blown, where it was, and glides the
+   last of the way to its spot, the draw's pieces swirling in it as little
+   dots in their own colours. And a claim that comes in does not fly in from
+   off screen: it is FOUND from those pieces. It takes a share of the pieces still free; they take its
+   colour and come straight to the middle, each reaching for the drop there
+   with a neck over its last stretch, and merge into it like drops of water.
+   The drop swells as they join and wobbles, flashes white, and sets into the
+   claim's mote, which grows there and then goes out to its own place in the
+   swirl while a gleam of its colour runs along the rim on that side. As it
+   goes out the claim counts: the bubble takes the kick and grows. The room
+   stays the dark of the draw's hold, its stars behind (components/chest/starfield).
+   Claims start FIND_GAP apart, so one is still setting as the next gathers.
+   A win's prize went in as a glint: it joins the drop of the first claim
+   that is not common. As the bubble swells to pop, whatever is left melts
+   into the film. How many claims there will be is never needed: each takes
+   a share of what is left. */
+const FIND_TIME = 1.4;      // s from a claim taking its pieces to its mote settled in its place
+const FIND_GAP = 0.6;       // s from one claim's start to the next one's, so they overlap
+const FIND_SHARE = 0.25;    // of the pieces still free, the share a claim takes
+/* a find's steps, as shares of FIND_TIME */
+const PIECE_STAGGER = 0.14; // its pieces set off over this much, each at its own seed
+const PIECE_RUN = 0.42;     // one piece's way to the middle
+const TINT_RUN = 0.12;      // its pieces taking its colour, from the start
+const SET_FROM = 0.58;      // the drop setting into the mote, which grows at the middle...
+const SET_TO = 0.74;        // ...until it goes out to its place, and the claim counts
+const FLASH_FROM = 0.6, FLASH_TO = 0.72;   // the white flash as it sets
+const NECK = 22;            // px from the middle where a piece reaches for the drop
+const DOT_R = 3;            // px, a piece swirling free
+const PIECE_END_R = 2.25;   // px, a piece as it joins the drop
+const GLEAM_SPAN = 1;       // radians of rim the gleam lights, round the find's place
+const COMMON = '#e3ecff';   // the common tier's colour (components/chest/chest-scene TIER_TINT)
+const GLINT = [242, 242, 242];
+const dust = [];           // the draw's pieces: { ang, w, rr, col, ink, seed, k, find, u0, v0, spent }
+const clusters = [];       // claims being found: { index, tint, col, ink, glow, m (its mote), t0, n, joined, shown, lit }
+const clusterQueue = [];   // claims waiting their turn: { index, tint }
+const carry = { on: false, placed: false, told: false, from: null, base: 0, dx: 0, dy: 0, vx: 0, vy: 0, glint: null, since: 0 };
+let lastCluster = -Infinity;
+const carrySmooth = (x) => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
+/** how far x is from a to b, 0–1 */
+const between = (x, a, b) => Math.max(0, Math.min(1, (x - a) / (b - a)));
+/** where a piece is round the middle: the draw page's swirl, carried on, on the same clock */
+const dustAngle = (d) => d.ang + d.w * (performance.now() / 1000 - carry.base);
+
+function startCarried(c) {
+  // the bubble's clock is the one it was carried on (performance.now()), so its
+  // film and its swirl carry on from the draw without a jump
+  clock = performance.now() / 1000;
+  seq.clock = clock;
+  last = performance.now();
+  carry.on = true; carry.placed = false; carry.told = false; carry.from = c; carry.base = c.at / 1000;
+  carry.dx = carry.dy = carry.vx = carry.vy = 0;
+  carry.glint = c.glint ? { find: null, spent: false } : null;
+  carry.since = clock;
+  dust.length = 0;
+  c.pieces.forEach((p, k) => dust.push({
+    ang: p.angle, w: p.speed, rr: p.radius, col: p.color, ink: `rgb(${p.color[0]},${p.color[1]},${p.color[2]})`,
+    seed: p.seed, k, find: null, u0: 0, v0: 0, spent: false,
+  }));
+  // already blown: it counts as landed on its first step
+  bub.born = -BLOW_TIME - 0.01;
+  lastCluster = clock;
+}
+function dropCarried() {
+  carry.on = false; carry.placed = false; carry.from = null; carry.glint = null;
+  dust.length = 0; clusters.length = 0; clusterQueue.length = 0;
+}
+/* the first frame with a camera: the bubble where the draw left it; then the glide to its spot */
+function placeCarried(dt) {
+  if (!carry.on) return;
+  if (!carry.placed) {
+    carry.placed = true;
+    const rect = canvasEl.getBoundingClientRect();
+    project(0, BUBBLE_Y + seq.bob, 0, tmp);
+    carry.dx = carry.from.x - rect.left - tmp.x;
+    carry.dy = carry.from.y - rect.top - tmp.y;
+    bub.r = carry.from.r / SCALE;
+    bub.vel = 0;
+    return;
+  }
+  const k = 40, damp = 2 * Math.sqrt(k);
+  carry.vx += (-carry.dx * k - carry.vx * damp) * dt; carry.dx += carry.vx * dt;
+  carry.vy += (-carry.dy * k - carry.vy * damp) * dt; carry.dy += carry.vy * dt;
+}
+/* a claim's mote, as catchMote would have it, before it is found: drawn
+   only once it sets (grow), at the middle until it goes out (out) */
+function pendingMote(index, tint, now) {
+  const rnd = mulberry32(hashSeed(SEED + ':mote' + index));
+  const right = index % 2 === 0;
+  const jitter = rnd() * 0.3;
+  return {
+    index, tint, t0: now,
+    a: (right ? jitter : Math.PI - jitter) + index * 1.3,
+    rad: range(rnd, 0.2, 0.55),
+    tilt: (rnd() < 0.5 ? -1 : 1) * range(rnd, 0.25, 0.5),
+    yo: range(rnd, -0.2, 0.2),
+    w: (right ? 1 : -1) * range(rnd, 0.45, 0.9),
+    ph: rnd() * 6.28,
+    ou: 0, ov: 0, vu: 0, vv: 0, trail: null,
+    grow: 0, out: 0,
+  };
+}
+/* a soft glow in a find's colour, its colour at the middle and gone at the
+   edge: drawn once a colour, so a piece's glow each frame is one drawImage */
+const glows = new Map();
+function glowSprite(ink, clear) {
+  let s = glows.get(ink);
+  if (s) return s;
+  s = document.createElement('canvas');
+  s.width = s.height = 64;
+  const x = s.getContext('2d');
+  if (x) {
+    const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, ink); g.addColorStop(1, clear);
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  }
+  glows.set(ink, s);
+  return s;
+}
+/* a claim is found: it takes its share of the pieces still free, every so
+   many of them, so they come to the middle from all round the bubble */
+function startFind(index, tint, now) {
+  const [r, g, b] = rgb(tint);
+  const ink = `rgb(${r},${g},${b})`, clear = `rgba(${r},${g},${b},0)`;
+  const f = {
+    index, tint, col: [r, g, b], ink, glow: glowSprite(ink, clear),
+    m: pendingMote(index, tint, now), t0: now, n: 0, joined: 0, shown: false, lit: false,
+  };
+  let free = 0;
+  for (const d of dust) if (!d.find) free++;
+  const take = Math.ceil(free * FIND_SHARE);
+  let k = 0;
+  for (const d of dust) {
+    if (d.find) continue;
+    if (f.n < take && k === Math.floor((f.n * free) / take)) {
+      d.find = f;
+      // where it sets off from, round the middle in radii, until it does
+      const a = dustAngle(d);
+      d.u0 = Math.cos(a) * d.rr; d.v0 = Math.sin(a) * d.rr * 0.85;
+      f.n++;
+    }
+    k++;
+  }
+  if (carry.glint && !carry.glint.find && String(tint).toLowerCase() !== COMMON) carry.glint.find = f;
+  clusters.push(f);
+}
+function stepClusters(dt, now) {
+  if (!carry.on) return;
+  // its place keeps turning until its mote is in the bubble, which turns it from then
+  for (const f of clusters) if (!f.shown) f.m.a += f.m.w * dt;
+  // popped before they counted: the rest fly to their places as orbs
+  if (seq.burstAt >= 0) {
+    for (const f of clusters) {
+      if (f.lit) { f.m.grow = f.m.out = 1; continue; }
+      if (f.shown) bub.motes.splice(bub.motes.indexOf(f.m), 1);
+      orbQueue.push({ index: f.index, tint: f.tint });
+    }
+    while (clusterQueue.length) orbQueue.push(clusterQueue.shift());
+    clusters.length = 0;
+    return;
+  }
+  if (seq.grounded >= 0 && !seq.opening) {
+    while (clusterQueue.length && now - lastCluster >= FIND_GAP) {
+      const { index, tint } = clusterQueue.shift();
+      startFind(index, tint, now);
+      lastCluster = now;
+    }
+  }
+  for (let i = clusters.length - 1; i >= 0; i--) {
+    const f = clusters[i], q = (now - f.t0) / FIND_TIME;
+    f.m.grow = carrySmooth((q - SET_FROM) / (SET_TO - SET_FROM));
+    f.m.out = carrySmooth((q - SET_TO) / (1 - SET_TO));
+    if (!f.shown && q >= SET_FROM) {
+      // the drop sets: its mote is in the bubble, already a mote (no orb to settle from)
+      f.shown = true;
+      f.m.t0 = now - MOTE_IN;
+      bub.motes.push(f.m);
+    }
+    if (!f.lit && q >= SET_TO) lightCluster(f, now);
+    if (q < 1) continue;
+    clusters.splice(i, 1);
+    for (const d of dust) if (d.find === f) d.spent = true;
+    if (carry.glint && carry.glint.find === f) carry.glint.spent = true;
+  }
+}
+/* the find goes out to its place and the claim counts: the bubble takes the
+   kick, stretched toward where it goes, and grows */
+function lightCluster(f, now) {
+  f.lit = true;
+  bub.caught += 1;
+  bub.vel += 0.7;
+  moteAt(f.m, now, mAt);
+  bub.dir = Math.atan2(-mAt.v, mAt.u);
+  bub.sqVel += 0.3;
+  bub.triVel += 0.15;
+  const tier = String(f.tint).toLowerCase();
+  const b = discs[f.index];
+  if (b) b.inBubble = true;
+  emit('absorb', { index: f.index });
+}
+function glowDot(x, y, r, col, a) {
+  if (a <= 0.005) return;
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r * 3.2);
+  g.addColorStop(0, `rgba(255,255,255,${a.toFixed(3)})`);
+  g.addColorStop(0.22, `rgba(${col[0]},${col[1]},${col[2]},${a.toFixed(3)})`);
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 3.2, 0, Math.PI * 2); ctx.fill();
+}
+/** a piece's colour on its way to its claim's, `k` of the way */
+const towards = (a, b, k) =>
+  `rgb(${Math.round(a[0] + (b[0] - a[0]) * k)},${Math.round(a[1] + (b[1] - a[1]) * k)},${Math.round(a[2] + (b[2] - a[2]) * k)})`;
+/* inside the film: the draw's pieces swirling; a claim's coming to the
+   middle and merging there into its drop; a win's glint */
+function drawCarriedInside(c, R, t) {
+  if (!carry.on) return;
+  const tp = performance.now() / 1000, TAU = Math.PI * 2;
+  const melt = bub.swellAt >= 0 ? carrySmooth((t - bub.swellAt) / 0.35) : 0;
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  bubblePath(ctx, c.x, c.y, Math.max(1, R - 1), t);
+  ctx.clip();
+  // the free ones: dots in their own colours, all alike, swirling on as they did on the draw
+  if (melt < 1) {
+    ctx.globalAlpha = 0.9 * (1 - melt);
+    for (const d of dust) {
+      if (d.find) continue;
+      const a = dustAngle(d), rr = R * (d.rr + (0.94 - d.rr) * melt);
+      ctx.fillStyle = d.ink;
+      ctx.beginPath(); ctx.arc(c.x + Math.cos(a) * rr, c.y + Math.sin(a) * rr * 0.85, DOT_R, 0, TAU); ctx.fill();
+    }
+  }
+  // a claim's: its colour, then straight to the middle, the last of the way
+  // reaching for the drop with a neck as wide as itself
+  for (const f of clusters) f.joined = 0;
+  ctx.lineCap = 'round';
+  for (const d of dust) {
+    const f = d.find;
+    if (!f || d.spent) continue;
+    const q = (t - f.t0) / FIND_TIME, dl = PIECE_STAGGER * d.seed, e = between(q, dl, dl + PIECE_RUN);
+    if (e >= 1) { f.joined++; continue; }
+    if (e <= 0) { const a = dustAngle(d); d.u0 = Math.cos(a) * d.rr; d.v0 = Math.sin(a) * d.rr * 0.85; }
+    const m = e * e * (3 - 2 * e), tint = carrySmooth(q / TINT_RUN);
+    const px = c.x + d.u0 * R * (1 - m), py = c.y + d.v0 * R * (1 - m);
+    const pr = (DOT_R + (PIECE_END_R - DOT_R) * m) * (1 + 0.15 * Math.sin(Math.PI * m));
+    const near = 1 - Math.min(1, Math.hypot(px - c.x, py - c.y) / NECK);
+    if (near > 0) {
+      ctx.globalAlpha = 0.55 * near; ctx.strokeStyle = f.ink; ctx.lineWidth = pr * 2;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(c.x, c.y); ctx.stroke();
+    }
+    if (tint > 0) {
+      ctx.globalAlpha = 0.5 * tint;
+      ctx.drawImage(f.glow, px - pr * 2.6, py - pr * 2.6, pr * 5.2, pr * 5.2);
+    }
+    ctx.globalAlpha = 0.9 + 0.1 * tint;
+    ctx.fillStyle = tint >= 1 ? f.ink : towards(d.col, f.col, tint);
+    ctx.beginPath(); ctx.arc(px, py, pr, 0, TAU); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // a win's glint, at the middle; with its claim's pieces, into its drop
+  const gl = carry.glint;
+  if (gl && !gl.spent) {
+    let x = c.x + Math.cos(tp * 0.7) * R * 0.12, y = c.y + Math.sin(tp * 0.7) * R * 0.1, col = GLINT, e = 0;
+    const f = gl.find;
+    if (f) {
+      const q = (t - f.t0) / FIND_TIME;
+      e = between(q, 0, PIECE_RUN);
+      const m = e * e * (3 - 2 * e);
+      x += (c.x - x) * m; y += (c.y - y) * m;
+      if (q > TINT_RUN * 0.5) col = f.col;
+    }
+    if (e < 1) glowDot(x, y, 3.4, col, 1 - melt);
+  }
+  // the drop at the middle: it swells as each piece joins it and wobbles,
+  // flashes, and sets into the claim's mote (drawMotes grows that over it)
+  for (const f of clusters) {
+    const q = (t - f.t0) / FIND_TIME;
+    const set = carrySmooth((q - SET_FROM) / (SET_TO - SET_FROM));
+    const joined = f.n ? f.joined / f.n : between(q, 0, PIECE_STAGGER + PIECE_RUN);
+    const dropR = (3 + 8 * Math.sqrt(joined)) * (1 + 0.08 * Math.sin(t * 14) * (1 - set)) * (1 - set);
+    if (dropR > 0.3) {
+      ctx.globalAlpha = 0.35;
+      ctx.drawImage(f.glow, c.x - dropR * 2.6, c.y - dropR * 2.6, dropR * 5.2, dropR * 5.2);
+      const wob = 0.06 * Math.sin(t * 11);
+      ctx.globalAlpha = 1; ctx.fillStyle = f.ink; ctx.shadowColor = f.ink; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.ellipse(c.x, c.y, dropR * (1 + wob), dropR * (1 - wob), 0, 0, TAU); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 0.7; ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(c.x - dropR * 0.3, c.y - dropR * 0.35, dropR * 0.28, 0, TAU); ctx.fill();
+    }
+    const flash = Math.sin(Math.PI * between(q, FLASH_FROM, FLASH_TO));
+    if (flash > 0.01) {
+      ctx.globalAlpha = 0.6 * flash; ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(c.x, c.y, 6 + 8 * flash, 0, TAU); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+/* over the film: a find going out to its place lights the rim on that side */
+function drawCarriedFront(c, R, t) {
+  if (!carry.on || !clusters.length) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+  for (const f of clusters) {
+    const a = 0.5 * Math.sin(Math.PI * between((t - f.t0) / FIND_TIME, SET_TO, 1));
+    if (a <= 0.01) continue;
+    moteAt(f.m, t, mAt);
+    const dir = Math.atan2(-mAt.v, mAt.u);
+    rimArc(ctx, c.x, c.y, R, t, dir - GLEAM_SPAN / 2, dir + GLEAM_SPAN / 2, 1);
+    ctx.globalAlpha = a; ctx.strokeStyle = f.ink; ctx.lineWidth = 2.5;
+    ctx.shadowColor = f.ink; ctx.shadowBlur = 10;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 /* ================= the sequence ================= */
 
 const seq = {
@@ -1161,6 +1586,7 @@ const seq = {
 };
 
 function replay() {
+  dropCarried();
   hideDiscs();
   for (const b of discs) b.inBubble = true;
   orbs.length = 0;
@@ -1204,9 +1630,11 @@ function discAt(px, py) {
 
 /* ── dragging: pieces can be pushed around the frame ──────────────────────
    A press on a piece arms a drag; real movement starts it (a clean
-   press-release stays a tap). The pointer moves the piece's HOME in the
-   camera plane, and the settle ease follows it — so the piece trails the
-   finger elastically instead of teleporting. */
+   press-release stays a tap). The pointer moves the point the float holds
+   the piece to, in the camera plane, and the piece follows it closely, so it
+   trails the finger instead of teleporting and shoves the others aside. Let
+   go, and it keeps the speed it had: a flick throws it, and the float brings
+   it back to its own kind. */
 const DRAG_THRESHOLD = 6; // css px of travel before a press becomes a drag
 let dragDisc = null;
 let dragging = false;
@@ -1229,16 +1657,14 @@ function move(px, py) {
   if (!dragging) {
     if (Math.hypot(px - pressX, py - pressY) < DRAG_THRESHOLD) return;
     dragging = true;
+    dragDisc.fu = dragDisc.u;
+    dragDisc.fv = dragDisc.v;
   }
   const dx = px - pressX, dy = py - pressY;
   pressX = px; pressY = py;
-  // screen delta → world delta in the camera plane (screen y runs down)
-  const wx = (RIGHT.x * dx - UP.x * dy) / SCALE;
-  const wy = (RIGHT.y * dx - UP.y * dy) / SCALE;
-  const wz = (RIGHT.z * dx - UP.z * dy) / SCALE;
-  dragDisc.hx += wx; dragDisc.hy += wy; dragDisc.hz += wz;
-  // a nudge on the body too, so the piece feels held rather than towed
-  dragDisc.x += wx * 0.6; dragDisc.y += wy * 0.6; dragDisc.z += wz * 0.6;
+  // screen delta → plane delta (screen y runs down)
+  dragDisc.fu += dx / SCALE;
+  dragDisc.fv -= dy / SCALE;
 }
 
 function release() {
@@ -1247,10 +1673,14 @@ function release() {
   const wasDrag = dragging;
   dragging = false;
   dragDisc = null;
-  if (!wasDrag) tap(pressX, pressY);
+  // let go, the layout runs again from where things are: the dropped piece
+  // floats back to its own kind, and the pile makes room for it
+  if (wasDrag) relayout();
+  else tap(pressX, pressY);
 }
 
-/* a tap: on a collectable → zoom into it; anywhere while zoomed → back out.
+/* a tap: on an opened piece → the host's picker over it; on another
+   collectable → zoom into it; anywhere while zoomed → back out.
    Before the bubble has popped there is nothing to focus: once it is blown,
    and something is in it, a tap is what pops it. */
 function tap(px, py) {
@@ -1262,6 +1692,16 @@ function tap(px, py) {
     return;
   }
   const hit = px !== undefined ? discAt(px, py) : null;
+  if (hit && hit.opened) {
+    // the box its art is drawn in (drawDisc's fit), canvas-local px: the
+    // picker opens out of it and flies back into it
+    project(hit.x, hit.y, hit.z, tmp);
+    const entry = sprites[discs.indexOf(hit)];
+    const fit = entry && entry.scale ? entry.scale : 1;
+    setFocus(false);
+    emit('inspect', { index: discs.indexOf(hit), x: tmp.x, y: tmp.y, side: BALL_R * SCALE * 2 * hit.grow * fit });
+    return;
+  }
   if (hit) {
     // the tap that pulls a piece into focus only zooms — it never pops.
     // Once focused, ONE tap bursts the wrapping (the layer above runs the
@@ -1276,8 +1716,6 @@ function tap(px, py) {
       hit.crackClock = seq.clock;
       hit.hitX = px;
       hit.hitY = py;
-      // the piece takes the hit: a small upward jolt the settle pulls back
-      hit.up += 0.45;
       emit('pop', { index: discs.indexOf(hit) });
       // TODO(haptics): fire a heavy hit haptic here. Android WebView has
       // navigator.vibrate; iOS needs a host bridge — none in TrUAPI today.
@@ -1295,6 +1733,8 @@ function resize(w, h) {
   VH = h;
   canvasEl.width = Math.round(VW * DPR);
   canvasEl.height = Math.round(VH * DPR);
+  // a new frame: new spots in it
+  if (seq.burstAt >= 0) relayout();
 }
 resize(canvasEl.clientWidth || 300, canvasEl.clientHeight || 300);
 
@@ -1308,15 +1748,30 @@ function calm() {
   if (seq.visible || seq.burstAt < 0 || clock - seq.burstAt < 2.5) return false;
   if (pressed || focusOn || focusK > 0 || clock - inputAt < 0.6) return false;
   if (orbs.length || orbQueue.length || flashes.length || popShowing()) return false;
-  for (const b of discs) if (b.live && b.crackClock >= 0 && clock - b.crackClock < 0.8) return false;
+  if (clusters.length || clusterQueue.length) return false;
+  // a piece on its way to a new spot runs at the full rate; only the breathing is calm
+  if (trailing()) return false;
+  for (const b of discs) if (b.live && (Math.hypot(b.vu, b.vv) > 0.15 || (b.crackClock >= 0 && clock - b.crackClock < 0.8))) return false;
   return true;
 }
 let dead = false;
+/** the host has put something over the scene for good (the inventory): no frames until it lets go */
+let held = false;
+function hold(on) {
+  if (held === on || dead) return;
+  held = on;
+  if (on) {
+    cancelAnimationFrame(raf);
+  } else {
+    last = performance.now();
+    raf = requestAnimationFrame(frame);
+  }
+}
 /** the last frame left something on the canvas (see the paint below) */
 let painted = true;
 
 function frame(now) {
-  if (dead) return;
+  if (dead || held) return;
   raf = requestAnimationFrame(frame);
   // at rest (settled, untouched, nothing breaking) only the breath moves: half rate
   if (calm() && (skip = !skip)) return;
@@ -1326,6 +1781,7 @@ function frame(now) {
   for (let i = 1; i <= steps; i++) stepBubble(dt / steps, clock + (dt * i) / steps);
   clock += dt;
   stepOrbs(clock);
+  stepClusters(dt, clock);
   // the camera is locked; it only tightens from framing the bubble to framing
   // what came out of it — unless a collectable holds the focus, in which
   // case it dives in (and tracks the piece, which keeps breathing).
@@ -1343,6 +1799,8 @@ function frame(now) {
     VW / (HOLD_W - seq.blend * (HOLD_W - fitW)),
     VH / (HOLD_H - seq.blend * (HOLD_H - fitH)),
   );
+  viewScale = baseScale;
+  viewCy = baseCy;
   const wantK = focusOn && focusDisc ? 1 : 0;
   focusK += (wantK - focusK) * Math.min(1, dt * 6);
   if (!focusOn && focusK < 0.002) { focusK = 0; focusDisc = null; }
@@ -1358,8 +1816,9 @@ function frame(now) {
     cam.cz = 0;
     SCALE = baseScale;
   }
-  stepDiscs(dt, clock, seq.burstAt >= 0 ? clock - seq.burstAt : -1);
-  if (seq.burstAt >= 0) { pushApart(dt); edgeForce(dt); }
+  placeCarried(dt);
+  stepDiscs(dt, clock);
+  if (seq.burstAt >= 0) floatDiscs(dt, clock);
 
   collectDiscs();
 
@@ -1368,17 +1827,23 @@ function frame(now) {
   // still a new frame to present, and a 2D canvas presenting every frame
   // keeps a full-size backing per frame in flight (~4 MB each at DPR 2).
   const list = pool.slice(0, poolUsed);
-  const flying = orbs.length > 0 || flashes.length > 0 || seq.visible || popShowing();
+  const flying = orbs.length > 0 || flashes.length > 0 || seq.visible || popShowing() || trailing();
   if (list.length || painted || flying) {
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.clearRect(0, 0, VW, VH);
     drawBubble(clock);
     list.sort((a, b) => a.d - b.d);
+    drawTrails();
     for (const it of list) drawDisc(it);
     drawPop(clock);
     if (flying) drawOrbs(clock);
   }
   painted = list.length > 0 || flying;
+  // a carried bubble, drawn here for the first time: whoever held it between the screens can let go
+  if (carry.on && carry.placed && !carry.told) {
+    carry.told = true;
+    try { opts.onCarriedShown?.(); } catch { /* the listener's problem */ }
+  }
 
   // hand the piece placements to whoever draws on top (the wrapping layer):
   // canvas-local CSS px, the piece's box side, its wiggle as a rotation
@@ -1398,6 +1863,9 @@ function frame(now) {
         crackAge: b.crackClock < 0 ? Infinity : Math.max(0, seq.clock - b.crackClock),
         hitX: b.hitX,
         hitY: b.hitY,
+        // the breathing tilt, as drawDisc squashes the circle by it
+        sx: Math.cos(b.tiltY || 0),
+        sy: Math.cos(b.tiltX || 0),
       });
     }
     opts.onDiscs(placements, seq.blend);
@@ -1409,6 +1877,8 @@ raf = requestAnimationFrame(frame);
 /* ================= start ================= */
 
 replay();
+// the draw's hold brought the bubble here (THE CARRIED BUBBLE)
+if (opts.carried) startCarried(opts.carried);
 
 return {
   /** start over: the bubble blows up again, empty */
@@ -1428,17 +1898,13 @@ return {
   addPiece,
   /** pop the bubble: now if it is blown, else the moment it is */
   open: openBubble,
-  /** the piece left the scene (it landed on the shelf): stop simulating it
-   *  and let the camera ease back out if it was the focus */
-  removePiece(index) {
-    const b = discs[index];
-    if (!b || !b.live) return;
-    b.live = false;
-    b.gone = true;
-    if (focusDisc === b) setFocus(false);
-    // the survivors close ranks — their homes move, the spring carries them
-    layoutHomes();
-  },
+  /** the piece's shell has broken: it stays as its plain art and floats up
+   *  to the opened ones (see openPiece) */
+  openPiece,
+  /** stop (true) or restart (false) the frames while something covers the scene */
+  hold,
+  /** the pieces float above this, px from the canvas's top (the Pocket's book); null: the canvas's foot */
+  setFloor,
   /** the wrapping layer draws this piece now — stop painting its flat art */
   setSpriteHidden(index, hidden) {
     if (hidden) spriteHidden.add(index);

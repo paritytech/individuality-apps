@@ -156,7 +156,7 @@ exports[`the chest screen, captured > a collection picked in the hologram is sav
     "  1500 — 3 pieces have flown in",
     "  1500 vessel opens",
     "  1500 dom: vessel pieces=3 open · buttons [Continue]",
-    "  5000 — the first pin tapped",
+    "  5000 — the first opened piece tapped",
     "  5000 dom: vessel pieces=3 open inspected=0 · picker "American Football" choices=3 · buttons [Continue]",
     "  6000 — another collection picked",
     "  6000 saveChestPick 0x00000000 28",
