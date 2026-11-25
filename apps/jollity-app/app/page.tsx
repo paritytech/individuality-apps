@@ -38,7 +38,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { CopyAddress } from "@/components/ui/copy-address"
 import { formatAmount, shortfall } from "@individuality/sign-up"
-import { registerButton } from "@/lib/registration/register-button"
+import { REGISTER_LABEL, registerButton, seatOpenLine } from "@/lib/registration/register-button"
 import { MessageScreen } from "@/components/ui/screen"
 import { WaitingRoom } from "@/components/waiting-room/waiting-room"
 import { CameraRestartBanner, CameraTapBanner } from "@/components/camera-needed"
@@ -242,11 +242,11 @@ export default function Home() {
   }, [status, now, router, camera.kind, inWaiting, waitingCheckDone, waitingCheckResult, arrival, arrivalNext, joined, build])
 
   const register = async () => {
-    // the source files the sign-up and sees it through; a tap while one is
-    // under way does nothing there, and the button is disabled by its phase
     if (!source?.register) return
     if (chainCard.lost) return
     try {
+      // the source files the sign-up and sees it through, and the phase it sets
+      // hides the button in the render this tap causes
       await source.register() // registered flips via watchPlayer
     } catch (error) {
       // the refusal is not shown here: the doorway records it in the debug
@@ -303,10 +303,9 @@ export default function Home() {
       screen.kind === "register"
         ? { at: screen.closesAt, label: "left to join" }
         : { at: screen.gameAt, label: "until the game starts" }
-    // the source's sign-up phase decides the button: the first tap counts,
-    // and the source waits out the seat and retries from there
     const button =
       screen.kind === "register" ? registerButton(screen.signup, formatGameAt(screen.closesAt, now)) : undefined
+    const buttonDrawn = Boolean(button?.shown && source?.register)
     return (
       <div {...hooks} className="flex min-h-dvh flex-1 flex-col pt-6">
         <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
@@ -323,7 +322,7 @@ export default function Home() {
               ? "Your seat is saved. We will bring you in just before it starts."
               : unfunded
                 ? `Add ${formatAmount(missing, unfunded.decimals, unfunded.symbol)} to your game account to register. It comes back when you leave.`
-                : "Your seat is open. Register to take it."}
+                : seatOpenLine(buttonDrawn)}
           </p>
           {unfunded && source?.player ? (
             <div className="mt-2 flex w-full max-w-sm flex-col items-center gap-2 rounded-xl bg-card px-6 py-5">
@@ -357,15 +356,11 @@ export default function Home() {
                     {button.notice}
                   </span>
                 ) : null}
-                <Button
-                  size="lg"
-                  className="w-full max-w-sm"
-                  onClick={register}
-                  data-testid="home-register"
-                  disabled={button.disabled}
-                >
-                  {button.label}
-                </Button>
+                {buttonDrawn ? (
+                  <Button size="lg" className="w-full max-w-sm" onClick={register} data-testid="home-register">
+                    {REGISTER_LABEL}
+                  </Button>
+                ) : null}
               </>
             ) : (
               <span className="text-xs font-medium text-muted-foreground/60">

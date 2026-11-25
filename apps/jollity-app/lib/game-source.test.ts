@@ -5051,7 +5051,7 @@ describe("journey.game-signup", () => {
 
   // The names on the prize-draw wheel (#456): the player's username is linked to
   // the account that holds their tickets in the background, and no sign-up
-  // goes without it ("Saving your seat…" until it links).
+  // goes without it.
   describe("the name link before a sign-up", () => {
     const landsAtOnce = (chain: ReturnType<typeof fakeEngine>) =>
       vi.mocked(chain.engine.register).mockImplementation(async (_capabilities, _id, options) => {
