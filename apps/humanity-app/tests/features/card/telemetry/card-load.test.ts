@@ -22,6 +22,7 @@ interface TransactionJson {
   type: "transaction";
   transaction: string;
   start_timestamp: number;
+  timestamp: number;
   contexts: { trace: { status?: string; data?: Record<string, unknown> } };
   spans?: SpanJson[];
 }
@@ -140,21 +141,23 @@ describe("pocket.open", () => {
   function hostPage(
     ago: number,
     navigation = "navigate",
-    source = "pocket_card",
+    source: string | null = "pocket_card",
     visibility = "visible",
     withOpenedAt = true,
   ) {
     vi.stubGlobal("__trinityHostTelemetry", {
       hostSessionId: ID,
       ...(withOpenedAt ? { openedAtEpochMs: Date.now() - ago } : {}),
-      openSource: source,
+      ...(source == null ? {} : { openSource: source }),
     });
     const listeners: Array<() => void> = [];
     const doc = {
       visibilityState: visibility,
       addEventListener: (_type: string, listener: () => void) => void listeners.push(listener),
-      removeEventListener: (_type: string, listener: () => void) =>
-        void listeners.splice(listeners.indexOf(listener), 1),
+      removeEventListener: (_type: string, listener: () => void) => {
+        const index = listeners.indexOf(listener);
+        if (index >= 0) listeners.splice(index, 1);
+      },
     };
     vi.stubGlobal("document", doc);
     vi.spyOn(performance, "getEntriesByType").mockImplementation(((type: string) =>
@@ -163,7 +166,7 @@ describe("pocket.open", () => {
       doc.visibilityState = state;
       for (const listener of [...listeners]) listener();
     };
-    return { hide: change("hidden"), show: change("visible") };
+    return { hide: change("hidden"), show: change("visible"), listeners };
   }
 
   const byName = (name: string) => transactions().find((tx) => tx.transaction === name);
@@ -219,6 +222,69 @@ describe("pocket.open", () => {
     const open = byName("pocket.open");
     expect(open?.contexts.trace.status).toBe("ok");
     expect(open?.contexts.trace.data).toMatchObject({ "flow.outcome": "member" });
+  });
+
+  it("waits for a page hidden until the card is drawn, and ends when the card is first seen", async () => {
+    const { show, listeners } = hostPage(300, "navigate", "pocket_card", "hidden");
+    cardLoad.begin();
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+    expect(transactions().map((tx) => tx.transaction)).toEqual(["card.load"]);
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const shownAt = Date.now() / 1000;
+    show();
+    await flush();
+    const open = byName("pocket.open");
+    expect(open?.contexts.trace.status).toBe("ok");
+    expect(open?.contexts.trace.data).toMatchObject({ "flow.outcome": "member" });
+    expect(open?.timestamp).toBeGreaterThanOrEqual(shownAt - 0.005);
+    expect((byName("card.load")?.timestamp ?? Infinity) < shownAt).toBe(true);
+    expect(listeners).toEqual([]);
+  });
+
+  it("sends nothing for a page never shown", async () => {
+    hostPage(300, "navigate", "pocket_card", "hidden");
+    cardLoad.begin();
+    cardLoad.fail(new TypeError("boom"));
+    await flush();
+    expect(transactions().map((tx) => tx.transaction)).toEqual(["card.load"]);
+  });
+
+  it("fails with card.load, with the error's kind", async () => {
+    hostPage(300);
+    cardLoad.begin();
+    cardLoad.fail(new TypeError("boom"));
+    await flush();
+
+    const open = byName("pocket.open");
+    expect(open?.contexts.trace.status).toBe("internal_error");
+    expect(open?.contexts.trace.data).toMatchObject({ "flow.outcome": "TypeError" });
+  });
+
+  it("stays ok when the page is hidden and shown after the card showed, and stops listening", async () => {
+    const { hide, show, listeners } = hostPage(300);
+    cardLoad.begin();
+    cardLoad.finish({ kind: "member", ok: true });
+    expect(listeners).toEqual([]);
+    hide();
+    show();
+    await flush();
+
+    const open = byName("pocket.open");
+    expect(open?.contexts.trace.status).toBe("ok");
+    expect(open?.contexts.trace.data).toMatchObject({ "flow.outcome": "member" });
+  });
+
+  it("is sent without open.source when the bootstrap names no source", async () => {
+    hostPage(300, "navigate", null);
+    cardLoad.begin();
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+
+    const open = byName("pocket.open");
+    expect(open?.contexts.trace.status).toBe("ok");
+    expect(open?.contexts.trace.data ?? {}).not.toHaveProperty("open.source");
   });
 
   it("is abandoned when a page that was shown goes hidden again", async () => {

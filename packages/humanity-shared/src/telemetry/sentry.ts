@@ -145,6 +145,7 @@ export function initTelemetry(surface: TelemetrySurface): void {
   });
   client.init();
   setDeviceContext();
+  // App only today: no host gives the worker a bootstrap, so this is a no-op there.
   setHostSession(scope);
   initialised = surface;
 }

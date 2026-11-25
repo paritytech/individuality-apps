@@ -32,7 +32,9 @@
  * shown; the host keeps the WebView alive, so `card.load` may
  * finish later and that time is not a wait), and a reload or back/forward
  * navigation tells no story: the host's bootstrap runs again with the first
- * open's time.
+ * open's time. A card drawn while the page has never been visible is not yet
+ * seen: `pocket.open` keeps its outcome and ends when the page is first
+ * shown, and a page never shown sends none.
  */
 import { readHostBootstrap } from "@humanity/shared/telemetry/host-session.ts";
 import {
@@ -46,11 +48,17 @@ const STAGES = ["boot", "identity", "game-account", "read", "render"] as const;
 export type CardLoadStage = (typeof STAGES)[number];
 
 let flow: OpenFlow | null = null;
-let open: OpenFlow | null = null;
+let open: TapEnd | null = null;
 let reached = -1;
 
+/** How the card load ends `pocket.open`: the outcome, or the error it failed with. */
+interface TapEnd {
+  finish(outcome: FlowOutcome): void;
+  fail(error: unknown): void;
+}
+
 /** `pocket.open`, if the host dated this open and the page is not a re-run of it. */
-function openFromTap(): OpenFlow | null {
+function openFromTap(): TapEnd | null {
   const { openedAtEpochMs, openSource } = readHostBootstrap() ?? {};
   if (openedAtEpochMs == null) return null;
   const [navigation] = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
@@ -61,17 +69,31 @@ function openFromTap(): OpenFlow | null {
     ...(openSource == null ? {} : { attributes: { "open.source": openSource } }),
   });
   let seenVisible = document.visibilityState === "visible";
+  /** The card's end, held while the page has not been shown yet. */
+  let held: ((flow: OpenFlow) => void) | null = null;
+  const end = (close: (flow: OpenFlow) => void): void => {
+    document.removeEventListener("visibilitychange", onVisibility);
+    close(tap);
+  };
   const onVisibility = (): void => {
-    if (!tap.finished && document.visibilityState === "visible") {
+    if (document.visibilityState === "visible") {
       seenVisible = true;
+      // The card was drawn while hidden: the person sees it now.
+      if (held != null) end(held);
       return;
     }
-    if (!tap.finished && !seenVisible) return;
-    document.removeEventListener("visibilitychange", onVisibility);
-    tap.finish({ kind: "abandoned", ok: false });
+    if (seenVisible) end((flow) => flow.finish({ kind: "abandoned", ok: false }));
   };
   document.addEventListener("visibilitychange", onVisibility);
-  return tap;
+  const settle = (close: (flow: OpenFlow) => void): void => {
+    if (tap.finished || held != null) return;
+    if (seenVisible) end(close);
+    else held = close;
+  };
+  return {
+    finish: (outcome) => settle((flow) => flow.finish(outcome)),
+    fail: (error) => settle((flow) => flow.fail(error)),
+  };
 }
 
 export const cardLoad = {

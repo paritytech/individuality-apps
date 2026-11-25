@@ -55,14 +55,19 @@ Tags on everything: `surface` (`app` / `worker`), `product` (the DotNS label
 the build acts for), `release`
 (`humanity-app@<version>+<sha>` for the app, `humanity-worker@<version>+<sha>`
 for the worker; slashes are invalid in Sentry releases), `environment` (`previewnet` /
-`paseo-next-v2` / `dev`). Inside the Pocket host also `host.session_id` and
-`open.source` (`pocket_card`, `deeplink` or `other`): search the first to see
-the host's side and this product's side of one launch together.
+`paseo-next-v2` / `dev`). On the app's events, inside a Pocket build that
+publishes host telemetry, also `host.session_id` and `open.source`
+(`pocket_card`, `deeplink` or `other`): search the first to see the host's
+side and this product's side of one launch together. Only test builds publish
+it today (non-release iOS builds, Android builds with host telemetry on); a
+store or release Pocket build publishes no bootstrap, so its events carry
+neither tag and it sends no `pocket.open`. The worker gets no bootstrap
+either, so worker events carry neither tag.
 
 | User story | Flow | Where | Stages | `flow.outcome` (not-ok in bold) |
 | :-- | :-- | :-- | :-- | :-- |
 | I open the app and see my card | `card.load` | `card-load.ts`: opened in `main.tsx` dated from the script start (`performance.timeOrigin`), narrated by `use-humanity-user-id.ts`, `use-game-account.ts` and `use-humanity-card.ts`, ended by the commit that draws the live card; one per launch, always sampled; refetches report nothing (`game.account`, `card.cached`: a stored snapshot was on screen during the wait) | `boot` (script start → React mount), `identity` (host user id), `game-account` (host derivation), `read` (`chain.connect`, `finalized.pin`, every `chain.read`, host ring-key calls; the first read aborted by the query re-keying stays inside it), `render` (read landed → card committed) | card state kind; **`account-unavailable`** (host holds no identity, or the name has no account), **thrown** |
-| My tap on the Pocket card to the card shown | `pocket.open` | `card-load.ts`, beside `card.load` and only when the host sent `openedAtEpochMs` (a plausible time, under five minutes old) and the page is not a reload or back/forward: dated from the tap, ended with `card.load` and its outcome; always sampled; no stages or children of its own (the host's side is its `host.*` events, the rest is `card.load`, both on `host.session_id`) | none | the card state kind as `card.load`; **`abandoned`** (the page went hidden after it had been shown, before the card showed: a person who stopped waiting; a page the host created hidden is not abandoned until it has been shown; `card.load` runs on) |
+| My tap on the Pocket card to the card shown | `pocket.open` | `card-load.ts`, beside `card.load` and only when the host sent `openedAtEpochMs` (a plausible time, under five minutes old; test builds only, see above) and the page is not a reload or back/forward: dated from the tap, ended with `card.load` and its outcome, or, when the card was drawn on a page not yet shown, when the page is first shown (a page never shown sends none); always sampled; no stages or children of its own (the host's side is its `host.*` events, the rest is `card.load`, both on `host.session_id`). The hosts count a retry after a failed first load differently: iOS dates only the first attempt from the tap, so a retried open sends no `pocket.open`; Android gives the retry the same tap and session id, so one tap can send two `pocket.open` under one `host.session_id` (the first `abandoned` if it was shown) | none | the card state kind as `card.load`; **`abandoned`** (the page went hidden after it had been shown, before the card showed: a person who stopped waiting; a page the host created hidden is not abandoned until it has been shown; `card.load` runs on) |
 | I finish Membership | `membership.promotion` | `use-auto-register-personhood.ts` → `register-personhood.ts`, automatic and the debug panel's manual run (`source`) | `candidate`, `eligibility`, `list-key`, `register-key`, `sign`, `submit`, `broadcast` | `registered` (+ `tx.confirmed`), `not-ready`, `not-personhood-product`; **`unsupported-host`**, **`refused`**, **`failed`**, **`no-candidate`**, **`threw`** |
 | I claim my username | `username.claim` | `upgrade-lite-username.ts` (`method`, `username.choice`) | `setup`, `accounts`, `preflight`, `sign`, `verify`, `submit` | `included`; **`unknown`**, **error code**: `invalid-username`, `pending`, `account-missing`, `signing`, `timeout`, `finalized-error` |
 | My username is mine in dotNS too | `username.dotns` | `claim-dotns-name.ts` (`source`; `dotns.lite` and `dotns.label` only with the identity opt-in), from the card's automatic path (`use-dotns-name-claim.ts`) and the debug panel's manual run | `accounts`, `setup`, `preflight`, `proof`, `revision`, `submit` | `included` (+ `tx.hash`), `already-registered`; **`unknown`**, **`failed`** (error code: `invalid-label`, `host-missing`, `not-lite-owner`, `account-already-registered`, `ring-not-synced`, `proof`, `signing`, `timeout`, `finalized-error`), **`threw`** |
@@ -106,9 +111,11 @@ the id in Sentry to see the event with its contexts.
   `surface` (`app` / `worker`), `product`, `product.subname`, plus the
   device and connection as the app reads them on the device (`device.ts`:
   `device.os`, `device.engine`, `device.model`, `net.type`, …); the SDK sends
-  no User-Agent header. Inside the Pocket host also `host.session_id` (a
-  random id per page the host opens, not a person) and `open.source`
-  (`host-session.ts`).
+  no User-Agent header. On the app's events, inside a Pocket build that
+  publishes host telemetry (test builds today), also `host.session_id` (a
+  random id per open, not a person; a retry keeps it) and `open.source`
+  (`host-session.ts`). The worker gets no bootstrap, so its events carry
+  neither.
 - Tags on an issue: `log.category` and one `log.<key>` per property of the
   log call (`log.error`, `log.detail`, `log.txHash`, …), the message and its
   template under the `log` context.
