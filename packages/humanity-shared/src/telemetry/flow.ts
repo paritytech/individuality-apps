@@ -133,8 +133,12 @@ let parent: Span | null = null;
  * reported as a transaction of its own.
  */
 export function childSpan(op: string, name: string, attributes?: FlowAttributes): ChildSpanEnd {
-  if (parent == null) return () => {};
-  const span = startInactiveSpan({ op, name, attributes, parentSpan: parent });
+  return childOf(parent, op, name, attributes);
+}
+
+function childOf(parentSpan: Span | null, op: string, name: string, attributes?: FlowAttributes): ChildSpanEnd {
+  if (parentSpan == null) return () => {};
+  const span = startInactiveSpan({ op, name, attributes, parentSpan });
   return ({ ok, detail }, more) => {
     if (more != null) span.setAttributes(more);
     // The serialised status only keeps a known status word, so the detail
@@ -193,10 +197,11 @@ export function openFlow(
           parentSpan: root,
           ...(stageStart == null ? {} : { startTime: stageStart }),
         });
-        parent = stage;
+        if (!detached) parent = stage;
       },
       async step(stepName, run) {
-        const end = finished ? (): void => {} : childSpan("flow.step", stepName);
+        const stepParent = detached ? (stage ?? root) : parent;
+        const end = childOf(finished ? null : stepParent, "flow.step", stepName);
         try {
           const value = await run();
           end({ ok: true });
