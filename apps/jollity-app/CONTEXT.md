@@ -113,7 +113,7 @@ flowchart TD
   R -- "no, or archived" --> L{"lite person?<br/>(peopl.tld has a lite key handle)"}
   L -- yes --> SEAT{AccountToAlias bound<br/>at the CURRENT ring revision?}
   SEAT -- yes --> A["A · sign_up_with_account_lite_invite<br/>Pays::No, zero balance OK"]
-  SEAT -- "no binding" --> BIND["bind in the background<br/>(dim2 mints the proof, set_alias_account)<br/>Register hidden: Saving your seat…"] --> SEAT
+  SEAT -- "no binding" --> BIND["bind in the background<br/>(dim2 mints the proof, set_alias_account)<br/>I'll be there shows, and hides on the tap"] --> SEAT
   SEAT -- "stale (ring moved on)" --> REV["revised sign-up leg on the press<br/>AsLiteAliasWithAccountRevised, fresh proof"] --> A
   L -- "full person" --> E["E · sign_up_with_alias<br/>personal alias origin<br/>typed, NOT IMPLEMENTED"]
   L -- "no lite handle" --> C["C · sign_up_with_account<br/>PlayDepositAmount held, pays fees"]
@@ -133,7 +133,7 @@ balance, `Game.PlayDepositAmount` and the runtime's fee estimate, and re-reads
 it when the balance or the binding moves.
 
 **Policy.** The free lite route is the default and it is ONE
-TAP: dim2 mints the proof and binds in the background, Register signs up.
+TAP: dim2 mints the proof and binds in the background, I'll be there signs up.
 - **A** is the product. Every lite person's first game (and every game after
   being archived) goes this way, for free, without leaving the app.
 - **B** is free too and needs no proof: an active record signs up with
@@ -164,8 +164,8 @@ sequenceDiagram
   Host-->>Dim2: proof (ring, revision = current)
   Dim2->>Chain: PeopleLite.set_alias_account(gameAccount, valid_at_block)<br/>unsigned v5 general tx · AsLiteAliasWithProof · SDK-encoded, sent raw
   Chain-->>Chain: AccountToAlias[gameAccount] = {alias, ring, revision}
-  Note over Dim2: "Saving your seat…" (no button) until the bind is in a best block → Register appears
-  Note over Dim2: "Register" (one tap; open until registration_ends, game clock)
+  Note over Dim2: "I'll be there" (one tap, then hidden. Open until registration_ends, game clock)
+  Note over Dim2: nothing in the footer while the bind reaches a best block and the sign-up lands
   alt binding at the current revision
     Dim2->>Chain: Game.sign_up_with_account_lite_invite(gameAccount, commKey, airdrops)<br/>signed by gameAccount · AsLiteAliasWithAccount(nonce)
   else stale binding (the ring moved on)

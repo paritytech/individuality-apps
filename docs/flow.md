@@ -70,7 +70,7 @@ sequenceDiagram
   Note over A,H: free path, no binding yet: BACKGROUND BIND, no press
   A->>H: createRingVRFProof(peopl's lite key, Score.score_context)  ⟵ peopl's trustedProducts grant
   A->>C: PeopleLite.set_alias_account (v5 general transaction, AsLiteAliasWithProof, SDK-encoded) — retried silently
-  C-->>A: AccountToAlias[account] in a best block → seat ready (a Register tap before then reads "Saving your seat…")
+  C-->>A: AccountToAlias[account] in a best block → seat ready (an I'll be there tap before then shows nothing until the seat links)
   A->>H: createTransaction + sign (host picks v4/v5, fills VerifyMultiSignature)
   A->>H: signVrf(player account, pop:airdrop transcript) × airdrops_scheduled  ⟵ only when every draw is Registering; a draw not open yet is waited for, then the sign-up goes without a ticket
   H-->>A: VRF pre-output + proof per draw (verified locally against the playing key)

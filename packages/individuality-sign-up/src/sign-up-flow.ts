@@ -337,8 +337,8 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
   let latestSlotIndex: number | undefined
   let latestRegistrationWindow: { index: number; registrationEnds: number; gamePlayTime: number } | undefined
   const optimisticListeners = new Set<() => void>()
-  /** what the sign-up under way is waiting for, for the status (the Register
-   *  button reads it); every status subscriber re-emits when it moves */
+  /** what the sign-up under way is waiting for, for the status (the sign-up
+   *  button reads it). Every status subscriber re-emits when it moves. */
   let signupPhase: SignupPhase = "idle"
   const setSignupPhase = (phase: SignupPhase) => {
     if (signupPhase === phase) return
