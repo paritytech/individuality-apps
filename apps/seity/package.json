@@ -1,0 +1,35 @@
+{
+  "name": "@seity/app",
+  "version": "0.0.0",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "author": "Parity Technologies <admin@parity.io>",
+  "description": "A minimal example of reading and publishing a person's avatar with @parity/product-sdk/profile, as a guide for Humanity.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5190",
+    "dev:host": "node scripts/dev-host.mjs",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@parity/product-sdk": "0.48.0-dev.537.1",
+    "@parity/product-sdk-descriptors": "0.14.0",
+    "@parity/product-sdk-host": "0.36.0",
+    "@parity/product-sdk-tx": "0.5.12",
+    "@parity/truapi": "0.33.0",
+    "polkadot-api": "^3.2.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "^5.9.3",
+    "vite": "^8.2.2"
+  }
+}

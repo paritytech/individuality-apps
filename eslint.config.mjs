@@ -99,6 +99,8 @@ const eslintConfig = defineConfig([
     "apps/humanity-app/**",
     "apps/humanity-worker/**",
     "packages/humanity-shared/**",
+    // Seity: the standalone profile example, outside the workspace (apps/seity/README.md).
+    "apps/seity/**",
     // the prize draw's own JavaScript, kept in its original style
     // (lib/draw/wheel/proto/README.md); not linted
     "apps/jollity-app/lib/draw/wheel/proto/**",
