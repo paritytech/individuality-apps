@@ -31,20 +31,18 @@
  * every frame by `transform` alone (no layout, no canvas paint), floating up
  * to the opened ones while the unopened ones settle below (the engine's
  * float). A tap on it opens the picker over it, from the keyboard too, and
- * the Pocket finds it by `data-collectables-piece`. With every piece opened, the
- * scene gives way to the scrolling inventory.
+ * the Pocket finds it by `data-collectables-piece`. With every piece opened they
+ * all keep floating, until the Pocket's book closes over them.
  *
  * THE POCKET TAKES THEM ONE BY ONE (components/pocket): a piece it has
  * `taken` is gone from the scene, its shell, its sprite and its button, and
  * the pieces still out dim as the book's `cover` closes. The words at the top
  * say what to do next, and go as soon as the cover moves.
  */
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react"
+import { useEffect, useRef, useState, type RefObject } from "react"
 import { createCollectablesScene, type CollectablesPlacement, type CollectablesScene as CollectablesSceneEngine } from "@/lib/collectables-scene"
 import { carryShown, takeCarried } from "@/lib/collectables-scene/carry"
 import { loadImage } from "@/lib/dom/image"
-// the grid-arrival feel is the game's, so the tuning is the game's too
-import { LAYOUT_EASE, LAYOUT_MS, PARK_MIN_PX } from "@/components/game/animations"
 import { BASE, materialFor, wrappingPhase } from "@/lib/wrapping/materials"
 import { ensureFields, releaseFields } from "@/lib/wrapping/fieldCache"
 import { markWrappingUnavailable, wrappingExpected } from "@/lib/wrapping/availability"
@@ -90,7 +88,7 @@ export interface CollectablesSceneProps {
   seed?: string
   /** the collectables, one piece each (0–10; the page skips the scene at 0) */
   items: CollectablesItemView[]
-  /** a tap on an opened collectable, in the scene or the inventory — the page
+  /** a tap on an opened collectable — the page
    *  opens the picker over it (the rect is its art's box, the zoom's starting
    *  frame) */
   onInspect?: (index: number, rect: DOMRect) => void
@@ -121,13 +119,6 @@ export interface CollectablesSceneProps {
   floor?: number | null
   className?: string
 }
-
-/** with every piece opened: the last one's rise to the top, seen before the scene goes */
-const SCENE_HOLD_MS = 1800
-/** the scene's exit, before the inventory arrives */
-const SCENE_OUT_MS = 380
-/** one card after another, so the grid assembles rather than appearing */
-const CARD_STAGGER_MS = 70
 
 const HIT: readonly [number, number] = [0.5, 0.5]
 
@@ -247,13 +238,10 @@ export function CollectablesScene({
   const collectedRef = useRef(0)
 
   // ── OPENED: a broken-open piece stays in the scene as its plain art and
-  // rises to the opened ones at the top (the engine's float). This list is only the order
-  // they were opened in, which the inventory keeps ─────────────────────────
+  // rises to the opened ones at the top (the engine's float), and floats there
+  // until the Pocket's book closes, every piece opened or not ─────────────
   /** piece indices in the order they were opened */
   const [opened, setOpened] = useState<number[]>([])
-  // every piece opened: the scene gives way to the scrolling inventory (the
-  // unfold, below)
-  const complete = opened.length >= Math.min(10, items.length) && items.length > 0
   // a tap pops the bubble only once the screen says something is in
   const canOpenRef = useRef(canOpen)
   useEffect(() => {
@@ -265,98 +253,10 @@ export function CollectablesScene({
   useEffect(() => {
     openRef_.current = open
   }, [open])
-  const sceneLayerRef = useRef<HTMLDivElement>(null)
   /** each piece's opened button (hidden until its shell breaks) */
   const openedEls = useRef<(HTMLButtonElement | null)[]>([])
   /** each piece's art as the sprite fits it: the image's box over the piece's, so the image is the wrapped art's size */
   const spriteFit = useRef<number[]>([])
-
-  /**
-   * THE UNFOLD, in three beats — the last piece RISES, the scene LEAVES, then
-   * the inventory ARRIVES.
-   *
-   * Not a morph. The scene and the inventory are different layouts (pieces
-   * floating on a canvas; a scrolling grid of half-width cards), so the scene
-   * lifts away once the last piece has had time to rise to the top, and
-   * once it is gone the cards fly in from the nearest edge, staggered — the
-   * game's own language for a grid arriving (see components/game/animations:
-   * parked tiles clear the stage sideways, then glide in on LAYOUT_EASE).
-   */
-  // Two timer callbacks set the phase: setting it directly from an effect
-  // would be a cascading render. The exit is for the count it started at: a
-  // claim that comes in during the hold brings the scene back, and opening
-  // it starts the hold over.
-  const [leftAt, setLeftAt] = useState(-1)
-  const [cardsIn, setCardsIn] = useState(false)
-  const openedCount = opened.length
-  useEffect(() => {
-    if (!complete || cardsIn) return
-    const toLeave = setTimeout(() => setLeftAt(openedCount), SCENE_HOLD_MS)
-    const toCards = setTimeout(() => setCardsIn(true), SCENE_HOLD_MS + SCENE_OUT_MS)
-    return () => {
-      clearTimeout(toLeave)
-      clearTimeout(toCards)
-    }
-  }, [complete, cardsIn, openedCount])
-  const unfold = !complete ? "scene" : cardsIn ? "cards" : leftAt === openedCount ? "leaving" : "scene"
-
-  const gridRef = useRef<HTMLDivElement>(null)
-
-  /** THE SCENE LEAVING: up and out, the way the opened pieces were going */
-  useLayoutEffect(() => {
-    const layer = sceneLayerRef.current
-    if (unfold !== "leaving" || !layer) return
-    const leaving = layer.animate(
-      [
-        { transform: "none", opacity: 1 },
-        { transform: "translateY(-34px)", opacity: 0 },
-      ],
-      {
-        duration: SCENE_OUT_MS,
-        // out fast and gone — it is leaving, not presenting itself
-        easing: "cubic-bezier(0.4, 0, 1, 1)",
-        // it must HOLD at gone: the phase flips a frame or two later, and a
-        // scene that snapped back to visible in between would flash. Once the
-        // cards are in, the layer is hidden by its class instead, and a late
-        // claim that brings the scene back finds it without this hold.
-        fill: "forwards",
-      },
-    )
-    return () => leaving.cancel()
-  }, [unfold])
-
-  // no frames while the inventory covers the scene; a late claim brings it back
-  useEffect(() => {
-    sceneRef.current?.hold(unfold === "cards")
-  }, [unfold])
-
-  /** the cards' entrance: each one from whichever edge it is nearest */
-  useLayoutEffect(() => {
-    const grid = gridRef.current
-    if (unfold !== "cards" || !grid) return
-    const box = grid.getBoundingClientRect()
-    const middle = box.left + box.width / 2
-    const cards = [...grid.children] as HTMLElement[]
-    cards.forEach((el, order) => {
-      const rect = el.getBoundingClientRect()
-      const fromLeft = rect.left + rect.width / 2 < middle
-      const dx = Math.max(PARK_MIN_PX, rect.width + 24) * (fromLeft ? -1 : 1)
-      el.animate(
-        [
-          { transform: `translateX(${dx}px)`, opacity: 0 },
-          { transform: "none", opacity: 1 },
-        ],
-        {
-          duration: LAYOUT_MS,
-          easing: LAYOUT_EASE,
-          delay: order * CARD_STAGGER_MS,
-          // both, so a card waiting its turn is already parked rather than
-          // sitting at rest for a beat and then jumping off-screen
-          fill: "both",
-        },
-      )
-    })
-  }, [unfold])
 
   /** hand the engine every item it does not have yet: each flies in as an orb */
   const addPieces = (scene: CollectablesSceneEngine) => {
@@ -700,8 +600,8 @@ export function CollectablesScene({
 
   return (
     <div ref={hostRef} className={"relative overflow-hidden " + (className ?? "")}>
-        {/* the scene: it lifts away once every piece is opened (the unfold) */}
-        <div ref={sceneLayerRef} className={"absolute inset-0" + (unfold === "cards" ? " invisible" : "")}>
+        {/* the scene: every piece floats here, opened or not, until the Pocket's book closes */}
+        <div className="absolute inset-0">
           {/* the pieces still out: they dim as the Pocket's cover closes */}
           <div ref={piecesRef} className="absolute inset-0">
             <canvas
@@ -762,9 +662,8 @@ export function CollectablesScene({
                     src={item.image}
                     alt=""
                     draggable={false}
-                    // the Pocket lifts it from here; once the inventory is
-                    // in, from the card instead
-                    data-collectables-piece={unfold === "cards" ? undefined : index}
+                    // the Pocket lifts it from here
+                    data-collectables-piece={index}
                     className="size-full object-contain"
                   />
                 ) : null}
@@ -790,78 +689,6 @@ export function CollectablesScene({
             {zoomed ? "Tap again to open it" : opened.length > 0 || late ? "Close the book to keep them" : "Tap one to look closer"}
           </p>
         </div>
-      {/* THE INVENTORY — with EVERY piece opened the scene lifts away and the
-          collectables come back as a scrolling grid of cards, in the order
-          they were opened (see the unfold above): the reveal is over, so
-          they become the screen. Until then the opened pieces float at the
-          top of the scene itself. */}
-      {unfold === "cards" ? (
-      <div
-        ref={gridRef}
-        className={
-          // the whole frame, and it SCROLLS — ten collectables do not fit,
-          // and you came here to find one
-          "pointer-events-auto absolute inset-0 z-10 flex flex-wrap content-start justify-center gap-3 overflow-y-auto p-5"
-        }
-      >
-        {opened.map((pieceIndex) => {
-          const item = items[pieceIndex]
-          const art = item?.image
-          const name = item?.name ?? ""
-          return (
-            <div
-              key={pieceIndex}
-              className={
-                // No css transition: the entrance is animated imperatively,
-                // and a `transition-all` here fights it.
-                "flex w-[calc(50%-0.75rem)] max-w-44 flex-none cursor-pointer flex-col overflow-hidden rounded-xl border border-white/15 bg-white/[0.06]"
-              }
-              onClick={(event) => {
-                // the ART's box, not the card's: the picker aligns its own
-                // projection onto this rect, and the card carries padding and
-                // a label that would throw the handover off by its own margins
-                const img = event.currentTarget.querySelector("img")
-                onInspect?.(pieceIndex, (img ?? event.currentTarget).getBoundingClientRect())
-              }}
-              role="button"
-              aria-label={`Inspect ${name || "collectable"}`}
-            >
-              {art ? (
-                // eslint-disable-next-line @next/next/no-img-element -- gateway art
-                <img
-                  src={art}
-                  alt=""
-                  data-collectables-piece={pieceIndex}
-                  className={
-                    // NO transition: this art is handed to and from the
-                    // picker's stage, which lands exactly on this box. A fade
-                    // here is a fade of NOTHING — the stage has already gone —
-                    // so the new collectable appeared late on every swap.
-                    "aspect-square w-full object-contain p-3 " +
-                    // the INSPECTED card hands off to the picker: its art hides
-                    // while the projection is parked over the beam
-                    (inspected === pieceIndex ? "opacity-0" : "opacity-100")
-                  }
-                />
-              ) : (
-                <div className="aspect-square w-full" />
-              )}
-              <div className="flex flex-col gap-0.5 border-t border-white/[0.07] px-3 py-2 text-left">
-                <span className="truncate text-sm font-semibold">{name || "Collectable"}</span>
-                <span
-                  className={
-                    "text-[11px] font-semibold tracking-[0.08em] uppercase " +
-                    (item?.rare ? "text-warning" : "text-muted-foreground")
-                  }
-                >
-                  {item?.rare ? `★ ${item.tier ?? "Rare"}` : (item?.tier ?? "Common")}
-                </span>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      ) : null}
     </div>
   )
 }

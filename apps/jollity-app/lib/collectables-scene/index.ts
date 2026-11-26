@@ -111,8 +111,6 @@ export interface CollectablesScene {
   /** the piece's shell has broken: it stays as its plain art and floats up
    *  to the opened ones */
   openPiece(index: number): void
-  /** stop (true) or restart (false) the frames while something covers the scene */
-  hold(on: boolean): void
   /** the pieces float above this, CSS px from the canvas's top (the Pocket's book); null: the canvas's foot */
   setFloor(px: number | null): void
   /** another layer draws this piece now: stop painting its flat art */
