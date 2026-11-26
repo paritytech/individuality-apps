@@ -36,7 +36,7 @@
  *
  * API: createCollectablesScene(canvas, { count, onEvent, onDiscs, canOpen, carried, onCarriedShown }) ->
  *   { replay, tap, press, move, release, setSprites, openPiece, addPiece, open,
- *     setSpriteHidden, hold, setFloor, resize, destroy }
+ *     setSpriteHidden, setFloor, resize, destroy }
  */
 import { floatLayout } from './float';
 
@@ -1755,23 +1755,11 @@ function calm() {
   return true;
 }
 let dead = false;
-/** the host has put something over the scene for good (the inventory): no frames until it lets go */
-let held = false;
-function hold(on) {
-  if (held === on || dead) return;
-  held = on;
-  if (on) {
-    cancelAnimationFrame(raf);
-  } else {
-    last = performance.now();
-    raf = requestAnimationFrame(frame);
-  }
-}
 /** the last frame left something on the canvas (see the paint below) */
 let painted = true;
 
 function frame(now) {
-  if (dead || held) return;
+  if (dead) return;
   raf = requestAnimationFrame(frame);
   // at rest (settled, untouched, nothing breaking) only the breath moves: half rate
   if (calm() && (skip = !skip)) return;
@@ -1901,8 +1889,6 @@ return {
   /** the piece's shell has broken: it stays as its plain art and floats up
    *  to the opened ones (see openPiece) */
   openPiece,
-  /** stop (true) or restart (false) the frames while something covers the scene */
-  hold,
   /** the pieces float above this, px from the canvas's top (the Pocket's book); null: the canvas's foot */
   setFloor,
   /** the wrapping layer draws this piece now — stop painting its flat art */
