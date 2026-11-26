@@ -19,7 +19,24 @@
  * One flow per launch. After `finish` every call here is a no-op, and so is
  * every call before `begin` (tests, the worker, a hook mounted in a tree
  * that never booted through `main.tsx`).
+ *
+ * **From the tap.** When the Pocket host says when the person opened the
+ * product (`openedAtEpochMs` in its bootstrap), the wait they feel began
+ * before this page did. `card.load` stays dated from the navigation start; a
+ * second transaction, `pocket.open`, runs from the tap to the same end and
+ * outcome. It has no stages of its own: the host's side is the host's events
+ * and the rest is `card.load`, both joined on `host.session_id`. A page that
+ * goes hidden after it was visible, before the card is shown, ends it
+ * `abandoned` (a person who stopped waiting; a page created hidden, a WebView
+ * not yet attached, has not been left and is not abandoned until it has been
+ * shown; the host keeps the WebView alive, so `card.load` may
+ * finish later and that time is not a wait), and a reload or back/forward
+ * navigation tells no story: the host's bootstrap runs again with the first
+ * open's time. A card drawn while the page has never been visible is not yet
+ * seen: `pocket.open` keeps its outcome and ends when the page is first
+ * shown, and a page never shown sends none.
  */
+import { readHostBootstrap } from "@humanity/shared/telemetry/host-session.ts";
 import {
   openFlow,
   type FlowAttributes,
@@ -31,7 +48,62 @@ const STAGES = ["boot", "identity", "game-account", "read", "render"] as const;
 export type CardLoadStage = (typeof STAGES)[number];
 
 let flow: OpenFlow | null = null;
+let open: TapEnd | null = null;
 let reached = -1;
+
+/** How the card load ends `pocket.open`: the outcome, or the error it failed with. */
+interface TapEnd {
+  finish(outcome: FlowOutcome): void;
+  fail(error: unknown): void;
+}
+
+/** `pocket.open`, if the host dated this open and the page is not a re-run of it. */
+function openFromTap(): TapEnd | null {
+  const { openedAtEpochMs, openSource } = readHostBootstrap() ?? {};
+  if (openedAtEpochMs == null) return null;
+  const [navigation] = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+  if (navigation?.type === "reload" || navigation?.type === "back_forward") return null;
+  const tap = openFlow("pocket.open", {
+    startTime: openedAtEpochMs / 1000,
+    detached: true,
+    ...(openSource == null ? {} : { attributes: { "open.source": openSource } }),
+  });
+  let seenVisible = document.visibilityState === "visible";
+  /** The card's end, held while the page has not been shown yet. */
+  let held: ((flow: OpenFlow) => void) | null = null;
+  let ended = false;
+  const end = (close?: (flow: OpenFlow) => void): void => {
+    ended = true;
+    held = null;
+    document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("pagehide", onPageHide);
+    close?.(tap);
+  };
+  // A document restored from the back/forward cache keeps its script state.
+  // Its return must never complete a tap from before it left.
+  const abandon = (flow: OpenFlow): void => flow.finish({ kind: "abandoned", ok: false });
+  const onPageHide = (): void => end(seenVisible ? abandon : undefined);
+  const onVisibility = (): void => {
+    if (document.visibilityState === "visible") {
+      seenVisible = true;
+      // The card was drawn while hidden: the person sees it now.
+      if (held != null) end(held);
+      return;
+    }
+    if (seenVisible) end(abandon);
+  };
+  document.addEventListener("visibilitychange", onVisibility);
+  window.addEventListener("pagehide", onPageHide);
+  const settle = (close: (flow: OpenFlow) => void): void => {
+    if (ended || held != null) return;
+    if (seenVisible) end(close);
+    else held = close;
+  };
+  return {
+    finish: (outcome) => settle((flow) => flow.finish(outcome)),
+    fail: (error) => settle((flow) => flow.fail(error)),
+  };
+}
 
 export const cardLoad = {
   /** Open the flow and its `boot` stage, both dated from the script start:
@@ -42,6 +114,7 @@ export const cardLoad = {
     const scriptStart = performance.timeOrigin / 1000;
     flow = openFlow("card.load", { startTime: scriptStart });
     reached = -1;
+    open = openFromTap();
     cardLoad.stage("boot", scriptStart);
   },
   /** Enter `name` if the flow is in flight and `name` lies ahead. */
@@ -57,9 +130,11 @@ export const cardLoad = {
   },
   finish(outcome: FlowOutcome): void {
     flow?.finish(outcome);
+    open?.finish(outcome);
   },
   fail(error: unknown): void {
     flow?.fail(error);
+    open?.fail(error);
   },
   /** Whether a launch's card load is still being waited on. */
   get inFlight(): boolean {
@@ -70,5 +145,6 @@ export const cardLoad = {
 /** Test seam: forget the flow so the next `begin` opens a fresh one. */
 export function resetCardLoadForTests(): void {
   flow = null;
+  open = null;
   reached = -1;
 }

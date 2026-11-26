@@ -7,7 +7,7 @@
  * first terminal event. Asserted on the envelopes a real client sends.
  */
 import { flush, init } from "@sentry/browser";
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { cardLoad, resetCardLoadForTests } from "@features/card/telemetry/card-load.ts";
 import { tracedRead } from "@humanity/shared/chain/chain-read.ts";
@@ -22,6 +22,7 @@ interface TransactionJson {
   type: "transaction";
   transaction: string;
   start_timestamp: number;
+  timestamp: number;
   contexts: { trace: { status?: string; data?: Record<string, unknown> } };
   spans?: SpanJson[];
 }
@@ -131,5 +132,213 @@ describe("cardLoad", () => {
     const [tx] = transactions();
     expect(tx?.contexts.trace.status).toBe("internal_error");
     expect(tx?.contexts.trace.data).toMatchObject({ "flow.outcome": "account-unavailable" });
+  });
+});
+
+describe("pocket.open", () => {
+  const ID = "123e4567-e89b-42d3-a456-426614174000";
+
+  function hostPage(
+    ago: number,
+    navigation = "navigate",
+    source: string | null = "pocket_card",
+    visibility = "visible",
+    withOpenedAt = true,
+  ) {
+    vi.stubGlobal("__trinityHostTelemetry", {
+      hostSessionId: ID,
+      ...(withOpenedAt ? { openedAtEpochMs: Date.now() - ago } : {}),
+      ...(source == null ? {} : { openSource: source }),
+    });
+    const listeners: Array<() => void> = [];
+    const doc = {
+      visibilityState: visibility,
+      addEventListener: (_type: string, listener: () => void) => void listeners.push(listener),
+      removeEventListener: (_type: string, listener: () => void) => {
+        const index = listeners.indexOf(listener);
+        if (index >= 0) listeners.splice(index, 1);
+      },
+    };
+    vi.stubGlobal("document", doc);
+    const page = new EventTarget();
+    vi.stubGlobal("window", page);
+    vi.spyOn(performance, "getEntriesByType").mockImplementation(((type: string) =>
+      type === "navigation" ? [{ type: navigation }] : []) as unknown as typeof performance.getEntriesByType);
+    const change = (state: string) => () => {
+      doc.visibilityState = state;
+      for (const listener of [...listeners]) listener();
+    };
+    return { hide: change("hidden"), show: change("visible"), leave: () => page.dispatchEvent(new Event("pagehide")), listeners };
+  }
+
+  const byName = (name: string) => transactions().find((tx) => tx.transaction === name);
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("runs from the tap to the card shown, ending with card.load and leaving its children there", async () => {
+    hostPage(800);
+    const before = Date.now() / 1000;
+    cardLoad.begin();
+    cardLoad.stage("read");
+    await tracedRead("Score.Participants", () => Promise.resolve(null));
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+
+    const open = byName("pocket.open");
+    const load = byName("card.load");
+    expect(open?.start_timestamp).toBeCloseTo(before - 0.8, 1);
+    expect(open?.contexts.trace.status).toBe("ok");
+    expect(open?.contexts.trace.data).toMatchObject({ "flow.outcome": "member", "open.source": "pocket_card" });
+    expect(open?.spans ?? []).toEqual([]);
+    expect(load?.start_timestamp).toBeCloseTo(performance.timeOrigin / 1000, 1);
+    expect((load?.spans ?? []).map((span) => span.description)).toContain("Score.Participants");
+  });
+
+  it("is abandoned when the page is hidden before the card shows, while card.load runs on", async () => {
+    const { hide } = hostPage(300);
+    cardLoad.begin();
+    cardLoad.stage("read");
+    hide();
+    await tracedRead("Score.Participants", () => Promise.resolve(null));
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+
+    const open = byName("pocket.open");
+    expect(open?.contexts.trace.status).toBe("cancelled");
+    expect(open?.contexts.trace.data).toMatchObject({ "flow.outcome": "abandoned" });
+    expect(byName("card.load")?.contexts.trace.data).toMatchObject({ "flow.outcome": "member" });
+    expect((byName("card.load")?.spans ?? []).map((span) => span.description)).toContain("Score.Participants");
+  });
+
+  it("is not abandoned by a page created hidden: it waits until shown, and the card then ends it ok", async () => {
+    const { show } = hostPage(300, "navigate", "pocket_card", "hidden");
+    cardLoad.begin();
+    cardLoad.stage("read");
+    show();
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+
+    const open = byName("pocket.open");
+    expect(open?.contexts.trace.status).toBe("ok");
+    expect(open?.contexts.trace.data).toMatchObject({ "flow.outcome": "member" });
+  });
+
+  it("waits for a page hidden until the card is drawn, and ends when the card is first seen", async () => {
+    const { show, listeners } = hostPage(300, "navigate", "pocket_card", "hidden");
+    cardLoad.begin();
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+    expect(transactions().map((tx) => tx.transaction)).toEqual(["card.load"]);
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const shownAt = Date.now() / 1000;
+    show();
+    await flush();
+    const open = byName("pocket.open");
+    expect(open?.contexts.trace.status).toBe("ok");
+    expect(open?.contexts.trace.data).toMatchObject({ "flow.outcome": "member" });
+    expect(open?.timestamp).toBeGreaterThanOrEqual(shownAt - 0.005);
+    expect((byName("card.load")?.timestamp ?? Infinity) < shownAt).toBe(true);
+    expect(listeners).toEqual([]);
+  });
+
+  it("sends nothing for a page never shown", async () => {
+    hostPage(300, "navigate", "pocket_card", "hidden");
+    cardLoad.begin();
+    cardLoad.fail(new TypeError("boom"));
+    await flush();
+    expect(transactions().map((tx) => tx.transaction)).toEqual(["card.load"]);
+  });
+
+  it("does not finish an earlier tap when a never-visible document returns from the back/forward cache", async () => {
+    const { leave, show, listeners } = hostPage(300, "navigate", "pocket_card", "hidden");
+    cardLoad.begin();
+    cardLoad.finish({ kind: "member", ok: true });
+    leave();
+    show();
+    await flush();
+
+    expect(transactions().map((tx) => tx.transaction)).toEqual(["card.load"]);
+    expect(listeners).toEqual([]);
+  });
+
+  it("fails with card.load, with the error's kind", async () => {
+    hostPage(300);
+    cardLoad.begin();
+    cardLoad.fail(new TypeError("boom"));
+    await flush();
+
+    const open = byName("pocket.open");
+    expect(open?.contexts.trace.status).toBe("internal_error");
+    expect(open?.contexts.trace.data).toMatchObject({ "flow.outcome": "TypeError" });
+  });
+
+  it("stays ok when the page is hidden and shown after the card showed, and stops listening", async () => {
+    const { hide, show, listeners } = hostPage(300);
+    cardLoad.begin();
+    cardLoad.finish({ kind: "member", ok: true });
+    expect(listeners).toEqual([]);
+    hide();
+    show();
+    await flush();
+
+    const open = byName("pocket.open");
+    expect(open?.contexts.trace.status).toBe("ok");
+    expect(open?.contexts.trace.data).toMatchObject({ "flow.outcome": "member" });
+  });
+
+  it("is sent without open.source when the bootstrap names no source", async () => {
+    hostPage(300, "navigate", null);
+    cardLoad.begin();
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+
+    const open = byName("pocket.open");
+    expect(open?.contexts.trace.status).toBe("ok");
+    expect(open?.contexts.trace.data ?? {}).not.toHaveProperty("open.source");
+  });
+
+  it("is abandoned when a page that was shown goes hidden again", async () => {
+    const { hide, show } = hostPage(300, "navigate", "pocket_card", "hidden");
+    cardLoad.begin();
+    show();
+    hide();
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+
+    expect(byName("pocket.open")?.contexts.trace.data).toMatchObject({ "flow.outcome": "abandoned" });
+  });
+
+  it("sends only card.load when the bootstrap carries no openedAtEpochMs", async () => {
+    hostPage(300, "navigate", "pocket_card", "visible", false);
+    cardLoad.begin();
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+    expect(transactions().map((tx) => tx.transaction)).toEqual(["card.load"]);
+  });
+
+  it.each(["reload", "back_forward"])(
+    "tells no story for a %s navigation, whose bootstrap still carries the first open's time",
+    async (navigation) => {
+      hostPage(800, navigation);
+      cardLoad.begin();
+      cardLoad.finish({ kind: "member", ok: true });
+      await flush();
+      expect(transactions().map((tx) => tx.transaction)).toEqual(["card.load"]);
+    },
+  );
+
+  it.each([
+    ["five minutes old", 5 * 60 * 1000],
+    ["in the future", -60_000],
+  ])("sends only card.load when the open time is %s", async (_label, ago) => {
+    hostPage(ago);
+    cardLoad.begin();
+    cardLoad.finish({ kind: "member", ok: true });
+    await flush();
+    expect(transactions().map((tx) => tx.transaction)).toEqual(["card.load"]);
   });
 });

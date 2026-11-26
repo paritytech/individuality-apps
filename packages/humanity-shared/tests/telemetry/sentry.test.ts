@@ -58,6 +58,7 @@ describe("initTelemetry", () => {
     // One card load per launch: always kept. Every other flow at the rate.
     const sample = options?.tracesSampler;
     expect(sample?.({ name: "card.load", attributes: {}, inheritOrSampleWith: () => 1 })).toBe(1);
+    expect(sample?.({ name: "pocket.open", attributes: {}, inheritOrSampleWith: () => 1 })).toBe(1);
     expect(sample?.({ name: "username.claim", attributes: {}, inheritOrSampleWith: () => 1 })).toBe(0.5);
     expect(
       sample?.({ name: "username.claim", parentSampled: true, attributes: {}, inheritOrSampleWith: () => 1 }),

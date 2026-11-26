@@ -243,6 +243,23 @@ describe("openFlow", () => {
     ]);
   });
 
+  it("keeps detached stages and explicit steps separate from host calls in the active flow", async () => {
+    const load = openFlow("card.load");
+    load.stage("read");
+    const tap = openFlow("pocket.open", { detached: true });
+    tap.stage("example");
+    await tap.step("example step", () => Promise.resolve());
+    await tracedRead("Score.Participants", () => Promise.resolve(1));
+    tap.finish({ kind: "member", ok: true });
+    await tracedRead("finalized.pin", () => Promise.resolve(1));
+    load.finish({ kind: "member", ok: true });
+    await flush();
+
+    const spans = (name: string) => transactions().find((tx) => tx.transaction === name)?.spans ?? [];
+    expect(spans("pocket.open").map((s) => s.description)).toEqual(["example", "example step"]);
+    expect(spans("card.load").map((s) => s.description)).toEqual(["read", "Score.Participants", "finalized.pin"]);
+  });
+
   it("opens no children once finished", async () => {
     const flow = openFlow("card.load");
     flow.finish({ kind: "member", ok: true });

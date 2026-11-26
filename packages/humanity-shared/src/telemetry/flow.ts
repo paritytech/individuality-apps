@@ -52,6 +52,8 @@ import type { SpanStatus } from "@sentry/core";
 export type FlowName =
   | "chain.connect"
   | "card.load"
+  /** The same wait from the person's tap in Pocket (`card-load.ts`). */
+  | "pocket.open"
   | "membership.promotion"
   | "username.claim"
   | "username.dotns"
@@ -102,6 +104,9 @@ export interface OpenFlowOptions {
   /** Seconds since the epoch; default now. `performance.timeOrigin / 1000`
    *  dates the flow from the script start, so the boot is inside it. */
   readonly startTime?: number;
+  /** Do not take the register: children keep attaching to the flow that
+   *  already has it. For a second transaction timing the same wait. */
+  readonly detached?: boolean;
 }
 
 export interface RunFlowOptions<T> {
@@ -128,8 +133,12 @@ let parent: Span | null = null;
  * reported as a transaction of its own.
  */
 export function childSpan(op: string, name: string, attributes?: FlowAttributes): ChildSpanEnd {
-  if (parent == null) return () => {};
-  const span = startInactiveSpan({ op, name, attributes, parentSpan: parent });
+  return childOf(parent, op, name, attributes);
+}
+
+function childOf(parentSpan: Span | null, op: string, name: string, attributes?: FlowAttributes): ChildSpanEnd {
+  if (parentSpan == null) return () => {};
+  const span = startInactiveSpan({ op, name, attributes, parentSpan });
   return ({ ok, detail }, more) => {
     if (more != null) span.setAttributes(more);
     // The serialised status only keeps a known status word, so the detail
@@ -157,7 +166,7 @@ export function errorKind(error: unknown): string {
  */
 export function openFlow(
   name: FlowName,
-  { attributes = {}, startTime }: OpenFlowOptions = {},
+  { attributes = {}, startTime, detached = false }: OpenFlowOptions = {},
 ): OpenFlow {
   return startNewTrace(() => {
     const root = startInactiveSpan({
@@ -173,7 +182,7 @@ export function openFlow(
     const closeStage = (): void => {
       stage?.end();
       stage = null;
-      parent = root;
+      if (!detached) parent = root;
     };
     const flow: OpenFlow = {
       get finished() {
@@ -188,10 +197,11 @@ export function openFlow(
           parentSpan: root,
           ...(stageStart == null ? {} : { startTime: stageStart }),
         });
-        parent = stage;
+        if (!detached) parent = stage;
       },
       async step(stepName, run) {
-        const end = finished ? (): void => {} : childSpan("flow.step", stepName);
+        const stepParent = detached ? (stage ?? root) : parent;
+        const end = childOf(finished ? null : stepParent, "flow.step", stepName);
         try {
           const value = await run();
           end({ ok: true });
@@ -210,11 +220,16 @@ export function openFlow(
         closeStage();
         root.setAttribute("flow.outcome", result.kind);
         // A read the caller abandoned (react-query re-keying a query, a
-        // deadline the caller set) is cancelled, not broken.
+        // deadline the caller set) or a page put away mid-load is cancelled,
+        // not broken.
         root.setStatus(
           result.ok
             ? STATUS_OK
-            : STATUS_ERROR(result.kind === "AbortError" ? "cancelled" : result.kind),
+            : STATUS_ERROR(
+                result.kind === "AbortError" || result.kind === "abandoned"
+                  ? "cancelled"
+                  : result.kind,
+              ),
         );
         root.end();
         // Hand the register back only if no flow opened after this one.
@@ -224,7 +239,7 @@ export function openFlow(
         flow.finish({ kind: errorKind(error), ok: false });
       },
     };
-    parent = root;
+    if (!detached) parent = root;
     return flow;
   });
 }

@@ -52,6 +52,7 @@ import {
 
 import { envConfig } from "@humanity/shared/config/env.ts";
 import { setDeviceContext } from "@humanity/shared/telemetry/device.ts";
+import { setHostSession } from "@humanity/shared/telemetry/host-session.ts";
 import { redactEvent } from "@humanity/shared/telemetry/redact.ts";
 
 /** Which executable is reporting. */
@@ -104,10 +105,11 @@ export function initTelemetry(surface: TelemetrySurface): void {
     dsn: sentryDsn,
     release: release ?? undefined,
     environment: envConfig.dev ? "dev" : envConfig.chain.network || "unknown",
-    // `card.load` happens once per launch and is the one duration we need
-    // every sample of; everything else follows the configured rate.
+    // `card.load` and `pocket.open` (the same wait from the tap) happen once
+    // per launch and are the durations we need every sample of; everything
+    // else follows the configured rate.
     tracesSampler: ({ name, parentSampled }) =>
-      name === "card.load" ? 1 : (parentSampled ?? tracesSampleRate),
+      name === "card.load" || name === "pocket.open" ? 1 : (parentSampled ?? tracesSampleRate),
     traceLifecycle: "static",
     transport: makeFetchTransport,
     stackParser: defaultStackParser,
@@ -143,5 +145,7 @@ export function initTelemetry(surface: TelemetrySurface): void {
   });
   client.init();
   setDeviceContext();
+  // App only today: no host gives the worker a bootstrap, so this is a no-op there.
+  setHostSession(scope);
   initialised = surface;
 }
