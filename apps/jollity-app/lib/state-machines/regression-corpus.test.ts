@@ -272,19 +272,41 @@ describe("state-machine regression corpus", () => {
     expect(books.turnVotes[1]?.[D]).toBe("notperson")
   })
 
-  it.fails("formal lane-b gap 1 — issue: backward step over T-0; reason: freeze recovery must seal missed turns 0 and 1", () => {
+  it("formal lane-b gap 1 — issue: backward step over T-0; reason: freeze recovery must seal missed turns 0 and 1", () => {
     let books = tick(emptyTurnBooks(), G + 2)
     books = tick(books, G - 5)
     books = tick(books, G + 25)
     expect(books.sealed.has(0) && books.sealed.has(1)).toBe(true)
   })
 
-  it.fails("formal lane-b gap 3 — issue: late-join backward replay; reason: a pre-load turn must remain verdict-free", () => {
+  it("formal lane-b gap 3 — issue: late-join backward replay; reason: a pre-load turn must remain verdict-free", () => {
     let books = tick(emptyTurnBooks(), G + 13, { coldStartedAt: G + 13 })
     books = tick(books, G + 5, { coldStartedAt: G + 13 })
     books = { ...books, videoRoleHistory: markVideoRoleSeen(books.videoRoleHistory, B, 0).history }
     books = tick(books, G + 14, { coldStartedAt: G + 13 })
     expect(books.turnVotes[0] ?? {}).toEqual({})
+  })
+
+  it("archive#1504 — issue: restored firstOpenedTurn floor; reason: a warm page seals from the first turn it opened itself, not the merged stored one", () => {
+    let books: TurnBooks = { ...emptyTurnBooks(), videoRoleHistory: seenFromZero }
+    books = tick(books, G + 57)
+    books = restoreBooks(books, stored({ ...emptyTurnBooks(), autoSeals: { 0: [] }, firstOpenedTurn: 0, videoRoleHistory: seenFromZero }), false).books
+    books = tick(books, G + 50)
+    books = tick(books, G + 80)
+    expect([...books.sealed].sort((a, b) => a - b)).toEqual([0, 4, 5])
+    for (const turn of [1, 2, 3]) expect(books.turnVotes[turn] ?? {}).toEqual({})
+  })
+
+  it("archive#1504 — issue: restored floor via an in-turn backward step; reason: a page that opened turn 4 never seals below it", () => {
+    for (const before of [[G + 57], [G + 57, G + 69]]) {
+      let books: TurnBooks = { ...emptyTurnBooks(), videoRoleHistory: seenFromZero }
+      for (const at of before) books = tick(books, at)
+      books = restoreBooks(books, stored({ ...emptyTurnBooks(), autoSeals: { 0: [] }, firstOpenedTurn: 0, videoRoleHistory: seenFromZero }), false).books
+      books = tick(books, G + 30)
+      books = tick(books, G + 80)
+      expect([...books.sealed].sort((a, b) => a - b), `ticks ${before.join(",")}`).toEqual([0, 4, 5])
+      for (const turn of [1, 2, 3]) expect(books.turnVotes[turn] ?? {}).toEqual({})
+    }
   })
 
   it.fails("formal lane-b gap 4 — issue: prompt-restore ban lag; reason: a stored ban is deliberate and must never enter autoSeals", () => {

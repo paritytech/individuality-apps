@@ -84,6 +84,11 @@ export interface TurnBooks {
   presentBeforeFirstTurn: boolean
   /** the first turn this page opened (or the stored books name) */
   firstOpenedTurn: number | undefined
+  /** the first turn THIS page opened itself (openTurn observed it), never
+   *  merged with the stored books: restoreBooks may lower firstOpenedTurn to
+   *  a turn this page never lived through, so a floor that runs on this
+   *  page's own evidence starts here, not there (archive#1504) */
+  pageFirstOpenedTurn: number | undefined
   /** the first turn the STORED books say this player opened in this game:
    *  proof of a rejoin, as opposed to a genuine late join (#527) */
   restoredFirstOpenedTurn: number | undefined
@@ -121,6 +126,7 @@ export function emptyTurnBooks(): TurnBooks {
     lastSealedTurn: -1,
     presentBeforeFirstTurn: false,
     firstOpenedTurn: undefined,
+    pageFirstOpenedTurn: undefined,
     restoredFirstOpenedTurn: undefined,
     restoredSealed: undefined,
     videoRoleHistory: {},
@@ -354,7 +360,10 @@ export function tickBooks(
     roundTurn: number,
     observed = false,
   ): Partial<Record<PlayerId, Vote>> => {
-    if (observed) b.firstOpenedTurn = b.firstOpenedTurn ?? turn
+    if (observed) {
+      b.firstOpenedTurn = b.firstOpenedTurn ?? turn
+      b.pageFirstOpenedTurn = b.pageFirstOpenedTurn ?? turn
+    }
     const bound = bindPendingVideoRoles(b.videoRoleHistory, turn)
     if (bound.changed) b.videoRoleHistory = bound.history
     const rejects = bannedRejects(b, world, round, roundTurn, turn)
@@ -373,9 +382,24 @@ export function tickBooks(
   const sealThrough = (completedExclusive: number) => {
     const previous = b.prevTurn
     const lastProcessed = previous >= 0 ? previous : b.lastSealedTurn
-    if ((lastProcessed < 0 && !b.presentBeforeFirstTurn) || completedExclusive <= lastProcessed) return
-    if (previous >= 0) sealTurn(previous)
-    for (let missed = lastProcessed + 1; missed < completedExclusive; missed++) {
+    // The entry floor comes from monotone evidence, as in the model
+    // (turn-books.definition.ts), never from prevTurn: a backward tick
+    // rewrites it, so it must not decide how far this page got or whether it
+    // attended (#390 gaps 1, 3). Not clamped by coldReadyBoundary: the
+    // rejoin replay would then seal nothing (#1178).
+    // Unless the page was present before turn 0 (the cold reconcile sets
+    // that flag before it replays), a page that opened a turn itself seals
+    // nothing below the first turn IT opened, whatever its cursor: a
+    // restored firstOpenedTurn is not evidence this page attended the turns
+    // after it, so it never lowers that floor, and with no cursor it does
+    // not open one either (archive#1504). Only a page that opened no turn
+    // and holds a cursor falls back to the merged firstOpenedTurn.
+    const floor = b.presentBeforeFirstTurn
+      ? 0
+      : (b.pageFirstOpenedTurn ?? (lastProcessed < 0 ? undefined : b.firstOpenedTurn) ?? -1)
+    if ((lastProcessed < 0 && floor < 0) || completedExclusive <= lastProcessed) return
+    if (previous >= 0 && previous >= floor) sealTurn(previous)
+    for (let missed = Math.max(floor, lastProcessed + 1); missed < completedExclusive; missed++) {
       const rejects = openGlobalTurn(missed)
       sealTurn(missed, rejects)
     }
@@ -492,10 +516,12 @@ export function tickBooks(
   const completed = completedTurns(snap)
   // Two non-round snapshots both use -1 as their active turn. A page can
   // sleep in the gap and wake in reporting, so compare their completed
-  // boundary too; otherwise that whole last round looks unchanged.
+  // boundary too; otherwise that whole last round looks unchanged. Whether
+  // the replay then seals anything is sealThrough's own gate: a restored
+  // firstOpenedTurn alone opens nothing while this page holds no position.
   const missedNonRoundBoundary =
     turn < 0 &&
-    (b.prevTurn >= 0 || b.lastSealedTurn >= 0 || b.presentBeforeFirstTurn) &&
+    (b.prevTurn >= 0 || b.lastSealedTurn >= 0 || b.presentBeforeFirstTurn || b.firstOpenedTurn !== undefined) &&
     completed > b.lastSealedTurn + 1
   if (turn !== b.prevTurn || missedNonRoundBoundary) {
     if (turn >= 0 && snap.kind === "round") {

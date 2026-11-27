@@ -649,17 +649,18 @@ function compileGenerated(actions: readonly Action[]): TurnBooksTestEvent[] {
     }
     const candidate = action === "late-join-turn-1" ? "turn-1" : action.slice("tick-".length) as Phase
     if (phaseRank[candidate] < phaseRank[phase]) {
-      // The late-join rewind is known product gap #390/3 and is kept in its
-      // shrinking expected-fail sequence below, not in passing generation.
+      // The late-join rewind is pinned in its shrinking expected-fail
+      // sequence below, not in passing generation.
       if (lateJoined) return `tick-${phase}` as Action
       // Keep one real rewind reachable without letting the overwhelmingly
       // common arbitrary clock permutations turn most of every trace stale.
       if (rewound || ++backwardCandidates % 12 !== 0) return `tick-${phase}` as Action
       rewound = true
     }
-    // Forward-after-backward exposes the two product gaps pinned below. Keep
-    // backward ticks in generated traces, but leave those known failures to
-    // their explicit shrinking expected-fail cases until the reducer fixes land.
+    // After the one rewind, hold the clock: the forward-after-backward cases
+    // (#390 gaps 1 and 3, archive#1504) are pinned as named regressions, and
+    // letting the clock run on after a rewind drops the generated traces
+    // below the state-changing depth gate in turn-books.model.test.ts.
     if (rewound && phaseRank[candidate] > phaseRank[phase]) return `tick-${phase}` as Action
     phase = candidate
     if (action === "late-join-turn-1") lateJoined = true

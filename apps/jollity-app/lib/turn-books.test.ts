@@ -284,8 +284,7 @@ const TRACE = process.env.TURN_BOOKS_SEED !== undefined
 function randomEvent(r: ReturnType<typeof rng>, life: Life): Event {
   const roll = r.next()
   // a live chain clock steps back inside the game (#390); a step back over
-  // T-0, or over a late joiner's load, is pinned on its own below (the known
-  // gaps)
+  // T-0, or over a late joiner's load, is pinned on its own below
   const floor = life.mode === "late" ? (life.clock()?.coldStartedAt ?? G) : G
   const back = [-3, -8, -14].filter((dt) => life.t + dt >= floor)
   if (roll < 0.55) {
@@ -646,8 +645,9 @@ describe("the turn books' contract", () => {
     ])
   })
 
-  // ── known gaps: found by the properties, kept as they are (an extraction
-  // changes no behaviour); each passes the day the gap is closed ──────────
+  // ── pinned gaps: still open, each pinned as an it.fails below ────────────
+  // (#390 gaps 1 and 3 are closed by this branch; the remaining ones are
+  // tracked in the follow-up issue for PR #90's review)
 
   /** a page that opened turn 0, ticked through the given chain seconds */
   const pageAt = (seconds: number[], firstTick = G + 2) => {
@@ -662,12 +662,15 @@ describe("the turn books' contract", () => {
     return { life, ticks }
   }
 
-  it.fails("known gap (clauses 2, 7): a step back from turn 0 over T-0 marks the page present only on the next tick", () => {
-    // A late joiner opens turn 0, the chain clock steps back into the
-    // connect beat: that tick resets prevTurn AFTER the present-before-turn-0
-    // test, so the page is not marked present. The same reading again marks
-    // it (not idempotent), and a page that freezes right then wakes in
-    // turn 2 with turns 0 and 1 never sealed: they stay unseen, not rejects.
+  it("#390 (clauses 2, 7): a page that steps back from turn 0 over T-0 and freezes still seals turns 0 and 1", () => {
+    // Was a known gap until #390. A late joiner opens turn 0, the chain
+    // clock steps back into the connect beat: that tick resets prevTurn, but
+    // the entry floor in sealThrough reads the first turn this page opened
+    // (pageFirstOpenedTurn, monotone), so a page that freezes right then
+    // still seals turns 0 and 1 when it wakes in turn 2. Still open: that
+    // backward tick is not idempotent (it resets prevTurn AFTER the
+    // present-before-turn-0 test, so the same reading again marks the page
+    // present; seed 261871 of the clause-7 property, also on main).
     const { life } = pageAt([G - 5, G + 25])
     expect(life.books.sealed.has(0) && life.books.sealed.has(1)).toBe(true)
   })
@@ -682,13 +685,13 @@ describe("the turn books' contract", () => {
     expect(again.books.firstOpenedTurn).toBe(books.firstOpenedTurn)
   })
 
-  it.fails("known gap (clause 3): a step back into a turn before a late joiner's load seals it with defaults", () => {
-    // A genuine late joiner loads in turn 1. The chain clock steps back into
-    // turn 0, which ended before the load; a frame there makes B and C seen
-    // from turn 0 (#562 B: decoded in an open turn), and when the clock moves
-    // on, the forward step seals the re-lived turn 0 like any other: B and C
-    // take the NotPerson default in a turn the late joiner was never charged
-    // for. (Spec decision 7: what a re-lived turn may hold.)
+  it("#390 (clause 3): a step back into a turn before a late joiner's load files no defaults there", () => {
+    // Was a known gap until #390. A genuine late joiner loads in turn 1.
+    // The chain clock steps back into turn 0, which ended before the load; a
+    // frame there makes B and C seen from turn 0 (#562 B: decoded in an open
+    // turn), but when the clock moves on, the entry floor in sealThrough
+    // (firstOpenedTurn = 1) keeps the re-lived turn 0 below the entry: it is
+    // never sealed and files no verdicts the late joiner was not charged for.
     const life = newLife("late", G + 13)
     life.restored = true
     life.clock = () => ({ ready: true, coldStartedAt: G + 13 })
@@ -903,6 +906,73 @@ describe("the trail the books hand the session", () => {
     expect([...ticked.books.sealed]).toEqual([0, 1, 2])
     expect(ticked.trail).toContainEqual({ kind: "away" })
   })
+
+  it("a page reopened after the game ends files no verdicts for turns it never lived through", () => {
+    // Review blocker 1 on PR #90: the stored books name firstOpenedTurn 0 and
+    // hold turns 0-1 sealed, but this page reopened after the game finished
+    // (no cold start, prevTurn and lastSealedTurn both -1). One tick from the
+    // finished snapshot must seal nothing new: a restored firstOpenedTurn
+    // alone is not evidence this page attended the later turns.
+    const stored: StoredVotes = {
+      ...saved(emptyTurnBooks()),
+      autoSeals: { 0: [], 1: [] },
+      firstOpenedTurn: 0,
+      videoRoleHistory: SEEN,
+    }
+    const restored = restoreBooks(emptyTurnBooks(), stored, false).books
+    const ticked = tickBooks(
+      restored,
+      calculateSnapshot(G + 201, timing),
+      clockOf({ ready: true }),
+      worldOf(restored),
+    )
+    expect([...ticked.books.sealed].sort((a, b) => a - b)).toEqual([0, 1])
+    for (let turn = 2; turn < STRIDE * timing.rounds; turn++)
+      expect(ticked.books.turnVotes[turn] ?? {}).toEqual({})
+    expect(ticked.trail.filter((step) => step.kind === "row" && step.message === "turn sealed")).toEqual([])
+  })
+
+  it("a warm page that opened turn 4 seals from its own first turn after restore and a backward step", () => {
+    // Review blocker on PR #90 (archive#1504): a warm page opens turn 4, the
+    // stored books then lower the merged firstOpenedTurn to 0, the clock
+    // steps back into the gap (G+50) and then forward to turn 6 (G+80). The
+    // floor on this page's own evidence is the first turn IT opened (4), not
+    // the merged value: turns 1-3, which it never lived through, get no
+    // NotPerson defaults.
+    const stored: StoredVotes = {
+      ...saved(emptyTurnBooks()),
+      autoSeals: { 0: [] },
+      firstOpenedTurn: 0,
+      videoRoleHistory: SEEN,
+    }
+    let { books } = play({ ...emptyTurnBooks(), videoRoleHistory: SEEN }, [G + 57], () => clockOf({ ready: true }))
+    books = restoreBooks(books, stored, false).books
+    expect(books.firstOpenedTurn).toBe(0)
+    ;({ books } = play(books, [G + 50, G + 80], () => clockOf({ ready: true })))
+    expect([...books.sealed].sort((a, b) => a - b)).toEqual([0, 4, 5])
+    for (const turn of [1, 2, 3]) expect(books.turnVotes[turn] ?? {}, `turn ${turn}`).toEqual({})
+  })
+
+  // Focused review on PR #90: the same leak when the backward step lands
+  // inside a turn (prevTurn is set, so the floor left the page-own-evidence
+  // path), and with an extra tick before the restore.
+  for (const [name, before] of [
+    ["a backward step into turn 2", [G + 57]],
+    ["a backward step into turn 2 after a tick in turn 5", [G + 57, G + 69]],
+  ] as const)
+    it(`a warm page that opened turn 4 never seals below it after restore and ${name}`, () => {
+      const stored: StoredVotes = {
+        ...saved(emptyTurnBooks()),
+        autoSeals: { 0: [] },
+        firstOpenedTurn: 0,
+        videoRoleHistory: SEEN,
+      }
+      let { books } = play({ ...emptyTurnBooks(), videoRoleHistory: SEEN }, [...before], () => clockOf({ ready: true }))
+      books = restoreBooks(books, stored, false).books
+      ;({ books } = play(books, [G + 30, G + 80], () => clockOf({ ready: true })))
+      expect([...books.sealed].sort((a, b) => a - b)).toEqual([0, 4, 5])
+      for (const turn of [1, 2, 3]) expect(books.turnVotes[turn] ?? {}, `turn ${turn}`).toEqual({})
+    })
 
   // #1470: the game session applies the captured remount boundary after
   // restore — behaviour is pinned by the #1470 remount regressions above and
