@@ -570,7 +570,8 @@ export function createSignup(dependencies: SignupDependencies): Signup {
     if (seat.path === "unfunded") return handoff(gameIndex, trace, seat.path)
     const route = seat.path
     const submit = async () => {
-      trace.wired = false
+      // trace.wired is not reset on a resend: once a send of this journey went
+      // out, a later failure may not be read as "nothing was sent"
       advance("draws")
       // The watch on the wire is bounded, from the broadcast on. The signing
       // before it is not: that is the player reading a prompt.

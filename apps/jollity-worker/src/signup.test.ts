@@ -1167,6 +1167,20 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
     expect(telemetryRecords(sent, "chat.signup.resend", "metric")).toEqual([expect.objectContaining({ value: 1 })])
   })
 
+  it("leaves it to the poll when a Future resend fails before its own broadcast after the first was sent (row 11)", async () => {
+    // Given: the first send is broadcast and refused as Future, the reads
+    // fail, and the resend fails before it goes out — the first may still land
+    const answers: Array<(options: RegisterOptions) => RegisterResult> = [
+      (options) => (options.onBroadcast!(), poolRefusal("Future")),
+      () => ({ ok: false, error: "host refused" }),
+    ]
+    const { signup, engine } = await run(async (options) => answers.shift()!(options), null)
+    await flush()
+    expect(engine.register).toHaveBeenCalledTimes(2)
+    expect(signup.state()).toEqual({ kind: "idle", unsettled: 7 })
+    expect(sent.filter((record) => record.tags["failure.kind"] === "signup-failed")).toEqual([])
+  })
+
   it("ends sent, and links the name, when the chain holds the player after a Tracking stopped result", async () => {
     const { signup, linkName } = await run(async (options) => {
       options.onBroadcast!()
@@ -1356,7 +1370,7 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
       expect.objectContaining({ name: "signup-failed: register", contexts: { failure: expect.objectContaining({ error: expect.stringContaining("Stale") }) } }),
     ])
   })
-  it("reads the chain once for the broadcast, not again, when the resend fails before its own broadcast", async () => {
+  it("reads the chain again for the earlier broadcast when the resend fails before its own broadcast", async () => {
     // Given
     const answers: Array<(options: RegisterOptions) => RegisterResult> = [
       (options) => (options.onBroadcast!(), poolRefusal("Stale")),
@@ -1370,10 +1384,10 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
     // Then
     expect(signup.state()).toMatchObject({ kind: "failed", gameIndex: 7 })
     expect(engine.register).toHaveBeenCalledTimes(2)
-    // the first seat read, then the nonce refusal's one re-read for the
-    // broadcast (it comes before the post-failure settling, which no longer
-    // reads the same broadcast a second time)
-    expect(engine.seat).toHaveBeenCalledTimes(2)
+    // the first seat read, the nonce refusal's re-read, and one more after
+    // the failed resend: the first send may still land, so only an answered
+    // not-in files it failed
+    expect(engine.seat).toHaveBeenCalledTimes(3)
   })
 
   it("ends sent, read again, when the resend after a nonce refusal loses its watch and the chain holds the player", async () => {
