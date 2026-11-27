@@ -18,7 +18,10 @@ import { chainNowMs } from "../chain-clock"
 import { devLog } from "../debug/log-store"
 import { FREEZE_SLACK_MS, pageFroze, pageHidden as readPageHidden, reportPageActivity, watchPageHidden as watchHidden } from "../page-lifecycle"
 import { recordCount, recordDistribution } from "./metrics"
+import { NOTIFICATION_MOMENTS, NOTIFICATION_PARAM, REMINDER_VALUE, MOMENT_PARAM } from "./notification-url"
 import { currentMoment, currentScene, MOMENTS, type MomentName, type SceneName } from "./smoothness"
+
+export { NOTIFICATION_MOMENTS } from "./notification-url"
 
 export const FOREGROUND_TICK_MS = 500
 
@@ -120,8 +123,6 @@ const AWAY_OPEN_MESSAGE = "away open"
 const AWAY_RUNNING_MESSAGE = "away running"
 export const AWAY_RUNNING_LOGGED_MS = 10_000
 
-const NOTIFICATION_MOMENTS = new Set(["opens", "close-1h", "close-10m", "start-5m", "start-1m", "start-20s"])
-
 /** The marker for a hidden page that is still running (see AWAY_RUNNING_MESSAGE). */
 export interface AwayRunning {
   hiddenAtMs: number
@@ -161,9 +162,6 @@ export const FOREGROUND_LITERALS = [
   ...NOTIFICATION_MOMENTS,
 ] as const
 
-const NOTIFICATION_PARAM = "jollity-notification"
-const REMINDER_VALUE = "reminder"
-const MOMENT_PARAM = "moment"
 let notificationMoment: string | null = null
 
 const PAYOFF_PATHS = ["/collectables", "/prize-draw"]

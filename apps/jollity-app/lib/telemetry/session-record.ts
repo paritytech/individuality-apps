@@ -454,11 +454,9 @@ export async function startSessionRecord(options: StartOptions): Promise<Previou
     }
     const established = refresh()
     const hostTelemetry = readHostTelemetryContext()
-    const launch = readLaunchSource({
-      search: typeof window === "undefined" ? "" : window.location.search,
-      pathname: typeof window === "undefined" ? "/" : window.location.pathname,
-    })
-    const concurrentPage = previous !== null && now - previous.lastSeenAt >= 0 && now - previous.lastSeenAt < CONCURRENT_PAGE_MAX_GAP_MS
+    const pageLocation = typeof window === "undefined" ? undefined : window.location
+    const launch = readLaunchSource({ now, search: pageLocation?.search, pathname: pageLocation?.pathname })
+    const concurrentPage = diagnostic.gapMs !== undefined && diagnostic.gapMs < CONCURRENT_PAGE_MAX_GAP_MS
     captureReplayObservation("session.link", {
       heartbeatSessionId: current.sessionId,
       logSessionId: SESSION_ID,

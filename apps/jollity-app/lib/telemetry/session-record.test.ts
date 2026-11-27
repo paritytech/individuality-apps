@@ -127,7 +127,8 @@ afterEach(() => {
 })
 
 describe("previous-session classification", () => {
-  it("rounds the epoch time origin to integer milliseconds before capture", async () => {    vi.stubGlobal("performance", {
+  it("rounds the epoch time origin to integer milliseconds before capture", async () => {
+    vi.stubGlobal("performance", {
       timeOrigin: 1_792_413_000_123.456,
       getEntriesByType: () => [{ type: "reload" }],
     })
@@ -271,12 +272,14 @@ describe("previous-session classification", () => {
 })
 
 describe("launch source on session.link", () => {
-  it("records a host alarm open as notification with its raw host value", async () => {
+  // classification itself is covered in launch-source.test.ts; these pin the wiring
+  it("records the launch source read from the host bootstrap and the URL", async () => {
     vi.stubGlobal("__trinityHostTelemetry", {
       hostSessionId: "123e4567-e89b-42d3-a456-426614174000",
       openSource: "alarm",
       openedAtEpochMs: NOW - 1_000,
     })
+    search = "?jollity-notification=reminder&moment=start-5m"
     await start()
     expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
       "app.launch_source": "notification",
@@ -284,28 +287,7 @@ describe("launch source on session.link", () => {
     }))
   })
 
-  it("records a host deeplink open as deeplink", async () => {
-    vi.stubGlobal("__trinityHostTelemetry", {
-      hostSessionId: "123e4567-e89b-42d3-a456-426614174000",
-      openSource: "deeplink",
-      openedAtEpochMs: NOW - 1_000,
-    })
-    await start()
-    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
-      "app.launch_source": "deeplink",
-    }))
-  })
-
-  it("records a reminder notification from the launch URL with its moment", async () => {
-    search = "?jollity-notification=reminder&moment=start-5m"
-    await start()
-    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
-      "app.launch_source": "notification",
-      "app.launch_detail": "start-5m",
-    }))
-  })
-
-  it("records any other launch query as a deeplink with the route", async () => {
+  it("records the launch source read from the URL when there is no host bootstrap", async () => {
     pathname = "/game"
     search = "?card=humanity"
     await start()
@@ -325,19 +307,14 @@ describe("launch source on session.link", () => {
 })
 
 describe("concurrent page flag on session.link", () => {
-  it("flags a previous session seen half a second earlier as a concurrent page", async () => {
-    previous({ lastSeenAt: NOW - 500 })
+  it.each([
+    ["flags a previous session seen half a second earlier as a concurrent page", NOW - 500, "true"],
+    ["does not flag a previous session seen long ago", NOW - 20_000, "false"],
+  ])("%s", async (_name, lastSeenAt, expected) => {
+    previous({ lastSeenAt })
     await start()
     expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
-      "app.concurrent_page": "true",
-    }))
-  })
-
-  it("does not flag a previous session seen long ago", async () => {
-    previous({ lastSeenAt: NOW - 20_000 })
-    await start()
-    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
-      "app.concurrent_page": "false",
+      "app.concurrent_page": expected,
     }))
   })
 
