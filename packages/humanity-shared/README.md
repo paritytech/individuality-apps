@@ -35,9 +35,9 @@ The folders under `src/`:
 ## Status
 
 The package is `"private": true` and is consumed as TypeScript source from
-this npm workspace; it is not published to npm. Its `postinstall` runs
-`papi generate`, which writes the typed chain descriptors under `.papi/`
-(the `@polkadot-api/descriptors` dependency).
+this npm workspace; it is not published to npm. Its `postinstall` generates both People descriptors from the SCALE files in
+`.papi/metadata/`. Previewnet and local builds use `@polkadot-api/descriptors`.
+Paseo Next V2 uses the package-local output configured in `.papi/paseo.json`.
 
 ## Testing
 

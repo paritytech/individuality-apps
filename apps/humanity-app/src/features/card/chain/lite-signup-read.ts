@@ -1,9 +1,7 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { people } from "@polkadot-api/descriptors";
-import type { TypedApi } from "polkadot-api";
-
+import type { PeopleApi } from "@humanity/shared/chain/client.ts";
 import {
   fromPapi,
   readLiteSignUpRequirement,
@@ -16,7 +14,7 @@ import type { LiteSignUpVerdict } from "@features/card/domain/lite-signup.ts";
 const logger = loggerFor("card", "lite-signup-read");
 
 export interface ReadLiteSignUpVerdictArgs {
-  api: TypedApi<typeof people>;
+  api: PeopleApi;
   /** Pin the same block the caller's other reads use, so one refresh cannot
    *  answer the schedule from one block and the seat verdict from another. */
   client: FinalizedBlockSource;

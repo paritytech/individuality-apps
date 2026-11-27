@@ -1,14 +1,14 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { Binary, Enum, type TypedApi } from "polkadot-api";
-import type { people } from "@polkadot-api/descriptors";
+import { Binary, Enum } from "polkadot-api";
 
 import {
   readAtFinalized,
   type SnapshotAt,
 } from "@humanity/shared/chain/finalized-snapshot.ts";
-import { getPeopleClient } from "@humanity/shared/chain/client.ts";
+import type { usernameSigningContext } from "@humanity/shared/chain/username-signing-context.ts";
+import { getPeopleClient, type PeopleApi } from "@humanity/shared/chain/client.ts";
 import { tracedRead } from "@humanity/shared/chain/chain-read.ts";
 import {
   probeDevicehoodRing,
@@ -54,14 +54,12 @@ export type AccountUnavailable = {
 export type HumanityCardResult = AccountUnavailable | ResolvedHumanityCard;
 
 export interface HumanityCardReadArgs {
+  readSigningContext?: typeof usernameSigningContext;
   identity: HumanityUserId;
   /** The candidate account at the configured `GAME_ACCOUNT_INDEX`. */
   gameAccount: string | null;
   signal: AbortSignal;
 }
-
-/** The people-chain typed api, as `getPeopleClient` hands it over. */
-type PeopleApi = TypedApi<typeof people>;
 
 /** A ring-VRF key the host holds for us, `null` when it holds none. */
 type RingKey = HexString | null;
@@ -175,6 +173,7 @@ async function resolveDeviceKeyCheck(
 
 /** One finalized read of the person's card. Throws on chain/host failure; the caller bounds it (`runBoundedChainRead`). */
 export async function readHumanityCard({
+  readSigningContext,
   identity,
   gameAccount,
   signal,
@@ -231,6 +230,7 @@ export async function readHumanityCard({
       gameAccountAlias,
       personhoodThreshold,
       absenceGraceRatio,
+      signingContext,
     ] = await Promise.all([
       usernameOwner(at),
       tracedRead("Score.Participants", () =>
@@ -245,6 +245,7 @@ export async function readHumanityCard({
       tracedRead("Score.AbsenceGraceRatio", () =>
         api.query.Score.AbsenceGraceRatio.getValue(at),
       ),
+      readSigningContext?.(client, at) ?? null,
     ]);
     signal.throwIfAborted();
 
@@ -367,7 +368,7 @@ export async function readHumanityCard({
       },
     );
 
-    return toHumanityCardResult({
+    const card = toHumanityCardResult({
       primaryUsername: cardIdentity.primaryUsername,
       ownerAccount: owner,
       gameAccount,
@@ -381,5 +382,6 @@ export async function readHumanityCard({
       devicehoodRing,
       deviceKeyCheck,
     });
+    return { ...card, usernameUpgradeSupported: signingContext != null };
   });
 }

@@ -67,6 +67,7 @@ export { drawTicketCanPay, gamesToMembership, type ScoreStanding } from "./draw-
 // the retry policy, and its machine for a surface that models or tests it
 export {
   backoffMs,
+  classifyPermanent,
   classifyRetry,
   HOST_NOTICE_UNKNOWN_LIMIT,
   HOST_PROBE_EVERY_MS,
@@ -80,6 +81,7 @@ export {
   waitsOnSeat,
   type ActionableRetryReason,
   type AttemptResult,
+  type Permanent,
   type ReminderBlock,
   type RetryReason,
   type SignupEnd,

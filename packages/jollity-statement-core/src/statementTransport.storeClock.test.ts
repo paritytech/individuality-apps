@@ -673,6 +673,12 @@ describe("per-channel order: one submit in flight per channel", () => {
     await until(() => submits.some((e) => e.kind === "retry"), '"stale" to fail fast and start its 400 ms wait')
     transport.send("p1", { rtc: { desc: { type: "offer", sdp: "fresh" } } })
     await run(450)
+    // Wait for the store's own answer, not a fixed turn count: the "fresh"
+    // frame's channel digest is real threadpool work (crypto.subtle), and on a
+    // loaded runner it can land past settle()'s turns, which is what made this
+    // flake (archive #1459: accepted ['hello'] had no 'fresh' yet)
+    await until(() => fake.accepted.includes("fresh"), 'the "fresh" frame to be accepted')
+    await settle() // quiescence: pin the exact final counts below
     expect(fake.log.filter((l) => l === "start stale")).toHaveLength(1)
     expect(fake.accepted).toContain("fresh")
     expect(submits.filter((e) => e.kind === "failed")).toEqual([])

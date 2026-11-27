@@ -21,8 +21,8 @@
  * (the native iOS host answers `Unsupported`) is a state the home explains,
  * not an error string anybody parses.
  */
-import type { people } from "@polkadot-api/descriptors";
-import type { PolkadotClient, TypedApi } from "polkadot-api";
+import type { PeopleApi } from "@humanity/shared/chain/client.ts";
+import type { PolkadotClient } from "polkadot-api";
 
 import {
   getAccountsProvider,
@@ -81,8 +81,6 @@ const REGISTER_UNAVAILABLE_MESSAGE =
   "Finishing your membership isn't available from here.";
 const FINALITY_FAILURE_MESSAGE =
   "We couldn't confirm your membership. Try again shortly.";
-
-type PeopleApi = TypedApi<typeof people>;
 
 export interface RegisterPersonhoodArgs {
   api: PeopleApi;

@@ -3756,7 +3756,9 @@ describe("journey.game-signup", () => {
     await tap(chain)
     await answerReads(chain, 15_000)
     expect(signupJourneys()[0].outcome).toBe("retrying")
-    expect(signupJourneys()[0].attrs["signup.retry_reason"]).toBe("tracking-lost")
+    // the retry reason is the failed re-read's own ("rpc down"), not the
+    // dispatch error's: the re-read is what left the landing unknown (row 3)
+    expect(signupJourneys()[0].attrs["signup.retry_reason"]).toBe("other")
   })
 
   it("continues sign-up after a game-window read hangs, and records the bounded timeout", async () => {

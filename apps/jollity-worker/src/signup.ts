@@ -50,6 +50,7 @@ import {
 import { COMMUNICATION_ENTROPY_CONTEXT, network, type GameEngine } from "@jollity/protocol"
 import {
   BIND_TIMEOUT_MS,
+  classifyPermanent,
   communicationKeyFrom,
   communicationKeyRecord,
   drawResult,
@@ -377,12 +378,56 @@ export function createSignup(dependencies: SignupDependencies): Signup {
     return waited.then(() => next)
   }
 
-  /** After a failure that follows the broadcast: does the chain hold the player after all? */
-  const landedAfterFailure = async (trace: Trace, errorText: string): Promise<boolean> => {
+  /** The card goes back to what the chain says, and the poll's two-read rule
+   * keeps or drops the reminder: the outcome is unknown, not failed. */
+  const leaveToPoll = (trace: Trace, gameIndex: number, stage: string) =>
+    endJourney(trace, "unknown", { kind: "idle", unsettled: gameIndex }, { "signup.stage": stage })
+
+  /** After a failure that follows the broadcast: does the chain hold the player
+   * after all? "unknown" when the re-read itself failed — the broadcast may
+   * have landed all the same, and only a chain read that answers can say
+   * otherwise (#37, archive#1355). A failure the chain already answered for
+   * good (registration closed, game ongoing, wrong deposit, …) is never
+   * unknown, whatever the re-read says, and neither is a throw's text: the
+   * shared package re-reads only the non-permanent ones, and a closed game
+   * must not come back as idle with the Register button for it. The one
+   * permanent word that means the opposite — AlreadyRegistered in any message
+   * form — is a landing, not a failure: the chat sign-up ends sent. */
+  const landedAfterFailure = async (trace: Trace, errorText: string, thrown?: unknown): Promise<boolean | "unknown"> => {
     if (!trace.wired || !trace.reread || signupFailureReason(errorText, trace.stage) === "signing-refused") return false
+    const permanent = thrown ? null : classifyPermanent(errorText)
+    if (permanent === "registered") return true
+    if (permanent !== null) return false
     await new Promise((resolve) => setTimeout(resolve, LANDING_WAIT_MS))
     const now = await within(trace.reread(), SIGNUP_STEP_DEADLINE_MS).catch(() => null)
-    return now?.registered === true
+    if (now === null) return "unknown"
+    return now.registered === true
+  }
+
+  /** Ends the journey for a post-broadcast failure whose landing a chain read
+   * settled (the player is on the chain) or could not (unknown, left to the
+   * poll); null when the sign-up failed for good. A throw is `thrown`. */
+  const settledAfterFailure = async (
+    trace: Trace,
+    gameIndex: number,
+    errorText: string,
+    route?: string,
+    thrown?: unknown,
+  ): Promise<SignupState | null> => {
+    const landed = await landedAfterFailure(trace, errorText, thrown)
+    if (landed === true) {
+      // this attempt's own sign-up landed after all: its tickets want the name too
+      dependencies.linkName?.()
+      return endJourney(trace, "sent", { kind: "sent", gameIndex }, { "signup.landed_by": "reread" })
+    }
+    if (landed === "unknown") {
+      // The broadcast went out and no chain read has answered: the sign-up
+      // may have landed all the same. Leave it to the poll, as a watch that
+      // never settles does, rather than tell the player it failed (#37).
+      dependencies.log?.("info", `${route ? `The ${route} sign-up` : "The sign-up"} from the chat is on the wire, but the chain read that would confirm it failed: ${errorText}`)
+      return leaveToPoll(trace, gameIndex, "reread-failed")
+    }
+    return null
   }
 
   /**
@@ -525,7 +570,8 @@ export function createSignup(dependencies: SignupDependencies): Signup {
     if (seat.path === "unfunded") return handoff(gameIndex, trace, seat.path)
     const route = seat.path
     const submit = async () => {
-      trace.wired = false
+      // trace.wired is not reset on a resend: once a send of this journey went
+      // out, a later failure may not be read as "nothing was sent"
       advance("draws")
       // The watch on the wire is bounded, from the broadcast on. The signing
       // before it is not: that is the player reading a prompt.
@@ -583,29 +629,40 @@ export function createSignup(dependencies: SignupDependencies): Signup {
         // The transaction may still be in the pool, so this is no failure: the
         // card goes back to what the chain says, and the poll's two-read rule
         // keeps or drops the reminder.
-        return endJourney(trace, "unknown", { kind: "idle", unsettled: gameIndex }, { "signup.stage": "watch-timeout" })
+        return leaveToPoll(trace, gameIndex, "watch-timeout")
       }
       if (result.ok) {
         dependencies.linkName?.()
         return endJourney(trace, "sent", { kind: "sent", gameIndex })
       }
-      if (result.error === "AlreadyRegistered") {
+      if (classifyPermanent(result.error) === "registered") {
+        // the player is in, but maybe by another surface's sign-up: no name
+        // link for tickets this attempt may not own
         return endJourney(trace, "sent", { kind: "sent", gameIndex }, { "signup.landed_by": "already-registered" })
-      }
-      if (await landedAfterFailure(trace, result.error)) {
-        dependencies.linkName?.()
-        return endJourney(trace, "sent", { kind: "sent", gameIndex }, { "signup.landed_by": "reread" })
       }
       if (!resent && isNonceRefusal(result.code)) {
         resent = true
-        if (await holdsPlayer()) {
+        // nonce refusals come before the post-failure settling: its failed
+        // read would leave a Future to the poll, which a resend clears
+        // a Stale nonce's same-nonce transaction may have landed: only a read
+        // that answers may say the player is not in, and only then is the
+        // sign-up sent again. A failed read leaves it to the poll. A Future
+        // nonce has a transaction queued ahead, which a second send clears,
+        // so it resends once on a failed or not-in read alike.
+        // a broadcast one gets the same landing wait the settling gives it
+        if (trace.wired) await new Promise((resolve) => setTimeout(resolve, LANDING_WAIT_MS))
+        const read = await readSeat(engine, address, false).catch(() => null)
+        if (read?.registered === true) {
           dependencies.linkName?.()
           return endJourney(trace, "sent", { kind: "sent", gameIndex }, { "signup.landed_by": "reread" })
         }
+        if (result.code === "Stale" && read === null) return leaveToPoll(trace, gameIndex, "reread-failed")
         chatCount("chat.signup.resend", { "signup.resend_reason": result.code })
         journey.set({ "signup.resend": result.code })
         continue
       }
+      const settled = await settledAfterFailure(trace, gameIndex, result.error, route)
+      if (settled) return settled
       dependencies.log?.("error", `The ${route} sign-up from the chat failed: ${result.error}`)
       const closed = CLOSED_CODES.has(result.code ?? result.error)
       const reason = closed ? "window-closed" : signupFailureReason(result.error, "register")
@@ -654,16 +711,12 @@ export function createSignup(dependencies: SignupDependencies): Signup {
         await signUp(gameIndex, trace)
       } catch (error) {
         const text = describeError(error)
-        if (await landedAfterFailure(trace, text)) {
-          // this attempt's own sign-up landed after all: its tickets want the name too
-          dependencies.linkName?.()
-          await endJourney(trace, "sent", { kind: "sent", gameIndex }, { "signup.landed_by": "reread" })
-        } else {
-          dependencies.log?.("error", `The sign-up from the chat failed: ${messageOf(error)}`)
-          const reason = signupFailureReason(text, trace.stage)
-          reportSignupFailure(reason, trace.route ?? "unknown", describeErrorChain(error))
-          await endJourney(trace, "failed", { kind: "failed", gameIndex, notice: cardCopy.SIGN_UP_FAILED }, { "signup.stage": reason, ...expectedAttrs(reason) })
-        }
+        const settled = await settledAfterFailure(trace, gameIndex, text, trace.route, trace.wired ? error : undefined)
+        if (settled) return
+        dependencies.log?.("error", `The sign-up from the chat failed: ${messageOf(error)}`)
+        const reason = signupFailureReason(text, trace.stage)
+        reportSignupFailure(reason, trace.route ?? "unknown", describeErrorChain(error))
+        await endJourney(trace, "failed", { kind: "failed", gameIndex, notice: cardCopy.SIGN_UP_FAILED }, { "signup.stage": reason, ...expectedAttrs(reason) })
       }
     },
   }

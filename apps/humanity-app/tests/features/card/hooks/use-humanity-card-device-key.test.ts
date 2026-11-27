@@ -79,6 +79,7 @@ vi.mock("@humanity/shared/chain/bounded-read.ts", () => ({
 vi.mock("@shared/chain/query-state.ts", () => ({ blockingError: () => null }));
 vi.mock("@shared/chain/query-view.ts", () => ({ mockQueryView: vi.fn() }));
 vi.mock("@humanity/shared/chain/client.ts", () => ({ getPeopleClient: mocks.getPeopleClient }));
+vi.mock("@humanity/shared/chain/username-signing-context.ts", () => ({ usernameSigningContext: async () => null }));
 vi.mock("@humanity/shared/identity/personhood-ring-key.ts", () => ({
   readPersonhoodRingKey: mocks.readPersonhoodRingKey,
   readDeclaredRingKey: mocks.readDeclaredRingKey,

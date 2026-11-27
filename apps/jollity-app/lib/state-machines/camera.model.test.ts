@@ -18,6 +18,5 @@ describe("camera recovery state-machine model", () => {
     expect(new Set(cameraWitnesses.map(({ name }) => name)).size).toBe(declared)
     expect(cameraRegressionCorpus.some(({ name }) => name.includes("stale"))).toBe(true)
     expect(Object.keys(cameraTransitionTable)).toHaveLength(16)
-    expect(cameraRegressionCorpus.filter(({ name }) => name.includes("host camera muting"))).toHaveLength(2)
-  })
+    expect(cameraRegressionCorpus.filter(({ name }) => name.includes("host camera muting"))).toHaveLength(3) })
 })

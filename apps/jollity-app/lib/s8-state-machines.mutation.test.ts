@@ -8,7 +8,7 @@ import { startReadRetry } from "./read-retry"
 
 describe("S8 machine initial states", () => {
   it("pins every production initializer", () => {
-    expect(startCameraRecovery()).toEqual({ retries: 0, deferred: false, scheduledAttempt: null, mutedStreak: 0, tap: "none" })
+    expect(startCameraRecovery()).toEqual({ retries: 0, deferred: false, scheduledAttempt: null, mutedStreak: 0, mutedChecks: 0, tap: "none" })
     expect(startLaunchStall()).toEqual({ phase: "armed" })
     expect(startReadRetry([10, 20])).toEqual({ phase: "idle", attempt: 0, delaysMs: [10, 20] })
   })

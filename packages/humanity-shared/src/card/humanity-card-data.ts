@@ -313,6 +313,8 @@ export interface HumanityCardReadInputs {
 
 /** The assembled card arm of `HumanityCardResult`. */
 export interface ResolvedHumanityCard {
+  /** Absent from snapshots saved before the runtime capability was checked. */
+  usernameUpgradeSupported?: boolean;
   kind: "card";
   /** Absent on older cached snapshots; recovery hints must not assume account eligibility. */
   participantKey?: "account" | "person" | null;

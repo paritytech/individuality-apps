@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { runBoundedChainRead } from "@humanity/shared/chain/bounded-read.ts";
 import { blockingError } from "@shared/chain/query-state.ts";
+import { usernameSigningContext } from "@humanity/shared/chain/username-signing-context.ts";
 import type { QueryView } from "@shared/chain/query-view.ts";
 import type { ResolvedHumanityCard } from "@humanity/shared/card/humanity-card-data.ts";
 import { isHumanityCardStateKind } from "@humanity/shared/card/humanity-card-state.ts";
@@ -104,6 +105,7 @@ export function useHumanityCard(enabled = true): HumanityCardQuery {
               return { kind: "account-unavailable" };
             }
             const result = await readHumanityCard({
+              readSigningContext: usernameSigningContext,
               identity,
               gameAccount,
               signal: childSignal,

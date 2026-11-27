@@ -3,6 +3,7 @@
 
 /** Stable error categories for the lite-to-full upgrade. */
 export type UsernameUpgradeErrorCode =
+  | "upgrade-unavailable"
   | "invalid-username"
   | "account-missing"
   | "signer-account-missing"
