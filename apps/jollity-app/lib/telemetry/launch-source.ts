@@ -82,15 +82,20 @@ function hostOpen(root: typeof globalThis, now: number): LaunchSourceReading | n
 
 function urlLaunch(search: string | undefined, pathname: string | undefined, navigationType: string | null): LaunchSourceReading | null {
   if (!search) return null
+  // only a fresh navigation classifies the URL: a reload, back/forward or
+  // prerender carries the app's own queries (?game=N, ?lowpower=1) and is
+  // not a deep link, however it was opened. A browser that reports no
+  // navigation type leaves the URL unclassified rather than calling it a
+  // reload.
+  if (navigationType !== "navigate") {
+    return navigationType === null ? null : { source: "unknown", detail: "reload" }
+  }
   const params = new URLSearchParams(search)
   if (params.get(NOTIFICATION_PARAM) === REMINDER_VALUE) {
     const moment = params.get(MOMENT_PARAM)
     // keep the detail to the known vocabulary so no URL free text is sent
     return { source: "notification", detail: moment !== null && NOTIFICATION_MOMENTS.has(moment) ? moment : moment ? "other" : null }
   }
-  // only a fresh navigation classifies the URL: a reload, back/forward or
-  // prerender carries the app's own queries (?game=N, ?lowpower=1)
-  if (navigationType !== "navigate") return { source: "unknown", detail: "reload" }
   // any other query on the launch URL is a deep link
   return { source: "deeplink", detail: pathname && pathname !== "/" ? pathname : null }
 }

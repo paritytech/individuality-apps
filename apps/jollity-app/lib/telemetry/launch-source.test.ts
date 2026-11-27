@@ -13,12 +13,12 @@ const hostRoot = (openSource: string, openedAtEpochMs = 1_000) =>
 
 describe("launch source", () => {
   it.each([
-    ["maps a host alarm open to notification", hostRoot("alarm"), 2_000, "", "/", { source: "notification", detail: "alarm" }],
-    ["maps a host deeplink open to deeplink", hostRoot("deeplink"), 2_000, "", "/", { source: "deeplink", detail: null }],
-    ["ignores a stale host open and falls through to the URL", hostRoot("alarm"), 1_000 + 6 * 60 * 1000, "?jollity-notification=reminder&moment=start-5m", "/", { source: "notification", detail: "start-5m" }],
-    ["never sends host free text for an unrecognised host open source", hostRoot("auto_open"), 2_000, "", "/", { source: "unknown", detail: "host-other" }],
-  ])("%s", (_name, root, now, search, pathname, expected) => {
-    expect(readLaunchSource({ root, now, search, pathname })).toEqual(expected)
+    ["maps a host alarm open to notification", hostRoot("alarm"), 2_000, "", "/", "navigate", { source: "notification", detail: "alarm" }],
+    ["maps a host deeplink open to deeplink", hostRoot("deeplink"), 2_000, "", "/", "navigate", { source: "deeplink", detail: null }],
+    ["ignores a stale host open and falls through to the URL", hostRoot("alarm"), 1_000 + 6 * 60 * 1000, "?jollity-notification=reminder&moment=start-5m", "/", "navigate", { source: "notification", detail: "start-5m" }],
+    ["never sends host free text for an unrecognised host open source", hostRoot("auto_open"), 2_000, "", "/", "navigate", { source: "unknown", detail: "host-other" }],
+  ])("%s", (_name, root, now, search, pathname, navigationType, expected) => {
+    expect(readLaunchSource({ root, now, search, pathname, navigationType })).toEqual(expected)
   })
 
   it.each([
@@ -40,9 +40,14 @@ describe("launch source", () => {
     expect(readLaunchSource({ root: ROOT, now: 1_000, search, pathname, navigationType })).toEqual(expected)
   })
 
-  it("still reads the reminder URL on a reload: the notification itself opened the page", () => {
+  it("does not classify any URL on a reload, not even a reminder URL", () => {
     expect(readLaunchSource({ root: ROOT, now: 1_000, search: "?jollity-notification=reminder&moment=start-5m", pathname: "/", navigationType: "reload" }))
-      .toEqual({ source: "notification", detail: "start-5m" })
+      .toEqual({ source: "unknown", detail: "reload" })
+  })
+
+  it("leaves the URL unclassified when the browser reports no navigation type", () => {
+    expect(readLaunchSource({ root: ROOT, now: 1_000, search: "?card=humanity", pathname: "/game", navigationType: null }))
+      .toEqual({ source: "unknown", detail: null })
   })
 
   it("a host open still wins over the reload classification", () => {
