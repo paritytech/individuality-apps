@@ -180,4 +180,105 @@ describe("the chunk store", () => {
     await store.append(rows(50, 2))
     expect((await createChunkStore<Row>(kv).read())?.entries.map((entry) => entry.ts)).toEqual([50, 51])
   })
+
+  describe("advanceOldest", () => {
+    it("drops whole chunks older than the cut with a single index write", async () => {
+      const { kv, writes } = fakeKV()
+      const store = createChunkStore<Row>(kv)
+      await store.load()
+      for (let i = 1; i <= 5; i++) await store.append([{ ts: i, size: 100 }])
+      writes.length = 0
+      const result = await store.advanceOldest(4)
+      expect(result).toEqual({ advanced: true, complete: true })
+      expect(writes).toHaveLength(1)
+      expect(writes[0].key).toBe("jollity.debug-log.index")
+      expect((await store.read())?.entries.map((entry) => entry.ts)).toEqual([4, 5])
+      // the advanced pointer survives a restart
+      const reloaded = createChunkStore<Row>(kv)
+      await reloaded.load()
+      expect((await reloaded.read())?.entries.map((entry) => entry.ts)).toEqual([4, 5])
+    })
+
+    it("keeps a chunk that straddles the cut whole", async () => {
+      const { kv, writes } = fakeKV()
+      const store = createChunkStore<Row>(kv, { chunkBytes: 1000 })
+      await store.load()
+      await store.append(rows(1, 10, 100))
+      writes.length = 0
+      const result = await store.advanceOldest(5)
+      expect(result.advanced).toBe(false)
+      expect(writes).toHaveLength(0)
+      expect((await store.read())?.entries).toHaveLength(10)
+    })
+
+    it("empties the ring when the cut is past every chunk", async () => {
+      const { kv } = fakeKV()
+      const store = createChunkStore<Row>(kv)
+      await store.load()
+      await store.append(rows(1, 3, 100))
+      await store.append(rows(10, 3, 100))
+      const result = await store.advanceOldest(1000)
+      expect(result).toEqual({ advanced: true, complete: true })
+      expect((await store.read())?.entries).toEqual([])
+    })
+
+    it("refuses to advance across a chunk that cannot be read", async () => {
+      const { kv, values, writes } = fakeKV()
+      const store = createChunkStore<Row>(kv)
+      await store.load()
+      await store.append(rows(1, 3, 100))
+      await store.append(rows(10, 3, 100))
+      values.set("jollity.debug-log.chunk.0", "{not json")
+      writes.length = 0
+      const result = await store.advanceOldest(10)
+      expect(result).toEqual({ advanced: false, complete: false })
+      expect(writes).toHaveLength(0)
+    })
+
+    it("never moves the pointer below what the ring itself evicted", async () => {
+      const { kv } = fakeKV()
+      const store = createChunkStore<Row>(kv)
+      await store.load()
+      for (let i = 0; i < RING_SLOTS + 10; i++) await store.append([{ ts: i, size: 100 }])
+      const oldest = (await store.read())!.entries[0].ts
+      const result = await store.advanceOldest(0)
+      expect(result.advanced).toBe(false)
+      expect((await store.read())!.entries[0].ts).toBe(oldest)
+    })
+
+    it("an append after an advance never rewinds the pointer", async () => {
+      const { kv } = fakeKV()
+      const store = createChunkStore<Row>(kv)
+      await store.load()
+      for (let i = 1; i <= 4; i++) await store.append([{ ts: i, size: 100 }])
+      await store.advanceOldest(4)
+      await store.append([{ ts: 100, size: 100 }])
+      const reloaded = createChunkStore<Row>(kv)
+      await reloaded.load()
+      expect((await reloaded.read())?.entries.map((entry) => entry.ts)).toEqual([4, 100])
+    })
+
+    it("a clear still wins over a later advance", async () => {
+      const { kv } = fakeKV()
+      const store = createChunkStore<Row>(kv)
+      await store.load()
+      await store.append(rows(1, 3, 100))
+      await store.clear()
+      const result = await store.advanceOldest(2)
+      expect(result.advanced).toBe(false)
+      expect((await store.read())?.entries).toEqual([])
+    })
+
+    it("a commit guard can cancel the index write after the scan", async () => {
+      const { kv, writes } = fakeKV()
+      const store = createChunkStore<Row>(kv)
+      await store.load()
+      await store.append(rows(1, 3, 100))
+      writes.length = 0
+      const result = await store.advanceOldest(10, () => false)
+      expect(result.advanced).toBe(false)
+      expect(writes).toHaveLength(0)
+      expect((await store.read())?.entries).toHaveLength(3)
+    })
+  })
 })

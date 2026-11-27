@@ -72,6 +72,16 @@ interface ChunkReadResult<E> {
   complete: boolean
 }
 
+export interface AdvanceResult {
+  /** true when the index was advanced */
+  advanced: boolean
+  /** false when a chunk the ring holds could not be read: nothing was written */
+  complete: boolean
+  /** the seq the index's `oldest` moves to; present only when the scan
+   *  advanced and the index write is still owed on the store's chain */
+  oldest?: number
+}
+
 export interface ChunkStore<E extends ChunkEntry> {
   /** Reads the index. False when the read failed or the index is unusable:
    *  the store then writes nothing. */
@@ -85,6 +95,16 @@ export interface ChunkStore<E extends ChunkEntry> {
   read(since?: number, until?: number): Promise<ChunkReadResult<E> | null>
   /** Forgets every entry (the index is emptied; chunks are overwritten in time). */
   clear(): Promise<void>
+  /** Advances the index's `oldest` past every whole chunk whose last entry is
+   *  older than `before`, with ONE index write and no chunk rewrite: the dropped
+   *  chunks stay in their slots until the ring overwrites them. A chunk that
+   *  straddles `before` is kept whole, so the cut is chunk-granular. Refuses
+   *  (writes nothing, `complete: false`) when a chunk in the scanned range could
+   *  not be read — advancing past a gap would make the loss permanent.
+   *  `commit` may veto the write after the scan (e.g. a clear ran meanwhile);
+   *  the index is re-read on the store's own chain, so a late answer can never
+   *  rewind an append that went ahead. Never rejects. */
+  advanceOldest(before: number, commit?: () => boolean): Promise<AdvanceResult>
 }
 
 const indexKey = (prefix: string) => `${prefix}.index`
@@ -204,6 +224,52 @@ export function createChunkStore<E extends ChunkEntry>(
         })
         .catch(() => {})
       return chain
+    },
+    advanceOldest(before, commit) {
+      // the scan runs OUTSIDE the write chain: it may take long (up to
+      // RING_SLOTS host reads) and must never hold back an append. Only the
+      // final index write rides the chain, so it lands after every append that
+      // started before it and re-reads `next`, never rewinding it.
+      const scan = (async (): Promise<AdvanceResult> => {
+        const current = index ?? (await readIndex())
+        if (!current) return { advanced: false, complete: false }
+        // scan oldest-first and stop at the first chunk that reaches `before`:
+        // the chunks before it are wholly older and drop, that one stays whole
+        let target = current.oldest
+        let complete = true
+        for (let seq = current.oldest; seq < current.next; seq++) {
+          const chunk = await readChunk(seq)
+          if (!chunk) {
+            complete = false
+            break
+          }
+          if (chunk.last >= before) break
+          // the chunk's last entry is older than the cut: the whole chunk drops
+          target = seq + 1
+        }
+        if (!complete) return { advanced: false, complete: false }
+        const floor = Math.max(current.oldest, current.next - RING_SLOTS)
+        const oldest = Math.max(target, floor)
+        if (oldest === current.oldest) return { advanced: false, complete: true }
+        return { advanced: true, complete: true, oldest }
+      })().catch((): AdvanceResult => ({ advanced: false, complete: false }))
+      const run = scan.then(async (result): Promise<AdvanceResult> => {
+        if (!result.advanced || result.oldest === undefined) return result
+        if (commit && !commit()) return { advanced: false, complete: true }
+        // the index write alone rides the chain: it lands after every append
+        // that started before it and re-reads `next`, never rewinding it
+        const write = chain.then(async (): Promise<void> => {
+          const fresh = index ?? (await readIndex())
+          if (!fresh) return
+          const written: Index = { next: fresh.next, oldest: Math.max(result.oldest!, Math.max(fresh.oldest, fresh.next - RING_SLOTS)) }
+          await kv.write(indexKey(prefix), JSON.stringify(written))
+          index = written
+        })
+        chain = write.catch(() => {})
+        await write
+        return { advanced: true, complete: true }
+      }).catch((): AdvanceResult => ({ advanced: false, complete: false }))
+      return run
     },
   }
 }

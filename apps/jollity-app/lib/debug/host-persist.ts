@@ -28,8 +28,9 @@ import { withTimeout } from "../with-timeout"
 import { createChunkStore, type ChunkEntry, type ChunkKV } from "./log-chunks"
 
 export const FLUSH_INTERVAL_MS = 10_000
-/** a release that cannot read the store within this gives up untouched, so a
- *  host read that never answers cannot hold back the flushes queued behind it */
+/** a release that cannot scan the ring within this gives up untouched, so a
+ *  host read that never answers cannot hold back the flushes queued behind it;
+ *  the scan's late answer is then dropped by the store's commit guard */
 export const RELEASE_READ_MS = 5_000
 /** lines held while the store is unreadable: the memory log caps the same */
 const HOLD_MAX = 5_000
@@ -50,10 +51,11 @@ export interface HostPersist<E extends ChunkEntry & { sessionId: string }> {
   readEarlier(since: number | undefined, until: number | undefined, session: string): Promise<E[] | null>
   /** Empties the store and the queue and switches queueing off. */
   clear(): Promise<void>
-  /** Drops the stored lines older than `before` and keeps the rest, the queue
-   *  and queueing. Leaves the store untouched when it, or any chunk of it,
-   *  cannot be read: a rewrite would make a passing read failure permanent.
-   *  Never rejects. */
+  /** Drops the stored chunks wholly older than `before` and keeps the rest,
+   *  the queue and queueing, by advancing the ring's oldest pointer (ONE
+   *  index write, no chunk rewrite). Leaves the store untouched when it, or
+   *  any chunk of the scanned range, cannot be read: advancing past a gap
+   *  would make a passing read failure permanent. Never rejects. */
   release(before: number): Promise<void>
 }
 
@@ -150,16 +152,19 @@ export function createHostPersist<E extends ChunkEntry & { sessionId: string }>(
       const started = generation
       return serially(async () => {
         if (generation !== started) return
-        // only the read is bounded: a late answer is dropped here, so it can
-        // never start a rewrite after the flushes behind it went ahead
-        const read = await withTimeout((async () => ((await load()) ? store.read() : null))(), RELEASE_READ_MS)
-        if (!read?.complete || generation !== started) return
-        const kept = read.entries.filter((entry) => entry.ts >= before)
-        if (kept.length === read.entries.length) return
-        // both on the store's own chain with no await between, so a reader
-        // (which waits for that chain) never sees the emptied ring
-        void store.clear()
-        await store.append(kept)
+        // the scan may take long (up to RING_SLOTS host reads); the budget
+        // bounds how long the release waits for it, and the scan's own commit
+        // guard is checked again when the index write lands, so a late answer
+        // can never rewind or overwrite what the flushes behind it wrote.
+        // The advance itself is ONE index write — no chunk is read fully or
+        // rewritten, so a handover release costs a single host-storage write.
+        await withTimeout(
+          (async () => {
+            if (!(await load())) return null
+            return store.advanceOldest(before, () => generation === started)
+          })(),
+          RELEASE_READ_MS,
+        )
       }).catch(() => {})
     },
   }
