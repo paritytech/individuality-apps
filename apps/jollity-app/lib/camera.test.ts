@@ -84,9 +84,13 @@ function current(): MediaStream | null {
   return state.kind === "live" ? state.stream : null
 }
 /** a fake <video> presenting a stream: attach it, then call frame() to
- *  present a frame, as attachCameraPreview's observer would */
+ *  present a frame, as attachCameraPreview's observer would. Like a real
+ *  element, it keeps one pending callback PER watcher (#1539 review: the
+ *  normal preview watcher and the tap watcher both see the tapped stream's
+ *  first frame), so frame() fires every registered callback. */
 function preview(stream: MediaStream, options: { paused?: boolean; rejectPlay?: boolean; pendingPlay?: boolean } = {}) {
-  let callback: VideoFrameRequestCallback | undefined
+  let nextHandle = 0
+  const callbacks = new Map<number, VideoFrameRequestCallback>()
   const video = {
     srcObject: stream,
     currentTime: 0,
@@ -97,10 +101,21 @@ function preview(stream: MediaStream, options: { paused?: boolean; rejectPlay?: 
       if (options.rejectPlay) throw new DOMException("blocked", "NotAllowedError")
       video.paused = false
     }),
-    requestVideoFrameCallback: vi.fn((next: VideoFrameRequestCallback) => ((callback = next), 1)),
-    cancelVideoFrameCallback: vi.fn(),
+    requestVideoFrameCallback: vi.fn((next: VideoFrameRequestCallback) => {
+      const handle = ++nextHandle
+      callbacks.set(handle, next)
+      return handle
+    }),
+    cancelVideoFrameCallback: vi.fn((handle: number) => {
+      callbacks.delete(handle)
+    }),
   }
-  return { video, frame: () => callback?.(performance.now(), {} as VideoFrameCallbackMetadata) }
+  return {
+    video,
+    frame: () => {
+      for (const callback of [...callbacks.values()]) callback(performance.now(), {} as VideoFrameCallbackMetadata)
+    },
+  }
 }
 
 afterEach(async () => {
@@ -583,7 +598,7 @@ describe("recovery", () => {
     release()
   })
 
-  it("backs the still-muted reopen off 3 s, 6 s, 12 s and keeps the 12 s cap once the tap is offered (#1539)", async () => {
+  it("keeps the 3 s cadence until the tap is offered (~9 s), then backs off 6 s, 12 s at the cap (#1539, Ionut 27 Nov)", async () => {
     vi.useFakeTimers()
     const release = holdCamera()
     try {
@@ -591,15 +606,16 @@ describe("recovery", () => {
       const opens = () => vi.mocked(getLocalMedia).mock.calls.length
       const before = opens()
       // the real stuck-camera pattern: each reopen comes back UNMUTED and
-      // mutes again 500 ms later. The reopen must back off 3 s, 6 s, 12 s
-      // instead of looping every 3 s, and keep going at the 12 s cap once
-      // the tap is offered (Ionut, 27 Nov).
-      for (let attempt = 0; attempt < 6; attempt += 1) {
+      // mutes again 500 ms later. The reopen keeps the 3 s cadence until the
+      // tap is offered (the third still-muted check, ~9 s in), then backs
+      // off 6 s, then 12 s, and keeps going at the 12 s cap once the tap is
+      // offered or spent (Ionut, 27 Nov).
+      for (let attempt = 0; attempt < 7; attempt += 1) {
         const stream = current()!
         await vi.advanceTimersByTimeAsync(500)
         trackOf(stream).muted = true
         trackOf(stream).dispatchEvent(new Event("mute"))
-        await vi.advanceTimersByTimeAsync([3_000, 6_000, 12_000, 12_000, 12_000, 12_000][attempt]!)
+        await vi.advanceTimersByTimeAsync([3_000, 3_000, 3_000, 6_000, 12_000, 12_000, 12_000][attempt]!)
         expect(opens()).toBe(before + attempt + 1)
         if (attempt === 2) expect(cameraTapState().tap).toBe("offered")
       }
@@ -610,51 +626,57 @@ describe("recovery", () => {
     }
   })
 
-  it("restarts the tap episode on a healthy reopen, so a later incident reports its own dead_ms (#1535)", async () => {
+  it("does not restart the tap episode on an unmuted reopen, so the report counts the whole dead span (#1535)", async () => {
     vi.useFakeTimers()
     const release = holdCamera()
     try {
-      const first = await openCamera()
-      await vi.advanceTimersByTimeAsync(500)
-      trackOf(first).muted = true
-      trackOf(first).dispatchEvent(new Event("mute"))
-      await vi.advanceTimersByTimeAsync(3_000)
-      const healthy = current()!
-      expect(healthy).not.toBe(first) // a healthy reopen, no frame seen yet
-      // present a frame on the healthy camera: genuinely healthy
-      const view = preview(healthy)
-      const detach = attachCameraPreview(view.video as unknown as HTMLVideoElement, healthy, "open")
-      view.frame()
-      detach()
-      await vi.advanceTimersByTimeAsync(60_000) // much later, a new incident
-
-      // the still-muted reopen backs off 3 s, 6 s, 12 s (#1539); each
-      // replacement mutes again 500 ms after it opens, as a stuck camera does
+      await openCamera()
+      // the real stuck-camera pattern: each reopen comes back UNMUTED and
+      // mutes again 500 ms later, and no frame is ever presented. The 3 s
+      // cadence holds until the tap is offered on the third check (~9 s).
       for (let attempt = 0; attempt < 3; attempt += 1) {
         const stream = current()!
         await vi.advanceTimersByTimeAsync(500)
         trackOf(stream).muted = true
         trackOf(stream).dispatchEvent(new Event("mute"))
-        await vi.advanceTimersByTimeAsync([3_000, 6_000, 12_000][attempt]!)
+        await vi.advanceTimersByTimeAsync(3_000)
       }
-      // no tap is offered on slow mutes; unmute to end the episode, then run
-      // a fresh quick-streak incident (replacements muted from the start) so
-      // the tap is offered and its report proves the episode restarted
-      trackOf(current()!).dispatchEvent(new Event("unmute"))
-      await vi.advanceTimersByTimeAsync(0)
-      mutedNext = 3
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        const stream = current()!
-        trackOf(stream).muted = true
-        trackOf(stream).dispatchEvent(new Event("mute"))
-        await vi.advanceTimersByTimeAsync([3_000, 6_000, 12_000][attempt]!)
-        if (attempt === 2) expect(cameraTapState().tap).toBe("offered")
-      }
-      failNext.push("busy")
+      expect(cameraTapState().tap).toBe("offered")
+      // the tap works: the tapped stream presents a frame
       tapCamera()
       await vi.advanceTimersByTimeAsync(0)
-      // the episode began at the new incident, not 60+ s earlier (#1535)
-      expect(recorded.cameraRestores[0]?.deadMs).toBeLessThan(30_000)
+      const tapped = current()!
+      const view = preview(tapped)
+      const detach = attachCameraPreview(view.video as unknown as HTMLVideoElement, tapped, "open")
+      view.frame()
+      await vi.advanceTimersByTimeAsync(5_000) // the tap's frame window closes with frames
+      detach()
+      // the report counts the whole dead span (~10 s from the first mute),
+      // not just the last one (~3 s): the unmuted reopens in between must
+      // not have restarted the episode (#1535)
+      expect(recorded.cameraRestores).toHaveLength(1)
+      expect(recorded.cameraRestores[0]?.deadMs).toBeGreaterThanOrEqual(9_000)
+
+      // a later incident after that healthy frame reports its own dead_ms
+      await vi.advanceTimersByTimeAsync(60_000)
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const stream = current()!
+        await vi.advanceTimersByTimeAsync(500)
+        trackOf(stream).muted = true
+        trackOf(stream).dispatchEvent(new Event("mute"))
+        await vi.advanceTimersByTimeAsync(3_000)
+      }
+      expect(cameraTapState().tap).toBe("offered")
+      tapCamera()
+      await vi.advanceTimersByTimeAsync(0)
+      const tapped2 = current()!
+      const view2 = preview(tapped2)
+      const detach2 = attachCameraPreview(view2.video as unknown as HTMLVideoElement, tapped2, "open")
+      view2.frame()
+      await vi.advanceTimersByTimeAsync(5_000)
+      detach2()
+      expect(recorded.cameraRestores).toHaveLength(2)
+      expect(recorded.cameraRestores[1]?.deadMs).toBeLessThan(30_000)
     } finally {
       release()
     }
@@ -679,12 +701,12 @@ describe("recovery", () => {
     await vi.advanceTimersByTimeAsync(500)
     trackOf(first).muted = true
     trackOf(first).dispatchEvent(new Event("mute"))
-    // the still-muted reopen backs off 3 s, 6 s, 12 s (#1539), so the third
-    // quick check — the one that offers the tap — lands at 21 s
-    await vi.advanceTimersByTimeAsync(21_000)
+    // the 3 s cadence holds until the tap is offered, so the third quick
+    // check — the one that offers the tap — lands at 9 s (#1539, Ionut 27 Nov)
+    await vi.advanceTimersByTimeAsync(9_000)
     expect(cameraTapState().tap).toBe("offered")
     // an unmute still resets the backoff while the tap is offered: the next
-    // mute's check reopens at the 3 s grace again, not the 12 s cap
+    // mute's check reopens at the 3 s grace again, not the 6 s step
     trackOf(current()!).dispatchEvent(new Event("unmute"))
     await vi.advanceTimersByTimeAsync(0)
     const opensBefore = vi.mocked(getLocalMedia).mock.calls.length
@@ -711,16 +733,17 @@ describe("recovery", () => {
     detach()
     await vi.advanceTimersByTimeAsync(60_000)
 
-    // the still-muted reopen backs off 3 s, 6 s, 12 s (#1539) — the presented
-    // frame above reset the backoff counter, so the first of these lands at
-    // the 3 s grace; each replacement mutes again 500 ms after it opens
+    // the 3 s cadence holds until the tap is offered (#1539, Ionut 27 Nov) —
+    // the presented frame above reset the backoff counter, so each of these
+    // lands at the 3 s grace; each replacement mutes again 500 ms after it
+    // opens
     const opensAtStart = vi.mocked(getLocalMedia).mock.calls.length
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const stream = current()!
       await vi.advanceTimersByTimeAsync(500)
       trackOf(stream).muted = true
       trackOf(stream).dispatchEvent(new Event("mute"))
-      await vi.advanceTimersByTimeAsync([3_000, 6_000, 12_000][attempt]!)
+      await vi.advanceTimersByTimeAsync(3_000)
       expect(vi.mocked(getLocalMedia).mock.calls.length).toBe(opensAtStart + attempt + 1)
     }
     failNext.push("busy")
@@ -734,15 +757,15 @@ describe("recovery", () => {
     vi.useFakeTimers()
     const release = holdCamera()
     await openCamera()
-    // the still-muted reopen backs off 3 s, 6 s, 12 s (#1539); each
-    // replacement mutes again 500 ms after it opens, so every check reads
-    // quick and the tap is offered on the third
+    // the 3 s cadence holds until the tap is offered (#1539, Ionut 27 Nov);
+    // each replacement mutes again 500 ms after it opens, so every check
+    // reads quick and the tap is offered on the third, ~9 s in
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const stream = current()!
       await vi.advanceTimersByTimeAsync(500)
       trackOf(stream).muted = true
       trackOf(stream).dispatchEvent(new Event("mute"))
-      await vi.advanceTimersByTimeAsync([3_000, 6_000, 12_000][attempt]!)
+      await vi.advanceTimersByTimeAsync(3_000)
     }
     expect(cameraTapState()).toMatchObject({ tap: "offered", opening: false })
 
@@ -770,7 +793,7 @@ describe("recovery", () => {
       await vi.advanceTimersByTimeAsync(500)
       trackOf(stream).muted = true
       trackOf(stream).dispatchEvent(new Event("mute"))
-      await vi.advanceTimersByTimeAsync([3_000, 6_000, 12_000][attempt]!)
+      await vi.advanceTimersByTimeAsync(3_000)
     }
     failNext.push("busy")
     const callsBefore = vi.mocked(getLocalMedia).mock.calls.length
@@ -800,7 +823,7 @@ describe("recovery", () => {
         await vi.advanceTimersByTimeAsync(500)
         trackOf(stream).muted = true
         trackOf(stream).dispatchEvent(new Event("mute"))
-        await vi.advanceTimersByTimeAsync([3_000, 6_000, 12_000][attempt]!)
+        await vi.advanceTimersByTimeAsync(3_000)
       }
       tapCamera()
       await vi.advanceTimersByTimeAsync(0)
@@ -817,10 +840,11 @@ describe("recovery", () => {
       expect(cameraTapState().tap).toBe("spent")
       expect(cameraRecoveryGaveUp()).toBe(true)
       // the automatic still-muted loop keeps going after a spent tap (#1539,
-      // Ionut 27 Nov): the tapped observer's frame does not reset the backoff
-      // counter (only a presented-frame check, an unmute or a page return
-      // does), so the loop is already at the 12 s cap; each replacement
-      // stream re-mutes from the start and every 12 s check reopens the camera
+      // Ionut 27 Nov) at the 12 s cap: the tapped stream's frame does NOT
+      // reset the backoff (a frame while tapping is not health), and the fake
+      // video now hands that frame to the normal preview watcher too, exactly
+      // as the real app does — so the loop stays at the cap instead of
+      // restarting at 3 s. Each replacement stream re-mutes from the start.
       mutedNext = 3
       const opensBefore = vi.mocked(getLocalMedia).mock.calls.length
       await vi.advanceTimersByTimeAsync(12_001)
