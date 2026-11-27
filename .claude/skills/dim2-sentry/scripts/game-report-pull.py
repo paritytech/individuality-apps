@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Pull everything Sentry has for one game.
 
 Usage: python3 game-report-pull.py <game> <window-start ISO UTC> <window-end ISO UTC> <out.json>

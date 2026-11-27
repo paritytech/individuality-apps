@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests for game-links.py with small synthetic logs.  python3 -m unittest test_game_links -v"""
 import importlib.util
 import json

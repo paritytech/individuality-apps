@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests for store_paths.py: where the local telemetry store lives. Stdlib only."""
 import fnmatch
 import json

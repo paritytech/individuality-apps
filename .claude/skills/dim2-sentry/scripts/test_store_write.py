@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests for store_write.py: Arrow tables and atomic game folders. Needs the skill venv."""
 import datetime
 import json

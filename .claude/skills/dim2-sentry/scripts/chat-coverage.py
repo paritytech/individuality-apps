@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Chat-worker telemetry by platform, joined to the app by user.id (#519).
 
   python3 chat-coverage.py [--days 7 | --start ISO --end ISO] [--context-days 30] [--include-bots] [--json FILE]

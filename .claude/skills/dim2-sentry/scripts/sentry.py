@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Small Sentry CLI for DIM2 (org paritytech, project jollity-next, EU region). Stdlib only.
 
   sentry.py [--project jollity-next|dim2-testing] whoami

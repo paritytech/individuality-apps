@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Read the local DIM2 telemetry store through rebuildable in-memory DuckDB views."""
 import argparse
 import glob

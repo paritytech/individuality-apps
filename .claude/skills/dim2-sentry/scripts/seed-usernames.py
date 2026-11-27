@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Fill the shared telemetry-store/usernames.json from archived game logs.
 
   python3 .claude/skills/dim2-sentry/scripts/seed-usernames.py [--logs-root docs-internal/game-logs]

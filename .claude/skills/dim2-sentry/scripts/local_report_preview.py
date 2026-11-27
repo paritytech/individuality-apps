@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Serve one generated game report through the page's real database interface."""
 
 import argparse

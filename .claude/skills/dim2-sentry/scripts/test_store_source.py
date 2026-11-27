@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests for the frozen T10/T11 local telemetry-store query source."""
 import datetime
 import importlib.util
@@ -8,8 +11,12 @@ import tempfile
 import unittest
 from unittest import mock
 
-import pyarrow as pa
-import pyarrow.parquet as pq
+try:
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+except ImportError:
+    raise unittest.SkipTest(
+        "store tests need the skill venv: .claude/skills/dim2-sentry/.venv/bin/python -m pytest")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)

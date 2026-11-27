@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests for the store/live golden gate.  python3 -m unittest test_store_golden -v"""
 import importlib.util
 import contextlib

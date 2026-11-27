@@ -1,3 +1,6 @@
+// Copyright 2026 Parity Technologies (UK) Ltd.
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 /**
  * What the chain says about ONE finished DIM2 game, as JSON, for the game report.
  *

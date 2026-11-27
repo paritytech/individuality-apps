@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import importlib.util
 import json
 import os
@@ -543,7 +546,10 @@ class FullLogPullTests(unittest.TestCase):
                 raise MODULE.sentry.OutOfStore("store cannot serve journeys")
             return []
         with patch.object(MODULE, "events_all", side_effect=pages), \
-             patch.object(MODULE, "WORKERS", 1):
+             patch.object(MODULE, "WORKERS", 1), \
+             patch.object(MODULE, "foreground_points", return_value=[]), \
+             patch.object(MODULE.sentry, "events", return_value=[]), \
+             patch.object(MODULE, "coverage_metrics", return_value=([], None)):
             with self.assertRaisesRegex(MODULE.sentry.OutOfStore, "cannot serve journeys"):
                 MODULE.pull(254, "2026-10-15T09:00:00", "2026-10-15T12:00:00",
                             extra_accounts=[acct])

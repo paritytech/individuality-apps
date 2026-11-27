@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Turn one DIM2 game's player logs into a per-pair WebRTC link picture.
 
 Usage: python3 game-links.py <game-logs dir for one game> [--out links.json]
@@ -35,7 +38,7 @@ import os
 import re
 import statistics
 
-ADDR = r"5[1-9A-HJ-NP-Za-km-z]{47}"
+ADDR = r"5[0-9A-HJ-NP-Za-km-z]{5,47}"  # made-up 6-char fixture addresses (digits inside) included
 ADDR_RE = re.compile(ADDR)
 ROUND_GAP_MS = 40_000
 LIVE, PARTIAL = 0.9, 0.5

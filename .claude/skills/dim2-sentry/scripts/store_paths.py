@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Where the local DIM2 telemetry store lives. Stdlib only.
 
 The store is one folder per game under <root>/<network>/g<N>/, local only and

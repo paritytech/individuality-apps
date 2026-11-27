@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Arrow tables and atomic game folders for the local DIM2 telemetry store.
 
 Needs the skill venv (pyarrow, duckdb). This module makes NO network call: it

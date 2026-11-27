@@ -39,8 +39,8 @@
    {
     "round": 1,
     "group": 0,
-    "a": "player-eugypa-13",
-    "b": "g251-peer",
+    "a": "g251-peer",
+    "b": "player-eugypa-13",
     "coverage": 0.6,
     "seenBy": "both"
    }
@@ -61,11 +61,13 @@
   "players": [
    {
     "account": "player-eugypa-13",
-    "hasLog": true
+    "hasLog": true,
+    "joined": true
    },
    {
     "account": "g251-peer",
-    "hasLog": true
+    "hasLog": true,
+    "joined": true
    }
   ]
  },
@@ -73,13 +75,19 @@
   "player-eugypa-13": {
    "roots": [
     {
-     "session.id": "g251-eugypalu",
+     "session.id": "g251-player",
      "timestamp": "1970-01-01T00:02:30+00:00"
     }
    ]
   },
   "g251-peer": {
-   "roots": []
+   "roots": [
+    {
+     "span.op": "journey.game",
+     "timestamp": "1970-01-01T00:03:00+00:00",
+     "span.duration": 60000
+    }
+   ]
   }
  }
 }

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """One command for a DIM2 game report: mechanical draft, lint, then human judgment.
 
   python3 .claude/skills/dim2-sentry/scripts/game-report.py <game> [--out report.json] [--logs-dir DIR]

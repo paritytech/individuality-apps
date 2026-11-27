@@ -45,6 +45,19 @@ const NETWORK_ALIASES = {
   "paseo-next-v2": "paseo-next-v2",
 }
 
+/** A network name or short form -> the canonical NETWORKS key; empty / unset = undefined; unknown throws. */
+export function parseNetwork(raw) {
+  const v = (raw ?? "").trim().toLowerCase()
+  if (!v) return undefined
+  const network = NETWORK_ALIASES[v]
+  if (!network) throw new Error(`network "${raw}" is not one of ${Object.keys(NETWORK_ALIASES).join(", ")}`)
+  return network
+}
+
+/** The network from `E2E_NETWORK` (any alias), default previewnet — what the chain-reader
+ *  scripts (scripts/game-chain-report.mts) and other env-driven tools sign/read against. */
+export const networkFromEnv = (env = process.env) => parseNetwork(env.E2E_NETWORK) ?? "previewnet"
+
 /** `--network <name>` from argv (default previewnet), or exit 2 on an unknown one. */
 export function networkFromArgs(args) {
   const idx = args.indexOf("--network")

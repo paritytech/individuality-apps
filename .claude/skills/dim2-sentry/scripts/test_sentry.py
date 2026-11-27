@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests for sentry.py's project choice (plan D8: test traffic lives in dim2-testing)."""
 import importlib.util, json, os, subprocess, sys, unittest, urllib.error
 from unittest import mock

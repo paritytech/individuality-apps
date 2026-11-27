@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The codec map: which sender and receiver devices, over which codec, get video, and how well.
 
   python3 codec-map.py [--days 7 | --start ISO --end ISO] [--include-bots] [--by-host] [--min-links 1] [--json FILE]

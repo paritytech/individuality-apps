@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests for store.py: read-only DuckDB views over stored games. Needs the skill venv."""
 import os
 import shutil

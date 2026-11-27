@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Translate the report's frozen Sentry-query subset to the local DuckDB store."""
 import dataclasses
 import datetime

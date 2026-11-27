@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Deterministic, stdlib-only aggregation shared by live and stored metric rows."""
 import re
 import statistics

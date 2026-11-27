@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Read packed game-log records from Sentry Logs and restore legacy shapes.
 
 Queries use the organization events endpoint with dataset=logs and call-time projects.

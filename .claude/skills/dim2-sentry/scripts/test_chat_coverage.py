@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests for chat-coverage.py on fixture rows.  python3 -m unittest test_chat_coverage -v"""
 import importlib.util
 import os

@@ -1,3 +1,6 @@
+// Copyright 2026 Parity Technologies (UK) Ltd.
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Pure parts of game-chain-report.mts, no network:  npx vitest run scripts/game-chain-report.test.mts
 import { readFileSync } from "node:fs"
 import { gunzipSync } from "node:zlib"

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Capture one report-ready Sentry dataset, then resume retained raw details.
 
 This is the network-facing half of the store writer.  It discovers fields,

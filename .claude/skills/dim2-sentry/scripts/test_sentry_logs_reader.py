@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import importlib.util
 import json
 import os
@@ -292,8 +295,7 @@ class SentryLogReaderTests(unittest.TestCase):
 
     def test_fetch_logs_with_only_legacy_attachments_is_unchanged(self):
         pull = load_pull()
-        fixture_path = os.path.join(
-            os.path.dirname(HERE), "fixtures", "game-159-madeup.json")
+        fixture_path = os.path.join(HERE, "fixtures", "game-159-madeup.json")
         fixture_path = os.path.normpath(fixture_path)
         with open(fixture_path, "rb") as fh:
             raw = fh.read()
@@ -414,7 +416,10 @@ class SentryLogReaderTests(unittest.TestCase):
              patch.object(pull.sentry_logs, "log_rows", side_effect=RuntimeError("logs unavailable")), \
              patch.object(pull, "WORKERS", 1):
             logs, meta = pull.fetch_logs(999, "start", "end")
-        with patch.object(pull, "events_all", return_value=[]), patch.object(pull, "slice_releases", return_value=[]):
+        with patch.object(pull, "events_all", return_value=[]), patch.object(pull, "slice_releases", return_value=[]), \
+             patch.object(pull, "foreground_points", return_value=[]), \
+             patch.object(pull.sentry, "events", return_value=[]), \
+             patch.object(pull, "coverage_metrics", return_value=([], None)):
             report = pull.pull(999, "start", "end", logs=logs, log_meta=meta)
         self.assertEqual(report["pullErrors"]["game logs"], "logs query failed: logs unavailable")
 

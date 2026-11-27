@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Offline DIM2 workflow contracts and its fixture-only validation entry point."""
 import contextlib
 import importlib.util
@@ -31,6 +34,7 @@ REPORT_PATHS = {
         "scripts/fixtures/away-facts-g260-g263-g264.json",
         "scripts/fixtures/logs-g999.json", "scripts/fixtures/logs-task6-golden.json",
         "scripts/fixtures/page-lives-g259-g835.json",
+        "scripts/fixtures/game-159-madeup.json",
     )
 }
 ISOLATED = REPORT_PATHS | {WORKFLOW, CONTRACT}
@@ -39,7 +43,7 @@ HELPERS = {
     BASE + f"scripts/{name}" for name in (
         "sentry.py", "sentry_logs.py", "game-report-pull.py", "store.py",
         "store_paths.py", "store_write.py", "store_dump.py", "store_source.py",
-        "store_golden.py", "store_views.sql", "test_sentry.py",
+        "store_golden.py", "store_views.sql", "test_sentry.py", "test_game_report_pull.py",
         "test_sentry_logs_reader.py", "test_store.py", "test_store_dump.py",
         "test_store_golden.py", "test_store_paths.py", "test_store_source.py",
         "test_store_write.py",
@@ -58,11 +62,7 @@ REPORT_TESTS = (
 
 
 def paths(text, event, key):
-    """Read literal double-quoted paths in these workflows; refuse other syntax.
-
-    A YAML anchor (`paths: &name`) on one event and its alias (`*name`) on the
-    other read as the SAME literal list, which the contract below requires.
-    """
+    """Read the literal double-quoted path list under `  <event>: /    <key>:`."""
     lines = text.splitlines()
     start = lines.index(f"  {event}:") + 1
     section = []
@@ -71,34 +71,22 @@ def paths(text, event, key):
             break
         section.append(line)
     anchor_line = f"    {key}:"
-    idx = next(i for i, l in enumerate(section) if l.startswith(anchor_line))
-    rest = section[idx].strip()[len(anchor_line):].strip()
-    if rest.startswith("&"):
-        result = []
-        for line in section[idx + 1:]:
-            if not line.strip() or line.lstrip().startswith("#"):
-                continue
-            if not line.startswith("      - "):
-                break
-            value = json.loads(line.removeprefix("      - "))
-            if not isinstance(value, str):
-                raise ValueError("workflow paths must be literal strings")
-            result.append(value)
-        return result
-    if rest.startswith("*"):
-        name = rest[1:]
-        for i, l in enumerate(lines):
-            if l.strip() == f"{key}: &{name}":
-                sub = []
-                for line in lines[i + 1:]:
-                    if not line.strip() or line.lstrip().startswith("#"):
-                        continue
-                    if not line.startswith("      - "):
-                        break
-                    sub.append(json.loads(line.removeprefix("      - ")))
-                return sub
-        raise ValueError(f"unresolved alias *{name}")
-    raise ValueError("workflow paths must be a literal list or an anchor/alias pair")
+    idx = next(i for i, l in enumerate(section) if l.strip() == anchor_line.strip() or l.startswith(anchor_line + " "))
+    rest = section[idx].strip()[len(anchor_line.strip()):].strip()
+    if rest:
+        # an anchor (`&name`) or alias (`*name`) is not a literal list
+        raise ValueError("workflow paths must be a literal list, no anchors or aliases")
+    result = []
+    for line in section[idx + 1:]:
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if not line.startswith("      - "):
+            break
+        value = json.loads(line.removeprefix("      - "))
+        if not isinstance(value, str):
+            raise ValueError("workflow paths must be literal strings")
+        result.append(value)
+    return result
 
 
 def load(name, path):
@@ -123,6 +111,19 @@ class WorkflowContract(unittest.TestCase):
             self.assertNotIn("paths-ignore", text, workflow)
             self.assertNotIn("paths:", text, workflow)
 
+    def test_ci_runs_the_player_data_guard_on_every_pr(self):
+        # D3: the guard is its own job in ci.yml, which has no path filter, so it runs
+        # on every PR and scans all tracked files.
+        ci = (ROOT / ".github/workflows" / "ci.yml").read_text()
+        self.assertIn("player_data_guard.py", ci)
+        guard = ".github/tests/player_data_guard.py"
+        self.assertIn(guard, ci)
+        # and the guard's own unit tests run in the same job
+        self.assertIn("test_player_data_guard.py", ci)
+        # the guard is also a step of dim2-report.yml
+        focused = (ROOT / WORKFLOW).read_text()
+        self.assertIn(guard, focused)
+
     def test_shared_helpers_are_in_the_focused_workflow_so_their_tests_run(self):
         # R9: a change to a shared helper must run the Python tests, so the helpers are
         # admitted into dim2-report.yml's exact path list (ci.yml already runs on every PR).
@@ -138,8 +139,13 @@ class WorkflowContract(unittest.TestCase):
         self.assertIn("persist-credentials: false", workflow)
         self.assertIn("sudo unshare --net -- python3 -B " + CONTRACT, workflow)
         self.assertIn("branches: [main]", workflow)
-        for forbidden in ("secrets.", "write", "npm ", "npx ", "pip ", "curl ", "workflow_dispatch", "workflow_run", "deploy-pages", "upload-artifact", "game-report.py "):
-            self.assertNotIn(forbidden, workflow)
+        # forbidden tokens are checked on the JOB STEPS, not the comments: a comment may
+        # name them ("no secrets") without granting anything
+        steps = workflow.split("jobs:", 1)[1]
+        for forbidden in ("secrets.", "npm ", "npx ", "pip ", "curl ", "workflow_dispatch", "workflow_run", "deploy-pages", "upload-artifact", "game-report.py "):
+            self.assertNotIn(forbidden, steps)
+        self.assertIn("permissions:\n  contents: read", workflow)
+        self.assertNotIn("write", workflow.split("permissions:", 1)[1].split("\n\n", 1)[0])
 
     def test_compile_report_sources_without_running_collection(self):
         for path in sorted(REPORT_PATHS | HELPERS):

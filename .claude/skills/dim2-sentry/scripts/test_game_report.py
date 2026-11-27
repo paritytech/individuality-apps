@@ -1,3 +1,6 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests for the pure assembly functions of game-report.py.  python3 -m unittest test_game_report -v"""
 import collections
 import datetime
@@ -1099,7 +1102,7 @@ class FunnelTest(unittest.TestCase):
             self.assertEqual(gr.funnel_reason("joined", self.AP, early, None, kick, set()),
                              f"last app activity 12:58 {label}, before kickoff")
 
-    def test_russeltest_02_registration_drop_uses_only_pre_close_evidence_and_lists_later_context(self):
+    def test_fakeuser_02_registration_drop_uses_only_pre_close_evidence_and_lists_later_context(self):
         close = gr.parse_ts("2026-10-15T11:52:30Z")
         long_title = "TrUAPI request host:836 (wire 3, 5) timed out after 120000ms without a response from the Polkadot app"
         p = {
@@ -1497,8 +1500,8 @@ class FactsTest(unittest.TestCase):
         source = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "apps", "jollity-app", "lib", "invariants.ts")
         with open(source, encoding="utf-8") as fh:
             ts = fh.read()
-        block = re.search(r"export const INVARIANT_KINDS = \[(.*?)\] as const", ts, re.S)
-        self.assertIsNotNone(block, "apps/jollity-app/lib/invariants.ts has no INVARIANT_KINDS block")
+        block = re.search(r"export type InvariantKind =\s*((?:\s*\|\s*'[^']+'|\s*\|\s*\"[^\"]+\")+)", ts, re.S)
+        self.assertIsNotNone(block, "apps/jollity-app/lib/invariants.ts has no InvariantKind union")
         kinds = re.findall(r'"([^"]+)"', block.group(1))
         self.assertEqual(kinds, list(gr.INVARIANT_KINDS))
 
@@ -2518,25 +2521,25 @@ class UsernameMappingTest(unittest.TestCase):
             open(path, "w").write("not json")
             self.assertEqual(gr.load_usernames(path), {})  # a corrupt file cannot crash the run
 
-    def test_shared_master_overrides_the_read_only_seed(self):
+    def test_map_less_operation_starts_from_an_empty_master(self):
+        # R3/I6: no tracked seed is ported; with no map file the report runs map-less.
         import tempfile
         with tempfile.TemporaryDirectory() as d:
-            seed = os.path.join(d, "seed.json")
+            missing = os.path.join(d, "usernames.json")
+            self.assertEqual(gr.load_usernames(missing), {})
             master = os.path.join(d, "usernames.json")
-            json.dump({A: "player-seed-47", B: "player-seed-48"}, open(seed, "w"))
             json.dump({A: "player-master-49"}, open(master, "w"))
-            with mock.patch.object(gr, "SHARED_USERNAMES", master), mock.patch.object(gr, "USERNAMES_SEED", seed):
-                self.assertEqual(gr.load_usernames(master), {A: "player-master-49", B: "player-seed-48"})
+            self.assertEqual(gr.load_usernames(master), {A: "player-master-49"})
 
-    def test_custom_file_never_inherits_the_tracked_seed(self):
+    def test_short_addresses_in_rows_when_no_map_is_present(self):
+        # R3: with an empty mapping, a player row shows the short address form.
         import tempfile
         with tempfile.TemporaryDirectory() as d:
-            seed = os.path.join(d, "seed.json")
-            custom = os.path.join(d, "custom.json")
-            json.dump({A: "player-seed-47"}, open(seed, "w"))
-            json.dump({B: "player-custom-50"}, open(custom, "w"))
-            with mock.patch.object(gr, "USERNAMES_SEED", seed):
-                self.assertEqual(gr.load_usernames(custom), {B: "player-custom-50"})
+            missing = os.path.join(d, "usernames.json")
+            with mock.patch.object(gr, "USERNAMES", missing):
+                mapping = gr.load_usernames()
+            self.assertEqual(mapping, {})
+            self.assertEqual(gr.SHORT(A), A[:4] + "…")
 
     def test_seed_reads_every_archived_game(self):
         import tempfile
@@ -3326,7 +3329,7 @@ class CoverageNoteTest(unittest.TestCase):
         for c in b["causes"]:
             c["pairs"] = ["player-fredfe-05 - " + A, "player-theend-01 - " + B]
         note = gr.coverage_note(b, 97.2)
-        for banned in ("fredferkel", "theender", "kamamama", A, B, "5GqD", "point"):
+        for banned in ("fake-name-a", "fake-name-b", "fake-name-c", A, B, "5GqD", "point"):
             self.assertNotIn(banned, note)
         self.assertEqual(note.count("%"), 1 + 4 + 1)  # header, four causes, the web-only line
 
@@ -3361,7 +3364,7 @@ class CoverageNoteTest(unittest.TestCase):
         note = gr.coverage_note(b, 90.0)
         self.assertIn("- Page reloaded mid-round: 7.5 %. One player reloaded the page mid-round.\n", note + "\n")
         self.assertNotIn("Late open", note)
-        self.assertNotIn("fredferkel", note)
+        self.assertNotIn("fake-name-a", note)
 
     def late(self, who, round, back, lost, cov=0.5, **kw):
         return self.item(round=round, who=who, backS=back, lostS=lost, cov=cov, absentRound=cov <= 0, silent=True, **kw)
@@ -3402,7 +3405,7 @@ class CoverageNoteTest(unittest.TestCase):
         b = {"coverage": 77.6, "measured": 10, "na": 0, "missing": 22.4, "nonWeb": False, "webOnly": 77.6,
              "causes": [{"cause": "Late open", "pct": 22.4, "pairs": ["player-fredfe-05 - " + B], "items": items}]}
         note = gr.coverage_note(b, 77.6)
-        for banned in ("fredferkel", A, B, "5AAAA"):
+        for banned in ("fake-name-a", A, B, "5AAAA"):
             self.assertNotIn(banned, note)
 
     def test_no_coverage_means_no_note(self):
