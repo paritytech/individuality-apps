@@ -361,6 +361,16 @@ export class SendAdaptationController {
     return this.machine.value
   }
 
+  /** The rung a fresh mesh should be built at: the pending target of an
+   * unanswered down request, otherwise the settled rung. An up probe's target
+   * is not applied on attach — the probe has not earned the move yet. */
+  targetRung(): SendRungIndex {
+    const state = this.machine.value
+    const requested = this.machine.requested
+    if (state.mode === "awaiting-apply" && requested?.direction === "down") return requested.to
+    return state.rung
+  }
+
   acceptsResult(result: VideoRungApplyResult): boolean {
     return sendAdaptationAcceptsResult(this.machine, result)
   }
