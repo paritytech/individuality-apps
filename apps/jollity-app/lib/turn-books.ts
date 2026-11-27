@@ -373,9 +373,17 @@ export function tickBooks(
   const sealThrough = (completedExclusive: number) => {
     const previous = b.prevTurn
     const lastProcessed = previous >= 0 ? previous : b.lastSealedTurn
-    if ((lastProcessed < 0 && !b.presentBeforeFirstTurn) || completedExclusive <= lastProcessed) return
-    if (previous >= 0) sealTurn(previous)
-    for (let missed = lastProcessed + 1; missed < completedExclusive; missed++) {
+    // The entry floor comes from the monotone evidence, exactly as the model
+    // computes it (lib/state-machines/turn-books.definition.ts): a backward
+    // tick rewrites prevTurn, so the cursor must not decide how far this page
+    // got or whether it attended (#390 gaps 1 and 3). It is NOT clamped by
+    // coldReadyBoundary: the rejoin path replays sealThrough(beforeReady)
+    // with the boundary already set, and a floor of beforeReady would seal
+    // nothing there (#1178).
+    const floor = b.presentBeforeFirstTurn ? 0 : (b.firstOpenedTurn ?? -1)
+    if ((lastProcessed < 0 && floor < 0) || completedExclusive <= lastProcessed) return
+    if (previous >= 0 && previous >= floor) sealTurn(previous)
+    for (let missed = Math.max(floor, lastProcessed + 1); missed < completedExclusive; missed++) {
       const rejects = openGlobalTurn(missed)
       sealTurn(missed, rejects)
     }
@@ -495,7 +503,7 @@ export function tickBooks(
   // boundary too; otherwise that whole last round looks unchanged.
   const missedNonRoundBoundary =
     turn < 0 &&
-    (b.prevTurn >= 0 || b.lastSealedTurn >= 0 || b.presentBeforeFirstTurn) &&
+    (b.prevTurn >= 0 || b.lastSealedTurn >= 0 || b.presentBeforeFirstTurn || b.firstOpenedTurn !== undefined) &&
     completed > b.lastSealedTurn + 1
   if (turn !== b.prevTurn || missedNonRoundBoundary) {
     if (turn >= 0 && snap.kind === "round") {

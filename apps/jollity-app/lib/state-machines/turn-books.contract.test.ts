@@ -228,9 +228,10 @@ describe("clause 3 — late join is not charged (R2, #520)", () => {
     for (const turn of [0, 1]) for (const id of candidatesOf(turn)) expect(page.verdict(turn, id), `turn ${turn} ${id}`).toBeUndefined()
   })
 
-  // The implementers list a known gap here (the step back SEALS turn 1).
-  // At the verdict level the rule still holds: nobody can be eligible in a
-  // turn before the late joiner's first frame, so the seal files nothing.
+  // A backward step into a turn before the late joiner's load re-opens it but
+  // never seals it: the entry floor in sealThrough (the model's own
+  // presentBeforeFirstTurn ? 0 : firstOpenedTurn) keeps turn 1 below the
+  // late joiner's entry unsealed, so the seal files nothing.
   it("a backward step into a turn before a late joiner's load files no verdict in that turn", () => {
     const page = lateJoin(at(0, 2, 3))
     page.see("A")

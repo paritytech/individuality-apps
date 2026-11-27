@@ -272,14 +272,14 @@ describe("state-machine regression corpus", () => {
     expect(books.turnVotes[1]?.[D]).toBe("notperson")
   })
 
-  it.fails("formal lane-b gap 1 — issue: backward step over T-0; reason: freeze recovery must seal missed turns 0 and 1", () => {
+  it("formal lane-b gap 1 — issue: backward step over T-0; reason: freeze recovery must seal missed turns 0 and 1", () => {
     let books = tick(emptyTurnBooks(), G + 2)
     books = tick(books, G - 5)
     books = tick(books, G + 25)
     expect(books.sealed.has(0) && books.sealed.has(1)).toBe(true)
   })
 
-  it.fails("formal lane-b gap 3 — issue: late-join backward replay; reason: a pre-load turn must remain verdict-free", () => {
+  it("formal lane-b gap 3 — issue: late-join backward replay; reason: a pre-load turn must remain verdict-free", () => {
     let books = tick(emptyTurnBooks(), G + 13, { coldStartedAt: G + 13 })
     books = tick(books, G + 5, { coldStartedAt: G + 13 })
     books = { ...books, videoRoleHistory: markVideoRoleSeen(books.videoRoleHistory, B, 0).history }

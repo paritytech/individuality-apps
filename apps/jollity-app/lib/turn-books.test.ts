@@ -663,12 +663,11 @@ describe("the turn books' contract", () => {
     return { life, ticks }
   }
 
-  it.fails("known gap (clauses 2, 7): a step back from turn 0 over T-0 marks the page present only on the next tick", () => {
+  it("known gap (clauses 2, 7): a step back from turn 0 over T-0 marks the page present only on the next tick", () => {
     // A late joiner opens turn 0, the chain clock steps back into the
-    // connect beat: that tick resets prevTurn AFTER the present-before-turn-0
-    // test, so the page is not marked present. The same reading again marks
-    // it (not idempotent), and a page that freezes right then wakes in
-    // turn 2 with turns 0 and 1 never sealed: they stay unseen, not rejects.
+    // connect beat: that tick resets prevTurn, but the entry floor in
+    // sealThrough reads the monotone firstOpenedTurn instead, so a page that
+    // freezes right then still seals turns 0 and 1 when it wakes in turn 2.
     const { life } = pageAt([G - 5, G + 25])
     expect(life.books.sealed.has(0) && life.books.sealed.has(1)).toBe(true)
   })
@@ -683,13 +682,13 @@ describe("the turn books' contract", () => {
     expect(again.books.firstOpenedTurn).toBe(books.firstOpenedTurn)
   })
 
-  it.fails("known gap (clause 3): a step back into a turn before a late joiner's load seals it with defaults", () => {
+  it("known gap (clause 3): a step back into a turn before a late joiner's load seals it with defaults", () => {
     // A genuine late joiner loads in turn 1. The chain clock steps back into
     // turn 0, which ended before the load; a frame there makes B and C seen
-    // from turn 0 (#562 B: decoded in an open turn), and when the clock moves
-    // on, the forward step seals the re-lived turn 0 like any other: B and C
-    // take the NotPerson default in a turn the late joiner was never charged
-    // for. (Spec decision 7: what a re-lived turn may hold.)
+    // from turn 0 (#562 B: decoded in an open turn), but when the clock moves
+    // on, the entry floor in sealThrough (firstOpenedTurn = 1) keeps the
+    // re-lived turn 0 below the entry: it is never sealed and files no
+    // verdicts the late joiner was not charged for.
     const life = newLife("late", G + 13)
     life.restored = true
     life.clock = () => ({ ready: true, coldStartedAt: G + 13 })
