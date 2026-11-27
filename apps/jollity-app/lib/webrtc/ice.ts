@@ -871,6 +871,10 @@ function acquire(
 }
 
 const completedOutcomeObservers = new WeakSet<Promise<TurnResult>>()
+/** Resume retries (host-reconnect, foreground-return) whose shared acquisition
+ *  already recorded its outcome, so a reconnect and a foreground return landing
+ *  on the same resume do not emit it twice (#1326). Keyed by the acquisition. */
+const retryEmitted = new WeakSet<Promise<TurnResult>>()
 
 /** Own the result after the mesh's eight-second wait expires. A late success
  * still warms the cache and can be installed by lateIceServers; a late host
@@ -917,8 +921,10 @@ function followOutlived(
     })
 }
 
-/** Returns the TURN entries alone, cached (see the header). */
-async function turnCredentials(source: TurnSource): Promise<TurnResult> {
+/** Returns the TURN entries alone, cached (see the header). The result's
+ *  `acquisition` is the shared fetch the credentials came from, so a caller
+ *  can tell whether that fetch's outcome has already been recorded. */
+async function turnCredentials(source: TurnSource): Promise<TurnResult & { acquisition?: Promise<TurnResult> }> {
   const startedAt = deviceNowMs()
   hydrateBrowserCache()
   const durableReady = waitForDurableCache()
@@ -931,10 +937,10 @@ async function turnCredentials(source: TurnSource): Promise<TurnResult> {
     (entry.expiresAt - deviceNowMs()) / 1000 + EXPIRY_BUFFER_S
   const firstStartLeftMs = () =>
     Math.max(0, FIRST_START_MS - (deviceNowMs() - startedAt))
-  const stunOnly = (fetched: Promise<TurnResult>): TurnResult => {
+  const stunOnly = (fetched: Promise<TurnResult>): TurnResult & { acquisition: Promise<TurnResult> } => {
     followOutlived(fetched, source !== "mesh", source)
     iceLog("[jollity-rtc] TURN: still fetching, starting on STUN only")
-    return { turn: [], outcome: { received: "false", stage: "issue", reason: "no credentials after 8 s, started on STUN only", cause: "timeout" } }
+    return { turn: [], outcome: { received: "false", stage: "issue", reason: "no credentials after 8 s, started on STUN only", cause: "timeout" }, acquisition: fetched }
   }
   if (valid(cached)) {
     const inHand = cached
@@ -946,21 +952,22 @@ async function turnCredentials(source: TurnSource): Promise<TurnResult> {
     }
     // The cooldown wins on purpose: a renewal that just failed is not tried
     // again for the mesh within the minute.
-    if (ttlLeftS() >= REFRESH_BELOW_S || deviceNowMs() < refreshBlockedUntil) return held()
+    if (ttlLeftS() >= REFRESH_BELOW_S || deviceNowMs() < refreshBlockedUntil)
+      return { ...held(), acquisition: inflight ?? undefined }
     if (!inflight) logTurnRerun(source)
     const renewal = acquire(bases, true, durableReady)
     // An open link never takes new credentials, so a mesh opening on ones
     // that would die mid-game waits for the renewal.
-    if (source !== "mesh" || ttlLeftS() >= meshOpenMinS()) return held()
+    if (source !== "mesh" || ttlLeftS() >= meshOpenMinS()) return { ...held(), acquisition: renewal }
     const renewed = await withTimeout(renewal, firstStartLeftMs())
-    if (renewed && renewed.turn.length > 0) return renewed
-    if (!valid(inHand)) return renewed ?? stunOnly(renewal)
+    if (renewed && renewed.turn.length > 0) return { ...renewed, acquisition: renewal }
+    if (!valid(inHand)) return renewed ? { ...renewed, acquisition: renewal } : stunOnly(renewal)
     if (!renewed) followOutlived(renewal)
     else
       void Promise.resolve(renewed.outcome).then((outcome) => {
         if (isChainHealthEvidence(outcome, renewed.healthOrder)) emitChainHealthOutcome(outcome, renewed.healthOrder)
       })
-    return held()
+    return { ...held(), acquisition: renewal }
   }
   // Nothing in hand: wait for the fetch, but not longer than the first start can
   // afford. Past that the mesh goes STUN only and the fetch carries on, caching
@@ -981,10 +988,11 @@ async function turnCredentials(source: TurnSource): Promise<TurnResult> {
         received: "cached",
         ttlLeftS: Math.round(leftS(restored)),
       },
+      acquisition: fetched,
     }
   }
   const result = await withTimeout(fetched, firstStartLeftMs())
-  return result ?? stunOnly(fetched)
+  return result ? { ...result, acquisition: fetched } : stunOnly(fetched)
 }
 
 const ABORTED = Symbol("aborted")
@@ -1088,6 +1096,8 @@ export function resetForegroundRetryForTests(): void {
 export function retryIceServersOnForegroundReturn(): void {
   if (foregroundRetryInstalled) return
   foregroundRetryInstalled = true
+  // `cached` can hold only what an earlier page read adopted, so on a fresh
+  // page the storage check below is the one that knows about a retained pass.
   const stunOnlyMeshOpen = () => turnServerListeners.size > 0 && !valid(cached)
   stopForegroundRetry = watchForegroundReturn((value) => {
     if (value.awayMs === null || !stunOnlyMeshOpen()) return
@@ -1095,6 +1105,12 @@ export function retryIceServersOnForegroundReturn(): void {
     void (async () => {
       if (inflight) await inflight.catch(() => undefined)
       // the wait may have been long, or the fetch may have landed
+      if (generation !== foregroundRetryGeneration || !stunOnlyMeshOpen()) return
+      // A resume can land before the host-storage read that would restore the
+      // last pass has settled (a WebView replacement wipes only the browser
+      // copy): wait out that read, so a pass held in storage is not answered
+      // with a fresh fetch that then reports a cache hit (#1326).
+      await withTimeout(hydrateDurableCache(), DURABLE_CACHE_WAIT_MS)
       if (generation !== foregroundRetryGeneration || !stunOnlyMeshOpen()) return
       // a player flicking between apps must not turn into a fetch each time
       if (deviceNowMs() - lastForegroundRetryAt < FOREGROUND_RETRY_MIN_MS) return
@@ -1109,9 +1125,15 @@ export function retryIceServersOnForegroundReturn(): void {
 /** what goes into RTCConfiguration.iceServers: STUN + whatever TURN we got */
 export async function fetchIceServers(signal?: AbortSignal, source: TurnSource = "mesh"): Promise<RTCIceServer[]> {
   if (signal?.aborted) return [STUN]
-  const { turn, outcome, healthOrder } = await turnCredentials(source)
-  // once per call (a mesh open, a warm-up or a retry), shared fetches and cache hits included
-  void Promise.resolve(outcome).then((resolved) => emitOutcome(sourced(resolved, source), healthOrder))
+  const { turn, outcome, healthOrder, acquisition } = await turnCredentials(source)
+  // once per call (a mesh open, a warm-up or a retry), shared fetches and cache
+  // hits included — except when two resume retries share one in-flight
+  // acquisition on the same resume: that attempt is recorded once (#1326)
+  const retryShared = acquisition !== undefined && (source === "host-reconnect" || source === "foreground-return")
+  if (!retryShared || !retryEmitted.has(acquisition)) {
+    if (retryShared) retryEmitted.add(acquisition)
+    void Promise.resolve(outcome).then((resolved) => emitOutcome(sourced(resolved, source), healthOrder))
+  }
   if (turn.length === 0) iceLog("[jollity-rtc] ICE: STUN-only — cross-network peers will not connect")
   else devLog("rtc", `[jollity-rtc] ICE: relayed — ${turn.length} TURN servers configured`)
   return [STUN, ...turn]

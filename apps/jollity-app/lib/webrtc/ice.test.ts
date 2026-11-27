@@ -1136,6 +1136,110 @@ describe("TURN credentials across reloads and network changes (#724)", () => {
       expect(fetchSpy).not.toHaveBeenCalled()
       stop()
     })
+
+    it("records one outcome when a host reconnect and a foreground return share one fetch on the same resume (#1326)", async () => {
+      let proofCalls = 0
+      let releaseProof: (value: unknown) => void = () => {}
+      const fetchSpy = vi.fn(async () => issued("same-resume"))
+      const ice = await load(fetchSpy, () => {
+        proofCalls++
+        if (proofCalls === 1) throw new Error(INTERRUPTED)
+        return new Promise((resolve) => (releaseProof = resolve))
+      })
+      const outcomes: import("./ice").TurnOutcome[] = []
+      ice.observeTurnOutcome((outcome) => outcomes.push(outcome))
+      const page = await lifecycle()
+      ice.retryIceServersOnForegroundReturn()
+      const stop = ice.observeTurnServers(() => {})
+      await ice.fetchIceServers() // the mesh opens STUN only: the first proof was interrupted
+      expect(outcomes).toHaveLength(1) // that failure alone
+
+      page.hide()
+      page.show() // the foreground retry starts a fresh fetch…
+      await new Promise((resolve) => setTimeout(resolve, 0)) // …now in flight
+      const reconnect = ice.retryIceServersAfterHostReconnect() // …and the host reconnect on the same resume joins it
+      releaseProof({ body: BODY })
+      await reconnect
+      await new Promise((resolve) => setTimeout(resolve, 20))
+
+      expect(fetchSpy).toHaveBeenCalledOnce()
+      expect(hostRetryRecordMock).toHaveBeenCalledOnce()
+      // one acquisition, one recorded outcome — not one per source
+      expect(outcomes).toHaveLength(2)
+      expect(outcomes[1]).toMatchObject({ received: "true", ttlLeftS: 1800 })
+      stop()
+    })
+
+    it("records one failure when a host reconnect and a foreground return share one fetch that fails (#1326)", async () => {
+      let proofCalls = 0
+      let releaseProof: (value: unknown) => void = () => {}
+      const fetchSpy = vi.fn(() =>
+        new Promise((resolve) => setTimeout(() => resolve({ status: 403, text: async () => "not a person" }), 20)),
+      )
+      const ice = await load(fetchSpy, () => {
+        proofCalls++
+        if (proofCalls === 1) throw new Error(INTERRUPTED)
+        return new Promise((resolve) => (releaseProof = resolve))
+      })
+      const outcomes: import("./ice").TurnOutcome[] = []
+      ice.observeTurnOutcome((outcome) => outcomes.push(outcome))
+      const page = await lifecycle()
+      ice.retryIceServersOnForegroundReturn()
+      const stop = ice.observeTurnServers(() => {})
+      await ice.fetchIceServers() // STUN only: the first proof was interrupted
+      expect(outcomes).toHaveLength(1)
+
+      page.hide()
+      page.show() // the foreground retry starts a fresh fetch…
+      await new Promise((resolve) => setTimeout(resolve, 0)) // …now in flight
+      const reconnect = ice.retryIceServersAfterHostReconnect() // …and the host reconnect joins it
+      releaseProof({ body: BODY })
+      await reconnect
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      expect(fetchSpy).toHaveBeenCalledOnce()
+      // one acquisition, one recorded failure — not one reportFailure per source
+      expect(outcomes).toHaveLength(2)
+      expect(outcomes[1]).toMatchObject({ received: "false", status: 403 })
+      stop()
+    })
+
+    it("waits for the host-storage read before refetching on a foreground return after a WebView replacement (#1326)", async () => {
+      vi.useFakeTimers()
+      // Seed a pass, then lose the browser copy the way a WebView replacement does.
+      const seed = await load(vi.fn(async () => issued("storage-only")))
+      await seed.fetchIceServers()
+      await vi.advanceTimersByTimeAsync(0)
+      const [key, pass] = [...durable.entries()][0]!
+      durable.clear()
+      stored.clear()
+      durable.set(key, pass) // only the browser copy is lost, as in a WebView replacement
+
+      durableReadMs = 300 // the host-storage read is still in flight when the app returns
+      const fetchSpy = vi.fn(async () => issued("refetched"))
+      const ice = await load(fetchSpy, async () => {
+        throw new Error("the storage pass should have been used")
+      })
+      const outcomes: import("./ice").TurnOutcome[] = []
+      ice.observeTurnOutcome((outcome) => outcomes.push(outcome))
+      const page = await lifecycle()
+      ice.retryIceServersOnForegroundReturn()
+      const stop = ice.observeTurnServers(() => {})
+      turnProofMock.mockClear()
+
+      page.hide()
+      page.show()
+      await vi.advanceTimersByTimeAsync(100)
+      await vi.advanceTimersByTimeAsync(500) // the storage read lands inside the one allowed wait
+
+      expect(turnProofMock).not.toHaveBeenCalled()
+      expect(fetchSpy).not.toHaveBeenCalled()
+      expect(outcomes).toEqual([]) // no spurious cache-hit receipt
+      expect(await ice.lateIceServers()).toContainEqual(
+        expect.objectContaining({ username: "storage-only" }),
+      )
+      stop()
+    })
   })
 })
 
