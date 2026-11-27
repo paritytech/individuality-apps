@@ -11,7 +11,7 @@ import {
   type SendTransition,
 } from "../webrtc/send-adaptation"
 import type { SendWindowSummary, VideoRungApplyResult, VideoRungSenderResult } from "../webrtc/send-adaptation-classifier"
-import { defineTransitionTable, type MachineDefinition, type NamedInvariant, type NamedSequence } from "./framework"
+import { defineTransitionTable, type MachineDefinition, type NamedInvariant, type NamedSequence, type TransitionTable } from "./framework"
 
 /**
  * Independent upload-ladder model, derived from the module header and policy
@@ -108,19 +108,22 @@ const requestModel = (state: ModelState, to: number, cause: ModelMove["cause"], 
 function modelAction(before: ModelState, action: Action): { state: ModelState; output: ModelMove[] } {
   if (action === "regroup") {
     const request = before.request
-    const keepDownRequest = before.stage === "awaiting" && request !== undefined && request.direction === "down"
-    const rollbackUpRequest = before.stage === "awaiting" && request !== undefined && request.direction === "up"
+    const awaiting = before.stage === "awaiting" && request !== undefined
+    if (awaiting && request.direction === "down") {
+      // The request and its parked-window count carry over untouched.
+      return { state: { ...before, healthy: 0, pressure: 0, probeWindows: 0 }, output: [] }
+    }
     return {
       state: {
         ...before,
-        stage: keepDownRequest ? "awaiting" : "steady",
-        tier: rollbackUpRequest ? before.goodTier : keepDownRequest ? before.tier : before.stage === "probing" ? before.goodTier : before.tier,
+        stage: "steady",
+        tier: before.stage === "probing" || (awaiting && request.direction === "up") ? before.goodTier : before.tier,
         healthy: 0,
         pressure: 0,
-        request: keepDownRequest ? request : undefined,
-        transition: keepDownRequest ? before.transition : undefined,
+        request: undefined,
+        transition: undefined,
         probeWindows: 0,
-        parkedWindows: keepDownRequest ? before.parkedWindows : 0,
+        parkedWindows: 0,
       },
       output: [],
     }
@@ -351,6 +354,12 @@ while (queue.length > 0) {
 
 /** Contract outcomes transcribed from S1-S8 above. The model discovers
  * witnesses for these cells, but never writes or changes the table. */
+const awaitingRow = (regroup: "transition" | "no-op"): TransitionTable<StateKey, EventKey>[StateKey] => ({
+  hidden: "no-op", senderless: "no-op", unknown: "transition", healthy: "transition",
+  "pressure-known": "transition", "pressure-unknown": "transition", "pressure-severe": "transition",
+  "accept-held": "transition", "accept-pending": "transition", "accept-refused": "transition", reject: "transition",
+  "stale-accept": "no-op", "stale-reject": "no-op", regroup,
+})
 export const sendAdaptationTransitionTable = defineTransitionTable<StateKey, EventKey>()({
   "steady-fresh": {
     hidden: "no-op", senderless: "no-op", unknown: "transition", healthy: "transition",
@@ -370,42 +379,12 @@ export const sendAdaptationTransitionTable = defineTransitionTable<StateKey, Eve
     "accept-held": "no-op", "accept-pending": "no-op", "accept-refused": "no-op", reject: "no-op",
     "stale-accept": "no-op", "stale-reject": "no-op", regroup: "transition",
   },
-  "awaiting-down": {
-    hidden: "no-op", senderless: "no-op", unknown: "transition", healthy: "transition",
-    "pressure-known": "transition", "pressure-unknown": "transition", "pressure-severe": "transition",
-    "accept-held": "transition", "accept-pending": "transition", "accept-refused": "transition", reject: "transition",
-    "stale-accept": "no-op", "stale-reject": "no-op", regroup: "no-op",
-  },
-  "awaiting-up": {
-    hidden: "no-op", senderless: "no-op", unknown: "transition", healthy: "transition",
-    "pressure-known": "transition", "pressure-unknown": "transition", "pressure-severe": "transition",
-    "accept-held": "transition", "accept-pending": "transition", "accept-refused": "transition", reject: "transition",
-    "stale-accept": "no-op", "stale-reject": "no-op", regroup: "transition",
-  },
-  "awaiting-pending-down": {
-    hidden: "no-op", senderless: "no-op", unknown: "transition", healthy: "transition",
-    "pressure-known": "transition", "pressure-unknown": "transition", "pressure-severe": "transition",
-    "accept-held": "transition", "accept-pending": "transition", "accept-refused": "transition", reject: "transition",
-    "stale-accept": "no-op", "stale-reject": "no-op", regroup: "no-op",
-  },
-  "awaiting-pending-up": {
-    hidden: "no-op", senderless: "no-op", unknown: "transition", healthy: "transition",
-    "pressure-known": "transition", "pressure-unknown": "transition", "pressure-severe": "transition",
-    "accept-held": "transition", "accept-pending": "transition", "accept-refused": "transition", reject: "transition",
-    "stale-accept": "no-op", "stale-reject": "no-op", regroup: "transition",
-  },
-  "awaiting-parked-down": {
-    hidden: "no-op", senderless: "no-op", unknown: "transition", healthy: "transition",
-    "pressure-known": "transition", "pressure-unknown": "transition", "pressure-severe": "transition",
-    "accept-held": "transition", "accept-pending": "transition", "accept-refused": "transition", reject: "transition",
-    "stale-accept": "no-op", "stale-reject": "no-op", regroup: "no-op",
-  },
-  "awaiting-parked-up": {
-    hidden: "no-op", senderless: "no-op", unknown: "transition", healthy: "transition",
-    "pressure-known": "transition", "pressure-unknown": "transition", "pressure-severe": "transition",
-    "accept-held": "transition", "accept-pending": "transition", "accept-refused": "transition", reject: "transition",
-    "stale-accept": "no-op", "stale-reject": "no-op", regroup: "transition",
-  },
+  "awaiting-down": awaitingRow("no-op"),
+  "awaiting-up": awaitingRow("transition"),
+  "awaiting-pending-down": awaitingRow("no-op"),
+  "awaiting-pending-up": awaitingRow("transition"),
+  "awaiting-parked-down": awaitingRow("no-op"),
+  "awaiting-parked-up": awaitingRow("transition"),
   "down-hold-quiet": {
     hidden: "no-op", senderless: "no-op", unknown: "no-op", healthy: "transition",
     "pressure-known": "transition", "pressure-unknown": "transition", "pressure-severe": "transition",
@@ -489,8 +468,8 @@ const invariants: NamedInvariant<SendAdaptationMachineState, ModelState, SendAda
     name: "the fourth parked window releases awaiting-apply",
     specClause: "S6 PARKED_APPLY_WINDOWS",
     check: ({ previousReal, real, event }) => {
-      if (!event.action.includes("accept") && !event.action.includes("reject") && event.action !== "hidden" && event.action !== "senderless" && previousReal.value.mode === "awaiting-apply" && previousReal.parkedWindows === 3)
-        assert(real.value.mode !== "awaiting-apply" || event.action === "regroup", "request remained parked")
+      if (!event.action.includes("accept") && !event.action.includes("reject") && event.action !== "hidden" && event.action !== "senderless" && event.action !== "regroup" && previousReal.value.mode === "awaiting-apply" && previousReal.parkedWindows === 3)
+        assert(real.value.mode !== "awaiting-apply", "request remained parked")
     },
   },
 ]

@@ -14,14 +14,13 @@ const result = (requested: number): VideoRungApplyResult => ({
 
 const mesh = (): SendAdaptationMesh & { applyVideoRung: ReturnType<typeof vi.fn> } => {
   let rung = 0
-  const m: SendAdaptationMesh & { applyVideoRung: ReturnType<typeof vi.fn> } = {
+  return {
     videoRung: () => rung,
     applyVideoRung: vi.fn(async (next) => {
       rung = next.index
       return result(next.index)
     }),
   }
-  return m
 }
 
 const reports = (at: number, availableKbps: number, reason: "none" | "bandwidth" = "none", framesEncoded = at / 100): PeerReport[] =>

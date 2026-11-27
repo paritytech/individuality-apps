@@ -228,25 +228,15 @@ export class SendAdaptationDriver {
       // treating the regroup as neutral. An empty apply on an up request
       // (probe) stays a neutral regroup: a refused probe would double the
       // recovery hold.
-      const awaitingDown = this.controller.acceptsResult(result) && this.controller.state().transition?.direction === "down"
-      if (awaitingDown) {
-        this.controller.rejected(result, this.ports.nowMs())
-        this.evidence.reconcile(this.videoRung())
-        this.reapplyCurrentRung()
-      } else {
-        this.neutralRegroup()
-      }
+      if (this.controller.state().transition?.direction === "down") this.refuse(result)
+      else this.neutralRegroup()
       this.publish()
       return
     }
     const held = result.senders.some((sender) => sender.appliedFields.includes("maxBitrate"))
     const allPending = result.senders.length > 0 && result.senders.every((sender) => sender.status === "pending" || sender.status === "missing")
     if (held || allPending) this.controller.accepted(result, this.ports.nowMs())
-    else {
-      this.controller.rejected(result, this.ports.nowMs())
-      this.evidence.reconcile(this.videoRung())
-      this.reapplyCurrentRung()
-    }
+    else this.refuse(result)
     this.publish()
   }
 
@@ -403,6 +393,12 @@ export class SendAdaptationDriver {
 
   private neutralRegroup(): void {
     this.controller.regroup()
+    this.evidence.reconcile(this.videoRung())
+    this.reapplyCurrentRung()
+  }
+
+  private refuse(result: VideoRungApplyResult): void {
+    this.controller.rejected(result, this.ports.nowMs())
     this.evidence.reconcile(this.videoRung())
     this.reapplyCurrentRung()
   }

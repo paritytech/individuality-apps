@@ -179,22 +179,32 @@ export function sendAdaptationStep(
     // the ladder cannot freeze; an unanswered up request is an unconfirmed
     // probe and rolls back to the last good rung (S4).
     const requested = previous.requested
-    const keepDownRequest = previous.value.mode === "awaiting-apply" && requested !== undefined && requested.direction === "down"
-    const rollbackUpRequest = previous.value.mode === "awaiting-apply" && requested !== undefined && requested.direction === "up"
+    const awaiting = previous.value.mode === "awaiting-apply" && requested !== undefined
+    if (awaiting && requested.direction === "down") {
+      // The request, its parked-window count and the transition all carry over.
+      return {
+        state: {
+          ...previous,
+          value: { ...previous.value, healthyWindows: 0, pressureWindows: 0 },
+          probeWindows: 0,
+        },
+        commands: [],
+      }
+    }
     return {
       state: {
         ...previous,
         value: {
           ...previous.value,
-          mode: keepDownRequest ? "awaiting-apply" : "steady",
-          rung: rollbackUpRequest ? previous.value.lastGoodRung : keepDownRequest ? previous.value.rung : previous.value.mode === "probing-up" ? previous.value.lastGoodRung : previous.value.rung,
+          mode: "steady",
+          rung: previous.value.mode === "probing-up" || (awaiting && requested.direction === "up") ? previous.value.lastGoodRung : previous.value.rung,
           healthyWindows: 0,
           pressureWindows: 0,
-          transition: keepDownRequest ? previous.value.transition : undefined,
+          transition: undefined,
         },
-        requested: keepDownRequest ? requested : undefined,
+        requested: undefined,
         probeWindows: 0,
-        parkedWindows: keepDownRequest ? previous.parkedWindows : 0,
+        parkedWindows: 0,
       },
       commands: [],
     }
