@@ -84,6 +84,7 @@ Sent when a round closes, one set per co-player, from
 | `rtc.path_changes` | counter | | round summary | Times the selected candidate pair changed. Sent only when above 0. |
 | `rtc.coverage_s` | distribution | second | round summary | Seconds of the round with live inbound video: the link was connected and frames decoded. 0 included. |
 | `rtc.coverage_pct` | distribution | percent | round summary | The same, as a share of the round. |
+| `rtc.span_first_ms`, `rtc.span_last_ms`, `rtc.span_readings` | attributes | — | round summary | The measured span of the round's summary: the stats timestamps (device-local ms, never wall-clock) of the first and last counted 3 s reading behind the round's points, and how many readings that was. Lets a report compare the same stretch on both ends of a link. Not sent for a link the round never measured. |
 | `rtc.link` | counter | | round summary, `rtc.role`, `rtc.outcome`, `rtc.last_stage`, `rtc.seen`, `rtc.rtx`, `rtc.red`, `rtc.ulpfec`, `rtc.flexfec`, `rtc.rebuilds` | The link row: one per peer per round, also for a link that never connected. `rtc.outcome` is `video`, `connected-no-video`, `connected-unmeasured`, `not-connected` or `standby`. `rtc.rebuilds` is 0, 1, 2 or `3+`. Built in `lib/journeys/rtc-link.ts`. |
 | `rtc.link.ttff_ms` | distribution | millisecond | as `rtc.link` | First offer to first frame. |
 | `rtc.link.freeze_ms` | distribution | millisecond | as `rtc.link` | Inbound freeze time, 0 included. Not sent for a link with no frame counter. |

@@ -239,6 +239,52 @@ describe("the round summary", () => {
   })
 })
 
+describe("the measured span of a round's readings (archive#829)", () => {
+  it("carries the first and last reading timestamp and the reading count on every per-round point", () => {
+    startRtcGame()
+    openRtcRound(0)
+    for (let n = 0; n <= 4; n++) feed({ alice: sample(n) })
+    closeRtcRound()
+    const span = { "rtc.span_first_ms": "0", "rtc.span_last_ms": "12000", "rtc.span_readings": "5" }
+    expect(metric("rtc.rtt_ms", { stat: "p50" })[0].attrs).toMatchObject(span)
+    expect(metric("rtc.in_fps", { stat: "p50" })[0].attrs).toMatchObject(span)
+    expect(metric("rtc.link")[0].attrs).toMatchObject(span)
+    // every per-round point of the peer carries it, not just the fps ones
+    for (const point of recorded.metrics.filter((p) => p.attrs["rtc.peer"] === "0" && p.attrs.round === "1" && !["rtc.video_ms", "rtc.present_ms"].includes(p.name)))
+      expect(point.attrs).toMatchObject(span)
+  })
+
+  it("names only the stretch a late-opening phone actually measured", () => {
+    startRtcGame()
+    openRtcRound(0)
+    // the page reloaded mid-round: the first reading of this round is at 30 s
+    for (let n = 10; n <= 14; n++) feed({ alice: sample(n) })
+    closeRtcRound()
+    expect(metric("rtc.in_fps", { stat: "p50" })[0].attrs).toMatchObject({
+      "rtc.span_first_ms": "30000",
+      "rtc.span_last_ms": "42000",
+      "rtc.span_readings": "5",
+    })
+  })
+
+  it("sends no span for a link the round never measured, and records nothing outside a round", () => {
+    startRtcGame()
+    openRtcRound(0)
+    noteLinkStage("bob", 0, "offer", 400) // bob's room opened, but no reading ever carried him
+    feed({ alice: sample(0) })
+    feed({ alice: sample(1) })
+    closeRtcRound()
+    const unmeasured = metric("rtc.link").find((row) => row.attrs["rtc.last_stage"] === "offer")
+    expect(unmeasured?.attrs).not.toHaveProperty("rtc.span_readings")
+    expect(metric("rtc.rtt_ms")[0].attrs["rtc.span_readings"]).toBe("2")
+    // a reading outside any round records nothing, span included
+    resetRecorded()
+    feed({ alice: sample(5) })
+    expect(closeRtcRound()).toBeNull()
+    expect(recorded.metrics).toEqual([])
+  })
+})
+
 describe("video coverage per round (#256)", () => {
   beforeEach(() => vi.useFakeTimers())
 
