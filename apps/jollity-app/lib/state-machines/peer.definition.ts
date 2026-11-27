@@ -59,8 +59,8 @@ export type PeerEventKey =
   | "no-video-standby"
   | "stall-restart-one"
   | "stall-rebuild"
-  | "stall-rebuild-spent"
   | "stall-rebuild-offer-pending"
+  | "stall-offer-pending"
   | "unseen-spent"
   | "unseen-sees-us"
   | "unseen-later"
@@ -545,6 +545,7 @@ const baseWitnesses: readonly NamedSequence<PeerTestEvent, PeerActorState, Model
   sequence("both no-video rebuilds spent, an offer still pending goes on to the heals", [current("no-video-offer-pending-spent", { type: "stats-observed", readSequence: 1, framesDecoded: 0, browserConnectionState: "connected", noVideoDeadline: true, haveLocalOffer: true })], { link: "connected", laneOpen: true, budgets: { noVideoRebuilds: 2 } as PeerActorState["budgets"] }),
   sequence("standby exempts no-video rebuild", [current("no-video-standby", { type: "stats-observed", readSequence: 1, framesDecoded: -1, browserConnectionState: "connected", noVideoDeadline: true })], { link: "connected", standby: true }),
   sequence("first decoded-frame stall restarts ICE", [current("stall-restart-one", { type: "stats-observed", readSequence: 2, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1 })], { link: "connected", framesSeen: 4, framesReadSequence: 1 }),
+  sequence("a stall while our lane offer is unanswered rebuilds at once, no ICE restart (#1523)", [current("stall-offer-pending", { type: "stats-observed", readSequence: 2, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1, haveLocalOffer: true })], { link: "connected", framesSeen: 4, framesReadSequence: 1 }),
   sequence("second decoded-frame stall rebuilds (#1523 F5: one ICE restart per stall)", [current("stall-rebuild", { type: "stats-observed", readSequence: 3, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1 })], { link: "connected", framesSeen: 4, framesReadSequence: 2, budgets: { stallHeals: 1 } as PeerActorState["budgets"] }),
   // #1917: frozen video on a live link (packets rising, frames flat): a keyframe ask, then a rebuild, never an ICE restart
   sequence("a frozen link's stall asks the peer for a keyframe", [current("frozen-ask", { type: "stats-observed", readSequence: 2, framesDecoded: 131, browserConnectionState: "connected", recoveryDue: true, healDue: true, stallAfter: 2, packetsMoving: true })], { link: "connected", laneOpen: true, framesSeen: 131, framesReadSequence: 1, stallSamples: 1, frozenSamples: 1 }),
@@ -839,7 +840,7 @@ const allRegressions = [
     current("unseen-sees-us", { type: "stats-observed", readSequence: 2, framesDecoded: 3, browserConnectionState: "connected", peerSeesUs: true }),
     current("unseen-later", { type: "stats-observed", readSequence: 3, framesDecoded: 4, browserConnectionState: "connected", peerCannotSeeUs: true }),
   ], { link: "connected", laneOpen: true, framesSeen: 2, framesReadSequence: 1, budgets: { unseenHeals: 1 } as PeerActorState["budgets"] }),
-  sequence("#1523 an unseen report while our lane offer is unanswered issues nothing and keeps the budget", [current("unseen-offer-pending", { type: "stats-observed", readSequence: 2, framesDecoded: 3, browserConnectionState: "connected", peerCannotSeeUs: true, haveLocalOffer: true })], { link: "connected", laneOpen: true, framesSeen: 2, framesReadSequence: 1 }),
+  sequence("#1523 a first stall while our lane offer is unanswered rebuilds at once: an ICE restart would send no offer", [current("stall-offer-pending", { type: "stats-observed", readSequence: 2, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1, haveLocalOffer: true })], { link: "connected", framesSeen: 4, framesReadSequence: 1 }),
 ]
 export const peerRegressionCorpus = allRegressions
 
@@ -906,6 +907,8 @@ export const peerMutationProbes = [
     return result
   }),
   executableMutation("restart ICE for an unseen peer while our offer is unanswered", "unseen-offer-pending", (state, event) =>
+    stepPeerActor(state, { ...event, haveLocalOffer: undefined } as PeerActorEvent)),
+  executableMutation("restart ICE for a stall while our offer is unanswered", "stall-offer-pending", (state, event) =>
     stepPeerActor(state, { ...event, haveLocalOffer: undefined } as PeerActorEvent)),
   executableMutation("keep away failure budget across session change", "peer-session-changed", (state, event) => {
     const result = stepPeerActor(state, event)

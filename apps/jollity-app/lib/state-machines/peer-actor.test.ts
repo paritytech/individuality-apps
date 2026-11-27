@@ -66,6 +66,12 @@ describe("what a command carries for Mesh's log lines and heal records (design B
     expect(second.state.budgets.stallHeals).toBe(0)
   })
 
+  it("skips the stall's ICE restart while our lane offer is unanswered and rebuilds at once (#1523)", () => {
+    const pending = stepPeerActor(flowing(), event({ type: "stats-observed", readSequence: 1, framesDecoded: 815, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1, haveLocalOffer: true, now: 1_000 }))
+    expect(pending.commands).toEqual([expect.objectContaining({ kind: "replace-connection", cause: "media-stall", heal: 1, attempt: 1, at: 1_000 })])
+    expect(pending.commands.some((command) => command.kind === "restart-ice")).toBe(false)
+  })
+
   it("carries the unseen heal's count, one ICE restart only (#1523 F5)", () => {
     const unseen = (state: PeerActorState, readSequence: number) =>
       stepPeerActor(state, event({ type: "stats-observed", readSequence, framesDecoded: 815 + readSequence, browserConnectionState: "connected", peerCannotSeeUs: true, now: 1_000 * readSequence }))

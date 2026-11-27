@@ -331,7 +331,7 @@ describe("after code review (#1917)", () => {
   it("asks nothing of a peer whose own view says its camera is off", async () => {
     const { mesh, pc } = await connected("a", "b")
     const { VIEW } = await import("./link-view")
-    ;(mesh as unknown as { views: Map<string, unknown> }).views.set("b", { row: "", codes: new Map([["b", VIEW.selfCameraOff]]), at: 1e12, unseenSince: -Infinity })
+    ;(mesh as unknown as { views: Map<string, unknown> }).views.set("b", { row: "", codes: new Map([["b", VIEW.selfCameraOff]]), at: 1e12, unseenSince: -Infinity, seenSince: -Infinity })
     await vi.advanceTimersByTimeAsync(24_000)
     expect(keyframeAsks(pc)).toHaveLength(0)
     expect(FakePC.last).toHaveLength(1)

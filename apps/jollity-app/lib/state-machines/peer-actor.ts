@@ -459,7 +459,10 @@ export type PeerActorEvent =
    *  when Mesh stamps it: the unseen heal waits for it, and it can come up
    *  after the actor started. */
   /** haveLocalOffer: the connection holds our offer (signalingState
-   *  have-local-offer) at the read. */
+   *  have-local-offer) at the read: neither the unseen heal nor the
+   *  media-stall heal restarts ICE then (#1523).
+   *  peerSeesUs: the peer's fresh view has said, for Mesh's confirm window,
+   *  that it decodes our video: the unseen budget refills (#1523). */
   /** packetsMoving (#1917): inbound video packets rose since the sweep
    *  before, read from the same getStats as the frames (absent: not moving).
    *  healDue: the media heals' window is open (no keyframe on its way, the
@@ -939,8 +942,8 @@ export function stepPeerActor(previous: PeerActorState, event: PeerActorEvent): 
         return { state, commands: [], ignored: "held" }
       }
       if (event.readSequence < state.framesReadSequence) return { state: previous, commands: [], ignored: "stale-command" }
-      // #1523 per-episode unseen budget: the peer's view says it decodes our
-      // video again, so the episode the unseen heal answered is over and a
+      // #1523 per-episode unseen budget: the peer's view has said for the
+      // confirm window that it decodes our video again, so the episode the unseen heal answered is over and a
       // later one gets its own restart. Held sweeps (hidden, away, standby,
       // not connected) do not refill: they return above.
       if (event.peerSeesUs) state.budgets.unseenHeals = 0
@@ -1004,8 +1007,9 @@ export function stepPeerActor(previous: PeerActorState, event: PeerActorEvent): 
         state.framesReadSequence = event.readSequence
         state.stallSamples = 0
         state.budgets.stallHeals += 1
-        // the rebuild goes through recover
-        if (state.budgets.stallHeals <= STALL_ICE_RESTARTS) {
+        // the rebuild goes through recover; #1523: an ICE restart while our
+        // lane offer is unanswered sends no offer, so that stall rebuilds at once
+        if (state.budgets.stallHeals <= STALL_ICE_RESTARTS && event.haveLocalOffer !== true) {
           emit({ kind: "restart-ice", cause: "media-stall", heal: state.budgets.stallHeals })
         } else recover("media-stall", false, state.budgets.stallHeals)
         break

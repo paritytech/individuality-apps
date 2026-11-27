@@ -434,8 +434,9 @@ export function stepModelPeer(previous: ModelPeerState, event: ModelPeerEvent): 
       const stalled = !frozen && !state.frozenAsked && Boolean(event.recoveryDue && event.stallAfter && state.stallSamples >= (event.stallAfter as number))
       if (stalled) {
         state.framesReadSequence = read; state.stallSamples = 0; state.budgets.stallHeals += 1
-        // #1523 F5: one ICE restart per stall, then the rebuild
-        if (state.budgets.stallHeals <= 1) emit("restart-ice:media-stall")
+        // #1523 F5: one ICE restart per stall, then the rebuild; none while
+        // our lane offer is unanswered (it would send no offer): rebuild at once
+        if (state.budgets.stallHeals <= 1 && event.haveLocalOffer !== true) emit("restart-ice:media-stall")
         else { state.budgets.failCount += 1; replace("media-stall", true) }
         break
       }

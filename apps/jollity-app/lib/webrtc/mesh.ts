@@ -564,7 +564,8 @@ const CONNECTED_WITHOUT_VIDEO_MS = SEAT_TIMES.reconnectBudgetMs - MEDIA_WATCH_MS
 const VIEW_VIDEO_FRESH_MS = 10000
 /** a peer's view older than this says nothing any more */
 const VIEW_FRESH_MS = 12000
-/** a peer must say it does not see us for this long before we act on it */
+/** a peer must say it does not see us for this long before we act on it, and
+ *  that it sees us again for this long before its unseen budget refills */
 const VIEW_CONFIRM_MS = 8000
 /** a link this young may not show video yet: its peer's view is not acted on */
 const VIEW_LINK_GRACE_MS = 12000
@@ -575,6 +576,8 @@ interface PeerView {
   at: number
   /** since when its view says it does not decode our video; NEVER = it does */
   unseenSince: number
+  /** since when its view says it decodes our video; NEVER = it does not */
+  seenSince: number
 }
 
 /** Resolve once ICE gathering is `complete`, or after GATHER_TIMEOUT_MS —
@@ -2701,11 +2704,17 @@ export class Mesh {
         now - conn.channelOpenAt >= CONNECTED_WITHOUT_VIDEO_MS &&
         !remoteCameraOff
       const unseen = isInitiator(this.myId, peerId) && localVideoLive && this.peerCannotSeeUs(peerId, conn, now)
-      // #1523 per-episode unseen budget: the peer's fresh view says it decodes
-      // our video again, which refills the actor's unseen heal. A stale view
-      // (received over VIEW_FRESH_MS ago) does not.
+      // #1523 per-episode unseen budget: the peer's fresh view has said for
+      // VIEW_CONFIRM_MS that it decodes our video again, which refills the
+      // actor's unseen heal. A stale view (received over VIEW_FRESH_MS ago)
+      // does not, nor does one "sees us" row between "cannot see" rows (a
+      // flapping iPhone would otherwise get a restart every episode).
       const peerView = this.views.get(peerId)
-      const peerSeesUs = peerView !== undefined && now - peerView.at <= VIEW_FRESH_MS && peerView.codes.get(this.myId) === VIEW.video
+      const peerSeesUs =
+        peerView !== undefined &&
+        now - peerView.at <= VIEW_FRESH_MS &&
+        Number.isFinite(peerView.seenSince) &&
+        now - peerView.seenSince >= VIEW_CONFIRM_MS
       const sweeps = isInitiator(this.myId, peerId) ? FRAMES_STALL_SWEEPS : ANSWERER_STALL_SWEEPS
       // the media heals' window: no keyframe on its way, and the last heal backed off
       const healDue = now >= conn.healHoldUntil && now - conn.lastMediaHealAt >= MEDIA_HEAL_BACKOFF_MS
@@ -2790,6 +2799,7 @@ export class Mesh {
       codes,
       at: now,
       unseenSince: seesUs ? NEVER : previous && Number.isFinite(previous.unseenSince) ? previous.unseenSince : now,
+      seenSince: !seesUs ? NEVER : previous && Number.isFinite(previous.seenSince) ? previous.seenSince : now,
     })
     if (seesUs) this.heal.peerSees(peerId, now)
   }

@@ -15,7 +15,7 @@ import {
 } from "./peer.definition"
 
 const REGIONS = [...peerConnectionInitialStates, "closed"]
-const SCENARIOS = 201
+const SCENARIOS = 202
 const declaredCells = (table: Record<string, Record<string, string>>) =>
   Object.entries(table).flatMap(([state, row]) => Object.entries(row).filter(([, declaration]) => declaration !== "impossible").map(([event, declaration]) => `${state}::${event}::${declaration}`))
 
@@ -96,7 +96,7 @@ describe("WebRTC peer actor definition and independent model", () => {
       "#1523 a second stall arriving while our offer is still unanswered rebuilds, not a second ICE restart",
       "#1523 an unseen report with the one unseen heal of the episode spent issues nothing",
       "#1523 the unseen budget refills once the peer sees our video again, so a later episode gets its one restart",
-      "#1523 an unseen report while our lane offer is unanswered issues nothing and keeps the budget",
+      "#1523 a first stall while our lane offer is unanswered rebuilds at once: an ICE restart would send no offer",
     ])
   })
 
@@ -283,6 +283,7 @@ describe("WebRTC peer actor definition and independent model", () => {
       "reset peer unseen budget at round change",
       "never refill the unseen budget when the peer sees us again",
       "restart ICE for an unseen peer while our offer is unanswered",
+      "restart ICE for a stall while our offer is unanswered",
       "keep away failure budget across session change",
       "rebuild for a new signalling session in the side's own role",
       "drop the leave a new signalling session over our offer grants",
