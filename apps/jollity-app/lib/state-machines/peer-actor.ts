@@ -985,8 +985,11 @@ export function stepPeerActor(previous: PeerActorState, event: PeerActorEvent): 
         state.framesReadSequence = event.readSequence
         state.stallSamples = 0
         state.budgets.stallHeals += 1
-        // the rebuild goes through recover
-        if (state.budgets.stallHeals <= 2) {
+        // the rebuild goes through recover. #1523 F5: one ICE restart per
+        // stall, then the rebuild — a second restart while the first's lane
+        // offer is still unanswered sends no offer (as in Q2), so the rebuild
+        // would come one attempt late.
+        if (state.budgets.stallHeals <= 1) {
           emit({ kind: "restart-ice", cause: "media-stall", heal: state.budgets.stallHeals })
         } else recover("media-stall", false, state.budgets.stallHeals)
         break
@@ -1000,7 +1003,9 @@ export function stepPeerActor(previous: PeerActorState, event: PeerActorEvent): 
         if (state.budgets.negotiationImmediate > 0 && state.budgets.negotiationUnseen === 0) {
           state.budgets.negotiationUnseen = 1
           replace("peer-no-video-hard-sdp", true)
-        } else if (state.budgets.unseenHeals < 2) {
+        } else if (state.budgets.unseenHeals < 1) {
+          // #1523 F5: one ICE restart per present peer, then nothing until it
+          // leaves (no rebuild rung without hard-SDP authorisation)
           state.budgets.unseenHeals += 1
           // the unseen heal restarts the stall count with its ICE restart
           state.stallSamples = 0

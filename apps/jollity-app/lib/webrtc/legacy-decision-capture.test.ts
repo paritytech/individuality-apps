@@ -186,7 +186,7 @@ describe("legacy WebRTC decision capture", () => {
     ]) expect(line).toMatch(selfHeal)
     for (const line of [
       "[jollity-rtc] media-stall: connected but no inbound video → ICE restart (heal 1) b",
-      "[jollity-rtc] media-stall: connected but no inbound video → rebuild (heal 3) b",
+      "[jollity-rtc] media-stall: connected but no inbound video → rebuild (heal 2) b",
     ]) expect(line).toMatch(mediaStall)
   })
 })

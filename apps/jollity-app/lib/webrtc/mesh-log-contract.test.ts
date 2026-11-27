@@ -138,31 +138,29 @@ describe("the recovery lines a log reader parses, for a known count sequence", (
     mesh.close()
   })
 
-  it("a video that stops: ICE restarts (heal 1, 2), then a rebuild (heal 3, attempt 1)", async () => {
+  it("a video that stops: one ICE restart (heal 1), then a rebuild (heal 2, attempt 1) (#1523 F5)", async () => {
     const lines = recoveryLines()
     const { mesh, pc, heals } = await healed("a", "b", camera)
     state(pc, "connected")
     frames(pc, 50)
     await vi.advanceTimersByTimeAsync(4000)
     await vi.advanceTimersByTimeAsync(60_000)
-    expect(pc.restartIce).toHaveBeenCalledTimes(2)
+    expect(pc.restartIce).toHaveBeenCalledTimes(1)
     expect(FakePC.last).toHaveLength(2)
     expect(lines).toEqual([
       "[jollity-rtc] media-stall: connected but no inbound video → ICE restart (heal 1) b",
-      "[jollity-rtc] media-stall: connected but no inbound video → ICE restart (heal 2) b",
-      "[jollity-rtc] media-stall: connected but no inbound video → rebuild (heal 3) b",
+      "[jollity-rtc] media-stall: connected but no inbound video → rebuild (heal 2) b",
       "[jollity-rtc] self-heal: rebuild b (attempt 1)",
     ])
     expect(heals.map((event) => [event.trigger, event.action, event.attempt, event.end])).toEqual([
       ["media_stall", "ice_restart", 1, "next_attempt"],
-      ["media_stall", "ice_restart", 2, "next_attempt"],
     ])
-    // each restart's record runs from its own sweep to the next heal's
-    expect(heals.map((event) => event.healMs)).toEqual([12000, 12000])
+    // the restart's record runs from its own sweep to the rebuild's
+    expect(heals.map((event) => event.healMs)).toEqual([12000])
     mesh.close()
   })
 
-  it("the peer cannot see us: ICE restarts (heal 1), then the last one", async () => {
+  it("the peer cannot see us: one ICE restart, the last until the peer leaves (#1523 F5)", async () => {
     const lines = recoveryLines()
     const ROOM = ["a", "b", "c"]
     const { mesh, pc } = await healed("a", "b", camera, ROOM)
@@ -174,9 +172,8 @@ describe("the recovery lines a log reader parses, for a known count sequence", (
       frames(pc, 30 * (i + 1))
       await vi.advanceTimersByTimeAsync(4_000)
     }
-    expect(pc.restartIce).toHaveBeenCalledTimes(2)
+    expect(pc.restartIce).toHaveBeenCalledTimes(1)
     expect(lines).toEqual([
-      "[jollity-rtc] unseen: signalingState=stable the peer says it decodes none of our video → ICE restart (heal 1) b",
       "[jollity-rtc] unseen: signalingState=stable the peer says it decodes none of our video → ICE restart, the last until this peer leaves b",
     ])
     mesh.close()

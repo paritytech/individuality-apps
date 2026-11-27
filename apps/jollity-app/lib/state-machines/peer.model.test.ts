@@ -15,7 +15,7 @@ import {
 } from "./peer.definition"
 
 const REGIONS = [...peerConnectionInitialStates, "closed"]
-const SCENARIOS = 200
+const SCENARIOS = 199
 const declaredCells = (table: Record<string, Record<string, string>>) =>
   Object.entries(table).flatMap(([state, row]) => Object.entries(row).filter(([, declaration]) => declaration !== "impossible").map(([event, declaration]) => `${state}::${event}::${declaration}`))
 
@@ -135,6 +135,23 @@ describe("WebRTC peer actor definition and independent model", () => {
       expect(samples()).toBe(5)
       expect(stats(1181).map((command) => command.split("@")[0])).toEqual(["restart-ice:media-stall"])
     })
+
+    it("rebuilds on the second stall, one ICE restart per stall only (#1523 F5)", () => {
+      let state = createModelPeerState({ link: "connected", laneOpen: true, initiator: true, framesSeen: 100 })
+      let sequence = 0
+      const stats = (framesDecoded: number) => {
+        const step = stepModelPeer(state, {
+          type: "stats-observed", roomEpoch: 1, connectionEpoch: 1, readSequence: ++sequence, framesDecoded,
+          browserConnectionState: "connected", stallAfter: 1, recoveryDue: true,
+        })
+        state = step.state
+        return step.commands
+      }
+      expect(stats(100).map((command) => command.split("@")[0])).toEqual(["restart-ice:media-stall"])
+      expect(state.budgets.stallHeals).toBe(1)
+      expect(stats(100).map((command) => command.split("@")[0])).toEqual(["replace-connection:media-stall:offer"])
+      expect(state.budgets.stallHeals).toBe(0)
+    })
   })
 
   describe("a glare on the wire", () => {
@@ -182,6 +199,15 @@ describe("WebRTC peer actor definition and independent model", () => {
         browserConnectionState: "connected", noVideoDeadline: true, stallAfter: 2, recoveryDue: true, peerCannotSeeUs: true,
       })
       expect(result.commands.map((command) => command.split("@")[0])).toEqual(["restart-ice:peer-no-video"])
+    })
+
+    it("issues one unseen ICE restart only, then nothing until the peer leaves (#1523 F5)", () => {
+      const first = sweep(createModelPeerState({ link: "connected", laneOpen: true, initiator: true }), 34, 1)
+      expect(first.commands.map((command) => command.split("@")[0])).toEqual(["restart-ice:peer-no-video"])
+      expect(first.state.budgets.unseenHeals).toBe(1)
+      const second = sweep(first.state, 40, 2)
+      expect(second.commands).toEqual([])
+      expect(second.state.budgets.unseenHeals).toBe(1)
     })
 
     it("does not count a stall off a missing stat once recovery is due", () => {

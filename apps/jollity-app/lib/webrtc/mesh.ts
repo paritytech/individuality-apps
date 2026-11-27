@@ -554,8 +554,9 @@ const CONNECTED_WITHOUT_VIDEO_MS = SEAT_TIMES.reconnectBudgetMs - MEDIA_WATCH_MS
 // peer's view saying it decodes none of our video, on a link we send video on,
 // is the one-way failure our own inbound frames cannot show. Ordinarily the
 // initiator restarts ICE for it, at most UNSEEN_HEALS times while this peer
-// remains present; prior hard SDP refusal also authorizes one separately
-// budgeted round-scoped escalation rebuild.
+// remains present (#1523 F5: one — a second restart while the first's lane
+// offer is still unanswered sends no offer); prior hard SDP refusal also
+// authorizes one separately budgeted round-scoped escalation rebuild.
 // A peer's word is weaker evidence than our own frames: iPhones have been seen
 // saying it of links whose video flowed, and a rebuild each time, its budget
 // starting over on every new link, cost every pair ~3 s each 40 s.
@@ -567,8 +568,8 @@ const VIEW_FRESH_MS = 12000
 const VIEW_CONFIRM_MS = 8000
 /** a link this young may not show video yet: its peer's view is not acted on */
 const VIEW_LINK_GRACE_MS = 12000
-/** ICE-restart budget for one continuously present peer. */
-const UNSEEN_HEALS = 2
+/** ICE-restart budget for one continuously present peer (#1523 F5: one). */
+const UNSEEN_HEALS = 1
 
 /** One peer's latest view of the room. */
 interface PeerView {

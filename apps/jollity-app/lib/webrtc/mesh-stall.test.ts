@@ -70,12 +70,12 @@ describe("a video that stops on a connected link", () => {
     mesh.close()
   })
 
-  it("gets two ICE restarts and one rebuild from the initiator, then no more until frames flow", async () => {
+  it("gets one ICE restart and one rebuild from the initiator, then no more until frames flow (#1523 F5)", async () => {
     const { mesh, pc } = await connected("a", "b")
     frames(pc, 50)
     await vi.advanceTimersByTimeAsync(4000)
     await vi.advanceTimersByTimeAsync(60_000)
-    expect(pc.restartIce).toHaveBeenCalledTimes(2)
+    expect(pc.restartIce).toHaveBeenCalledTimes(1)
     expect(FakePC.last).toHaveLength(2) // the rebuild
     const rebuilt = FakePC.last[1]
     rebuilt.connectionState = "connected"
@@ -91,21 +91,21 @@ describe("a video that stops on a connected link", () => {
     frames(pc, 50)
     await vi.advanceTimersByTimeAsync(4000) // establish the frame baseline at a real watchdog sweep
     await vi.advanceTimersByTimeAsync(30_000)
-    expect(pc.restartIce).toHaveBeenCalledTimes(2) // same PC, offers ride the open lane
-    expect(FakePC.last).toHaveLength(2) // at most heal 3's first rebuild: only one replacement generation
+    expect(pc.restartIce).toHaveBeenCalledTimes(1) // same PC, the offer rides the open lane
+    expect(FakePC.last).toHaveLength(2) // the second stall's rebuild: only one replacement generation
     mesh.close()
   })
 
   it("starts its count over once frames flow again", async () => {
     const { mesh, pc } = await connected("a", "b")
     frames(pc, 50)
+    await vi.advanceTimersByTimeAsync(4000) // frames seen
+    await vi.advanceTimersByTimeAsync(8_000) // first stall: one ICE restart
+    expect(pc.restartIce).toHaveBeenCalledTimes(1)
+    frames(pc, 90) // healed before the second stall
     await vi.advanceTimersByTimeAsync(4000)
-    await vi.advanceTimersByTimeAsync(22_000) // two restarts, the rebuild not yet due
+    await vi.advanceTimersByTimeAsync(12_000) // past the heal backoff: a new stall, a new first restart, not the rebuild
     expect(pc.restartIce).toHaveBeenCalledTimes(2)
-    frames(pc, 90) // healed
-    await vi.advanceTimersByTimeAsync(4000)
-    await vi.advanceTimersByTimeAsync(12_000) // a new stall: a new first restart, not the rebuild
-    expect(pc.restartIce).toHaveBeenCalledTimes(3)
     expect(FakePC.last).toHaveLength(1)
     mesh.close()
   })

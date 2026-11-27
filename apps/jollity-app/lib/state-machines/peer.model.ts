@@ -431,7 +431,8 @@ export function stepModelPeer(previous: ModelPeerState, event: ModelPeerEvent): 
       const stalled = !frozen && !state.frozenAsked && Boolean(event.recoveryDue && event.stallAfter && state.stallSamples >= (event.stallAfter as number))
       if (stalled) {
         state.framesReadSequence = read; state.stallSamples = 0; state.budgets.stallHeals += 1
-        if (state.budgets.stallHeals <= 2) emit("restart-ice:media-stall")
+        // #1523 F5: one ICE restart per stall, then the rebuild
+        if (state.budgets.stallHeals <= 1) emit("restart-ice:media-stall")
         else { state.budgets.failCount += 1; replace("media-stall", true) }
         break
       }
@@ -441,7 +442,8 @@ export function stepModelPeer(previous: ModelPeerState, event: ModelPeerEvent): 
       state.framesReadSequence = read
       if (event.peerCannotSeeUs && state.initiator && state.cameraLive) {
         if (state.budgets.negotiationImmediate > 0 && state.budgets.negotiationUnseen === 0) { state.budgets.negotiationUnseen = 1; replace("peer-no-video-hard-sdp", true) }
-        else if (state.budgets.unseenHeals < 2) { state.budgets.unseenHeals += 1; freshCount(); emit("restart-ice:peer-no-video") }
+        // #1523 F5: one ICE restart per present peer, then nothing
+        else if (state.budgets.unseenHeals < 1) { state.budgets.unseenHeals += 1; freshCount(); emit("restart-ice:peer-no-video") }
       }
       break
     }

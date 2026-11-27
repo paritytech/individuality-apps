@@ -136,7 +136,7 @@ describe("a co-player's video back on a link that stayed up (#672)", () => {
   })
 
   it("starts a new stall's heals over when a look saw their frames in between", async () => {
-    // our camera is live, so a stall is healed: two ICE restarts, then a rebuild
+    // our camera is live, so a stall is healed: one ICE restart, then a rebuild (#1523 F5)
     const { mesh, pc } = await setupMesh("a", "b", {}, camera)
     let decoded = 30
     decoding(pc, decoded)

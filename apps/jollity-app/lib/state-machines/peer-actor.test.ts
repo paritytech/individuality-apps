@@ -58,22 +58,21 @@ describe("what a command carries for Mesh's log lines and heal records (design B
     expect(yielded.commands.map((command) => [command.kind, command.attempt])).toEqual([["yield-responder", 4], ["replace-connection", 4]])
   })
 
-  it("carries a stall's heal count, the rebuild's taken before the fresh connection zeroes it", () => {
+  it("carries a stall's heal count: one ICE restart, then the rebuild (#1523 F5)", () => {
     const first = stall(flowing(), 1, 1_000)
     expect(first.commands).toEqual([expect.objectContaining({ kind: "restart-ice", cause: "media-stall", heal: 1 })])
     const second = stall(first.state, 2, 2_000)
-    expect(second.commands).toEqual([expect.objectContaining({ kind: "restart-ice", cause: "media-stall", heal: 2 })])
-    const third = stall(second.state, 3, 3_000)
-    expect(third.commands).toEqual([expect.objectContaining({ kind: "replace-connection", cause: "media-stall", heal: 3, attempt: 1, at: 3_000 })])
-    expect(third.state.budgets.stallHeals).toBe(0)
+    expect(second.commands).toEqual([expect.objectContaining({ kind: "replace-connection", cause: "media-stall", heal: 2, attempt: 1, at: 2_000 })])
+    expect(second.state.budgets.stallHeals).toBe(0)
   })
 
-  it("carries the unseen heal's count, the peer's", () => {
+  it("carries the unseen heal's count, one ICE restart only (#1523 F5)", () => {
     const unseen = (state: PeerActorState, readSequence: number) =>
       stepPeerActor(state, event({ type: "stats-observed", readSequence, framesDecoded: 815 + readSequence, browserConnectionState: "connected", peerCannotSeeUs: true, now: 1_000 * readSequence }))
     const first = unseen(flowing(), 1)
     expect(first.commands).toEqual([expect.objectContaining({ kind: "restart-ice", cause: "peer-no-video", heal: 1 })])
-    expect(unseen(first.state, 2).commands).toEqual([expect.objectContaining({ kind: "restart-ice", cause: "peer-no-video", heal: 2 })])
+    expect(unseen(first.state, 2).commands).toEqual([])
+    expect(unseen(first.state, 2).state.budgets.unseenHeals).toBe(1)
   })
 })
 
@@ -342,7 +341,7 @@ describe("pure WebRTC peer actor", () => {
       link: "connecting",
       framesSeen: 4,
       framesReadSequence: 1,
-      budgets: { stallHeals: 2 } as PeerActorState["budgets"],
+      budgets: { stallHeals: 1 } as PeerActorState["budgets"],
     })
     const secondStall = stepPeerActor(recovering, event({
       type: "stats-observed",
@@ -595,9 +594,9 @@ describe("pure WebRTC peer actor", () => {
   })
 
   it("retains peer budgets while resetting round budgets", () => {
-    const before = initial({ roundGeneration: 1, budgets: { unseenHeals: 2, failCount: 3, noVideoRebuilds: 1, negotiationImmediate: 1, negotiationUnseen: 1, glareRebuilds: 1 } as PeerActorState["budgets"] })
+    const before = initial({ roundGeneration: 1, budgets: { unseenHeals: 1, failCount: 3, noVideoRebuilds: 1, negotiationImmediate: 1, negotiationUnseen: 1, glareRebuilds: 1 } as PeerActorState["budgets"] })
     const result = stepPeerActor(before, event({ type: "round-changed", roundGeneration: 2 }))
-    expect(result.state.budgets).toMatchObject({ unseenHeals: 2, failCount: 3, noVideoRebuilds: 0, negotiationImmediate: 0, negotiationUnseen: 0, glareRebuilds: 0 })
+    expect(result.state.budgets).toMatchObject({ unseenHeals: 1, failCount: 3, noVideoRebuilds: 0, negotiationImmediate: 0, negotiationUnseen: 0, glareRebuilds: 0 })
   })
 
   describe("the answer to a remote offer (3b step 2)", () => {
