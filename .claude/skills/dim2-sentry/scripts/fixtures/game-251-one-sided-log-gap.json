@@ -1,0 +1,85 @@
+{
+  "game": 251,
+  "evidence": {
+    "case": "eugypalu.07 round 1",
+    "pairVideoCoverage": 0.6,
+    "viewerLogHasRoundView": false,
+    "peerLogHasRoundView": true,
+    "note": "Reduced deterministic fixture for the g251 one-sided diagnostic-log gap; the positive pair metric is the authority that the player was not absent."
+  },
+  "groups": [
+    {
+      "round": 1,
+      "group": 0,
+      "members": [
+        {
+          "account": "eugypalu.07",
+          "username": "eugypalu.07",
+          "reported": true
+        },
+        {
+          "account": "g251-peer",
+          "username": "g251-peer",
+          "reported": true
+        }
+      ]
+    }
+  ],
+  "links": {
+    "rounds": [
+      {
+        "round": 1,
+        "start": 50000,
+        "end": 200000,
+        "playStart": 100000,
+        "playEnd": 200000
+      }
+    ],
+    "matrix": [
+      {
+        "round": 1,
+        "group": 0,
+        "a": "eugypalu.07",
+        "b": "g251-peer",
+        "coverage": 0.6,
+        "seenBy": "both"
+      }
+    ],
+    "timeline": [
+      {
+        "viewer": "g251-peer",
+        "peer": "eugypalu.07",
+        "segments": [
+          {
+            "from": 50000,
+            "to": 200000,
+            "state": "connected"
+          }
+        ]
+      }
+    ],
+    "players": [
+      {
+        "account": "eugypalu.07",
+        "hasLog": true
+      },
+      {
+        "account": "g251-peer",
+        "hasLog": true
+      }
+    ]
+  },
+  "pullPlayers": {
+    "eugypalu.07": {
+      "roots": [
+        {
+          "session.id": "g251-eugypalu",
+          "timestamp": "1970-01-01T00:02:30+00:00"
+        }
+      ]
+    },
+    "g251-peer": {
+      "roots": []
+    }
+  }
+}

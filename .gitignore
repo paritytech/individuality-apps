@@ -45,6 +45,7 @@ next-env.d.ts
 
 # local agent state: sessions, settings, editor rules
 .claude/*
+!.claude/skills/
 .claude/sessions/
 .claude/settings.local.json
 .cursor/
@@ -81,6 +82,10 @@ __pycache__/
 /.codex/
 /.agents/
 
+# dim2-sentry game report tooling: the local Sentry telemetry store and the
+# skill's Python venv are runtime output, never committed (same as the archive)
+/docs-internal/telemetry-store/
+/.claude/skills/dim2-sentry/.venv/
 
 # the state-machine explorer's mutants: sibling copies written at run time (lib/explorer/mutants/load.ts)
 apps/jollity-app/lib/**/*.mutant-*.ts

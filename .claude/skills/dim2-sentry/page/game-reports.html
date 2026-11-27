@@ -1,0 +1,1221 @@
+<!--
+  Copyright 2026 Parity Technologies (UK) Ltd.
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
+<title>Jollity Game Reports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a match log — a trend strip across games on top, then one report card per game, newest first. */
+:root {
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --ink: #141a22;
+  --muted: #5d6877;
+  --line: #dde2e8;
+  --accent: #0b7d6c;
+  --accent-soft: #e2f3ef;
+  --good: #1f8a4c;
+  --warn: #b26a00;
+  --notice: #d4a800;
+  --bad: #c2362f;
+  --good-soft: #e5f4ea;
+  --warn-soft: #fbf0dc;
+  --bad-soft: #fbe6e4;
+  --lk-live: #8fd3a6; --lk-partial: #f0c36a; --lk-dead: #ec8d86; --lk-unknown: #dfe3e8;
+  --lk-connecting: #a9c1ea; --lk-relay: #c3aee6; --lk-away: #c9ced6; --lk-never: #c7d1dc; --lk-tick: #141a22;
+  --lk-row-width: 96px; --lk-cell-width: 30px;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --surface: #161d25; --ink: #e6ebf1; --muted: #93a0b0; --line: #26303b;
+    --accent: #3cc2a8; --accent-soft: #123129; --good: #4cc27c; --warn: #e3a33a; --notice: #f2cc3a; --bad: #f0675f;
+    --good-soft: #13291c; --warn-soft: #2e2412; --bad-soft: #321717; color-scheme: dark;
+    --lk-live: #2b7a4b; --lk-partial: #8a6414; --lk-dead: #9a3a35; --lk-unknown: #2a3440; --lk-connecting: #3a5a8f; --lk-relay: #6b4fa3; --lk-away: #3b4552; --lk-never: #536170; --lk-tick: #e6ebf1;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --surface: #161d25; --ink: #e6ebf1; --muted: #93a0b0; --line: #26303b;
+  --accent: #3cc2a8; --accent-soft: #123129; --good: #4cc27c; --warn: #e3a33a; --notice: #f2cc3a; --bad: #f0675f;
+  --good-soft: #13291c; --warn-soft: #2e2412; --bad-soft: #321717; color-scheme: dark;
+  --lk-live: #2b7a4b; --lk-partial: #8a6414; --lk-dead: #9a3a35; --lk-unknown: #2a3440; --lk-connecting: #3a5a8f; --lk-relay: #6b4fa3; --lk-away: #3b4552; --lk-never: #536170; --lk-tick: #e6ebf1;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); }
+.wrap { max-width: 1080px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; display: grid; gap: 28px; }
+.link-shot { display: none; min-height: 100vh; padding: 24px; background: var(--surface); }
+body.link-shot-mode { margin: 0; background: var(--surface); }
+body.link-shot-mode .wrap { display: none; }
+body.link-shot-mode .link-shot { display: grid; align-content: start; gap: 22px; }
+.link-shot-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.link-shot-bar h1 { font-size: 30px; }
+.link-shot .lk-round { overflow: visible; }
+.link-shot .lk-groups { width: auto; flex-wrap: wrap; }
+.link-shot .lk-scroll { max-width: none; }
+.action { appearance: none; border: 1px solid var(--line); border-radius: 7px; padding: 7px 11px; background: var(--surface); color: var(--ink); font: 500 13px var(--f-body); cursor: pointer; }
+.action:hover { border-color: var(--accent); color: var(--accent); }
+.action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+header { display: grid; gap: 6px; }
+h1 { font: 800 clamp(30px, 5vw, 44px)/1.05 var(--f-display); font-stretch: 80%; margin: 0; text-wrap: balance; }
+h2 { font: 700 13px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+h3 { font: 800 24px/1.1 var(--f-display); font-stretch: 85%; margin: 0; }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+
+/* trend strip */
+.trends { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.trend { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; min-width: 0; }
+.trend .label { font-size: 12px; color: var(--muted); }
+.trend .value { font: 600 22px/1.1 var(--f-mono); font-variant-numeric: tabular-nums; }
+.trend .value small { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 4px; }
+.trend svg { width: 100%; height: 34px; display: block; }
+
+/* report card */
+.games { display: grid; gap: 18px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.card > summary { list-style: none; cursor: pointer; padding: 16px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.card > summary::-webkit-details-marker { display: none; }
+.card > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.card .meta { color: var(--muted); font-size: 13px; }
+.card .spacer { flex: 1 1 auto; }
+.chev { transition: transform .15s ease; color: var(--muted); }
+details[open] .chev { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
+.body { border-top: 1px solid var(--line); padding: 18px; display: grid; gap: 22px; }
+.summary-line { margin: 0; max-width: 72ch; white-space: pre-wrap; }
+.summary-text { max-width: 72ch; }
+.gap-warn { color: var(--bad, #b42318); font-weight: 600; }
+.summary-text .sl { margin: 0; white-space: pre-wrap; }
+.summary-text .sl-gap { height: .8em; }
+.summary-text .sl-head { margin: 0; font-weight: 700; }
+.nf { margin: 14px 0 0; max-width: 620px; }
+.nf h4 { margin: 0 0 6px; font-size: 13px; }
+.nf-row { display: grid; grid-template-columns: 13.5em 1fr 3.5em; align-items: center; gap: 4px 10px; font-size: 13px; }
+.nf-row .track { height: 8px; background: var(--bg); border-radius: 4px; position: relative; overflow: hidden; }
+.nf-row .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 4px; }
+.nf-row .n { text-align: right; font-variant-numeric: tabular-nums; }
+.qtable td.num, .qtable th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cov { display: grid; grid-template-columns: auto 1fr; gap: 4px 18px; align-items: center; padding: 14px 16px; border-radius: 10px; background: var(--accent-soft); }
+.cov .big { font: 700 40px/1 var(--f-mono); font-variant-numeric: tabular-nums; color: var(--accent); grid-row: span 2; }
+.cov .lab { font-weight: 600; }
+.cov .exp { font-size: 13px; color: var(--muted); }
+.cov .note { grid-column: 1 / -1; font-size: 13px; margin-top: 4px; white-space: pre-wrap; }
+details.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before { content: "›"; color: var(--muted); transition: transform .15s ease; }
+details.fold[open] > summary::before { transform: rotate(90deg); }
+details.fold > summary h2 { margin: 0; }
+details.fold[open] > summary { margin-bottom: 10px; }
+@media (prefers-reduced-motion: reduce) { details.fold > summary::before { transition: none; } }
+details.defs { font-size: 13px; }
+details.defs summary { cursor: pointer; color: var(--accent); }
+details.defs dl { display: grid; grid-template-columns: minmax(140px, max-content) 1fr; gap: 6px 14px; margin: 10px 0 0; }
+details.defs dt { font-weight: 600; } details.defs dd { margin: 0; color: var(--muted); }
+@media (max-width: 520px) { details.defs dl { grid-template-columns: 1fr; gap: 0; } details.defs dd { margin-bottom: 8px; } }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; font: 500 12px/1 var(--f-mono); padding: 5px 8px; border-radius: 999px; white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.none { background: var(--bg); color: var(--muted); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; }
+.grid2 > * { min-width: 0; }
+.tablebox { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font: 500 11px/1.2 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td .sub { display: block; color: var(--muted); font-size: 12px; }
+
+.stats { display: grid; grid-template-columns: minmax(180px, max-content) 1fr; gap: 6px 18px; max-width: 760px; }
+.stat { display: contents; }
+.stat .k { font-size: 14px; color: var(--muted); }
+.stat .v { font: 400 14px/1.45 var(--f-body); font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) { .stats { grid-template-columns: 1fr; gap: 0; } .stat .v { margin-bottom: 8px; } }
+.facts { display: grid; grid-template-columns: minmax(110px, max-content) 1fr; gap: 6px 16px; margin: 0; font-size: 14px; line-height: 1.45; }
+.facts dt { color: var(--muted); font-size: 13px; }
+.facts dd { margin: 0; }
+@media (max-width: 520px) { .facts { grid-template-columns: 1fr; gap: 0; } .facts dd { margin-bottom: 8px; } }
+
+.bars { display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 110px 1fr 92px; gap: 10px; align-items: center; font-size: 13px; }
+.bar .track { height: 8px; background: var(--bg); border-radius: 4px; position: relative; overflow: hidden; }
+.bar .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 4px; }
+.bar .fill.over { background: var(--warn); }
+.bar .budget { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--ink); opacity: .35; }
+
+.timeline { display: grid; gap: 6px; }
+.tl { display: grid; grid-template-columns: 170px 1fr 70px; gap: 10px; align-items: center; font-size: 13px; }
+.tl .track { height: 6px; background: var(--bg); border-radius: 3px; position: relative; }
+.tl .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); opacity: .75; border-radius: 3px; }
+.story-block { min-width: 0; }
+.story { overflow-x: auto; }
+.story svg { min-width: 1000px; width: 100%; height: auto; display: block; }
+.story text { font: 13px var(--f-body); fill: var(--ink); }
+.story .axis text { fill: var(--muted); font-size: 12px; }
+.story .story-note { font-size: 12px; }
+.story .story-page { font-size: 12px; }
+.story-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; color: var(--muted); margin-top: 6px; }
+.story-legend svg { vertical-align: middle; margin-right: 4px; }
+.story-tip { position: fixed; z-index: 10; pointer-events: none; display: none; white-space: pre-wrap; max-width: calc(100vw - 8px); box-sizing: border-box; background: var(--ink); color: var(--surface); font: 14px var(--f-body); padding: 6px 9px; border-radius: 6px; }
+
+.issues { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.issue { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; padding: 10px 12px; border-radius: 8px; background: var(--bg); }
+.issue .t { font-weight: 600; }
+.issue .d { grid-column: 2; color: var(--muted); font-size: 13px; }
+.issue .a { grid-column: 2; font-size: 13px; }
+.issue .a b { font-weight: 600; }
+
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 28px 22px; display: grid; gap: 8px; }
+.note { font-size: 13px; color: var(--muted); }
+code { font-family: var(--f-mono); font-size: .92em; background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+
+
+/* link picture: matrix per round group + timeline per viewer->peer link */
+.lk { display: grid; gap: 16px; }
+.lk-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.lk-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.lk-sw { width: 14px; height: 10px; border-radius: 2px; display: inline-block; border: 1px solid var(--line); }
+.lk-sw.tick { width: 3px; height: 12px; border: 0; }
+.lk-round { display: grid; gap: 10px; overflow-x: auto; }
+.lk-round h4 { margin: 0; font: 600 13px/1.3 var(--f-mono); }
+.lk-groups { display: flex; flex-wrap: nowrap; width: max-content; gap: 14px; align-items: flex-start; }
+.lk-group { flex: 0 0 auto; }
+.lk-group .gl { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.lk-scroll { max-width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 6px; background: var(--bg); }
+table.lk-m { table-layout: fixed; width: auto; border-collapse: separate; border-spacing: 2px; font-size: 11px; }
+.lk-m col.lk-row-col { width: var(--lk-row-width); }
+.lk-m col.lk-player-col { width: var(--lk-cell-width); }
+.lk-m th, .lk-m td { padding: 0; border: 0; }
+.lk-m th.col { width: var(--lk-cell-width); max-width: var(--lk-cell-width); height: 72px; vertical-align: bottom; text-align: left; font: 400 11px/1 var(--f-body); text-transform: none; letter-spacing: 0; color: var(--ink); white-space: nowrap; overflow: hidden; }
+.lk-m th.col span { writing-mode: vertical-rl; transform: rotate(180deg); display: block; max-height: 72px; overflow: hidden; text-overflow: ellipsis; }
+.lk-m th.row { width: var(--lk-row-width); max-width: var(--lk-row-width); text-align: right; font: 400 11px/1.2 var(--f-body); text-transform: none; letter-spacing: 0; color: var(--ink); padding-right: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 0; }
+.lk-m .nolog { font-style: italic; color: var(--muted); }
+.lk-m td.c { width: var(--lk-cell-width); height: 22px; min-width: var(--lk-cell-width); max-width: var(--lk-cell-width); text-align: center; font: 500 9.5px/1 var(--f-mono); border-radius: 4px; color: var(--ink); }
+.lk-m td.c .lk-cell-label { display: flex; width: 100%; height: 22px; align-items: center; justify-content: center; }
+.lk-m td.self { background: transparent; }
+.lk-live { background: var(--lk-live); } .lk-relay { background: var(--lk-live); box-shadow: inset 0 0 0 2px var(--lk-relay); } .lk-partial { background: var(--lk-partial); } .lk-dead { background: var(--lk-dead); } .lk-unknown { background: var(--lk-unknown); color: var(--muted) !important; }
+.lk-never-joined { background: repeating-linear-gradient(45deg, var(--lk-never) 0 3px, transparent 3px 6px); color: var(--ink) !important; white-space: normal; font-size: 8px !important; line-height: 9px !important; }
+.lk-controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 13px; }
+.lk-controls select { font: 13px var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; max-width: 100%; }
+.lk-tl { display: grid; gap: 3px; max-height: 480px; overflow-y: auto; padding-right: 4px; }
+.lk-row { display: grid; grid-template-columns: 170px 1fr; gap: 10px; align-items: center; font-size: 12px; }
+.lk-row .lab { overflow-wrap: anywhere; line-height: 1.25; }
+.lk-track { position: relative; height: 14px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.lk-seg { position: absolute; top: 0; bottom: 0; }
+.lk-seg.connected { background: var(--lk-live); } .lk-seg.connecting { background: var(--lk-connecting); } .lk-seg.relay { background: var(--lk-relay); }
+.lk-seg.reconnecting { background: var(--lk-partial); } .lk-seg.disconnected, .lk-seg.failed { background: var(--lk-dead); }
+.lk-seg.not-grouped { background: repeating-linear-gradient(135deg, transparent 0 4px, var(--line) 4px 8px); }
+.lk-seg.never-joined { background: repeating-linear-gradient(45deg, var(--lk-never) 0 3px, transparent 3px 6px); }
+.lk-seg.away { background: repeating-linear-gradient(135deg, var(--lk-away) 0 3px, transparent 3px 6px); }
+.lk-bound { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--ink); opacity: .45; }
+.lk-ev { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: var(--lk-tick); }
+.lk-ev.m-line-error { background: var(--bad); width: 4px; } .lk-ev.hidden, .lk-ev.shown { background: var(--accent); }
+.lk-ev.rejoin, .lk-ev.session-start { background: var(--warn); }
+.lk-axis { font: 400 11px var(--f-mono); color: var(--muted); display: flex; justify-content: space-between; margin-left: 180px; }
+@media (max-width: 520px) { .lk-row { grid-template-columns: 112px 1fr; } .lk-axis { margin-left: 122px; } }
+@media (max-width: 520px) {
+  .bar { grid-template-columns: 84px 1fr 76px; }
+  .tl { grid-template-columns: 120px 1fr 56px; }
+}
+
+/* funnel fallout tables: stages stay rows even on a phone */
+.ft-scroll { overflow-x: auto; }
+.ft { width: 100%; min-width: 620px; border-collapse: collapse; font-size: 13px; }
+.ft th, .ft td { padding: 8px 9px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.ft th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.ft .num { font: 600 13px/1.3 var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ft .stage { min-width: 190px; font-weight: 600; }
+.ft .why { min-width: 230px; color: var(--muted); }
+.ft details summary { cursor: pointer; color: var(--fg); font-weight: 600; }
+.ft details span, .ft details ul { display: block; margin: 5px 0 0; color: var(--muted); font-weight: 400; }
+.ft details ul { padding-left: 17px; }
+.ft-side { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px; }
+@media (max-width: 520px) { .ft { min-width: 560px; font-size: 12px; } .ft th, .ft td { padding: 7px 6px; } .ft .stage { min-width: 150px; } .ft .why { min-width: 200px; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Jollity Game Reports</h1>
+  </header>
+
+  <section aria-label="Trends">
+    <div class="trends" id="trends"></div>
+  </section>
+
+  <section aria-labelledby="games-h">
+    <h2 id="games-h">Games</h2>
+    <div class="games" id="games">
+      <div class="empty" id="empty">
+        <h3>Loading reports…</h3>
+        <p class="muted" style="margin:0">Reports appear here as they are added. After a game, ask Claude to “add the game report for game N”, and it reads that game from Sentry and writes it here.</p>
+      </div>
+    </div>
+  </section>
+
+  <p class="note">Numbers come from the jollity-next Sentry project (paritytech, EU). Video figures are per peer per round (p50 / p95 across the round); frame times are per screen, with 16.7 ms as the 60 fps budget. Players are shown by their username, with the first characters of their account below it (or the account alone when the username isn't known).</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const el = (tag, attrs, ...kids) => {
+    const n = document.createElement(tag);
+    if (attrs) for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else n.setAttribute(k, v === true ? "" : v);
+    }
+    for (const k of kids.flat()) if (k != null) n.append(k instanceof Node ? k : document.createTextNode(String(k)));
+    return n;
+  };
+  const svgEl = (name, attrs, parent, text) => {
+    const n = document.createElementNS("http://www.w3.org/2000/svg", name);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text != null) n.textContent = text;
+    if (parent) parent.append(n);
+    return n;
+  };
+  const fmtMs = (ms) => ms == null ? "—" : ms >= 10000 ? (ms / 1000).toFixed(1) + " s" : ms >= 1000 ? (ms / 1000).toFixed(2) + " s" : Math.round(ms) + " ms";
+  const fmtDate = (iso) => { try { return new Date(iso).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" }) + " Central European time"; } catch { return iso || ""; } };
+  const tone = (s) => ({ landed: "good", full: "good", completed: "good", shown: "good", ready: "good", granted: "good", sent: "good", full_telemetry: "good",
+    won: "good", "not shown": "warn", partial: "warn", stalled: "warn", retried: "warn", abandoned: "bad", isolated: "bad", failed: "bad", none: "none", missing: "none" }[s] || "none");
+  const pill = (text, t) => el("span", { class: "pill " + (t || tone(text)), text: text });
+
+  // ---- trend strip --------------------------------------------------------
+  const TRENDS = [
+    { key: (g) => { const c = coverageOf(g); return c ? c.pct : undefined; }, label: "Video coverage", unit: "%", fmt: (v) => Math.round(v), lowerIsBetter: false },
+    { key: (g) => g.join && g.join.peerAllMs, label: "Join to all peers", unit: "s", fmt: (v) => (v / 1000).toFixed(1), lowerIsBetter: true },
+    { key: (g) => g.video && g.video.rttP95, label: "Video round-trip time, slowest 5 %", unit: "ms", fmt: (v) => Math.round(v), lowerIsBetter: true },
+    { key: (g) => g.video && g.video.inFps, label: "Frames received per second", unit: "", fmt: (v) => Math.round(v), lowerIsBetter: false },
+    { key: (g) => worstFrameP95(g), label: "Slowest screen, frame time (slowest 5 %)", unit: "ms", fmt: (v) => Math.round(v), lowerIsBetter: true },
+    { key: (g) => (g.issues || []).filter((i) => i.severity === "bad").length, label: "Serious issues", unit: "", fmt: (v) => v, lowerIsBetter: true },
+  ];
+  // VIDEO COVERAGE: the share of each round that every expected pair actually had live video.
+  // Expected pair = two players seated in the same group in a round who both filed a report (both were in the game).
+  // A pair with no debug log on either side cannot be measured: counted as n/a, left out of the average.
+  function coverageOf(g) {
+    // the report script's figure (live Sentry metrics, the agreed source) wins; the note under it is written from the same numbers
+    const sc = g.coverage;
+    if (sc && typeof sc.measured === "number" && (typeof sc.coverage === "number" || sc.coverage === null)) {
+      const na = typeof sc.na === "number" ? sc.na : 0;
+      return { pct: sc.coverage, expected: sc.measured + na, measured: sc.measured, withVideo: null };
+    }
+    const reported = new Map();
+    for (const gr of g.groups || []) for (const m of gr.members || []) reported.set(m.account, !!m.reported);
+    const mx = (g.links && g.links.matrix) || [];
+    const expected = mx.filter((m) => reported.get(m.a) && reported.get(m.b));
+    if (!expected.length) return null;
+    const measured = expected.filter((m) => typeof m.coverage === "number");
+    const pct = measured.length ? (100 * measured.reduce((t, m) => t + m.coverage, 0)) / measured.length : null;
+    return { pct, expected: expected.length, measured: measured.length, withVideo: measured.filter((m) => m.coverage > 0).length };
+  }
+  function coverageBlock(g) {
+    const c = coverageOf(g);
+    if (!c) return el("div", { class: "cov" }, el("span", { class: "big", text: "n/a" }), el("span", { class: "lab", text: "Video coverage" }),
+      el("span", { class: "exp", text: "No link data for this game." }));
+    const na = c.expected - c.measured;
+    return el("div", { class: "cov" },
+      el("span", { class: "big", text: c.pct == null ? "n/a" : Math.round(c.pct) + "%" }),
+      el("span", { class: "lab", text: "Video coverage, the one number to track" }),
+      el("span", { class: "exp", text: `The share of play time with live video, averaged over ${c.measured} pair-rounds. A pair-round is two players seated together in one round, both in the game.${na ? ` ${na} more are n/a: no data from either side.` : ""}` }),
+      g.coverageNote ? el("span", { class: "note", text: g.coverageNote }) : null);
+  }
+  function worstFrameP95(g) { const s = (g.smoothness || []).map((x) => x.p95).filter((x) => typeof x === "number"); return s.length ? Math.max(...s) : undefined; }
+  function spark(values) {
+    const w = 200, h = 34, pad = 3;
+    const pts = values.map((v, i) => [i, v]).filter(([, v]) => typeof v === "number");
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`); svg.setAttribute("preserveAspectRatio", "none"); svg.setAttribute("aria-hidden", "true");
+    if (pts.length === 0) return svg;
+    const vs = pts.map((p) => p[1]); const lo = Math.min(...vs), hi = Math.max(...vs); const span = hi - lo || 1;
+    const n = Math.max(values.length - 1, 1);
+    const xy = pts.map(([i, v]) => [pad + (i / n) * (w - 2 * pad), h - pad - ((v - lo) / span) * (h - 2 * pad)]);
+    const mk = (name, a) => svgEl(name, a, svg);
+    if (xy.length > 1) {
+      mk("path", { d: "M" + xy.map((p) => p.join(",")).join(" L") + ` L${xy[xy.length - 1][0]},${h} L${xy[0][0]},${h} Z`, fill: "var(--accent-soft)", stroke: "none" });
+      mk("path", { d: "M" + xy.map((p) => p.join(",")).join(" L"), fill: "none", stroke: "var(--accent)", "stroke-width": "1.6", "vector-effect": "non-scaling-stroke" });
+    }
+    const last = xy[xy.length - 1]; mk("circle", { cx: last[0], cy: last[1], r: 2.8, fill: "var(--accent)" });
+    return svg;
+  }
+  function renderTrends(games) {
+    const box = $("#trends"); box.replaceChildren();
+    const chrono = [...games].sort((a, b) => a.game - b.game);
+    for (const t of TRENDS) {
+      const vals = chrono.map((g) => t.key(g));
+      const last = [...vals].reverse().find((v) => typeof v === "number");
+      box.append(el("div", { class: "trend" },
+        el("div", { class: "label", text: t.label }),
+        el("div", { class: "value" }, last == null ? "—" : String(t.fmt(last)), t.unit && last != null ? el("small", { text: t.unit }) : null),
+        spark(vals),
+        el("div", { class: "label", text: chrono.length ? `${chrono.length} game${chrono.length > 1 ? "s" : ""} · latest #${chrono[chrono.length - 1].game}` : "no games yet" })));
+    }
+  }
+
+  // ---- one report ---------------------------------------------------------
+  function verdict(g) {
+    const bad = (g.issues || []).some((i) => i.severity === "bad"), warn = (g.issues || []).some((i) => i.severity === "warn");
+    return bad ? ["issues found", "bad"] : warn ? ["minor issues", "warn"] : ["clean", "good"];
+  }
+  function stageCell(s) {
+    if (!s) return el("td", null, pill("missing", "none"));
+    return el("td", null, pill(s.outcome || "—"), s.ms != null || s.note ? el("span", { class: "sub" }, [s.ms != null ? fmtMs(s.ms) : null, s.note].filter(Boolean).join(" · ")) : null);
+  }
+  function playersTable(players) {
+    // older reports carry no draw cell: the column appears only when some row has one
+    const hasDraw = (players || []).some((p) => "draw" in p);
+    const head = el("tr", null, ...["Player", "Device", "Registration", "Join", "Game", "Chest", hasDraw ? "Prize draw" : null, "Telemetry"].filter(Boolean).map((h) => el("th", { scope: "col", text: h })));
+    const rows = (players || []).map((p) => el("tr", null,
+      el("td", null,
+        p.username ? el("span", { text: p.username }) : el("span", { class: "num", text: (p.id || "").slice(0, 6) + "…" }),
+        el("span", { class: "sub num", text: [p.username ? (p.id || "").slice(0, 6) + "…" : null, p.label].filter(Boolean).join(" · ") })),
+      el("td", null, p.device || "—", el("span", { class: "sub", text: [p.os, p.host ? p.host + " (" + (p.hostBuild || "build ?") + ")" : null].filter(Boolean).join(" · ") })),
+      stageCell(p.signup), stageCell(p.join), stageCell(p.game), stageCell(p.payoff), hasDraw ? stageCell(p.draw) : null,
+      el("td", null, pill(p.telemetry || "missing", p.telemetry === "full" ? "good" : p.telemetry === "partial" ? "warn" : "none"))));
+    return el("div", { class: "tablebox" }, el("table", null, el("thead", null, head), el("tbody", null, rows)));
+  }
+  function factsBlock(pairs) {
+    return el("dl", { class: "facts" }, pairs.flatMap(([k, v]) => [el("dt", { text: k }), el("dd", { text: String(v) })]));
+  }
+  function statsBlock(pairs) {
+    return el("div", { class: "stats" }, pairs.filter(([, v]) => v != null && v !== "").map(([k, v]) => el("div", { class: "stat" }, el("span", { class: "k", text: k }), el("span", { class: "v", text: String(v) }))));
+  }
+  function qualityTable(rows) {
+    const cell = (value, unit) => el("td", { class: "num", text: value == null ? "n/a" : `${value} ${unit}` });
+    const head = el("tr", null, el("th", { scope: "col", text: "Metric" }), ...["P50", "P75", "P95", "Worst"].map((h) => el("th", { scope: "col", class: "num", text: h })));
+    const body = rows.map((r) => el("tr", null,
+      el("td", null, r.metric, el("span", { class: "sub", text: r.samplesLabel || "" })),
+      cell(r.p50, r.unit), cell(r.p75, r.unit), cell(r.p95, r.unit), cell(r.worst, r.unit)));
+    return el("div", { class: "tablebox" }, el("table", { class: "qtable" }, el("thead", null, head), el("tbody", null, body)));
+  }
+  function codecText(kinds, side) {
+    const k = kinds && kinds[side];
+    if (!k) return null;
+    const mixed = (c) => c.mixed ? `, ${c.mixed} switched mid-round` : "";
+    const by = (kinds.byPlatform || []).map((row) => `${row.platform}: ${row[side].hardware} hardware, ${row[side].software} software${mixed(row[side])}, ${row[side].unsupported} not reported (of ${row.samples})`).join(" · ");
+    return `${k.unsupported} of ${kinds.samplesLabel} not reported by the browser; ${k.hardware} hardware · ${k.software} software${mixed(k)}` + (by ? ` — ${by}` : "");
+  }
+  function videoBlock(v) {
+    if (!v) return el("p", { class: "muted", text: "No video metrics for this game." });
+    if (v.table) return el("div", null, qualityTable(v.table), statsBlock([
+      ["How pairs connected", v.path ? v.path.replace(/\bstun\b/g, "STUN").replace(/\brelay\b/g, "TURN").replace(/\bdirect\b/g, "Direct").replace("(peer-round samples)", `(${v.connectionSamples} link samples: one per phone per peer per round)`) : "n/a"],
+      ["Video encoding", codecText(v.codecKinds, "encoding")],
+      ["Video decoding", codecText(v.codecKinds, "decoding")],
+      ["Browser lowered quality on its own (its bandwidth limit, not our ladder)", v.limited || "nothing"],
+      ["Sent and received compared on", v.pairing ? `${v.pairing.samples.fps} link directions both phones reported; ${v.pairing.partial.fps} of them only partly measured by one phone (a reload or a late open)` : null],
+    ]));
+    return statsBlock([
+      ["Video round-trip time, typical / worst pair", v.rttP50 != null ? `${Math.round(v.rttP50)} / ${Math.round(v.rttP95)} ms` : "n/a"],
+      ["Signalling round trip (statement store), typical / worst", v.signalP50 != null ? `${fmtMs(v.signalP50)} / ${fmtMs(v.signalMax)}` : "n/a"],
+      ["Packets lost, typical pair", v.lossP50 != null ? `${v.lossP50}%` : "n/a"],
+      ["Packets lost, worst pair: typical / worst moments", v.lossP95 != null ? (v.lossWorstPairP50 != null ? `${v.lossWorstPairP50}% / ${v.lossP95}%` : `${v.lossP95}% (worst moments)`) : "n/a"],
+      ["Jitter, worst pair", v.jitterP95 != null ? `${v.jitterP95} ms` : "n/a"],
+      ["Frames per second received / sent, worst pair", v.inFps != null ? `${v.inFps} / ${v.outFps}` : "n/a"],
+      ["Picture height received / sent, worst pair", v.inHeight != null ? `${v.inHeight} / ${v.outHeight} pixels` : "n/a"],
+      ["Upload speed, typical pair", v.outKbps != null ? `${(v.outKbps / 1000).toFixed(1)} megabits/s` : "n/a"],
+      ["Video frozen, worst pair in one round", v.freezeMs != null ? fmtMs(v.freezeMs) : "n/a"],
+      ["How pairs connected", v.path ? v.path.replace(/\bstun\b/g, "STUN").replace(/\brelay\b/g, "TURN").replace(/\bdirect\b/g, "Direct").replace("(peer-round samples)", "(one sample per pair per round)") : "n/a"],
+      ["Quality reduced by", v.limited || "nothing"],
+    ]);
+  }
+  function adaptationBars(title, distribution, scope) {
+    const rows = (distribution && distribution.buckets) || [];
+    const base = Math.max(1, ...rows.map((row) => row.count || 0));
+    return el("div", { class: "nf" }, el("h4", { text: `${title} (${distribution ? distribution.samples : 0} ${scope || "link-round samples"})` }),
+      ...rows.map((row) => {
+        const fill = el("span", { class: "fill key" });
+        fill.style.width = Math.max(1.5, 100 * row.count / base) + "%";
+        return el("div", { class: "nf-row" }, el("span", { class: "lab", text: `${row.label}:` }),
+          el("span", { class: "track", role: "img", "aria-label": `${row.label}: ${row.count}` }, fill),
+          el("span", { class: "n", text: String(row.count) }));
+      }));
+  }
+  const LADDER_NOTE = "Each phone's upload adapts on a five-step ladder (full, lean, low, minimum, survival) when its upload bandwidth runs short; the browser's encoder can lower size or frame rate further on its own.";
+  function adaptationsBlock(a) {
+    if (!a) return el("p", { class: "muted", text: "No adaptation metrics for this game." });
+    const low = a.lowPower || {}, limits = a.qualityLimits || {}, signals = a.signals || {};
+    const lowReason = { "probe-weak": "the device check found the phone slow", "probe-weak-confirmed": "borderline on the device check, and a second check confirmed it", "probe-no-verdict": "the device check could not reach a verdict", "debug-menu": "chosen in the debug menu", url: "set by a link setting", manual: "chosen by the player" };
+    const ladder = a.sendLadder;
+    const ladderText = ladder ? `${ladder.steppedDown} of ${ladder.senders} senders stepped down` + ((ladder.lowestRung || []).length ? ` (lowest step: ${ladder.lowestRung.map((r) => `${r.senders} to ${r.rung}`).join(", ")})` : "") : "not measured on this build";
+    const rungText = ladder ? (ladder.secondsByRung || []).map((r) => `${r.rung} ${r.seconds} s`).join(" · ") : null;
+    const limitReason = { bandwidth: "network bandwidth", cpu: "phone processor", other: "another reason" };
+    const reasonText = (low.reasons || []).map((row) => `${row.players} — ${lowReason[row.reason] || row.reason.replaceAll("-", " ")}`).join(" · ") || "none recorded";
+    const limitText = (limits.reasons || []).map((row) => `${limitReason[row.reason] || row.reason.replaceAll("-", " ")}: ${row.links} links, ${row.senders} senders, ${row.seconds} s`).join(" · ") || "none measured";
+    return el("div", null,
+      statsBlock([
+        ["Among players who joined: low power / full effects / unknown", `${low.lowPower || 0} / ${low.full || 0} / ${low.unknown || 0}`],
+        ["Why players used low power", reasonText],
+        ["Browser's own limit: links it lowered / never lowered", `${limits.limitedLinks || 0} / ${limits.neverLimited || 0}`],
+        ["Why the browser lowered quality", limitText],
+        ["Our upload ladder (the app's five steps)", ladder ? ladderText : null],
+        ["Time on each ladder step (all senders and rounds)", rungText],
+        ["TURN routes", `${signals.turnLinks || 0} of ${signals.connectionSamples || 0} link samples (one per phone per peer per round)`],
+        ["Link repairs", `${signals.healEvents || 0} finished repair attempts on ${signals.healedLinks || 0} link-rounds · ${signals.healSteps || 0} repair steps · ${signals.reconnectSteps || 0} connected links that dropped · ${signals.stallSteps || 0} stalls`],
+        ["Video freezes", `${signals.frozenLinks || 0} links · ${signals.freezeSeconds || 0} s total`],
+        ["Time to encode / decode one frame, worst link (95th percentile)", signals.worstEncodeP95Ms != null || signals.worstDecodeP95Ms != null ? `${signals.worstEncodeP95Ms == null ? "n/a" : signals.worstEncodeP95Ms} / ${signals.worstDecodeP95Ms == null ? "n/a" : signals.worstDecodeP95Ms} ms` : "n/a"],
+      ]),
+      // older reports carry the retired "chosen by the encoder, not by an app setting" note: the app has an upload ladder
+      ...(a.notes || []).map((note) => el("p", { class: "note", text: note.startsWith("Picture size and frame rate are chosen by each phone's WebRTC encoder") ? LADDER_NOTE : note })),
+      adaptationBars("Picture height received", a.picture && a.picture.receivedHeight, a.picture && a.picture.scope),
+      adaptationBars("Picture height sent", a.picture && a.picture.sentHeight, a.picture && a.picture.scope),
+      adaptationBars("Frames per second received", a.picture && a.picture.receivedFps, a.picture && a.picture.scope),
+      adaptationBars("Frames per second sent", a.picture && a.picture.sentFps, a.picture && a.picture.scope),
+      adaptationDefinitions());
+  }
+  function adaptationDefinitions() {
+    const D = [
+      ["Low power mode", "Turns off visual effects such as animations, blur and hero zoom so a slow phone keeps up. It never changes the video."],
+      ["Device check", "Before the game the app times how long the phone takes to draw a frame. One clearly slow check (the slowest 5 % of frames take 60 milliseconds or more) turns low power on. A borderline check (45 to 60 milliseconds) runs a second check, and low power turns on when that one is above 50 milliseconds too: \u201ca second check confirmed it\u201d."],
+      ["Upload ladder", "Each phone's upload adapts on a five-step ladder when its upload bandwidth runs short: full (300 kilobits per second, 24 frames per second, 360 pixels), lean (220, 24, 360), low (140, 18, 240), minimum (80, 12, 180) and survival (45, 8, 120). It steps back up when the bandwidth returns. It reacts to bandwidth, not to the processor. The browser's encoder can lower size or frame rate further on its own, which is where values off the ladder come from."],
+      ["Picture height and frames per second here", "Each link direction's median over the round, for every link direction both phones reported (joined on the link's id), so sent and received compare the same links. Frame rates within 1 per second of a ladder rate count as that rate; any other value is shown on its own. 254 pixels is the browser's own downscale of 360 (it halves the pixel count when bandwidth is short), not a ladder step."],
+      ["Link repairs", "A finished repair attempt is one self-heal of a video link: after it disconnected, failed, never connected, stopped delivering video, the peer asked to rejoin, or the negotiation broke. \u201cConnected links that dropped\u201d counts links that were up and went down. A stall is a connection that stopped moving until it recovered."],
+      ["Time to encode / decode one frame", "How long the phone spent compressing (encode) or unpacking (decode) one video frame, averaged over 3-second windows. At 24 frames per second the budget is about 42 milliseconds per frame."],
+    ];
+    return el("details", { class: "defs" }, el("summary", { text: "What these numbers mean" }),
+      el("dl", null, D.flatMap(([k, v]) => [el("dt", { text: k }), el("dd", { text: v })])));
+  }
+  function definitions(v) {
+    const table = !!(v && v.table);
+    const TABLE_ONLY = new Set(["P50, P75, P95 and Worst", "Frames per second and picture height in the table", "Video encoding and decoding"]);
+    const D = [
+      ["Video coverage", "Per pair-round (two players seated together in one round, both in the game): the share of the round\u2019s play time (first turn to last turn, as the chain schedules it) their video was live. The connect phase before kickoff and the gap between rounds do not count. A link can come up late or drop and come back, so it is a share, not yes or no. The figure is the average over all pair-rounds; 100 % means everyone saw everyone for every whole round."],
+      ["P50, P75, P95 and Worst", "Each row is measured once per pair (or link) per round, and the columns describe those rounds. P50 is the middle one. P75 and P95 are the values 75 % and 95 % of rounds were at least as good as: the higher values for times, loss and frozen video, the lower values for frames, picture height and upload speed. Worst is the single worst round; for round-trip time, packets lost and jitter it is that round's worst moments (the value it stayed under 95 % of the time), the figure the summary quotes."],
+      ["Typical and worst pair", "Video figures are measured per pair of players per round. \u201cTypical\u201d is the median over those pairs. \u201cWorst pair\u201d is the single worst pair-round in the game: for loss, jitter and round-trip time the value that pair stayed under 95 % of the time; for frames and picture height its median."],
+      ["Video round-trip time", "How long a packet takes to travel between the two phones and back over the video connection (STUN, TURN or Direct), as the phone's video stack measures it."],
+      ["Signalling round trip", "The time from a phone posting a video offer to the statement store until the other player's answer comes back. It decides how fast a video link comes up, not how smooth it is. Measured by the phone that sent the offer."],
+      ["Packets lost", "The share of video packets that never arrived. Above about 5 % the picture breaks up. \u201cTypical\u201d is the loss a pair saw most of the time; \u201cworst moments\u201d is what the worst pair stayed under 95 % of the time, and is high when a link was down for part of the round even if it was clean while up."],
+      ["Jitter", "How much the arrival time of packets varies, in milliseconds. High jitter shows as stutter."],
+      ["Frames per second", "Video frames received from and sent to the other players. The camera runs at 24; under 15 looks choppy."],
+      ["Picture height", "The vertical resolution of the video, in pixels. The upload ladder uses 360, 240, 180 and 120."],
+      ["Frames per second and picture height in the table", "Counted on every link direction (one phone sending to another in one round) both phones reported, joined on the link's id, so the sent and received rows compare the same links. Each phone sends only the median of its own 3-second readings over its own part of the round, never the readings themselves, so the two sides cannot be lined up second by second. Where one phone reloaded or opened late it measured only part of the round, and where a sender changed its rate mid-round the two medians land differently: that is why a few links read received above sent."],
+      ["Video encoding and decoding", "Whether the phone compressed (encoding) and unpacked (decoding) the video in dedicated hardware or in software, counted once per phone per link per round. \u201cNot reported\u201d means the browser does not say."],
+      ["Upload speed", "Video data each player sends per second, per link."],
+      ["Video frozen", "How long a player's video stopped updating on the other player's screen, added up over one round; the figure is the worst pair-round."],
+      ["How pairs connected", "Direct: the two phones reached each other on addresses they already had, typically the same network. STUN: each phone asked a STUN server for its public internet address, then the two sent video straight to each other. TURN: the video went through our TURN relay server, used when the phones cannot reach each other. Counted once per phone per peer per round, so a pair can count twice."],
+      ["Browser lowered quality on its own", "Time the browser's own video encoder lowered quality because the upload bandwidth or the processor could not keep up (its built-in limit, which WebRTC reports as the quality limitation reason). This is separate from our upload ladder, the app's own five steps, shown under Performance adaptations."],
+      ["Frame time", "How long the phone takes to draw one screen frame. 16.7 milliseconds is 60 frames per second, the target; longer frames feel slow."],
+      ["n/a", "No data: neither player's debug log covers that pair or value."],
+    ];
+    return el("details", { class: "defs" }, el("summary", { text: "What these numbers mean" }),
+      el("dl", null, D.filter(([key]) => table || !TABLE_ONLY.has(key)).flatMap(([k, v]) => [el("dt", { text: k }), el("dd", { text: v })])));
+  }
+  function smoothBlock(scenes) {
+    if (!scenes || !scenes.length) return el("p", { class: "muted", text: "No frame-timing metrics for this game." });
+    const max = Math.max(33.4, ...scenes.map((s) => s.p95 || 0));
+    return el("div", { class: "bars" }, scenes.map((s) => {
+      const fill = el("span", { class: "fill" + ((s.p95 || 0) > 16.7 * 1.25 ? " over" : "") }); fill.style.width = (100 * (s.p95 || 0) / max) + "%";
+      const budget = el("span", { class: "budget", title: "16.7 ms = 60 fps" }); budget.style.left = (100 * 16.7 / max) + "%";
+      return el("div", { class: "bar" }, el("span", { text: s.scene }), el("span", { class: "track", role: "img", "aria-label": `${s.scene} p95 ${s.p95} ms` }, fill, budget),
+        el("span", { class: "num", text: `${s.p50 ?? "—"}/${s.p95 ?? "—"} ms${s.slowPct != null ? " · " + s.slowPct + "%" : ""}` }));
+    }));
+  }
+  function timelineBlock(steps) {
+    if (!steps || !steps.length) return null;
+    const max = Math.max(...steps.map((s) => s.ms || 0), 1);
+    return el("div", { class: "timeline" }, steps.map((s) => {
+      const fill = el("span", { class: "fill" }); fill.style.width = Math.max(1.5, 100 * (s.ms || 0) / max) + "%";
+      return el("div", { class: "tl" }, el("span", { text: s.step }), el("span", { class: "track" }, fill), el("span", { class: "num", text: fmtMs(s.ms) }));
+    }));
+  }
+  function issuesBlock(issues) {
+    if (!issues || !issues.length) return el("p", { class: "muted", text: "Nothing went wrong that telemetry could see." });
+    return el("ul", { class: "issues" }, issues.map((i) => el("li", { class: "issue" },
+      pill(i.severity === "bad" ? "serious" : i.severity === "warn" ? "minor" : "note", i.severity === "bad" ? "bad" : i.severity === "warn" ? "warn" : "none"),
+      el("span", { class: "t", text: i.title }),
+      i.detail ? el("span", { class: "d", text: i.detail }) : null,
+      i.action ? el("span", { class: "a" }, el("b", { text: "Next: " }), i.action) : null)));
+  }
+
+  // ---- link picture (g.links, from scripts/game-links.py) ------------------
+  const LK_STATES = { live: "Live (90% or more)", relay: "Live over a relay (90% or more)", partial: "Partial (50 to 90%)", dead: "Dead (under 50%)", unknown: "n/a (both joined, no log on either side)", "never-joined": "Never joined" };
+  const hms = (ms) => new Date(ms).toLocaleTimeString("en-GB", { timeZone: "Europe/Berlin", hour12: false });
+  const tzl = (ms) => (new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Berlin", timeZoneName: "shortOffset" }).formatToParts(ms).find((p) => p.type === "timeZoneName") || {}).value === "GMT+2" ? "CEST (UTC+2)" : "CET (UTC+1)";
+  const cest = (ms) => hms(ms) + " " + tzl(ms);
+  const span = (a, b) => hms(a) + " to " + hms(b) + " " + tzl(b) + ", " + Math.round((b - a) / 1000) + " s";
+  let linkShotScroll = 0;
+  function closeLinkTables() {
+    const shot = $(".link-shot");
+    if (shot) shot.remove();
+    document.body.classList.remove("link-shot-mode");
+    if (/^#links-\d+$/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
+    window.scrollTo(0, linkShotScroll);
+  }
+  function showLinkTables(game, roundBlocks) {
+    const current = $(".link-shot");
+    if (current) current.remove();
+    linkShotScroll = window.scrollY;
+    const back = el("button", { class: "action", type: "button", text: "Back to the report" });
+    back.addEventListener("click", closeLinkTables);
+    const shot = el("main", { class: "link-shot", id: `links-${game}`, "aria-label": `Game ${game} link tables` },
+      el("div", { class: "link-shot-bar" }, el("h1", { text: `Game #${game} link tables` }), back),
+      roundBlocks.map((round) => round.cloneNode(true)));
+    document.body.append(shot);
+    document.body.classList.add("link-shot-mode");
+    history.replaceState(null, "", `${location.pathname}${location.search}#links-${game}`);
+    window.scrollTo(0, 0);
+    back.focus();
+  }
+  function timelineHelp(routed, tzName) {
+    const sw = (style) => el("i", { class: "lk-sw", style });
+    const tick = (bg) => el("i", { class: "lk-sw tick", style: `background:${bg}` });
+    const row = (mark, k, v) => [el("dt", null, mark, " ", k), el("dd", { text: v })];
+    return el("details", { class: "defs" }, el("summary", { text: "How to read the link timeline" }),
+      el("p", { class: "note", style: "margin:10px 0 0", text: "Each row is one player's own phone looking at its video link to another player: \u201cA \u2192 B\u201d is what A's debug log saw of the link to B, so a pair appears twice, once from each side. A player with no debug log has no rows of their own. Time runs left to right, from when the first round's connections opened to when the last round ended (times in " + tzName + " at both ends); the thin dark vertical lines mark each round's start and end. Round 1's bar therefore starts in the connect phase, about a minute before play, and the 7 s gap between rounds sits inside the bars: a blue stretch at the start is normal and costs no coverage. Hover any segment or tick for its exact times." }),
+      el("dl", null,
+        row(sw("background:var(--lk-live)"), "Green", routed ? "Connected, video flowing directly or via STUN." : "Connected, video flowing, whatever the route: this report does not record each stretch\u2019s route."),
+        row(sw("background:var(--lk-relay)"), "Purple", routed ? "Connected through the TURN relay server." : "Not drawn on this report\u2019s timeline: it does not record each stretch\u2019s route, so connected stretches are green whatever the route. In the grid above, a green cell with a purple ring is a pair that was up over TURN; TURN pairs that were partial or dead show yellow or red."),
+        row(sw("background:var(--lk-connecting)"), "Blue", "Connecting: the two phones are agreeing how to connect (they swap an offer and an answer through the statement store, then try routes: direct, STUN or the TURN relay) and no video is flowing yet."),
+        row(sw("background:var(--lk-partial)"), "Yellow", "Reconnecting after the link dropped."),
+        row(sw("background:var(--lk-dead)"), "Red", "Disconnected or failed."),
+        row(sw("background:repeating-linear-gradient(135deg, var(--lk-away) 0 3px, transparent 3px 6px)"), "Grey stripes", "A's app was out of view: A was not watching, even if the link was up."),
+        row(sw("background:var(--bg)"), "Plain grey", "No data: A's log does not cover that time."),
+        row(sw("background:repeating-linear-gradient(45deg, var(--lk-never) 0 3px, transparent 3px 6px)"), "Crosshatch", "At least one of the two players never joined the game; this time is not part of coverage."),
+        row(sw("background:repeating-linear-gradient(135deg, transparent 0 4px, var(--line) 4px 8px)"), "Diagonal outline", "The two players were not grouped together in this round, so there was no link to measure."),
+        row(tick("var(--lk-tick)"), "Black tick", "The link was rebuilt."),
+        row(tick("var(--bad)"), "Red tick", "A negotiation error (the \u201cm-line\u201d error)."),
+        row(tick("var(--accent)"), "Teal tick", "A's app went out of view or came back."),
+        row(tick("var(--warn)"), "Orange tick", "A's app restarted or rejoined.")),
+      el("p", { class: "note", style: "margin:8px 0 0", text: "The two controls below filter by viewer, or show only the links that dropped or never came up." }));
+  }
+  function linksBlock(L, g) {
+    const players = L.players || [];
+    const info = new Map(players.map((p) => [p.account, p]));
+    // a player with no game log can be missing a name in the link data; the game's own player list knows every registered player
+    const known = new Map(((g && g.players) || []).filter((p) => p.id && p.username).map((p) => [p.id, p.username]));
+    const nm = (a) => { const p = info.get(a); return (p && p.username) || known.get(a) || a.slice(0, 6) + "…"; };
+    const swatch = (cls, label) => el("span", null, el("i", { class: "lk-sw " + cls }), label);
+    const legend = el("div", { class: "lk-legend", "aria-label": "Legend" },
+      swatch("lk-live", "live, 90% or more"), swatch("lk-relay", "live over a relay"), swatch("lk-partial", "partial, 50 to 90%"), swatch("lk-dead", "dead, under 50%"), swatch("lk-unknown", "n/a, both joined but no log on either side"), swatch("lk-never-joined", "n/j  never joined: no telemetry from or about them during the game, and no report"),
+      el("span", null, el("i", { class: "lk-sw", style: "background:var(--lk-connecting)" }), "connecting"),
+      el("span", null, el("i", { class: "lk-sw", style: "background:var(--lk-partial)" }), "reconnecting"),
+      el("span", null, el("i", { class: "lk-sw", style: "background:var(--lk-away)" }), "viewer's app out of view"),
+      el("span", null, el("i", { class: "lk-sw tick", style: "background:var(--lk-tick)" }), "restart"),
+      el("span", null, el("i", { class: "lk-sw tick", style: "background:var(--bad)" }), "m-line error"),
+      el("span", null, el("i", { class: "lk-sw tick", style: "background:var(--accent)" }), "app hidden / shown"),
+      el("span", null, el("i", { class: "lk-sw tick", style: "background:var(--warn)" }), "rejoin / restart of the app"));
+
+    // matrices: one small grid per round group
+    const byPair = new Map();
+    for (const m of L.matrix || []) byPair.set(m.round + "|" + m.a + "|" + m.b, m);
+    const pairOf = (r, x, y) => byPair.get(r + "|" + x + "|" + y) || byPair.get(r + "|" + y + "|" + x);
+    const rounds = (L.rounds || []).map((r) => {
+      let groups = r.rooms;
+      if (!groups) { const g = {}; for (const m of L.matrix || []) if (m.round === r.round) { (g[m.group || 0] = g[m.group || 0] || new Set()).add(m.a).add(m.b); } groups = Object.values(g).map((s) => [...s]); }
+      return { r, groups };
+    });
+    const playStart = (r) => r.playStart ?? r.start;
+    const playEnd = (r) => r.playEnd ?? r.end;
+    const seenText = (m) => m.seenBy === "both" ? "seen by both players' logs" : "seen by " + nm(m.seenBy === "a" ? m.a : m.b) + "'s log only";
+    const joined = (account) => info.get(account) && info.get(account).joined === true;
+    const playerTitle = (account) => nm(account) + (joined(account) ? "" : " — never joined") + (info.get(account) && info.get(account).hasLog ? "" : " (no log)");
+    const neverJoinedText = (m) => {
+      const absent = [m.a, m.b].filter((account) => !joined(account)).map(nm);
+      return absent.length === 1 ? `${absent[0]} never joined` : `${absent.join(" and ")} never joined`;
+    };
+    function matrix(round, accts) {
+      const list = [...accts].sort((x, y) => nm(x).localeCompare(nm(y)));
+      const cols = el("colgroup", null, el("col", { class: "lk-row-col" }), list.map(() => el("col", { class: "lk-player-col" })));
+      const head = el("tr", null, el("th"), list.map((a) => el("th", { class: "col", scope: "col", title: playerTitle(a) }, el("span", { class: info.get(a) && info.get(a).hasLog ? null : "nolog", text: nm(a) }))));
+      const rows = list.map((a) => el("tr", null,
+        el("th", { class: "row" + (info.get(a) && info.get(a).hasLog ? "" : " nolog"), scope: "row", title: playerTitle(a), text: nm(a) }),
+        list.map((b) => {
+          if (a === b) return el("td", { class: "c self" });
+          const m = pairOf(round, a, b);
+          if (!m) return el("td", { class: "c lk-unknown", title: "not in the same group" }, el("span", { class: "lk-cell-label", text: "n/a" }));
+          const txt = m.state === "never-joined" ? "n/j" : m.coverage == null ? "n/a" : Math.round(m.coverage * 100) + "%";
+          const detail = m.state === "never-joined" ? `${neverJoinedText(m)}; excluded from coverage` : m.coverage == null ? "both joined, no log on either side" : seenText(m);
+          return el("td", { class: "c lk-" + m.state, title: `${nm(m.a)} and ${nm(m.b)}: ${LK_STATES[m.state]}${m.coverage == null ? "" : ", " + Math.round(m.coverage * 100) + "% of the round connected with video"}; ${detail}` }, el("span", { class: "lk-cell-label", text: txt }));
+        })));
+      return el("div", { class: "lk-scroll" }, el("table", { class: "lk-m" }, cols, el("thead", null, head), el("tbody", null, rows)));
+    }
+    const roundBlocks = rounds.map(({ r, groups }) => el("div", { class: "lk-round" },
+      el("h4", { text: `Round ${r.round} · ${hms(playStart(r))} to ${hms(playEnd(r))} ${tzl(playEnd(r))} · ${Math.round((playEnd(r) - playStart(r)) / 1000)} s` }),
+      el("div", { class: "lk-groups", style: `--lk-n: ${groups.length}` }, groups.map((acc, i) => el("div", { class: "lk-group" },
+        groups.length > 1 ? el("div", { class: "gl", text: `Group ${i + 1} · ${acc.length} players` }) : null, matrix(r.round, acc))))));
+
+    // timeline
+    const tl = L.timeline || [];
+    const t0 = rounds.length ? Math.min(...rounds.map((x) => playStart(x.r))) : 0;
+    const t1 = rounds.length ? Math.max(...rounds.map((x) => playEnd(x.r))) : 1;
+    const dur = Math.max(t1 - t0, 1);
+    const pct = (t) => Math.max(0, Math.min(100, (100 * (t - t0)) / dur));
+    const viewers = [...new Set(tl.map((x) => x.viewer))].sort((a, b) => nm(a).localeCompare(nm(b)));
+    const sel = el("select", { id: "lk-viewer-" + (L.game || ""), "aria-label": "Viewer" }, el("option", { value: "", text: `All viewers (${viewers.length})` }), viewers.map((v) => el("option", { value: v, text: nm(v) })));
+    const onlyBad = el("input", { type: "checkbox" });
+    const rowsBox = el("div", { class: "lk-tl" });
+    const evs = (L.events || []);
+    function drawRows() {
+      const v = sel.value;
+      const list = tl.filter((x) => (!v || x.viewer === v) && (!onlyBad.checked || x.segments.some((s) => !["connected", "not-grouped", "never-joined"].includes(s.state))))
+        .sort((a, b) => nm(a.viewer).localeCompare(nm(b.viewer)) || nm(a.peer).localeCompare(nm(b.peer)));
+      rowsBox.replaceChildren(...(list.length ? list.map((x) => {
+        const track = el("div", { class: "lk-track" });
+        for (const s of x.segments) {
+          const segState = s.state === "connected" && s.path === "relay" ? "relay" : s.state;
+          const seg = el("div", { class: "lk-seg " + segState, title: `${nm(x.viewer)} → ${nm(x.peer)}: ${segState === "relay" ? "connected over TURN" : s.state}, ${span(s.from, s.to)}` });
+          seg.style.left = pct(s.from) + "%"; seg.style.width = Math.max(0.25, pct(s.to) - pct(s.from)) + "%"; track.append(seg);
+        }
+        for (const r of rounds) for (const t of [playStart(r.r), playEnd(r.r)]) { const b = el("div", { class: "lk-bound", title: `Round ${r.r.round} ${t === playStart(r.r) ? "starts" : "ends"} ${cest(t)}` }); b.style.left = pct(t) + "%"; track.append(b); }
+        for (const e of evs) {
+          if (e.account !== x.viewer || (e.peer && e.peer !== x.peer)) continue;
+          const t = el("div", { class: "lk-ev " + e.kind, title: `${e.kind} (${nm(e.account)}${e.peer ? " → " + nm(e.peer) : ""}) ${cest(e.at)}: ${e.detail}` });
+          t.style.left = pct(e.at) + "%"; track.append(t);
+        }
+        return el("div", { class: "lk-row" }, el("span", { class: "lab", text: `${nm(x.viewer)} → ${nm(x.peer)}` }), track);
+      }) : [el("p", { class: "muted", style: "margin:0", text: "No links to show for this filter." })]));
+    }
+    sel.addEventListener("change", drawRows); onlyBad.addEventListener("change", drawRows); drawRows();
+    const kinds = {}; for (const e of evs) kinds[e.kind] = (kinds[e.kind] || 0) + 1;
+    const noLog = players.filter((p) => !p.hasLog).length;
+    const screenshot = el("button", { class: "action", type: "button", "data-links-shot": String(g.game), text: "Show tables for a screenshot" });
+    screenshot.addEventListener("click", () => showLinkTables(g.game, roundBlocks));
+    return el("div", { class: "lk" },
+      el("p", { class: "note", style: "margin:0", text: `Built from the players' own debug logs: ${players.length - noLog} of ${players.length} players have one${noLog ? ", so some pairs are seen from one side only or not at all" : ""}. Coverage is the share of the round a link was connected with video arriving; a pair shows the lower of its two sides. A link that ran over a relay is marked. Times are ${rounds.length ? tzl(t0) : "Central European time"}.` }),
+      screenshot, legend, ...roundBlocks,
+      el("section", null, el("h2", { text: "Link timeline" }),
+        timelineHelp(tl.some((x) => x.segments.some((sg) => sg.path)), rounds.length ? tzl(t0).split(" ")[0] : "Central European time"),
+        el("div", { class: "lk-controls" }, el("label", null, "Viewer ", sel), el("label", null, onlyBad, " only links that dropped or never came up"),
+          el("span", { class: "muted", text: Object.entries(kinds).map(([k, v]) => `${v} ${k}`).join(", ") })),
+        el("div", { class: "lk-axis", "aria-hidden": "true" }, el("span", { text: hms(t0) }), el("span", { text: hms(t1) + " " + tzl(t1).split(" ")[0] })),
+        rowsBox));
+  }
+
+  function expandLinkAccounts(L) {
+    if (!L || !Array.isArray(L.accounts)) return L;
+    const account = (ref) => typeof ref === "number" ? L.accounts[ref] : ref;
+    return {
+      ...L,
+      players: (L.players || []).map((row) => ({ ...row, account: account(row.account) })),
+      matrix: (L.matrix || []).map((row) => ({ ...row, a: account(row.a), b: account(row.b) })),
+      timeline: (L.timeline || []).map((row) => ({ ...row, viewer: account(row.viewer), peer: account(row.peer) })),
+      events: (L.events || []).map((row) => ({ ...row, account: account(row.account), ...(row.peer == null ? {} : { peer: account(row.peer) }) })),
+      rounds: (L.rounds || []).map((row) => ({ ...row,
+        ...(row.room ? { room: row.room.map(account) } : {}),
+        ...(row.rooms ? { rooms: row.rooms.map((room) => room.map(account)) } : {}) })),
+    };
+  }
+
+
+  function falloutTable(model, g, intro, side) {
+    const known = new Map(((g && g.players) || []).map((p) => [p.id, p.username || (p.id || "").slice(0, 6) + "…"]));
+    const nm = (a) => known.get(a) || String(a).slice(0, 6) + "…";
+    const accounts = (list) => (list || []).map(nm).join(", ") || "none";
+    const whyCell = (row) => {
+      const summaries = [], details = [];
+      for (const item of row.sources || []) {
+        summaries.push(`${item.count} from ${item.key === "openedApp" ? "the app" : item.key === "chatSignup" ? "chat" : "chain only"}`);
+        details.push(...(item.accounts || []).map((account) => `${nm(account)} — entered from ${item.key === "openedApp" ? "the app" : item.key === "chatSignup" ? "chat" : "chain only"}`));
+      }
+      for (const group of row.why || []) {
+        let text = group.count == null ? group.text : `${group.count} ${group.text}`;
+        if (group.afterDeadline) text += ` (${group.afterDeadline} only after registration closed)`;
+        summaries.push(text);
+        if (group.details && group.details.length) details.push(...group.details.map((item) => `${item.label || nm(item.account)} — ${item.reason}`));
+        else if (group.accounts && group.accounts.length) details.push(...group.accounts.map((account) => nm(account)));
+      }
+      const compact = summaries.join(" · ");
+      return el("td", { class: "why" }, details.length
+        ? el("details", null, el("summary", { text: compact }), el("ul", null, details.map((text) => el("li", { text }))))
+        : el("span", { text: compact }));
+    };
+    const stageCell = (row) => row.collapsed ? el("td", { class: "stage" },
+      el("details", null, el("summary", { text: row.stage }), el("ul", null, row.collapsed.map((item) => el("li", { text: `${item.stage}: ${item.count}` })))))
+      : el("td", { class: "stage", title: accounts(row.accounts), text: row.stage });
+    const rows = [...(model.entries || []), ...(model.rows || [])].map((row) => el("tr", null,
+      stageCell(row), el("td", { class: "num", text: typeof row.count === "number" ? String(row.count) : "n/a" }),
+      el("td", { class: "num", text: typeof row.sharePct === "number" ? `${row.sharePct}%` : "n/a" }),
+      el("td", { class: "num", text: typeof row.dropped === "number" ? String(row.dropped) : "n/a" }), whyCell(row)));
+    const head = el("tr", null, ...["Stage", "Players", `Of ${model.entryTotal || "N"}`, "Dropped", "Why"].map((label) => el("th", { scope: "col", text: label })));
+    return el("div", null, intro ? el("p", { class: "note", style: "margin:0 0 8px", text: intro }) : null,
+      el("div", { class: "ft-scroll" }, el("table", { class: "ft" }, el("thead", null, head), el("tbody", null, rows))),
+      side ? el("p", { class: "ft-side", text: side }) : null);
+  }
+
+  function notifFunnelBlock(nf, g) {
+    const steps = nf.steps || [], base = (steps.find((row) => typeof row.count === "number") || {}).count || 0;
+    let previous = null;
+    const rows = steps.map((step) => {
+      const measured = step.measured !== false && typeof step.count === "number";
+      const droppedAccounts = measured && previous ? previous.accounts.filter((account) => !(step.accounts || []).includes(account)) : [];
+      const row = { key: step.key, stage: step.label, count: measured ? step.count : null,
+        sharePct: measured && base ? Math.round(1000 * step.count / base) / 10 : null,
+        dropped: measured && previous ? Math.max(0, previous.count - step.count) : measured ? 0 : null,
+        why: step.note ? [{ text: step.note, count: null, accounts: droppedAccounts, details: step.details || [] }]
+          : droppedAccounts.length ? [{ text: "did not reach this stage", count: droppedAccounts.length, accounts: droppedAccounts }] : [] };
+      if (measured) previous = { count: step.count, accounts: step.accounts || [] };
+      return row;
+    });
+    return falloutTable({ entryTotal: base, entries: [], rows }, g, nf.window, nf.side);
+  }
+
+  function gameFunnelBlock(g) {
+    const window = g.reportWindow && g.reportWindow.label ? `Game window: ${g.reportWindow.label}. ` : "";
+    return g.funnelTable ? falloutTable(g.funnelTable, g, window + (g.funnelTable.intro || ""), g.funnelTable.intro ? null : g.funnelTable.side && g.funnelTable.side.text)
+      : el("p", { class: "muted", text: "This older report has no funnel table." });
+  }
+
+  function summaryBlock(text) {
+    const rows = String(text).split("\n").map((line) => {
+      const head = /^\*\*(.+)\*\*$/.exec(line.trim());
+      if (head) return el("p", { class: "sl-head" }, el("strong", { text: head[1] }));
+      if (!line.trim()) return el("div", { class: "sl-gap", "aria-hidden": "true" });
+      return el("p", { class: "sl", text: line });
+    });
+    return el("div", { class: "summary-text" }, rows);
+  }
+  const MARK_LABELS = { registered: "Registered", join: "Joined", reported: "Report" };
+  const PAGE_LABELS = { draw: "Prize draw", chest: "Chest", endscreen: "End screen", humanity: "Humanity" };
+  const pageLabel = (page) => page.label || PAGE_LABELS[page.key] || page.key;
+  const GAME_MARK_LABELS = { remindersFired: "reminders fired" };
+  const MARK_FILLS = { registered: "var(--muted)", join: "var(--accent)", reported: "var(--good)" };
+  const UNSEEN_LINE = { stroke: "var(--muted)", "stroke-width": "2", "stroke-dasharray": "0.5 4", "stroke-linecap": "round", opacity: ".6" };
+  const NOTICE_FILL = "var(--notice)";
+  const NOTICE_MOMENTS = { opens: "Register for the next game now", "close-1h": "Game starts in an hour", "close-10m": "10 minutes left to register",
+    "start-5m": "the game starts in 5 min", "start-1m": "Game starting now", "start-20s": "Game starts in 20 seconds" };
+  const NOTICE_KINDS = { push: "Notification", calendar: "Calendar Reminder", alarm: "Alarm" };
+  const EXPECTED_NOTICES = { "host-alarm": "the host rings its game alarm a minute before the game, or posts a notification where the phone allows no alarm",
+    calendar: "the calendar entry the host added for the game alerts 5 min before the alarm" };
+  // a notice mark is larger than an event dot, so where a dot covers it, its edge still shows around the dot
+  const NOTICE_R = 5.5;
+  const noticeShape = (kind, cx, cy, hollow, r = NOTICE_R) => {
+    const k = hollow ? r - 0.75 : r, paint = hollow ? { fill: "var(--surface)", stroke: NOTICE_FILL, "stroke-width": "1.5" } : { fill: NOTICE_FILL };
+    if (kind === "alarm") return ["rect", { x: cx - k * 0.85, y: cy - k * 0.85, width: k * 1.7, height: k * 1.7, ...paint }];
+    if (kind === "calendar") return ["polygon", { points: `${cx},${cy - k} ${cx + k},${cy} ${cx},${cy + k} ${cx - k},${cy}`, ...paint }];
+    return ["circle", { cx, cy, r: k, ...paint }];
+  };
+  const noticeWhat = (n) => n.moment ? (NOTICE_MOMENTS[n.moment] ? `the reminder "${NOTICE_MOMENTS[n.moment]}"` : "a reminder the app did not name") : "a reminder, which this build does not name";
+  const storyMark = (key, color, r = 4) => key === "join"
+    ? { r: r - 0.5, fill: "var(--surface)", stroke: color, "stroke-width": "2" }
+    : { r, fill: color };
+  function storySwatch(kind, fill) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", 16); svg.setAttribute("height", 16); svg.setAttribute("viewBox", "0 0 14 14"); svg.setAttribute("aria-hidden", "true");
+    if (kind === "line") svgEl("line", { x1: 0, x2: 14, y1: 7, y2: 7, stroke: fill, "stroke-width": "1.5" }, svg);
+    else if (kind === "unseen") svgEl("line", { x1: 1, x2: 13, y1: 7, y2: 7, ...UNSEEN_LINE }, svg);
+    else if (kind.startsWith("notice-")) { const [tag, a] = noticeShape(kind.split("-")[1], 7, 7, kind.endsWith("-hollow"), 5); svgEl(tag, a, svg); }
+    else if (kind === "end") svgEl("line", { x1: 7, x2: 7, y1: 1, y2: 13, stroke: "var(--ink)", "stroke-width": "2" }, svg);
+    else svgEl("circle", { cx: 7, cy: 7, ...storyMark(kind, fill) }, svg);
+    return svg;
+  }
+  function storyLegend(joinFailed, unseen, ended, noticeKinds, hollow) {
+    const kinds = Object.keys(NOTICE_KINDS).filter((kind) => noticeKinds.has(kind));
+    const entries = [["registered", MARK_FILLS.registered, MARK_LABELS.registered], ["join", MARK_FILLS.join, MARK_LABELS.join], ["reported", MARK_FILLS.reported, MARK_LABELS.reported],
+      ...(joinFailed ? [["join", "var(--bad)", "Join failed"]] : []),
+      ...kinds.map((kind) => [`notice-${kind}`, null, NOTICE_KINDS[kind]]),
+      ...(hollow && kinds.length ? [[`notice-${kinds[0]}-hollow`, null, "Not confirmed"]] : []),
+      ...(ended ? [["end", null, "Last page"]] : []),
+      ...(unseen ? [["unseen", null, "Not seen on screen"]] : []),
+      ["line", "var(--accent)", "Sent its report"], ["line", "var(--muted)", "No report"]];
+    return el("div", { class: "story-legend" }, ...entries.map(([kind, fill, label]) => el("span", null, storySwatch(kind, fill), label)));
+  }
+  let storyTip = null, storyClips = 0;
+  function showStoryTip(e) {
+    const target = e.target.closest("[data-tip]");
+    if (!target) { if (storyTip) storyTip.style.display = "none"; return; }
+    if (!storyTip) { storyTip = el("div", { class: "story-tip", role: "tooltip" }); document.body.append(storyTip); }
+    storyTip.textContent = target.getAttribute("data-tip");
+    storyTip.style.display = "block";
+    // measured at the left edge, where a fixed box is not squeezed by the viewport
+    storyTip.style.left = "0px";
+    storyTip.style.left = Math.max(4, Math.min(e.clientX + 12, window.innerWidth - storyTip.offsetWidth - 4)) + "px";
+    storyTip.style.top = Math.max(4, Math.min(e.clientY + 14, window.innerHeight - storyTip.offsetHeight - 4)) + "px";
+  }
+  window.addEventListener("scroll", () => { if (storyTip) storyTip.style.display = "none"; }, { passive: true });
+  function storylineBlock(s) {
+    const LABEL_W = 140, ROW_H = 28, PAD = 10, W = 1060, BREAK_PX = 28, BREAK_MS = 600000, PHASE_H = 20, END_ROOM_MS = 60000, NOTE_CHARS = 44;
+    const END_H = 14, BEND_PX = 24;
+    // registration spans hours with one dot per player, so it gets a thin slice and the minutes of play and payoff the rest
+    const PRE_SHARE = 0.15, PLAY_SHARE = 0.7;
+    // a round band holds its name and a group line between the 24 px bends into it and out of it, and the quiet play time around the rounds keeps half its width for the joins, or more where a phase name needs it
+    const ROUND_MIN_W = 92, QUIET_KEEP = 0.5;
+    const CHAR_PX = 6.5, textW = (text) => text.length * CHAR_PX + 8;
+    const roundName = (r) => `Round ${r.round}`;
+    const players = s.players || [], rounds = s.rounds || [], marks = s.marks || [], phases = s.phases || [];
+    if (!players.length) return el("p", { class: "note", text: "No account sent anything in the report window." });
+    const NOTE_W = players.some((p) => p.note) ? 240 : 0, RIGHT = W - PAD - NOTE_W;
+    const ms = (iso) => Date.parse(iso);
+    const hhmm = (t) => new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
+    const clock = hhmm;
+    const day = (t) => new Date(t).toLocaleDateString("en-GB", { weekday: "short", timeZone: "Europe/Berlin" });
+    const gapText = (d) => { const m = Math.round(d / 60000); return m >= 60 ? `${Math.round(m / 60)} h` : `${m} min`; };
+    const times = [];
+    for (const p of players) for (const e of p.events || []) times.push(ms(e.at));
+    for (const p of players) if (p.lastPage) times.push(ms(p.lastPage.at));
+    for (const p of players) for (const n of (p.notifications || []).concat(p.expectedNotices || [])) times.push(ms(n.at));
+    for (const p of players) for (const st of p.onScreen || []) times.push(ms(st.from), ms(st.to));
+    for (const r of rounds) times.push(ms(r.from), ms(r.to));
+    for (const m of marks) times.push(ms(m.at));
+    for (const p of phases) times.push(ms(p.from), ...(p.open ? [] : [ms(p.to)]));
+    const T = [...new Set(times.filter(Number.isFinite))].sort((a, b) => a - b);
+    const dated = new Set(T);
+    if (!T.length) return el("p", { class: "note", text: "No timed event in the report window." });
+    const ends = rounds.map((r) => ms(r.to)).concat(marks.filter((m) => m.key === "settlement").map((m) => ms(m.at))).filter(Number.isFinite);
+    const shuffle = phases.find((p) => p.key === "shuffle");
+    const focus = rounds.length && ends.length ? [(shuffle ? ms(shuffle.from) : ms(rounds[0].from)) - 30000, Math.max(...ends) + 60000] : null;
+    T.push(Math.max(T[T.length - 1], focus ? focus[1] : -Infinity) + END_ROOM_MS);
+    if (focus) T.push(...focus.filter((t) => t > T[0] && !T.includes(t)));
+    T.sort((a, b) => a - b);
+    const cuts = new Set(focus ? [...focus, ...rounds.flatMap((r) => [ms(r.from), ms(r.to)]).filter((t) => t > focus[0] && t < focus[1])] : []);
+    const segs = [{ from: T[0], to: T[0], gap: false }];
+    for (let i = 1; i < T.length; i++) {
+      const prev = segs[segs.length - 1];
+      if (T[i] - T[i - 1] > BREAK_MS) segs.push({ from: T[i], to: T[i], gap: true });
+      else if (cuts.has(T[i - 1])) segs.push({ from: T[i - 1], to: T[i], gap: false });
+      else prev.to = T[i];
+    }
+    const zoneOf = (seg) => !focus || seg.to <= focus[0] ? "pre" : seg.from >= focus[1] ? "payoff" : "play";
+    const inRound = (seg) => zoneOf(seg) === "play" && seg.to > seg.from && rounds.some((r) => seg.from >= ms(r.from) && seg.to <= ms(r.to));
+    const zoneMs = { pre: 0, play: 0, payoff: 0 };
+    for (const seg of segs) zoneMs[zoneOf(seg)] += seg.to - seg.from;
+    const roundMs = segs.filter(inRound).reduce((t, seg) => t + seg.to - seg.from, 0), quietMs = zoneMs.play - roundMs;
+    const endLabelW = Math.max(0, ...players.filter((p) => p.lastPage).map((p) => pageLabel(p.lastPage).length * 6.5 + 10));
+    const preNeed = focus ? Math.max(0, ...phases.filter((p) => ms(p.from) < focus[0]).map((p) => textW(p.label))) : 0;
+    const avail = RIGHT - endLabelW - LABEL_W - PAD, preW = focus ? Math.max(avail * PRE_SHARE, preNeed) : avail;
+    const preBreaks = segs.filter((seg) => seg.gap && zoneOf(seg) === "pre").length;
+    const preBreakPx = preBreaks ? Math.min(BREAK_PX, preW * (zoneMs.pre ? 0.5 : 1) / preBreaks) : 0;
+    for (const seg of segs) seg.gap = !seg.gap ? 0 : zoneOf(seg) === "pre" ? preBreakPx : BREAK_PX;
+    const zoneW = { pre: zoneMs.pre ? preW - preBreaks * preBreakPx : 0 };
+    const rest = avail - zoneW.pre - segs.reduce((t, seg) => t + seg.gap, 0);
+    zoneW.play = zoneMs.play ? rest * (zoneMs.payoff ? PLAY_SHARE : 1) : 0;
+    zoneW.payoff = zoneMs.payoff ? rest - zoneW.play : 0;
+    // a round lasts about a minute of a game that spans hours, so each round band gets the width its name and its bends need, first from the quiet play time around the rounds, then from the payoff and registration zones
+    const roundScale = Math.max(zoneMs.play ? zoneW.play / zoneMs.play : 0, ...rounds.map((r) => {
+      const d = ms(r.to) - ms(r.from);
+      return d > 0 ? Math.max(textW(roundName(r)), ROUND_MIN_W) / d : 0;
+    }));
+    const quietNeed = Math.max(0, ...phases.filter((p) => !p.open && ms(p.from) >= focus?.[0] && ms(p.to) <= focus?.[1] && ms(p.to) > ms(p.from))
+      .map((p) => textW(p.label) / (ms(p.to) - ms(p.from))));
+    const quietFloor = quietMs * Math.max((zoneMs.play ? zoneW.play / zoneMs.play : 0) * QUIET_KEEP, quietNeed);
+    const lack = focus ? Math.max(0, roundScale * roundMs + quietFloor - zoneW.play) : 0;
+    const fromPayoff = Math.min(lack, zoneW.payoff * 2 / 3), fromPre = Math.min(lack - fromPayoff, zoneW.pre / 3, Math.max(0, preW - preNeed));
+    zoneW.payoff -= fromPayoff; zoneW.pre -= fromPre; zoneW.play += fromPayoff + fromPre;
+    const quietScale = quietMs ? Math.max(0, zoneW.play - roundScale * roundMs) / quietMs : 0;
+    let left = LABEL_W + PAD;
+    for (const seg of segs) {
+      const z = zoneOf(seg);
+      left += seg.gap;
+      seg.x = left;
+      seg.scale = z === "play" ? (inRound(seg) ? roundScale : quietScale) : zoneMs[z] ? zoneW[z] / zoneMs[z] : 0;
+      left += (seg.to - seg.from) * seg.scale;
+    }
+    const x = (t) => {
+      const seg = segs.filter((sg) => sg.from <= t).pop() || segs[0];
+      return seg.x + (Math.min(Math.max(t, seg.from), seg.to) - seg.from) * seg.scale;
+    };
+    const lanes = [], laneOf = new Map();
+    for (const p of phases) {
+      let lane = lanes.findIndex((end) => end <= ms(p.from));
+      if (lane < 0) lane = lanes.push(0) - 1;
+      lanes[lane] = ms(p.to);
+      laneOf.set(p, lane);
+    }
+    const gameMarks = marks.filter((mark) => mark.key !== "kickoff" && mark.key !== "settlement");
+    const TOP = Math.max(1, lanes.length) * (PHASE_H + 2) + 24;
+    const axisY = TOP + PAD + players.length * ROW_H + PAD;
+    const H = axisY + (gameMarks.length ? 56 : 40);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("role", "img"); svg.setAttribute("aria-label", "Player journeys over time, bundled by group during each round");
+    svg.addEventListener("mousemove", showStoryTip);
+    svg.addEventListener("mouseleave", () => { if (storyTip) storyTip.style.display = "none"; });
+    const mk = (name, a, parent, text) => svgEl(name, a, parent || svg, text);
+    const baseY = new Map(players.map((p, i) => [p.id, TOP + PAD + i * ROW_H + ROW_H / 2]));
+    const rowYs = new Set(baseY.values());
+    const name = (p) => (p.username || String(p.id).slice(0, 6) + "…") + (p.bot ? " (bot)" : "");
+    const seats = new Map(players.map((p) => [p.id, []]));
+    const joinAt = new Map(players.map((p) => [p.id, ms(((p.events || []).find((e) => e.key === "join") || {}).at)]));
+    const grid = [];
+    for (let y = TOP + PAD; y <= axisY - PAD; y += ROW_H / 2) grid.push(y);
+    for (const r of rounds) {
+      const from = ms(r.from), to = ms(r.to);
+      const cameFrom = (a) => { const seat = seats.get(a).at(-1); return seat ? seat.y : baseY.get(a); };
+      const crossings = (order) => {
+        let n = 0;
+        for (let i = 0; i < order.length; i++) for (let j = i + 1; j < order.length; j++)
+          for (const a of order[i].seated) for (const b of order[j].seated) n += (cameFrom(a) > cameFrom(b)) + (baseY.get(a) > baseY.get(b));
+        return n;
+      };
+      const permutations = (xs) => xs.length < 2 ? [xs] : xs.flatMap((x, i) => permutations(xs.filter((_, k) => k !== i)).map((rest) => [x, ...rest]));
+      const byWant = (r.groups || []).map((members) => members.filter((a) => baseY.has(a) && !(joinAt.get(a) >= to)))
+        .filter((seated) => seated.length)
+        .map((seated) => ({ seated, want: seated.reduce((t, a) => t + cameFrom(a) + baseY.get(a), 0) / (2 * seated.length) }))
+        .sort((a, b) => a.want - b.want);
+      // every order of up to 6 bundles is 720 tries at most, so the one whose lines cross least in and out of the round is found outright
+      const bundles = byWant.length > 6 ? byWant
+        : permutations(byWant).reduce((best, order) => crossings(order) < crossings(best) ? order : best, byWant);
+      let prev = -Infinity;
+      for (const b of bundles) {
+        // a bundle sits only on the row of a member seated from the round start, or the line of anyone else would read as part of it
+        const own = new Set(b.seated.filter((a) => !(joinAt.get(a) > from)).map((a) => baseY.get(a)));
+        const free = grid.filter((y) => y >= prev + ROW_H && (own.has(y) || !rowYs.has(y)));
+        b.y = free.sort((p, q) => Math.abs(p - b.want) - Math.abs(q - b.want) || p - q)[0] ?? prev + ROW_H;
+        prev = b.y;
+        for (const a of b.seated) {
+          const at = joinAt.get(a);
+          seats.get(a).push({ from: Number.isFinite(at) ? Math.max(from, at) : from, to, y: b.y, cut: !!r.toFromReport });
+        }
+      }
+    }
+    const axis = mk("g", { class: "axis" });
+    for (const p of phases) {
+      const x0 = x(ms(p.from)), x1 = p.open ? RIGHT : x(ms(p.to)), y = laneOf.get(p) * (PHASE_H + 2) + 1, w = Math.max(1, x1 - x0);
+      const band = mk("g", { "data-tip": p.open ? `${p.label} · from ${clock(ms(p.from))}, end not in the report`
+        : p.toIsDeadline ? `${p.label} · from ${clock(ms(p.from))}, shuffle due by ${clock(ms(p.to))}`
+        : p.fromIsDeadline ? `${p.label} · from the shuffle, due by ${clock(ms(p.from))}, to ${clock(ms(p.to))}`
+        : `${p.label} · ${clock(ms(p.from))} to ${clock(ms(p.to))}` });
+      mk("rect", { x: x0, y, width: w, height: PHASE_H, fill: "var(--bg)", stroke: "none" }, band);
+      mk("path", { d: p.open ? `M${x1},${y} H${x0} V${y + PHASE_H} H${x1}` : `M${x0},${y} h${w} v${PHASE_H} h${-w} Z`, fill: "none", stroke: "var(--line)" }, band);
+      const label = w >= textW(p.label) ? p.label : p.label.slice(0, Math.max(1, Math.floor((w - 8) / CHAR_PX) - 1)) + "…";
+      mk("text", { x: x0 + 4, y: y + PHASE_H - 6 }, band, label);
+    }
+    for (const r of rounds) {
+      const x0 = x(ms(r.from)), x1 = x(ms(r.to)), full = roundName(r);
+      const bandTip = `${full} · ${clock(ms(r.from))} to ${clock(ms(r.to))}${r.toFromReport ? ", its end is the first report" : ""}`;
+      mk("rect", { x: x0, y: TOP, width: Math.max(1, x1 - x0), height: axisY - TOP, fill: "var(--accent-soft)" }, mk("g", { "data-tip": bandTip }));
+      if (x1 - x0 >= textW(full)) mk("text", { x: x0, y: TOP - 6 }, axis, full);
+      else mk("text", { x: x0, y: TOP - 6 }, mk("g", { "data-tip": `${full} · ${clock(ms(r.from))} to ${clock(ms(r.to))}` }, axis), `R${r.round}`);
+    }
+    if (NOTE_W) mk("text", { x: RIGHT + 12, y: TOP - 6 }, axis, "What went wrong");
+    mk("line", { x1: LABEL_W + PAD, x2: RIGHT, y1: axisY, y2: axisY, stroke: "var(--line)" }, axis);
+    const tickAt = new Map();
+    for (const seg of segs) if ((seg.gap || seg === segs[0] || zoneOf(seg) !== "pre") && dated.has(seg.from)) tickAt.set(seg.from, { x: seg.x, rank: 2 });
+    for (const t of phases.flatMap((p) => [ms(p.from), ...(p.open ? [] : [ms(p.to)])])) {
+      if (focus && t >= focus[0] && t <= focus[1]) tickAt.set(t, { x: x(t), rank: 1 });
+    }
+    for (const r of rounds) tickAt.set(ms(r.from), { x: x(ms(r.from)), rank: 0 });
+    const ticks = [...tickAt].map(([t, tick]) => ({ t, ...tick })).sort((a, b) => a.x - b.x || a.t - b.t);
+    const shown = [];
+    let lastX = -Infinity, lastW = 0, lastDay = null, lastTime = null;
+    for (const tick of ticks) {
+      const time = `${day(tick.t)} ${hhmm(tick.t)}`, text = (day(tick.t) !== lastDay ? `${day(tick.t)} ` : "") + hhmm(tick.t);
+      const w = text.length * 7 + 8;
+      const outranked = ticks.some((o) => o.rank < tick.rank && o.x > tick.x && o.x - tick.x < w);
+      if (tick.x - lastX < lastW || tick.x + w > W || outranked || time === lastTime) continue;
+      shown.push({ ...tick, text }); lastX = tick.x; lastW = w; lastDay = day(tick.t); lastTime = time;
+    }
+    for (const tick of shown) mk("text", { x: tick.x, y: axisY + 15 }, axis, tick.text);
+    let lastGap = { x: -Infinity, w: 0 };
+    segs.slice(1).forEach((seg, i) => {
+      if (!seg.gap) return;
+      const prev = segs[i], gx = seg.x - seg.gap, cx = gx + seg.gap / 2;
+      const from = dated.has(prev.to) ? prev.to : [...T].reverse().find((t) => t < prev.to && dated.has(t)) ?? prev.to;
+      const to = dated.has(seg.from) ? seg.from : T.find((t) => t > seg.from && dated.has(t)) ?? seg.from;
+      const text = gapText(to - from), w = text.length * 7 + 8;
+      const gap = mk("g", { "data-tip": `No event for ${text}, ${day(from)} ${hhmm(from)} to ${day(to)} ${hhmm(to)}` });
+      mk("rect", { x: gx, y: TOP, width: seg.gap, height: axisY - TOP, fill: "transparent" }, gap);
+      for (const bx of seg.gap < 16 ? [cx] : [gx + seg.gap / 3, gx + seg.gap * 2 / 3]) mk("line", { x1: bx, x2: bx, y1: TOP, y2: axisY, stroke: "var(--line)", "stroke-dasharray": "3 3" }, gap);
+      if (cx - lastGap.x < (w + lastGap.w) / 2 + 4 || cx - w / 2 < 0) return;
+      mk("text", { x: cx, y: axisY + 31, "text-anchor": "middle" }, axis, text); lastGap = { x: cx, w };
+    });
+    for (const m of gameMarks) {
+      const mx = x(ms(m.at));
+      mk("line", { x1: mx, x2: mx, y1: TOP, y2: axisY, stroke: "var(--muted)", "stroke-dasharray": "2 3", opacity: ".7" });
+      mk("text", { x: mx + 2, y: axisY + 47 }, axis, GAME_MARK_LABELS[m.key] || m.key);
+    }
+    const dots = [], endMarks = mk("g", {}), defs = mk("defs", {});
+    let unseen = false;
+    for (const p of players) {
+      const y0 = baseY.get(p.id), mine = seats.get(p.id), evs = p.events || [];
+      mk("text", { x: 4, y: y0 + 4.5 }, null, name(p).length > 17 ? name(p).slice(0, 16) + "…" : name(p));
+      if (p.note) {
+        const short = p.note.length > NOTE_CHARS ? p.note.slice(0, NOTE_CHARS).replace(/[\s,.:]+\S*$/, "") + "…" : p.note;
+        mk("text", { x: RIGHT + 12, y: y0 + 4.5, class: "story-note" }, mk("g", { "data-tip": `${name(p)} · ${p.note}` }), short);
+      }
+      const endAt = p.lastPage ? ms(p.lastPage.at) : NaN;
+      const notices = (p.notifications || []).filter((n) => Number.isFinite(ms(n.at)));
+      const expectedNotices = (p.expectedNotices || []).filter((n) => Number.isFinite(ms(n.at)));
+      // the line stops at the end line, so a stretch on screen after the last page is not drawn
+      const ts = evs.map((e) => ms(e.at)).concat(notices.map((n) => ms(n.at)), (p.onScreen || []).flatMap((st) => [ms(st.from), ms(st.to)]))
+        .filter((t) => Number.isFinite(t) && !(t > endAt)).concat([endAt]).filter(Number.isFinite);
+      const first = Math.min(...ts), last = Math.max(...ts), pts = [];
+      if (mine.length) {
+        const lastSeat = mine[mine.length - 1];
+        if (last >= lastSeat.from && last < lastSeat.to) lastSeat.to = last;
+        // a round its first report ends splits before its end, so each line is back on its own row when the reports land
+        const seatEnd = (seat) => seat.cut ? Math.max(x(seat.from), x(seat.to) - 24) : x(seat.to);
+        const start = x(mine[0].from), end = seatEnd(lastSeat);
+        if (x(first) < start) pts.push([x(first), y0], ...(start - 24 > x(first) ? [[start - 24, y0]] : []));
+        const spans = mine.map((seat) => [x(seat.from), seatEnd(seat)]);
+        // seats of two rounds sit a few pixels apart, so the bend from one group to the next takes room from both sides of the edge, where a jump would cross every other line at once
+        for (let i = 1; i < mine.length; i++) {
+          const give = mine[i].y === mine[i - 1].y ? 0 : (BEND_PX - (spans[i][0] - spans[i - 1][1])) / 2;
+          if (give <= 0) continue;
+          spans[i - 1][1] -= Math.min(give, (spans[i - 1][1] - spans[i - 1][0]) / 3);
+          spans[i][0] += Math.min(give, (spans[i][1] - spans[i][0]) / 3);
+        }
+        mine.forEach((seat, i) => pts.push([spans[i][0], seat.y], [spans[i][1], seat.y]));
+        if (x(last) > end) pts.push([Math.min(end + 24, x(last)), y0], ...(x(last) > end + 24 ? [[x(last), y0]] : []));
+      } else if (ts.length > 1 && last > first) pts.push([x(first), y0], [x(last), y0]);
+      const bend = (i) => Math.min(24, (pts[i][0] - pts[i - 1][0]) / 2);
+      if (pts.length > 1) {
+        let d = `M${pts[0][0]},${pts[0][1]}`;
+        for (let i = 1; i < pts.length; i++) {
+          const [x0, py] = pts[i - 1], [x1, y1] = pts[i];
+          if (py === y1) d += ` L${x1},${y1}`;
+          else d += ` C${x0 + bend(i)},${py} ${x1 - bend(i)},${y1} ${x1},${y1}`;
+        }
+        const reported = p.reportUndated || evs.some((e) => e.key === "reported");
+        const clip = (spans) => {
+          const id = `story-clip-${++storyClips}`, box = mk("clipPath", { id }, defs);
+          for (const [x0, x1] of spans) mk("rect", { x: x0, y: 0, width: x1 - x0, height: H }, box);
+          return { "clip-path": `url(#${id})` };
+        };
+        const lineFrom = pts[0][0], lineTo = pts[pts.length - 1][0];
+        // a stretch of a few seconds is narrower than a pixel at the scale of registration, so it keeps 2 px to stay visible
+        const seen = (p.onScreen || []).map((st) => [x(ms(st.from)), x(Math.min(ms(st.to), Number.isFinite(endAt) ? endAt : Infinity))])
+          .map(([x0, x1]) => x1 - x0 >= 2 ? [x0, x1] : [Math.min(x0, lineTo - 2), Math.min(x0, lineTo - 2) + 2])
+          .filter(([x0, x1]) => x1 > lineFrom && x0 < lineTo).sort((a, b) => a[0] - b[0]);
+        const gaps = [];
+        let at = 0;
+        for (const [x0, x1] of seen) { if (x0 > at) gaps.push([at, x0]); at = Math.max(at, x1); }
+        if (at < lineTo) gaps.push([at, W]);
+        if (gaps.some(([x0, x1]) => Math.min(x1, lineTo) > Math.max(x0, lineFrom))) {
+          mk("path", { d, fill: "none", ...UNSEEN_LINE, ...clip(gaps) });
+          unseen = true;
+        }
+        if (seen.length) mk("path", { d, fill: "none", stroke: reported ? "var(--accent)" : "var(--muted)", "stroke-width": "2", opacity: ".8", ...clip(seen) });
+        for (const st of p.onScreen || []) {
+          const from = ms(st.from), to = Math.min(ms(st.to), Number.isFinite(endAt) ? endAt : Infinity);
+          if (!(to > from) || x(to) <= lineFrom || x(from) >= lineTo) continue;
+          const tip = `${name(p)} · On screen ${clock(from)} to ${clock(to)} · from ${st.start === "return" ? "a return to the app" : "a page open"} to ${st.end === "away" ? "the next time it left the screen" : "the end of its last journey"}`;
+          mk("rect", { x: x(from), y: y0 - 4, width: Math.max(2, x(to) - x(from)), height: 8, fill: "transparent" }, mk("g", { "data-tip": tip }));
+        }
+      }
+      if (p.lastPage && Number.isFinite(endAt)) {
+        const ex = x(endAt), label = pageLabel(p.lastPage);
+        const end = mk("g", { "data-tip": `${name(p)} · ${p.lastPage.link ? `tapped ${p.lastPage.link}` : `Last page: ${label}`} · ${clock(endAt)}` }, endMarks);
+        mk("rect", { x: ex - 4, y: y0 - ROW_H / 2, width: 8 + label.length * 7 + 6, height: ROW_H, fill: "transparent" }, end);
+        mk("line", { x1: ex, x2: ex, y1: y0 - END_H / 2, y2: y0 + END_H / 2, stroke: "var(--ink)", "stroke-width": "2" }, end);
+        mk("text", { x: ex + 5, y: y0 + 4, class: "story-page" }, end, label);
+      }
+      const seatAt = (t) => mine.find((seat) => seat.from <= t && (t < seat.to || (t === seat.to && !seat.cut)));
+      const lineY = (cx) => {
+        const i = pts.findIndex((pt, k) => k > 0 && pts[k - 1][0] <= cx && cx <= pt[0]);
+        if (i < 1) return y0;
+        if (pts[i - 1][1] === pts[i][1]) return pts[i][1];
+        const [[x0, py], [x1, y1]] = [pts[i - 1], pts[i]], dx = bend(i);
+        const at = (u, a, b, c, e) => (1 - u) ** 3 * a + 3 * (1 - u) ** 2 * u * b + 3 * (1 - u) * u ** 2 * c + u ** 3 * e;
+        let lo = 0, hi = 1;
+        for (let k = 0; k < 24; k++) { const mid = (lo + hi) / 2; if (at(mid, x0, x0 + dx, x1 - dx, x1) < cx) lo = mid; else hi = mid; }
+        return at(lo, py, py, y1, y1);
+      };
+      const noticeDot = (n, hollow, tip) => {
+        const t = ms(n.at), cx = x(t), cy = lineY(cx), kind = NOTICE_KINDS[n.kind] ? n.kind : "push";
+        const dot = { cx, cy, key: "notice", kind, hollow, tip: `${name(p)} · ${NOTICE_KINDS[kind]} · ${tip} · ${clock(t)}` };
+        const stack = seatAt(t) && dots.find((d) => d.stack && d.key === "notice" && d.kind === kind && d.hollow === hollow && d.cy === cy && Math.abs(d.cx - cx) <= 2);
+        if (stack) stack.stack.push(dot);
+        else dots.push({ ...dot, stack: seatAt(t) ? [dot] : null });
+      };
+      for (const n of notices) noticeDot(n, false, `tapped ${noticeWhat(n)}, which ${n.how === "returned" ? "brought the app back" : "opened the app"}, confirmed by the tap`);
+      for (const n of expectedNotices) noticeDot(n, true, `${EXPECTED_NOTICES[n.moment] || n.moment}, not confirmed`);
+      for (const e of evs) {
+        const t = ms(e.at);
+        if (!Number.isFinite(t)) continue;
+        const bad = e.key === "join" && ["failed", "abandoned", "isolated"].includes(e.outcome);
+        const what = `${MARK_LABELS[e.key] || e.key}${e.outcome ? ` (${e.outcome})` : ""}`;
+        const seat = seatAt(t), cx = x(t), cy = seat ? seat.y : lineY(cx);
+        const dot = { cx, cy, key: e.key, bad, tip: `${name(p)} · ${what} · ${clock(t)}` };
+        // marks of one group at one time would draw as one dot, so they stack across the group line, one per player
+        const stack = seat && dots.find((d) => d.stack && d.key === e.key && d.cy === cy && Math.abs(d.cx - cx) <= 2);
+        if (stack) stack.stack.push(dot);
+        else dots.push({ ...dot, stack: seat ? [dot] : null });
+      }
+    }
+    const tallest = Math.max(1, ...dots.map((d) => (d.stack || [d]).length).map((n) => Math.ceil(n / (n > 4 ? 2 : 1))));
+    const step = Math.min(9, (ROW_H - 4) / tallest), stackR = Math.min(4, step / 2 - 0.25);
+    const placed = dots.flatMap((d) => {
+      const members = d.stack || [d], n = members.length, cols = n > 4 ? 2 : 1, perCol = Math.ceil(n / cols), r = stackR;
+      return members.map((m, i) => {
+        const col = Math.floor(i / perCol), row = i % perCol, cx = d.cx + (cols > 1 ? (col - 0.5) * (2 * r + 1.5) : 0);
+        return { m, n, cx, cy: d.cy + (row - (Math.min(perCol, n - col * perCol) - 1) / 2) * step };
+      });
+    });
+    // notices go under the event marks and their hover rings under the event hover targets, so an event a notice overlaps keeps both its dot and its tooltip
+    const layered = [...placed.filter((pm) => pm.m.key === "notice"), ...placed.filter((pm) => pm.m.key !== "notice")];
+    const shapes = mk("g", { "pointer-events": "none" });
+    for (const { m, n, cx, cy } of layered) {
+      if (m.key === "notice") { const [tag, a] = noticeShape(m.kind, cx, cy, m.hollow, n > 1 ? Math.max(stackR, step / 2) : NOTICE_R); mk(tag, a, shapes); }
+      else mk("circle", { cx, cy, ...storyMark(m.key, m.bad ? "var(--bad)" : MARK_FILLS[m.key] || "var(--muted)", n > 1 ? stackR : 4) }, shapes);
+    }
+    for (const { m, n, cx, cy } of layered) {
+      const r = n > 1 ? Math.max(stackR + 1, step / 2) : m.key === "notice" ? NOTICE_R + 2 : 5;
+      mk("circle", { cx, cy, r, fill: "transparent" }, mk("g", { "data-tip": m.tip }));
+    }
+    return el("div", { class: "story-block" },
+      el("div", { class: "story" }, svg),
+      storyLegend(dots.some((d) => (d.stack || [d]).some((m) => m.bad)), unseen, players.some((p) => p.lastPage),
+        new Set(dots.filter((d) => d.key === "notice").map((d) => d.kind)), dots.some((d) => d.key === "notice" && d.hollow)));
+  }
+  const fold = (title, ...kids) => el("details", { class: "fold" }, el("summary", null, el("h2", { text: title })), ...kids);
+  function card(g, open) {
+    const [vText, vTone] = verdict(g);
+    const summary = el("summary", null,
+      el("h3", { text: `Game #${g.game}` }),
+      el("span", { class: "meta" }, [g.env, fmtDate(g.kickoff), `${(g.players || []).length} players`, g.dataAsOf ? `Telemetry as of ${g.dataAsOf}` : null].filter(Boolean).join(" · ")),
+      el("span", { class: "spacer" }), pill(vText, vTone), el("span", { class: "chev", "aria-hidden": "true", text: "›" }));
+    const body = el("div", { class: "body" },
+      coverageBlock(g),
+      g.storyline ? storylineBlock(g.storyline) : null,
+      (g.pullGaps || []).length ? el("p", { class: "note gap-warn", text: "Partial Sentry pull: " + g.pullGaps.map((x) => x.players ? `the ${x.query} query failed for ${x.players.length} player${x.players.length === 1 ? "" : "s"}` : `the ${x.query} query failed`).join("; ") + ". Their numbers are missing from this report." }) : null,
+      g.summary ? summaryBlock(g.summary) : null,
+      el("details", { class: "fold" }, el("summary", null, el("h2", { text: `Players (${(g.players || []).length})` })),
+        playersTable(g.players),
+        g.chatOnlyCount ? el("p", { class: "note", text: `${g.chatOnlyCount} more had only the DIM2 chat open and never used the app or registered.` }) : null),
+      fold("Video quality", videoBlock(g.video), definitions(g.video)),
+      fold("Performance adaptations", adaptationsBlock(g.adaptations)),
+      fold("Screen frame time (median / slowest 5 % · share of slow frames)", smoothBlock(g.smoothness)),
+      g.steps && g.steps.length ? fold("Where the time went", timelineBlock(g.steps)) : null,
+      g.links && g.links.matrix ? fold("Links", linksBlock(g.links, g)) : null,
+      (g.funnel || []).length && g.funnel[0].key === "live" ? fold("Game funnel", gameFunnelBlock(g)) : null,
+      g.notificationFunnel ? fold("Notification funnel", notifFunnelBlock(g.notificationFunnel, g)) : null,
+      g.payoffFacts ? fold("Chest and notes", factsBlock(Object.entries(g.payoffFacts))) : null,
+      fold(`Issues and follow-ups (${(g.issues || []).length})`, issuesBlock(g.issues)));
+    return el("details", { class: "card", open: open || null }, summary, body);
+  }
+
+  function render(games) {
+    const box = $("#games");
+    renderTrends(games);
+    if (!games.length) {
+      box.replaceChildren(el("div", { class: "empty" }, el("h3", { text: "No reports yet" }),
+        el("p", { class: "muted", style: "margin:0", text: "After a game, ask Claude to “add the game report for game N”. It reads that game from Sentry and the report appears here for everyone." })));
+      return;
+    }
+    const sorted = [...games].sort((a, b) => b.game - a.game);
+    box.replaceChildren(...sorted.map((g, i) => card(g, i === 0)));
+    const direct = /^#links-(\d+)$/.exec(location.hash);
+    if (direct) requestAnimationFrame(() => $(`[data-links-shot="${direct[1]}"]`)?.click());
+  }
+
+  function unavailable(msg) {
+    $("#games").replaceChildren(el("div", { class: "empty" }, el("h3", { text: "Reports can't load here" }), el("p", { class: "muted", style: "margin:0", text: msg })));
+    renderTrends([]);
+  }
+
+  renderTrends([]);
+  (async () => {
+    let db = null;
+    try { db = window.claude && (await window.claude.use("db")); } catch { db = null; }
+    if (!db) { unavailable("Sign in to claude.ai and open this page from its link to see the reports."); return; }
+    try {
+      db.collection("games").onSnapshot(
+        (snap) => {
+          const docs = snap.docs.map((d) => d.data()).filter(Boolean);
+          const links = new Map(docs.filter((d) => d.kind === "game-links").map((d) => [d.game, expandLinkAccounts(d.links)]));
+          render(docs.filter((d) => d.kind !== "game-links" && d.game)
+            .map((game) => game.links || !game.linksDoc ? game : { ...game, links: links.get(game.game) || null }));
+        },
+        () => unavailable("The report store didn't answer. Reload the page to try again."));
+    } catch { unavailable("The report store didn't answer. Reload the page to try again."); }
+  })();
+})();
+</script>
+

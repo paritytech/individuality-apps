@@ -1,0 +1,509 @@
+{
+ "game": 160,
+ "env": "dim2.paseo",
+ "kickoff": "2026-10-01T16:06:00Z",
+ "summary": "First game on the v0.1.17 release, and the first with usernames. Five players were in the room: four iPhones on Polkadot App 0.10.0 and a Pixel 10a on Android 17. All four sign-ups Sentry saw landed first time, in 28 s each. Everyone joined a full group within 2\u20135 s. bigtava.04 put the app in the background 24 s into round 1 and never came back to the game. hanswurst.03's app restarted during round 1 and rejoined for round 2. The three iPhones that played to the end all had peers reconnecting mid-game. Everyone who reached the payoff saw it. theender.02 won the draw and still lost membership as not attested, as did player.01. The Pixel's frame times were poor through the rounds and the draw wheel.",
+ "join": {
+  "peerAllMs": 4702
+ },
+ "players": [
+  {
+   "username": "theender.02",
+   "id": "5GZ8jxyeVDZuyDJf2N8ivEyka95mqG6YRR9AhHokyPuBWuyG",
+   "device": "iPhone (6.3 in, inferred)",
+   "os": "iOS 18.7",
+   "host": "Polkadot App 0.10.0",
+   "hostBuild": null,
+   "signup": {
+    "outcome": "landed",
+    "ms": 28700,
+    "note": "first try"
+   },
+   "join": {
+    "outcome": "full",
+    "ms": 4100,
+    "note": "1 peer direct, 3 pending at join"
+   },
+   "game": {
+    "outcome": "completed",
+    "ms": 157800,
+    "note": "peer reconnects (110 s and 28 s)"
+   },
+   "payoff": {
+    "outcome": "shown",
+    "ms": 51000,
+    "note": "won draw; lost membership (not attested); 2 collectables"
+   },
+   "telemetry": "full"
+  },
+  {
+   "username": "fredferkel.01",
+   "id": "5ELk1EMpGB2cPf7GSQGkLyVzCVHd6JD6oqadPDXaVfkgNkzk",
+   "device": "iPhone (6.1 in, inferred)",
+   "os": "iOS 18.7",
+   "host": "Polkadot App 0.10.0",
+   "hostBuild": null,
+   "signup": {
+    "outcome": "landed",
+    "ms": 28100,
+    "note": "first try"
+   },
+   "join": {
+    "outcome": "full",
+    "ms": 4200,
+    "note": "1 peer direct, 3 pending at join"
+   },
+   "game": {
+    "outcome": "completed",
+    "ms": 160000,
+    "note": "peer reconnects (111 s and 71 s); video CPU-limited"
+   },
+   "payoff": {
+    "outcome": "shown",
+    "ms": 43000,
+    "note": "draw not won; candidate, 1 to go; 8 collectables"
+   },
+   "telemetry": "full"
+  },
+  {
+   "username": "player.01",
+   "id": "5FWD2RRZmegzx7NTVazxh7EyZ1ARKvtivAZuSHtr7x5pibKp",
+   "device": "iPhone (6.1 in, 414x896, inferred)",
+   "os": "iOS 17.5.1",
+   "host": "Polkadot App 0.10.0",
+   "hostBuild": null,
+   "signup": {
+    "outcome": "landed",
+    "ms": 27600,
+    "note": "first try"
+   },
+   "join": {
+    "outcome": "full",
+    "ms": 7200,
+    "note": "3 STUN + 1 relay"
+   },
+   "game": {
+    "outcome": "completed",
+    "ms": 158100,
+    "note": "peer reconnects (109 s and 29 s)"
+   },
+   "payoff": {
+    "outcome": "shown",
+    "ms": 56400,
+    "note": "draw not won; lost membership (not attested), 2 to go; 2 collectables"
+   },
+   "telemetry": "full"
+  },
+  {
+   "username": "hanswurst.03",
+   "id": "5DDCZTi4TjisCnEsNrWauexFXw3WSuLkwoWaqT9UV4EKaKvv",
+   "device": "Pixel 10a (8 cores, 8 GB)",
+   "os": "Android 17",
+   "host": "Polkadot (no version)",
+   "hostBuild": null,
+   "signup": {
+    "outcome": "not seen",
+    "note": "probably signed up on the old build, which sent no telemetry. v0.1.17, the first dim2.paseo build with telemetry, went live at 17:45 CEST"
+   },
+   "join": {
+    "outcome": "full",
+    "ms": 10200,
+    "note": "4 peers (3 direct, 1 STUN); after a restart, rejoined 'isolated' at 18:07:45"
+   },
+   "game": {
+    "outcome": "completed",
+    "ms": 62300,
+    "note": "round 2 only; the round-1 session ended without a game record"
+   },
+   "payoff": {
+    "outcome": "shown",
+    "ms": 41700,
+    "note": "draw not won; candidate, 1 to go; 8 collectables"
+   },
+   "telemetry": "partial"
+  },
+  {
+   "username": "bigtava.04",
+   "id": "5Dc4fhH6ypuweipTKGBnxcJRpnQ7F4L9tS9uamwVVoAjfJzb",
+   "device": "iPhone (6.3 in, inferred)",
+   "os": "iOS 18.7",
+   "host": "Polkadot App 0.10.0",
+   "hostBuild": null,
+   "signup": {
+    "outcome": "not seen",
+    "note": "probably signed up on the old build, which sent no telemetry. v0.1.17, the first dim2.paseo build with telemetry, went live at 17:45 CEST"
+   },
+   "join": {
+    "outcome": "full",
+    "ms": 8700,
+    "note": "3 direct + 1 STUN"
+   },
+   "game": {
+    "outcome": "abandoned",
+    "ms": 141800,
+    "note": "app hidden at 18:06:31 for 117 s"
+   },
+   "payoff": null,
+   "telemetry": "partial"
+  }
+ ],
+ "video": {
+  "rttP50": 53,
+  "rttP95": 800,
+  "lossP95": 20.0,
+  "jitterP95": 276,
+  "inFps": 11,
+  "outFps": 12,
+  "inHeight": 452.0,
+  "outHeight": 452.0,
+  "outKbps": 1837,
+  "freezeMs": 15945,
+  "path": "direct, stun and relay",
+  "limited": "cpu (fredferkel.01, every peer); bandwidth on 1\u20132 peers for 4 players"
+ },
+ "smoothness": [
+  {
+   "scene": "hanswurst.03 \u00b7 game.round",
+   "p50": 16.7,
+   "p95": 66.7,
+   "slowPct": 8.2
+  },
+  {
+   "scene": "hanswurst.03 \u00b7 game.confirm",
+   "p50": 33.3,
+   "p95": 33.5,
+   "slowPct": 3.2
+  },
+  {
+   "scene": "hanswurst.03 \u00b7 results",
+   "p50": 16.7,
+   "p95": 16.8,
+   "slowPct": 0.5
+  },
+  {
+   "scene": "hanswurst.03 \u00b7 draw.wheel",
+   "p50": 16.7,
+   "p95": 959.1,
+   "slowPct": 16.8
+  },
+  {
+   "scene": "hanswurst.03 \u00b7 chest",
+   "p50": 16.7,
+   "p95": 16.8,
+   "slowPct": 0.3
+  },
+  {
+   "scene": "bigtava.04 \u00b7 game.round",
+   "p50": 17.0,
+   "p95": 18.0,
+   "slowPct": 0.6
+  },
+  {
+   "scene": "fredferkel.01 \u00b7 waiting",
+   "p50": 17.0,
+   "p95": 17.0,
+   "slowPct": 0.0
+  },
+  {
+   "scene": "fredferkel.01 \u00b7 game.round",
+   "p50": 17.0,
+   "p95": 160.5,
+   "slowPct": 7.5
+  },
+  {
+   "scene": "fredferkel.01 \u00b7 game.confirm",
+   "p50": 17.0,
+   "p95": 17.0,
+   "slowPct": 0.7
+  },
+  {
+   "scene": "fredferkel.01 \u00b7 results",
+   "p50": 17.0,
+   "p95": 17.0,
+   "slowPct": 0.0
+  },
+  {
+   "scene": "fredferkel.01 \u00b7 draw.wheel",
+   "p50": 17.0,
+   "p95": 17.0,
+   "slowPct": 0.1
+  },
+  {
+   "scene": "fredferkel.01 \u00b7 chest",
+   "p50": 17.0,
+   "p95": 21.0,
+   "slowPct": 0.3
+  },
+  {
+   "scene": "player.01 \u00b7 waiting",
+   "p50": 17.0,
+   "p95": 17.0,
+   "slowPct": 0.0
+  },
+  {
+   "scene": "player.01 \u00b7 game.round",
+   "p50": 17.0,
+   "p95": 25.5,
+   "slowPct": 0.9
+  },
+  {
+   "scene": "player.01 \u00b7 game.confirm",
+   "p50": 17.0,
+   "p95": 24.0,
+   "slowPct": 1.7
+  },
+  {
+   "scene": "player.01 \u00b7 results",
+   "p50": 17.0,
+   "p95": 17.0,
+   "slowPct": 0.4
+  },
+  {
+   "scene": "player.01 \u00b7 draw.wheel",
+   "p50": 17.0,
+   "p95": 30.0,
+   "slowPct": 0.1
+  },
+  {
+   "scene": "player.01 \u00b7 chest",
+   "p50": 17.0,
+   "p95": 59.0,
+   "slowPct": 34.8
+  },
+  {
+   "scene": "theender.02 \u00b7 waiting",
+   "p50": 17.0,
+   "p95": 17.0,
+   "slowPct": 0.0
+  },
+  {
+   "scene": "theender.02 \u00b7 game.round",
+   "p50": 17.0,
+   "p95": 38.0,
+   "slowPct": 2.7
+  },
+  {
+   "scene": "theender.02 \u00b7 game.confirm",
+   "p50": 17.0,
+   "p95": 17.0,
+   "slowPct": 1.4
+  },
+  {
+   "scene": "theender.02 \u00b7 results",
+   "p50": 17.0,
+   "p95": 17.0,
+   "slowPct": 0.2
+  },
+  {
+   "scene": "theender.02 \u00b7 draw.wheel",
+   "p50": 17.0,
+   "p95": 22.0,
+   "slowPct": 0.1
+  },
+  {
+   "scene": "theender.02 \u00b7 chest",
+   "p50": 17.0,
+   "p95": 29.0,
+   "slowPct": 0.2
+  }
+ ],
+ "steps": [
+  {
+   "step": "theender.02 \u00b7 sign-up: landed",
+   "ms": 27473
+  },
+  {
+   "step": "fredferkel.01 \u00b7 sign-up: landed",
+   "ms": 26926
+  },
+  {
+   "step": "player.01 \u00b7 sign-up: landed",
+   "ms": 26633
+  },
+  {
+   "step": "theender.02 \u00b7 join: all peers",
+   "ms": 2305
+  },
+  {
+   "step": "fredferkel.01 \u00b7 join: all peers",
+   "ms": 2161
+  },
+  {
+   "step": "player.01 \u00b7 join: all peers",
+   "ms": 2670
+  },
+  {
+   "step": "hanswurst.03 \u00b7 join: all peers",
+   "ms": 3798
+  },
+  {
+   "step": "bigtava.04 \u00b7 join: all peers",
+   "ms": 4702
+  },
+  {
+   "step": "hanswurst.03 \u00b7 join: mesh open",
+   "ms": 3390
+  },
+  {
+   "step": "player.01 \u00b7 join: mesh open",
+   "ms": 3486
+  },
+  {
+   "step": "bigtava.04 \u00b7 join: mesh open",
+   "ms": 2991
+  },
+  {
+   "step": "hanswurst.03 \u00b7 join: TURN proof",
+   "ms": 2794
+  },
+  {
+   "step": "player.01 \u00b7 join: TURN proof",
+   "ms": 2997
+  },
+  {
+   "step": "bigtava.04 \u00b7 join: chain read",
+   "ms": 1690
+  },
+  {
+   "step": "all \u00b7 game: round 1",
+   "ms": 72144
+  },
+  {
+   "step": "all \u00b7 game: round 2",
+   "ms": 72235
+  },
+  {
+   "step": "fredferkel.01 \u00b7 game: peer reconnect (round 1)",
+   "ms": 110617
+  },
+  {
+   "step": "fredferkel.01 \u00b7 game: peer reconnect (round 2)",
+   "ms": 70885
+  },
+  {
+   "step": "theender.02 \u00b7 game: peer reconnect (round 1)",
+   "ms": 110365
+  },
+  {
+   "step": "player.01 \u00b7 game: peer reconnect (round 1)",
+   "ms": 109080
+  },
+  {
+   "step": "bigtava.04 \u00b7 game: app hidden",
+   "ms": 117487
+  },
+  {
+   "step": "hanswurst.03 \u00b7 game: video stall",
+   "ms": 3000
+  },
+  {
+   "step": "hanswurst.03 \u00b7 game: report submit",
+   "ms": 7008
+  },
+  {
+   "step": "fredferkel.01 \u00b7 game: report submit",
+   "ms": 7056
+  },
+  {
+   "step": "player.01 \u00b7 game: report submit",
+   "ms": 4634
+  },
+  {
+   "step": "theender.02 \u00b7 game: report submit",
+   "ms": 4405
+  },
+  {
+   "step": "hanswurst.03 \u00b7 payoff: attestations ready",
+   "ms": 28932
+  },
+  {
+   "step": "fredferkel.01 \u00b7 payoff: attestations ready",
+   "ms": 29872
+  },
+  {
+   "step": "player.01 \u00b7 payoff: attestations ready",
+   "ms": 30331
+  },
+  {
+   "step": "theender.02 \u00b7 payoff: attestations ready",
+   "ms": 33093
+  },
+  {
+   "step": "fredferkel.01 \u00b7 payoff: chest shown",
+   "ms": 4410
+  },
+  {
+   "step": "player.01 \u00b7 payoff: chest shown",
+   "ms": 4077
+  },
+  {
+   "step": "hanswurst.03 \u00b7 payoff: chest shown",
+   "ms": 2367
+  },
+  {
+   "step": "theender.02 \u00b7 payoff: chest shown",
+   "ms": 2038
+  }
+ ],
+ "payoffFacts": {
+  "theender.02": "draw won \u00b7 lost membership (not attested) \u00b7 2 collectables",
+  "fredferkel.01": "draw not won \u00b7 candidate, 1 game to go \u00b7 8 collectables",
+  "player.01": "draw not won \u00b7 lost membership (not attested), 2 games to go \u00b7 2 collectables",
+  "hanswurst.03": "draw not won \u00b7 candidate, 1 game to go \u00b7 8 collectables",
+  "bigtava.04": "no payoff; an 'attestations-late: 60s' error at 18:09:49",
+  "Game logs": "theender.02 110 KB / 340 entries \u00b7 player.01 85 KB / 262 \u00b7 fredferkel.01 82 KB / 253 \u00b7 hanswurst.03 63 KB / 192 \u00b7 bigtava.04 none",
+  "Video numbers": "the worst value across all players and peers, except round-trip p50 and kbps, which are the group median",
+  "Pixel main thread": "long tasks: game round 11 and 9 per round (worst 190 ms) \u00b7 confirm 3 (213 ms) \u00b7 draw wheel 2 (1.9 s) \u00b7 chest 3 (105 ms) \u00b7 JS heap 51 MB"
+ },
+ "issues": [
+  {
+   "severity": "bad",
+   "title": "Peers reconnecting mid-game on every iPhone that finished",
+   "detail": "theender.02, fredferkel.01 and player.01 all closed the game as 'completed' with peer-reconnect. A reconnect opened in round 1 at about 18:06:55 and lasted about 110 s on all three; more followed in round 2 (29\u201371 s). That lines up with bigtava.04 hiding the app at 18:06:31 and hanswurst.03 restarting at about 18:07:43. Freeze totals reached 9\u201316 s on one peer in round 1, and every client saw that peer pause its video (peer_paused 26\u201330).",
+   "action": "Confirm from the game logs that the reconnecting peers were bigtava.04 and hanswurst.03; if a hidden app keeps a seat 'reconnecting' for 2 minutes, decide whether to show it as away."
+  },
+  {
+   "severity": "bad",
+   "title": "Winning the draw did not keep membership",
+   "detail": "theender.02 won the draw and lost membership as not attested (a reason derived on the client); player.01 lost it the same way. Both have 2 collectables; the players with 8 stayed candidates.",
+   "action": "Check on chain how many attestations theender.02 and player.01 got; the missing attestations probably came from the two players who dropped out."
+  },
+  {
+   "severity": "warn",
+   "title": "bigtava.04 left during round 1",
+   "detail": "The app went to the background at 18:06:31, 24 s into round 1, for 117 s, and the game closed as 'abandoned' (app-hidden). Later an 'attestations-late: 60s' error arrived. No game log was sent.",
+   "action": "Ask bigtava.04 what happened (a call, a notification, a lock?). This is the same account that never joined game 159."
+  },
+  {
+   "severity": "warn",
+   "title": "hanswurst.03's app restarted mid-game (Pixel 10a)",
+   "detail": "Session bcc483 joined a full group at 18:05:05 and then sent nothing for the game. A new session opened at 18:07:43, rejoined 'isolated' in 0.4 s, played round 2 and showed the payoff. The first session left no error, which looks like the process being killed rather than a JavaScript crash.",
+   "action": "Get the Android host log (logcat) for 18:06\u201318:08; check memory pressure. The heap was only 51 MB, so suspect the WebView or the host."
+  },
+  {
+   "severity": "warn",
+   "title": "Poor frame times on the Pixel 10a",
+   "detail": "Game round p95 66.7 ms (83 ms in one round), 6.5\u20138.2 % slow frames, 8\u201311 long tasks per round. The confirm screen ran at 33 ms per frame. The draw wheel had p95 959 ms with a 1.9 s long task. fredferkel.01's game round p95 reached 212 ms, and its video was CPU-limited on every peer.",
+   "action": "Profile the game round and the draw wheel on Android; look at how many video tiles are decoded at once."
+  },
+  {
+   "severity": "warn",
+   "title": "Network spikes in round 1",
+   "detail": "Round-trip p95 up to 800 ms (theender.02 to one peer), 500 ms on fredferkel.01. Loss p95 reached 20 % on one of player.01's peers. Jitter p95 reached 276 ms on the Pixel. One iPhone received a peer at 11 fps in round 2. Group medians stayed fine: round-trip about 53 ms, 24 fps, 640 px, about 1.8 Mbps.",
+   "action": "Compare with the reconnect windows; most spikes fall inside them."
+  },
+  {
+   "severity": "note",
+   "title": "The Android host reports no version; one model string is cut",
+   "detail": "The Pixel's host is reported as 'Polkadot', with no version. A Motorola that opened the app at 17:57 (Android 14) reported the model 'rola edge 30 pro Build/U1SHS34.1-177-6-4; wv', a parsing bug in our user-agent reader. It never signed up.",
+   "action": "Fix the model parser for Motorola user agents; add the Android host version to platform-bugs #66."
+  },
+  {
+   "severity": "note",
+   "title": "Sign-ups landed first time; usernames arrived",
+   "detail": "theender.02, fredferkel.01 and player.01 each signed up in 27.6\u201328.7 s, nearly all of it waiting for the transaction to land, with no host connection errors. bigtava.04 and hanswurst.03 must have signed up (they could not have played otherwise), but Sentry has no record of it. The likely reason: v0.1.17, the first dim2.paseo build with telemetry, went live at 17:45 CEST, and their first events arrive at 18:02 and 17:59. A sign-up made on the old build sends nothing. bigtava.04's only recorded sign-up is game 159's, at 15:47 on dim2next.paseo. Every player's username came through v0.1.17.",
+   "action": "Confirm on chain when the two sign-ups landed. If either is after 17:45, that is a telemetry gap to chase."
+  }
+ ],
+ "timesNote": "All times are Central European Summer Time (CEST, UTC+2)."
+}

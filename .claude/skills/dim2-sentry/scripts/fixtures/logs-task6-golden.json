@@ -1,0 +1,89 @@
+{
+  "generatedFrom": "origin/codex/off-errors-task6@65106ccd908c8d76514afc910d7d6d9a626717f2",
+  "generatorTest": "splits full-copy records by session, starts part zero with meta, and keeps app versions",
+  "rawEvidence": "/private/tmp/jollity-off-errors-task2-task6-golden/writer-records.json",
+  "rows": [
+    {
+      "id": "task6-record-0",
+      "timestamp": "2026-10-17T02:32:36.464Z",
+      "message": "1970-01-01T00:00:00.020Z info game-log.meta: header\t{\"meta\":{\"gameIndex\":741},\"worker\":{\"state\":\"ready\"}}",
+      "user.id": "device-b84968ff6f8749798f576cf8b28a4498",
+      "session.id": "042361f1-4dd9-40f6-a4fa-e0e7ef25c920",
+      "game.index": "741",
+      "game_log.stage": "full",
+      "game_log.item": "741:payoff:042361f1-4dd9-40f6-a4fa-e0e7ef25c920:k:cb3e276ffb9848b4b6c2d00d059a3c56:0",
+      "game_log.record": "0",
+      "game_log.records": "3",
+      "game_log.copy": "741:payoff:042361f1-4dd9-40f6-a4fa-e0e7ef25c920:k:cb3e276ffb9848b4b6c2d00d059a3c56",
+      "game_log.part": "0",
+      "game_log.parts": "1",
+      "game_log.full_stage": "payoff",
+      "app.version": "1.2.3",
+      "tags[game_log.first_ts_ms,number]": 20
+    },
+    {
+      "id": "task6-record-1",
+      "timestamp": "2026-10-17T02:32:36.464Z",
+      "message": "1970-01-01T00:00:00.010Z info full: one\t{\"round\":1}",
+      "user.id": "device-b84968ff6f8749798f576cf8b28a4498",
+      "session.id": "session-a",
+      "game.index": "741",
+      "game_log.stage": "full",
+      "game_log.item": "741:payoff:042361f1-4dd9-40f6-a4fa-e0e7ef25c920:k:cb3e276ffb9848b4b6c2d00d059a3c56:0",
+      "game_log.record": "1",
+      "game_log.records": "3",
+      "game_log.copy": "741:payoff:042361f1-4dd9-40f6-a4fa-e0e7ef25c920:k:cb3e276ffb9848b4b6c2d00d059a3c56",
+      "game_log.part": "0",
+      "game_log.parts": "1",
+      "game_log.full_stage": "payoff",
+      "app.version": "1.2.3",
+      "tags[game_log.first_ts_ms,number]": 10
+    },
+    {
+      "id": "task6-record-2",
+      "timestamp": "2026-10-17T02:32:36.464Z",
+      "message": "1970-01-01T00:00:00.011Z warn full: two\traw-json",
+      "user.id": "device-b84968ff6f8749798f576cf8b28a4498",
+      "session.id": "session-b",
+      "game.index": "741",
+      "game_log.stage": "full",
+      "game_log.item": "741:payoff:042361f1-4dd9-40f6-a4fa-e0e7ef25c920:k:cb3e276ffb9848b4b6c2d00d059a3c56:0",
+      "game_log.record": "2",
+      "game_log.records": "3",
+      "game_log.copy": "741:payoff:042361f1-4dd9-40f6-a4fa-e0e7ef25c920:k:cb3e276ffb9848b4b6c2d00d059a3c56",
+      "game_log.part": "0",
+      "game_log.parts": "1",
+      "game_log.full_stage": "payoff",
+      "app.version": "1.2.4",
+      "tags[game_log.first_ts_ms,number]": 11
+    }
+  ],
+  "legacy": {
+    "device-b84968ff6f8749798f576cf8b28a4498": {
+      "meta": {
+        "address": "device-b84968ff6f8749798f576cf8b28a4498",
+        "gameIndex": 741
+      },
+      "entries": [
+        {
+          "ts": 10,
+          "sessionId": "session-a",
+          "level": "info",
+          "tag": "full",
+          "message": "one",
+          "data": {
+            "round": 1
+          }
+        },
+        {
+          "ts": 11,
+          "sessionId": "session-b",
+          "level": "warn",
+          "tag": "full",
+          "message": "two",
+          "data": "raw-json"
+        }
+      ]
+    }
+  }
+}
