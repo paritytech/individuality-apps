@@ -110,9 +110,10 @@ const OPEN = { video: true, audio: false, width: 360, height: 360, fps: 24, faci
  *  reopened: iOS unmutes on return, and a reopen would cost it a blink. A
  *  camera that is STILL muted at the check is reopened on a backoff — 3 s,
  *  6 s, 12 s, then a 12 s cap — so a stuck host camera is not opened every
- *  3 s for as long as the player stays on the screen (#1539), and the
- *  automatic reopen stops entirely once the tap is offered. The backoff
- *  counts the still-muted checks since the camera was last healthy. */
+ *  3 s for as long as the player stays on the screen (#1539), and once the
+ *  tap is offered or spent the reopen keeps going at the 12 s cap (Ionut,
+ *  27 Nov). The backoff counts the still-muted checks since the camera was
+ *  last healthy. */
 const MUTED_GRACE_BACKOFF_MS = [3_000, 6_000, 12_000]
 /** waits between reopen attempts after a failed one, the last repeating.
  *  Capped at 10 s so a recovering camera comes back within one turn. */
@@ -177,13 +178,16 @@ export function cameraRecoveryStep(
   if (event.kind === "still-muted-quick" || event.kind === "still-muted-slow") {
     if (state.tap === "tapping") return stay
     const mutedStreak = event.kind === "still-muted-quick" ? state.mutedStreak + 1 : 1
-    // once the tap is offered (or spent), the automatic reopen loop stops:
-    // only the player's tap reopens a still-muted camera (#1539). The streak
-    // still counts, so telemetry sees how often the loop ran before stopping.
-    // The host-side backoff counter (mutedChecks) is what paces the reopens;
-    // this streak only decides when the tap is offered.
+    // once the tap is offered (or spent), the automatic reopen keeps going at
+    // the 12 s cap (#1539, Ionut 27 Nov): a never-tapping player still gets a
+    // working camera back. The streak still counts, so telemetry sees how
+    // often the loop ran. The host-side backoff counter (mutedChecks) is what
+    // paces the reopens; this streak only decides when the tap is offered.
     if (state.tap === "offered" || state.tap === "spent")
-      return { state: { ...state, mutedStreak }, commands: [] }
+      return {
+        state: { ...state, mutedStreak },
+        commands: [{ kind: "recover", reason: "still muted", trigger: "force" }],
+      }
     if (state.tap === "none" && mutedStreak >= 3) return {
       state: { ...state, mutedStreak, tap: "offered" },
       commands: [{ kind: "offer-tap" }, { kind: "recover", reason: "still muted", trigger: "force" }],

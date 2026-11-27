@@ -31,7 +31,7 @@ describe("camera tap recovery (host bug #174)", () => {
     expect(finished.commands).toEqual([{ kind: "episode-end", reason: "frames" }])
   })
 
-  it("a tap that mutes again is spent, shows no second offer and schedules nothing while tapping", () => {
+  it("a tap that mutes again is spent: no second offer, nothing while tapping, the cap reopens after", () => {
     let state = startCameraRecovery()
     for (let i = 0; i < 3; i += 1) state = step(state, "still-muted-quick").state
     state = step(state, "tap").state
@@ -42,11 +42,17 @@ describe("camera tap recovery (host bug #174)", () => {
 
     state = step(state, "tap-muted").state
     expect(state).toMatchObject({ tap: "spent" })
-    for (let i = 0; i < 4; i += 1) state = step(state, "still-muted-quick").state
-    expect(state.tap).toBe("spent")
+    // after the tap is spent the automatic reopen keeps going (at the 12 s
+    // cap on the host), and no second offer is ever made
+    for (let i = 0; i < 4; i += 1) {
+      const again = step(state, "still-muted-quick")
+      expect(again.state).toMatchObject({ tap: "spent" })
+      expect(again.commands).toEqual([{ kind: "recover", reason: "still muted", trigger: "force" }])
+      state = again.state
+    }
   })
 
-  it("stops the automatic reopen once the tap is offered, but the offer itself reopens (#1539)", () => {
+  it("keeps the automatic reopen going once the tap is offered, and the offer itself reopens (#1539)", () => {
     let state = startCameraRecovery()
     state = step(state, "still-muted-quick").state
     state = step(state, "still-muted-quick").state
@@ -54,9 +60,9 @@ describe("camera tap recovery (host bug #174)", () => {
     expect(offered.state).toMatchObject({ mutedStreak: 3, tap: "offered" })
     expect(offered.commands.map((command) => command.kind)).toEqual(["offer-tap", "recover"])
 
-    // the loop stops, but the streak keeps counting for telemetry
+    // the loop keeps going at the 12 s cap, and the streak keeps counting for telemetry
     const later = step(offered.state, "still-muted-quick")
     expect(later.state).toMatchObject({ mutedStreak: 4, tap: "offered" })
-    expect(later.commands).toEqual([])
+    expect(later.commands).toEqual([{ kind: "recover", reason: "still muted", trigger: "force" }])
   })
 })

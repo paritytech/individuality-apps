@@ -15,8 +15,9 @@ import { defineTransitionTable, type MachineDefinition, type NamedInvariant, typ
  * K1 hidden/unheld work never opens a camera; K2 retry waits are bounded;
  * K3 only the current timer may recover; K4 live resets only retry backoff;
  * K5 three quick still-muted reopens offer one tap, and the automatic reopen
- * stops once the tap is offered or spent (#1539); K6 tapping schedules no
- * recovery; K7 one end command closes each offered episode. */
+ * keeps going at the 12 s cap once the tap is offered or spent (#1539, Ionut
+ * 27 Nov); K6 tapping schedules no recovery; K7 one end command closes each
+ * offered episode. */
 type BaseKey = "ready" | "scheduled" | "deferred" | "deferred-scheduled"
 type TapPhase = CameraRecoveryState["tap"]
 type StateKey = BaseKey | `${BaseKey}:${Exclude<TapPhase, "none">}`
@@ -88,7 +89,7 @@ function modelStep(before: ModelState, event: TestEvent): { state: ModelState; o
     if (before.tap === "tapping") return none
     const mutedStreak = event === "still-muted-quick" ? before.mutedStreak + 1 : 1
     if (before.tap === "offered" || before.tap === "spent")
-      return { state: { ...before, mutedStreak }, output: [] }
+      return { state: { ...before, mutedStreak }, output: ["recover:still muted:force"] }
     if (before.tap === "none" && mutedStreak >= 3)
       return { state: { ...before, mutedStreak, tap: "offered" }, output: ["offer-tap", "recover:still muted:force"] }
     return { state: { ...before, mutedStreak }, output: ["recover:still muted:force"] }
@@ -200,7 +201,7 @@ export const cameraRegressionCorpus: NamedSequence<TestEvent, CameraRecoveryStat
   { name: "live resets backoff without cancelling a scheduled retry", events: ["other", "live", "fire"] },
   { name: "host camera muting: fresh tracks keep muting, offer after three, tap gets frames", events: ["still-muted-quick", "live", "still-muted-quick", "live", "still-muted-quick", "tap", "live", "tap-frames"] },
   { name: "host camera muting: a tap that mutes again shows the restart notice, no second offer", events: ["still-muted-quick", "live", "still-muted-quick", "live", "still-muted-quick", "tap", "still-muted-quick", "tap-muted", "still-muted-quick", "still-muted-quick", "still-muted-quick"] },
-  { name: "host camera muting: the automatic reopen stops once the tap is offered (#1539)", events: ["still-muted-quick", "still-muted-quick", "still-muted-quick", "still-muted-slow", "still-muted-quick", "still-muted-slow"] },
+  { name: "host camera muting: the automatic reopen keeps going at the cap once the tap is offered (#1539)", events: ["still-muted-quick", "still-muted-quick", "still-muted-quick", "still-muted-slow", "still-muted-quick", "still-muted-slow"] },
 ]
 
 const assert = (condition: unknown, message: string): void => { if (!condition) throw new Error(message) }
@@ -220,10 +221,10 @@ const invariants: Inv[] = [
   { name: "offer only at streak three and once per episode", specClause: "K5", check: ({ real, realObservation }) => {
     if (realObservation.commands.includes("offer-tap")) assert(real.mutedStreak >= 3 && real.tap === "offered", "early or unowned offer")
   } },
-  { name: "tapping ignores still-muted; offered or spent stops the automatic reopen but keeps counting (#1539)", specClause: "K6", check: ({ event, previousReal, realObservation }) => {
+  { name: "tapping ignores still-muted; offered or spent keeps the automatic reopen at the cap and the streak counting (#1539)", specClause: "K6", check: ({ event, previousReal, realObservation }) => {
     if (previousReal.tap === "tapping" && event.startsWith("still-muted")) assert(realObservation.commands.length === 0, "tapping recovered")
     if ((previousReal.tap === "offered" || previousReal.tap === "spent") && event.startsWith("still-muted")) {
-      assert(realObservation.commands.length === 0, "offered tap still reopened automatically")
+      assert(realObservation.commands.filter((word) => word.startsWith("recover:")).length === 1, "offered or spent tap did not keep reopening automatically")
       if (event === "still-muted-quick") assert(realObservation.mutedStreak === previousReal.mutedStreak + 1, "streak frozen after the offer")
     }
     if (event === "tap") assert(!realObservation.commands.some((word) => word.startsWith("schedule:")), "tap scheduled")
