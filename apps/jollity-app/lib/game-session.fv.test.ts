@@ -4255,6 +4255,26 @@ describe("relaunch books: every clock path reconciles, a late restore tops up (#
     expect(storedBooks().turnVotes[1]).toEqual({ [C]: "notperson", [D]: "notperson" })
     expect(recorded.metrics).not.toContainEqual(expect.objectContaining({ name: "turn.skipped_cold" }))
   })
+
+  it.each([
+    { name: "stored first-opened turn", viaDoor: false, firstOpenedTurn: 0 as number | undefined },
+    { name: "waiting-room door", viaDoor: true, firstOpenedTurn: undefined as number | undefined },
+  ])("#1470/#1489 F8: a warm-clock remount mid-game seals the missed turns ($name)", async ({ viaDoor, firstOpenedTurn }) => {
+    // the behaviour the deleted source-text test stood for: the hook feeds the
+    // restored evidence into remountClockState, so the first warm mid-game
+    // tick becomes the cold boundary once the stored read proves a rejoin
+    W.viaDoor = viaDoor
+    W.store.set("jollity.votes", JSON.stringify({
+      gameIndex: 7, account: ME, turnVotes: {}, banned: [], overrides: {}, autoSeals: {},
+      ...(firstOpenedTurn === undefined ? {} : { firstOpenedTurn }),
+      videoRoleHistory: { [B]: { fromTurn: 0 }, [C]: { fromTurn: 0 }, [D]: { fromTurn: 0 } },
+    }))
+    W.source = { ...makeSource(), nowSeconds: () => G + 39, clockState: () => ({ ready: true }) }
+    mountSession(false)
+    await vi.advanceTimersByTimeAsync(600)
+    const books = storedBooks()
+    for (const turn of [0, 1, 2]) expect(allNotPerson(books.turnVotes[turn])).toBe(true)
+  })
 })
 
 /** chain second inside global turn t's gameplay: round r starts at 55r, a turn is 12 s */
