@@ -259,14 +259,17 @@ export function createChunkStore<E extends ChunkEntry>(
           // an unreadable chunk in the scanned range: write nothing, a read
           // failure must not become permanent
           if (!chunk) return null
-          if (chunk.last >= before) break
-          // the chunk's last entry is older than the cut: the whole chunk drops
+          // lines are in log order, not time order (the clock can step back), so
+          // judge the chunk by its newest line, not its last
+          if (chunk.entries.some((entry) => entry.ts >= before)) break
+          // every line is older than the cut: the whole chunk drops
           target = seq + 1
         }
         return target === current.oldest ? null : target
       }
       const target = await scan().catch(() => null)
       if (target === null || (commit && !commit())) return false
+      // an index-write failure is swallowed here, so `true` means "attempted"
       await writeIndexOnChain(target)
       return true
     },

@@ -218,6 +218,25 @@ describe("the host persister", () => {
     expect((await persist.readEarlier(undefined, undefined, "x"))?.map((entry) => entry.ts)).toEqual([1, 5])
   })
 
+  it("writes no index when the scan answers after the release gave up", async () => {
+    const { kv, state, values } = fakeKV()
+    const persist = createHostPersist<Row>(kv)
+    await persist.start()
+    persist.activate()
+    persist.enqueue(row(1))
+    await persist.flushNow()
+    let open!: () => void
+    state.chunkGate = new Promise<void>((resolve) => (open = resolve))
+    const releasing = persist.release(2)
+    await vi.advanceTimersByTimeAsync(RELEASE_READ_MS + 10)
+    await releasing
+    const writesAtTimeout = state.writes
+    open()
+    await vi.advanceTimersByTimeAsync(10)
+    expect(state.writes).toBe(writesAtTimeout)
+    expect(JSON.parse(values.get(`${KEY_PREFIX}.index`)!).oldest).toBe(0)
+  })
+
   it("never shows a reader a torn ring while a release advances the pointer", async () => {
     const { kv } = fakeKV()
     const persist = createHostPersist<Row>(kv)

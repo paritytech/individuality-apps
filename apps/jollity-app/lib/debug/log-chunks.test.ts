@@ -209,6 +209,17 @@ describe("the chunk store", () => {
       expect((await store.read())?.entries).toHaveLength(10)
     })
 
+    it("keeps a chunk with any line at or past the cut, even after a backward clock step", async () => {
+      const { kv, writes } = fakeKV()
+      const store = createChunkStore<Row>(kv)
+      await store.load()
+      await store.append([1000, 1005, 900, 950].map((ts) => ({ ts, size: 100 })))
+      writes.length = 0
+      expect(await store.advanceOldest(1001)).toBe(false)
+      expect(writes).toHaveLength(0)
+      expect((await store.read())?.entries.map((entry) => entry.ts)).toEqual([1000, 1005, 900, 950])
+    })
+
     it("empties the ring when the cut is past every chunk", async () => {
       const { kv } = fakeKV()
       const store = createChunkStore<Row>(kv)

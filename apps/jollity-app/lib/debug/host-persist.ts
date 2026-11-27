@@ -30,7 +30,7 @@ import { createChunkStore, type ChunkEntry, type ChunkKV } from "./log-chunks"
 export const FLUSH_INTERVAL_MS = 10_000
 /** a release that cannot scan the ring within this gives up untouched, so a
  *  host read that never answers cannot hold back the flushes queued behind it;
- *  the scan's late answer is then dropped by the store's commit guard */
+ *  the scan's late answer is then refused by the release's timed-out flag */
 export const RELEASE_READ_MS = 5_000
 /** lines held while the store is unreadable: the memory log caps the same */
 const HOLD_MAX = 5_000
@@ -150,12 +150,17 @@ export function createHostPersist<E extends ChunkEntry & { sessionId: string }>(
     },
     release(before) {
       const started = generation
+      let timedOut = false
       return serially(async () => {
         if (generation !== started) return
         // the advance is ONE index write — no chunk is rewritten — and the
         // scan's commit guard is checked again before that write lands, so a
         // late answer can never rewind what the flushes behind it wrote
-        await withTimeout(load().then((ok) => ok && store.advanceOldest(before, () => generation === started)), RELEASE_READ_MS)
+        const done = await withTimeout(
+          load().then((ok) => ok && store.advanceOldest(before, () => generation === started && !timedOut)),
+          RELEASE_READ_MS,
+        )
+        if (done === null) timedOut = true
       }).catch(() => {})
     },
   }
