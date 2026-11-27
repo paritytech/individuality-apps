@@ -1093,6 +1093,11 @@ export class Mesh {
     return this.currentVideoRung.index
   }
 
+  hasLiveConnections(): boolean {
+    for (const conn of this.conns.values()) if (conn.pc.connectionState === "connected") return true
+    return false
+  }
+
   async whenVideoRungSettled(): Promise<void> {
     while (this.rungSettles.size) await Promise.allSettled([...this.rungSettles])
   }

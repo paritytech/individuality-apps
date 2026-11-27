@@ -578,6 +578,72 @@ describe("SendAdaptationDriver", () => {
     await vi.waitFor(() => expect(attached.applyVideoRung).toHaveBeenLastCalledWith(VIDEO_RUNGS[0]))
   })
 
+  it("does not roll back when the detached mesh's apply throws after a regroup", async () => {
+    const { driver, setNow } = setup()
+    const attached = mesh()
+    driver.startGame(17)
+    driver.attachMesh(attached)
+    setNow(1_000)
+    await driver.observeReports(reports(1_000, 60, "bandwidth"))
+    let rejectDown: ((error: Error) => void) | undefined
+    attached.applyVideoRung.mockImplementationOnce(() => new Promise<VideoRungApplyResult>((_, reject) => (rejectDown = reject)))
+    setNow(4_000)
+    const observing = driver.observeReports(reports(4_000, 60, "bandwidth"))
+    await Promise.resolve()
+    driver.detachMesh(attached)
+    const second = mesh()
+    driver.attachMesh(second)
+    rejectDown!(new Error("setParameters failed"))
+    await observing
+    expect(sendAdaptationSnapshot().state).toMatchObject({ mode: "awaiting-apply", rung: 0 })
+    expect(driver.targetRung()).toBe(VIDEO_RUNGS[4])
+  })
+
+  it("treats an empty apply result from a mesh with live connections as neutral and still steps down", async () => {
+    const { driver, setNow } = setup()
+    const attached = Object.assign(mesh(), { hasLiveConnections: () => true })
+    driver.startGame(17)
+    driver.attachMesh(attached)
+    // camera off: no sender carries a track, so the apply reports no senders
+    attached.applyVideoRung.mockImplementation(async (next) => {
+      ;(attached as unknown as { videoRung: () => number }).videoRung = () => next.index
+      return { requested: next.index, uniform: false, senders: [] }
+    })
+    setNow(1_000)
+    await driver.observeReports(reports(1_000, 60, "bandwidth"))
+    setNow(4_000)
+    await driver.observeReports(reports(4_000, 60, "bandwidth"))
+    // neutral: the request stays pending at the target instead of rolling back
+    expect(sendAdaptationSnapshot().state).toMatchObject({ mode: "awaiting-apply", rung: 0 })
+    expect(driver.targetRung()).toBe(VIDEO_RUNGS[4])
+    // the unanswered request parks and settles at the lower rung
+    for (let at = 7_000; at <= 19_000 && driver.videoRung() !== 4; at += 3_000) {
+      setNow(at)
+      await driver.observeReports(reports(at, 60, "bandwidth"))
+    }
+    expect(driver.videoRung()).toBe(4)
+  })
+
+  it("repairs the mesh to the pending target when a stale result at the starting rung lands", async () => {
+    const { driver, setNow } = setup()
+    const attached = mesh()
+    driver.startGame(17)
+    driver.attachMesh(attached)
+    setNow(1_000)
+    await driver.observeReports(reports(1_000, 60, "bandwidth"))
+    let resolveDown: ((value: VideoRungApplyResult) => void) | undefined
+    attached.applyVideoRung.mockImplementationOnce(() => new Promise<VideoRungApplyResult>((resolve) => (resolveDown = resolve)))
+    setNow(4_000)
+    const observing = driver.observeReports(reports(4_000, 60, "bandwidth"))
+    await Promise.resolve()
+    expect(driver.targetRung()).toBe(VIDEO_RUNGS[4])
+    attached.applyVideoRung.mockClear()
+    driver.videoRungResult(result(0), attached)
+    expect(attached.applyVideoRung).toHaveBeenCalledWith(VIDEO_RUNGS[4])
+    resolveDown!(result(4))
+    await observing
+  })
+
   it("retains account-keyed decoded-frame growth for live receiver proof", async () => {
     const { driver, setNow } = setup()
     driver.startGame(17)

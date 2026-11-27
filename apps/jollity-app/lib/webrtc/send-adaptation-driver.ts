@@ -23,6 +23,9 @@ import {
 export interface SendAdaptationMesh {
   applyVideoRung(rung: VideoRung): Promise<VideoRungApplyResult>
   videoRung(): SendRungIndex
+  /** True while any peer connection is up; an apply with no senders then
+   * means no sender carries a track (camera off), not a fresh peerless mesh. */
+  hasLiveConnections?(): boolean
 }
 
 export interface SendAdaptationPorts {
@@ -227,7 +230,7 @@ export class SendAdaptationDriver {
   videoRungResult(result: VideoRungApplyResult, from?: SendAdaptationMesh): void {
     if (from !== undefined && from !== this.mesh) return
     if (!this.controller.acceptsResult(result)) {
-      if (result.requested !== this.videoRung()) this.reapplyCurrentRung()
+      if (result.requested !== this.controller.targetRung()) this.reapplyCurrentRung()
       return
     }
     this.evidence.apply(result)
@@ -237,7 +240,10 @@ export class SendAdaptationDriver {
       // treating the regroup as neutral. An empty apply on an up request
       // (probe) stays a neutral regroup: a refused probe would double the
       // recovery hold.
-      if (this.controller.state().transition?.direction === "down") this.refuse(result)
+      // With live connections the empty result is only trackless senders
+      // (camera off, standby), so it stays neutral.
+      const peerless = !(from ?? this.mesh)?.hasLiveConnections?.()
+      if (peerless && this.controller.state().transition?.direction === "down") this.refuse(result)
       else this.neutralRegroup()
       this.publish()
       return
@@ -390,6 +396,7 @@ export class SendAdaptationDriver {
       const result = await mesh.applyVideoRung(VIDEO_RUNGS.find((rung) => rung.index === transition.to) ?? FULL_VIDEO_RUNG)
       if (this.controller.state().mode === "awaiting-apply" && mesh === this.mesh) this.videoRungResult(result, mesh)
     } catch {
+      if (mesh !== this.mesh) return
       this.videoRungResult({ requested: transition.to, senders: [], uniform: false })
     }
   }
