@@ -107,8 +107,13 @@ const RELEASE_GRACE_MS = 10_000
  *  decode time and memory no screen showed. The mesh sends it as H.264, capped. */
 const OPEN = { video: true, audio: false, width: 360, height: 360, fps: 24, facing: "user" } as const
 /** a muted camera gets this long, visible, to unmute on its own before it is
- *  reopened: iOS unmutes on return, and a reopen would cost it a blink */
-const MUTED_GRACE_MS = 3000
+ *  reopened: iOS unmutes on return, and a reopen would cost it a blink. A
+ *  camera that is STILL muted at the check is reopened on a backoff — 3 s,
+ *  6 s, 12 s, then a 12 s cap — so a stuck host camera is not opened every
+ *  3 s for as long as the player stays on the screen (#1539), and the
+ *  automatic reopen stops entirely once the tap is offered. The backoff
+ *  counts the still-muted checks since the camera was last healthy. */
+const MUTED_GRACE_BACKOFF_MS = [3_000, 6_000, 12_000]
 /** waits between reopen attempts after a failed one, the last repeating.
  *  Capped at 10 s so a recovering camera comes back within one turn. */
 const RETRY_BACKOFF_MS = [2000, 4000, 8000, 10_000]
@@ -172,6 +177,13 @@ export function cameraRecoveryStep(
   if (event.kind === "still-muted-quick" || event.kind === "still-muted-slow") {
     if (state.tap === "tapping") return stay
     const mutedStreak = event.kind === "still-muted-quick" ? state.mutedStreak + 1 : 1
+    // once the tap is offered (or spent), the automatic reopen loop stops:
+    // only the player's tap reopens a still-muted camera (#1539). The streak
+    // still counts, so telemetry sees how often the loop ran before stopping.
+    // The host-side backoff counter (mutedChecks) is what paces the reopens;
+    // this streak only decides when the tap is offered.
+    if (state.tap === "offered" || state.tap === "spent")
+      return { state: { ...state, mutedStreak }, commands: [] }
     if (state.tap === "none" && mutedStreak >= 3) return {
       state: { ...state, mutedStreak, tap: "offered" },
       commands: [{ kind: "offer-tap" }, { kind: "recover", reason: "still muted", trigger: "force" }],
@@ -241,6 +253,11 @@ let releaseTimer: ReturnType<typeof setTimeout> | undefined
 let mutedTimer: ReturnType<typeof setTimeout> | undefined
 let retryTimer: ReturnType<typeof setTimeout> | undefined
 let recovery = startCameraRecovery()
+/** still-muted checks since the camera was last healthy (unmuted, framed or
+ *  freshly opened unmuted): drives the reopen backoff and is the episode's
+ *  autoRetries count. Reset on any healthy event, so a later incident starts
+ *  its own episode and backoff (#1535, #1539). */
+let mutedChecks = 0
 let openedAt = 0
 let mutedQuick = false
 let tappedStream: MediaStream | null = null
@@ -470,6 +487,13 @@ function goLive(stream: MediaStream, answeredLate: boolean, trigger: CameraOpenT
   openedAt = Date.now()
   mutedQuick = false
   if (trigger === "tap") tappedStream = stream
+  // a healthy reopen (a track that is live and not muted) starts a new tap
+  // episode, so a later incident reports its own dead_ms, not minutes from
+  // the one before (#1535). A tap's own open keeps the episode, and an
+  // offered tap must stay offered. The backoff counter is NOT reset here: a
+  // stuck camera re-mutes right after each reopen, and only a frame or an
+  // unmute means it is genuinely healthy (#1539).
+  if (trigger !== "tap" && track?.muted !== true && recovery.tap !== "offered") tapEpisode = null
   wasLive = true
   hiddenSinceOpen = false
   cameraGeneration++
@@ -660,15 +684,19 @@ function scheduleMutedCheck() {
   if (mutedTimer) clearTimeout(mutedTimer)
   mutedTimer = undefined
   if (pageHidden()) return // checked again when the page comes back
+  // the still-muted reopen backs off with the checks since the camera was
+  // last healthy, capped, so a stuck camera is not reopened every 3 s (#1539)
+  const graceMs = MUTED_GRACE_BACKOFF_MS[Math.min(mutedChecks, MUTED_GRACE_BACKOFF_MS.length - 1)]!
   mutedTimer = setTimeout(() => {
     mutedTimer = undefined
     if (holders > 0 && state.kind === "live" && state.muted) {
+      mutedChecks += 1
       cameraRecovering("still-muted")
       tapEpisode ??= { beganAt: Date.now(), autoRetries: 0 }
-      if (tapEpisode.shownAt === undefined) tapEpisode.autoRetries += 1
+      if (tapEpisode.shownAt === undefined) tapEpisode.autoRetries = mutedChecks
       stepRecovery({ kind: mutedQuick ? "still-muted-quick" : "still-muted-slow" })
     }
-  }, MUTED_GRACE_MS)
+  }, graceMs)
 }
 
 function setMuted(muted: boolean) {
@@ -709,6 +737,7 @@ function watchTrack(stream: MediaStream) {
     setMuted(false)
     if (mutedTimer) clearTimeout(mutedTimer)
     mutedTimer = undefined
+    mutedChecks = 0
     stepRecovery({ kind: "unmuted" })
     if (recovery.tap === "none") tapEpisode = null
   }
@@ -757,6 +786,7 @@ function watchPage() {
   watchingPage = true
   watchPageHidden(() => {
     if (outage) outage.hidden = true
+    mutedChecks = 0
     stepRecovery({ kind: "hidden" })
     if (recovery.tap === "none") tapEpisode = null
     pauseNoFrameTerminalCheck()
@@ -887,6 +917,7 @@ async function stopCamera() {
   stepRecovery({ kind: "stop" })
   wasLive = false
   outage = null // a late answer now is stopped
+  mutedChecks = 0
   for (const observer of previewObservers.values()) observer.stop()
   previewObservers.clear()
   previewObserverStreams.clear()
@@ -983,6 +1014,7 @@ export function attachCameraPreview(video: HTMLVideoElement, attached: MediaStre
         }
         checked.add(key)
         setCameraGaveUp(false) // a camera that comes back by itself
+        mutedChecks = 0
         stepRecovery({ kind: "frame" })
         if (recovery.tap === "none") tapEpisode = null
         if (noFrameIncident && cameraGeneration > noFrameIncident.generation) closeNoFrameIncident("frame", current)

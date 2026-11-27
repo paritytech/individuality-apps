@@ -582,6 +582,92 @@ describe("recovery", () => {
     release()
   })
 
+  it("backs the still-muted reopen off and stops it once the tap is offered (#1539)", async () => {
+    vi.useFakeTimers()
+    const release = holdCamera()
+    try {
+      await openCamera()
+      const opens = () => vi.mocked(getLocalMedia).mock.calls.length
+      const before = opens()
+      // the real stuck-camera pattern: each reopen comes back UNMUTED and
+      // mutes again 500 ms later. The reopen must back off 3 s, 6 s, 12 s
+      // instead of looping every 3 s, and stop once the tap is offered.
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const stream = current()!
+        await vi.advanceTimersByTimeAsync(500)
+        trackOf(stream).muted = true
+        trackOf(stream).dispatchEvent(new Event("mute"))
+        await vi.advanceTimersByTimeAsync([3_000, 6_000, 12_000][attempt]!)
+        expect(opens()).toBe(before + attempt + 1)
+      }
+      expect(cameraTapState().tap).toBe("offered")
+      // no automatic reopen once the tap button is offered: the loop is stopped
+      await vi.advanceTimersByTimeAsync(120_000)
+      expect(opens()).toBe(before + 3)
+    } finally {
+      release()
+    }
+  })
+
+  it("restarts the tap episode on a healthy reopen, so a later incident reports its own dead_ms (#1535)", async () => {
+    vi.useFakeTimers()
+    const release = holdCamera()
+    try {
+      const first = await openCamera()
+      await vi.advanceTimersByTimeAsync(500)
+      trackOf(first).muted = true
+      trackOf(first).dispatchEvent(new Event("mute"))
+      await vi.advanceTimersByTimeAsync(3_000)
+      const healthy = current()!
+      expect(healthy).not.toBe(first) // a healthy reopen, no frame seen yet
+      // present a frame on the healthy camera: genuinely healthy
+      let callback: VideoFrameRequestCallback | undefined
+      const video = {
+        srcObject: healthy,
+        currentTime: 0,
+        readyState: 4,
+        paused: false,
+        play: vi.fn(async () => {}),
+        requestVideoFrameCallback: vi.fn((next: VideoFrameRequestCallback) => ((callback = next), 1)),
+        cancelVideoFrameCallback: vi.fn(),
+      }
+      const detach = attachCameraPreview(video as unknown as HTMLVideoElement, healthy, "open")
+      callback?.(performance.now(), {} as VideoFrameCallbackMetadata)
+      detach()
+      await vi.advanceTimersByTimeAsync(60_000) // much later, a new incident
+
+      // the still-muted reopen backs off 3 s, 6 s, 12 s (#1539); each
+      // replacement mutes again 500 ms after it opens, as a stuck camera does
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const stream = current()!
+        await vi.advanceTimersByTimeAsync(500)
+        trackOf(stream).muted = true
+        trackOf(stream).dispatchEvent(new Event("mute"))
+        await vi.advanceTimersByTimeAsync([3_000, 6_000, 12_000][attempt]!)
+      }
+      // no tap is offered on slow mutes; unmute to end the episode, then run
+      // a fresh quick-streak incident (replacements muted from the start) so
+      // the tap is offered and its report proves the episode restarted
+      trackOf(current()!).dispatchEvent(new Event("unmute"))
+      await vi.advanceTimersByTimeAsync(0)
+      mutedNext = 3
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const stream = current()!
+        trackOf(stream).muted = true
+        trackOf(stream).dispatchEvent(new Event("mute"))
+        await vi.advanceTimersByTimeAsync([3_000, 6_000, 12_000][attempt]!)
+        if (attempt === 2) expect(cameraTapState().tap).toBe("offered")
+      }
+      failNext.push("busy")
+      tapCamera()
+      await vi.advanceTimersByTimeAsync(0)
+      // the episode began at the new incident, not 60+ s earlier (#1535)
+      expect(recorded.cameraRestores[0]?.deadMs).toBeLessThan(30_000)
+    } finally {
+      release()
+    }
+  })
+
   it("does not reopen a still-muted camera after its last holder leaves", async () => {
     vi.useFakeTimers()
     const release = holdCamera()
@@ -601,7 +687,9 @@ describe("recovery", () => {
     await vi.advanceTimersByTimeAsync(500)
     trackOf(first).muted = true
     trackOf(first).dispatchEvent(new Event("mute"))
-    await vi.advanceTimersByTimeAsync(9_000)
+    // the still-muted reopen backs off 3 s, 6 s, 12 s (#1539), so the third
+    // quick check — the one that offers the tap — lands at 21 s
+    await vi.advanceTimersByTimeAsync(21_000)
     expect(cameraTapState().tap).toBe("offered")
     release()
   })
@@ -630,17 +718,19 @@ describe("recovery", () => {
     detach()
     await vi.advanceTimersByTimeAsync(60_000)
 
+    // the still-muted reopen backs off 3 s, 6 s, 12 s (#1539); each
+    // replacement mutes again 500 ms after it opens
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const stream = current()!
       await vi.advanceTimersByTimeAsync(500)
       trackOf(stream).muted = true
       trackOf(stream).dispatchEvent(new Event("mute"))
-      await vi.advanceTimersByTimeAsync(3_000)
+      await vi.advanceTimersByTimeAsync([3_000, 6_000, 12_000][attempt]!)
     }
     failNext.push("busy")
     tapCamera()
     await vi.advanceTimersByTimeAsync(0)
-    expect(recorded.cameraRestores[0]?.deadMs).toBeLessThan(15_000)
+    expect(recorded.cameraRestores[0]?.deadMs).toBeLessThan(30_000)
     release()
   })
 
@@ -648,12 +738,15 @@ describe("recovery", () => {
     vi.useFakeTimers()
     const release = holdCamera()
     await openCamera()
+    // the still-muted reopen backs off 3 s, 6 s, 12 s (#1539); each
+    // replacement mutes again 500 ms after it opens, so every check reads
+    // quick and the tap is offered on the third
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const stream = current()!
       await vi.advanceTimersByTimeAsync(500)
       trackOf(stream).muted = true
       trackOf(stream).dispatchEvent(new Event("mute"))
-      await vi.advanceTimersByTimeAsync(3_000)
+      await vi.advanceTimersByTimeAsync([3_000, 6_000, 12_000][attempt]!)
     }
     expect(cameraTapState()).toMatchObject({ tap: "offered", opening: false })
 
@@ -681,7 +774,7 @@ describe("recovery", () => {
       await vi.advanceTimersByTimeAsync(500)
       trackOf(stream).muted = true
       trackOf(stream).dispatchEvent(new Event("mute"))
-      await vi.advanceTimersByTimeAsync(3_000)
+      await vi.advanceTimersByTimeAsync([3_000, 6_000, 12_000][attempt]!)
     }
     failNext.push("busy")
     const callsBefore = vi.mocked(getLocalMedia).mock.calls.length
@@ -709,7 +802,7 @@ describe("recovery", () => {
       await vi.advanceTimersByTimeAsync(500)
       trackOf(stream).muted = true
       trackOf(stream).dispatchEvent(new Event("mute"))
-      await vi.advanceTimersByTimeAsync(3_000)
+      await vi.advanceTimersByTimeAsync([3_000, 6_000, 12_000][attempt]!)
     }
     tapCamera()
     await vi.advanceTimersByTimeAsync(0)
@@ -734,8 +827,11 @@ describe("recovery", () => {
     ])
     expect(cameraTapState().tap).toBe("spent")
     expect(cameraRecoveryGaveUp()).toBe(true)
-    await vi.advanceTimersByTimeAsync(3_001)
-    expect(current()).not.toBe(tapped)
+    // the automatic still-muted loop stays stopped after a spent tap (#1539):
+    // no further getUserMedia even when the grace elapses again
+    const opensBefore = vi.mocked(getLocalMedia).mock.calls.length
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(vi.mocked(getLocalMedia).mock.calls.length).toBe(opensBefore)
     detach()
     release()
   })

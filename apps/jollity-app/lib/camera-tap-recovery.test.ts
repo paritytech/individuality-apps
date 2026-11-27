@@ -45,4 +45,18 @@ describe("camera tap recovery (host bug #174)", () => {
     for (let i = 0; i < 4; i += 1) state = step(state, "still-muted-quick").state
     expect(state.tap).toBe("spent")
   })
+
+  it("stops the automatic reopen once the tap is offered, but the offer itself reopens (#1539)", () => {
+    let state = startCameraRecovery()
+    state = step(state, "still-muted-quick").state
+    state = step(state, "still-muted-quick").state
+    const offered = step(state, "still-muted-quick")
+    expect(offered.state).toMatchObject({ mutedStreak: 3, tap: "offered" })
+    expect(offered.commands.map((command) => command.kind)).toEqual(["offer-tap", "recover"])
+
+    // the loop stops, but the streak keeps counting for telemetry
+    const later = step(offered.state, "still-muted-quick")
+    expect(later.state).toMatchObject({ mutedStreak: 4, tap: "offered" })
+    expect(later.commands).toEqual([])
+  })
 })
