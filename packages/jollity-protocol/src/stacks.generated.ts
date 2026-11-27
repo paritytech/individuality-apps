@@ -18,7 +18,7 @@ export const HOSTED_STACKS: Record<StackNetwork, HostedStack> = {
     "turnUrl": "https://previewnet.substrate.dev/dub",
     "peopleRpc": "wss://previewnet.substrate.dev/people",
     "assetHubRpc": "wss://previewnet.substrate.dev/asset-hub",
-    "peopleGenesis": "0x732abb4e3052154ebd9201a375b0aacf2d1fe7015700235c0a8b30d44b401c19",
-    "assetHubGenesis": "0xf7d88e2e343e911c9a5c1a7e6ed53d06ef4cd73276fc3afff87062a1f6f90514"
+    "peopleGenesis": "0x7f3a2a7ca80d660192d3e898968919c3abfbde64d77f0ca4ae9afe69682c17ee",
+    "assetHubGenesis": "0x413886e711b79dd1bb8d8fdf0b5988670c63ac10fc7a91d52314c89003bed8e0"
   }
 }
