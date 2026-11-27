@@ -83,7 +83,7 @@ import { takeReturnCandidateProbe } from "../resume-reload"
 import { readRtcpClockEvidence, type RtcpClockEvidence } from "./rtcp-clock"
 import { registerPagePeerConnection } from "../telemetry/resource-counters"
 import { observeLegacyDecision } from "./legacy-decision-capture"
-import { createPeerActorState, KICK_AFTER_HIDDEN_MS, type PeerActorCommand, type PeerActorEvent, type PeerCommandSite } from "../state-machines/peer-actor"
+import { createPeerActorState, KICK_AFTER_HIDDEN_MS, UNSEEN_ICE_RESTARTS, type PeerActorCommand, type PeerActorEvent, type PeerCommandSite } from "../state-machines/peer-actor"
 import { PeerActorSummary } from "../state-machines/peer-actor-summary"
 import { PeerRoomRunner, type PeerCommandEffect, type PeerCommandResult } from "../state-machines/peer-runner"
 import { iceServerCounts } from "./turn-diagnostics"
@@ -3418,11 +3418,13 @@ export class Mesh {
   }
 
   /** restart-ice, cause peer-no-video, before restartIce. The actor caps this
-   *  at UNSEEN_ICE_RESTARTS per present peer, so this is the last one. */
-  private beginUnseenRestart(peerId: string, conn: Conn, now: number) {
+   *  at UNSEEN_ICE_RESTARTS per present peer; `heal` is the actor's count of
+   *  unseen heals, this one included, so the last one says so. */
+  private beginUnseenRestart(peerId: string, conn: Conn, now: number, heal: number) {
     conn.lastMediaHealAt = now
     conn.framesStalls = 0
-    rtcLog(`[jollity-rtc] unseen: signalingState=${conn.pc.signalingState} the peer says it decodes none of our video → ICE restart, the last until this peer leaves`, peerId)
+    const last = heal >= UNSEEN_ICE_RESTARTS ? ", the last until this peer leaves" : ` (heal ${heal})`
+    rtcLog(`[jollity-rtc] unseen: signalingState=${conn.pc.signalingState} the peer says it decodes none of our video → ICE restart${last}`, peerId)
   }
 
   /** networkChanged, on each link: the answerer may offer (the actor timed the attempt). */
@@ -3688,7 +3690,7 @@ export class Mesh {
         break
       case "peer-no-video":
         trigger = "peer_no_video"
-        this.beginUnseenRestart(peerId, conn, now)
+        this.beginUnseenRestart(peerId, conn, now, command.heal ?? 0)
         break
       case "network-change":
         trigger = "network_change"

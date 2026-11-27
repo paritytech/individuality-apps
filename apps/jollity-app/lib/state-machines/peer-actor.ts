@@ -518,8 +518,11 @@ export type PeerActorEvent =
   | ({ type: "connection-replaced-externally" } & EventEpochs)
 
 export type PeerActorCommand = (
-  /** heal: the media heal's count after this one (the stall's stallHeals,
-   *  the unseen heal's unseenHeals), which Mesh's "(heal n)" line prints */
+  /** heal: the heal's count after this one (the stall's stallHeals, the
+   *  unseen heal's unseenHeals). Mesh prints it as "(heal n)" on the
+   *  media-stall line and the unseen line, except the unseen line says
+   *  "the last until this peer leaves" when the count reaches
+   *  UNSEEN_ICE_RESTARTS. */
   | { kind: "restart-ice"; cause: string; heal?: number }
   | { kind: "yield-responder" }
   /** answererMayOffer: the leave to offer this replace grants the answerer of

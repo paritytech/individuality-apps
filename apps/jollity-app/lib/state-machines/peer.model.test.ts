@@ -93,6 +93,8 @@ describe("WebRTC peer actor definition and independent model", () => {
       "#1607 a connected link our unanswered offer holds is rebuilt again for no video in the same round",
       "#1951 a never-connected link holding one host candidate is rebuilt 5 s after its descriptions, not at the ICE timeout",
       "#1951 the early rebuild spent, the next stall in the round waits for ICE",
+      "#1523 a second stall with the one stall heal spent rebuilds, not a second ICE restart",
+      "#1523 an unseen report with the one unseen heal spent issues nothing",
     ])
   })
 

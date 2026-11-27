@@ -59,6 +59,8 @@ export type PeerEventKey =
   | "no-video-standby"
   | "stall-restart-one"
   | "stall-rebuild"
+  | "stall-rebuild-spent"
+  | "unseen-spent"
   | "frozen-ask"
   | "frozen-ask-answerer"
   | "frozen-ask-camera-off"
@@ -818,6 +820,11 @@ const allRegressions = [
   // rebuilt 5 s after both descriptions are in, and only once a round.
   sequence("#1951 a never-connected link holding one host candidate is rebuilt 5 s after its descriptions, not at the ICE timeout", [tick("tick-gather-stalled", gatherStalled)], { ...describedAt(95_000), link: "connecting" }),
   sequence("#1951 the early rebuild spent, the next stall in the round waits for ICE", [tick("tick-gather-spent", gatherStalled)], { ...describedAt(95_000), link: "connecting", budgets: { failCount: 1, gatherStallRebuilds: 1 } as PeerActorState["budgets"], lastAttemptAt: 80_000 }),
+  // #1523 F5: one ICE restart per stall and per present peer, then the next
+  // rung (or nothing) — a second restart sends no offer while the first's
+  // lane offer is unanswered
+  sequence("#1523 a second stall with the one stall heal spent rebuilds, not a second ICE restart", [current("stall-rebuild-spent", { type: "stats-observed", readSequence: 3, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1 })], { link: "connected", framesSeen: 4, framesReadSequence: 2, budgets: { stallHeals: 1 } as PeerActorState["budgets"] }),
+  sequence("#1523 an unseen report with the one unseen heal spent issues nothing", [current("unseen-spent", { type: "stats-observed", readSequence: 2, framesDecoded: 3, browserConnectionState: "connected", peerCannotSeeUs: true })], { link: "connected", laneOpen: true, framesSeen: 2, framesReadSequence: 1, budgets: { unseenHeals: 1 } as PeerActorState["budgets"] }),
 ]
 export const peerRegressionCorpus = allRegressions
 

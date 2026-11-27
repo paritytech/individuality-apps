@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { PeerActorCommand } from "../state-machines/peer-actor"
+import { UNSEEN_ICE_RESTARTS, type PeerActorCommand } from "../state-machines/peer-actor"
 import { remoteSessionOf } from "./mesh"
 import { FakeChannel, FakePC, setupMesh } from "./test-pc"
 
@@ -406,6 +406,33 @@ describe("Mesh mutation gaps (its execution of the peer actor's commands)", () =
     expect(result).toEqual({ outcome: "resolved", site })
     if (after === "networkRestarted") expect(network).toHaveBeenCalled()
     else expect(heal).toHaveBeenCalled()
+  })
+
+  it("the unseen restart's line says the last only at the budget's last heal (#1523)", async () => {
+    const lines: string[] = []
+    vi.spyOn(console, "log").mockImplementation((...parts: unknown[]) => {
+      const line = parts.map((part) => (typeof part === "string" ? part : String(part))).join(" ")
+      if (line.startsWith("[jollity-rtc] unseen:")) lines.push(line)
+    })
+    const { internals, conn } = await made()
+    const current = conn()
+
+    const run = (heal: number) => {
+      lines.length = 0
+      internals.restartForActor("b", current, {
+        kind: "restart-ice",
+        cause: "peer-no-video",
+        heal,
+        attempt: 1,
+        at: 50_000,
+        commandEpoch: 4,
+        connectionEpoch: current.decisionConnectionEpoch,
+      })
+      return lines[0]!
+    }
+
+    expect(run(UNSEEN_ICE_RESTARTS - 1)).toBe("[jollity-rtc] unseen: signalingState=stable the peer says it decodes none of our video → ICE restart (heal 0) b")
+    expect(run(UNSEEN_ICE_RESTARTS)).toBe("[jollity-rtc] unseen: signalingState=stable the peer says it decodes none of our video → ICE restart, the last until this peer leaves b")
   })
 
   it("rejects a restart when the browser exposes no restartIce function", async () => {
