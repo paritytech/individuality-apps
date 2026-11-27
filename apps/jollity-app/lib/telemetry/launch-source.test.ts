@@ -22,13 +22,32 @@ describe("launch source", () => {
   })
 
   it.each([
-    ["reads a reminder notification from the launch URL with its moment", "?jollity-notification=reminder&moment=close-10m", "/", { source: "notification", detail: "close-10m" }],
-    ["maps an unrecognised moment to other so no URL free text is sent", "?jollity-notification=reminder&moment=hello-world", "/", { source: "notification", detail: "other" }],
-    ["reads a reminder without a moment", "?jollity-notification=reminder", "/", { source: "notification", detail: null }],
-    ["reads any other launch query as a deeplink with the route", "?card=humanity", "/game", { source: "deeplink", detail: "/game" }],
-    ["reports unknown when nothing says what opened the page", "", "/", { source: "unknown", detail: null }],
-  ])("%s", (_name, search, pathname, expected) => {
-    expect(readLaunchSource({ root: ROOT, now: 1_000, search, pathname })).toEqual(expected)
+    ["reads a reminder notification from the launch URL with its moment", "?jollity-notification=reminder&moment=close-10m", "/", "navigate", { source: "notification", detail: "close-10m" }],
+    ["maps an unrecognised moment to other so no URL free text is sent", "?jollity-notification=reminder&moment=hello-world", "/", "navigate", { source: "notification", detail: "other" }],
+    ["reads a reminder without a moment", "?jollity-notification=reminder", "/", "navigate", { source: "notification", detail: null }],
+    ["reads any other launch query as a deeplink with the route", "?card=humanity", "/game", "navigate", { source: "deeplink", detail: "/game" }],
+    ["reports unknown when nothing says what opened the page", "", "/", "navigate", { source: "unknown", detail: null }],
+  ])("%s", (_name, search, pathname, navigationType, expected) => {
+    expect(readLaunchSource({ root: ROOT, now: 1_000, search, pathname, navigationType })).toEqual(expected)
+  })
+
+  it.each([
+    ["a reload with a query is not a deeplink", "reload", "?game=248", "/prize-draw", { source: "unknown", detail: "reload" }],
+    ["a reload with the low-power query is not a deeplink", "reload", "?lowpower=1", "/", { source: "unknown", detail: "reload" }],
+    ["a back/forward navigation with a query is not a deeplink", "back_forward", "?game=248", "/game", { source: "unknown", detail: "reload" }],
+    ["a prerender with a query is not a deeplink", "prerender", "?card=humanity", "/game", { source: "unknown", detail: "reload" }],
+  ])("%s", (_name, navigationType, search, pathname, expected) => {
+    expect(readLaunchSource({ root: ROOT, now: 1_000, search, pathname, navigationType })).toEqual(expected)
+  })
+
+  it("still reads the reminder URL on a reload: the notification itself opened the page", () => {
+    expect(readLaunchSource({ root: ROOT, now: 1_000, search: "?jollity-notification=reminder&moment=start-5m", pathname: "/", navigationType: "reload" }))
+      .toEqual({ source: "notification", detail: "start-5m" })
+  })
+
+  it("a host open still wins over the reload classification", () => {
+    expect(readLaunchSource({ root: hostRoot("deeplink"), now: 2_000, search: "?game=248", pathname: "/prize-draw", navigationType: "reload" }))
+      .toEqual({ source: "deeplink", detail: null })
   })
 })
 
@@ -43,6 +62,7 @@ describe("masking-safe launch source vocabulary", () => {
     "alarm",
     "host-other",
     "other",
+    "reload",
     ...NOTIFICATION_MOMENTS,
     "true",
     "false",

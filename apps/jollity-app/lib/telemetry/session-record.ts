@@ -30,8 +30,10 @@ export const SESSION_LINEAGE_KEY = "jollity.telemetry.session-lineage"
 export const HEARTBEAT_MS = 20_000
 export const HOST_RELOAD_MAX_GAP_MS = 2_000
 export const STALE_AFTER_MS = 30 * 60_000
-/** A previous page still alive this recently means a second copy was opened
- *  alongside it (archive#1882): the double-open signature. */
+/** A previous page that ended without a clean exit and was seen this recently
+ *  means a second copy was opened alongside it (archive#1882): the double-open
+ *  signature. A clean close, own reload or host reload updates lastSeenAt just
+ *  before unload, so a quick reload of one page is not a concurrent page. */
 export const CONCURRENT_PAGE_MAX_GAP_MS = 5_000
 export const MAX_PAYOFF_SAMPLES_PER_PHASE = 15
 
@@ -454,9 +456,14 @@ export async function startSessionRecord(options: StartOptions): Promise<Previou
     }
     const established = refresh()
     const hostTelemetry = readHostTelemetryContext()
-    const pageLocation = typeof window === "undefined" ? undefined : window.location
-    const launch = readLaunchSource({ now, search: pageLocation?.search, pathname: pageLocation?.pathname })
-    const concurrentPage = diagnostic.gapMs !== undefined && diagnostic.gapMs < CONCURRENT_PAGE_MAX_GAP_MS
+    // the launch URL is the one captured at module load, before FrontDoor's
+    // redirect; the navigation type decides whether a query is a deep link
+    const launch = readLaunchSource({ now })
+    // only an end that was not clean (a crash or a kill) counts: a clean close,
+    // own reload or host reload updated lastSeenAt just before unload, so a
+    // quick reload of one page is not a second concurrent page
+    const uncleanEnd = diagnostic.classification === "crash-or-kill-foreground" || diagnostic.classification === "killed-background"
+    const concurrentPage = uncleanEnd && diagnostic.gapMs !== undefined && diagnostic.gapMs < CONCURRENT_PAGE_MAX_GAP_MS
     captureReplayObservation("session.link", {
       heartbeatSessionId: current.sessionId,
       logSessionId: SESSION_ID,

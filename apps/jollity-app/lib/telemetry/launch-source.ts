@@ -10,11 +10,36 @@
  * query). One source wins, in that order; the detail keeps the notification
  * moment or the deep-link route. Recorded once, on the session.link
  * observation, as string attributes (Sentry span attributes are string-typed).
+ *
+ * The launch URL is captured at module load: FrontDoor
+ * (components/front-door.tsx) sends a held load home with router.replace in
+ * an effect, and any client module evaluates before those effects run, so by
+ * the time the session record reads the location the original one is gone.
+ * Only a navigation of type "navigate" classifies the URL: a reload carries
+ * the app's own queries (?game=N, ?lowpower=1) and is not a deep link.
  */
 
 import { NOTIFICATION_MOMENTS, NOTIFICATION_PARAM, REMINDER_VALUE, MOMENT_PARAM } from "./notification-url"
 
 export type LaunchSource = "notification" | "deeplink" | "unknown"
+
+let launchUrl: { search: string; pathname: string } | null = null
+
+/** Capture the location this page was loaded with. Runs once at module load;
+ *  exported so a test can re-run it against a stubbed window. */
+export function captureLaunchLocation(): void {
+  try {
+    if (typeof window === "undefined" || !window.location) {
+      launchUrl = null
+      return
+    }
+    launchUrl = { search: window.location.search, pathname: window.location.pathname }
+  } catch {
+    launchUrl = null
+  }
+}
+
+captureLaunchLocation()
 
 export interface LaunchSourceReading {
   source: LaunchSource
@@ -55,7 +80,7 @@ function hostOpen(root: typeof globalThis, now: number): LaunchSourceReading | n
   }
 }
 
-function urlLaunch(search: string | undefined, pathname: string | undefined): LaunchSourceReading | null {
+function urlLaunch(search: string | undefined, pathname: string | undefined, navigationType: string | null): LaunchSourceReading | null {
   if (!search) return null
   const params = new URLSearchParams(search)
   if (params.get(NOTIFICATION_PARAM) === REMINDER_VALUE) {
@@ -63,18 +88,39 @@ function urlLaunch(search: string | undefined, pathname: string | undefined): La
     // keep the detail to the known vocabulary so no URL free text is sent
     return { source: "notification", detail: moment !== null && NOTIFICATION_MOMENTS.has(moment) ? moment : moment ? "other" : null }
   }
+  // only a fresh navigation classifies the URL: a reload, back/forward or
+  // prerender carries the app's own queries (?game=N, ?lowpower=1)
+  if (navigationType !== "navigate") return { source: "unknown", detail: "reload" }
   // any other query on the launch URL is a deep link
   return { source: "deeplink", detail: pathname && pathname !== "/" ? pathname : null }
 }
 
-/** Classify one page start. Pure over its inputs so a test can drive every source. */
+/** The navigation entry's type, when the browser reports one. */
+function navigationTypeOf(root: typeof globalThis): string | null {
+  try {
+    const perf = (root as typeof globalThis & { performance?: Performance }).performance
+    if (!perf || typeof perf.getEntriesByType !== "function") return null
+    const entry = perf.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined
+    return typeof entry?.type === "string" ? entry.type : null
+  } catch {
+    return null
+  }
+}
+
+/** Classify one page start. Pure over its inputs so a test can drive every
+ *  source; with no inputs it reads what was captured at module load. */
 export function readLaunchSource(options: {
   root?: typeof globalThis
   now?: number
   search?: string
   pathname?: string
+  navigationType?: string | null
 }): LaunchSourceReading {
   const root = options.root ?? globalThis
   const now = options.now ?? Date.now()
-  return hostOpen(root, now) ?? urlLaunch(options.search, options.pathname) ?? { source: "unknown", detail: null }
+  const captured = launchUrl ?? undefined
+  const search = options.search ?? captured?.search
+  const pathname = options.pathname ?? captured?.pathname
+  const navigationType = options.navigationType !== undefined ? options.navigationType : navigationTypeOf(root)
+  return hostOpen(root, now) ?? urlLaunch(search, pathname, navigationType) ?? { source: "unknown", detail: null }
 }
