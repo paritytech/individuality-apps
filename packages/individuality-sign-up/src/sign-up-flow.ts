@@ -250,6 +250,9 @@ interface RunState {
    *  window check an attempt makes when the page returns */
   window?: { current: { index: number; registrationEnds: number } | undefined }
   lastReason?: () => RetryReason | undefined
+  /** the attempt whose broadcast put the optimistic flag up, once one of this
+   *  tap's attempts went out: the loop's end takes the flag down through it */
+  wireOwner?: object
 }
 
 function deferred<T>() {
@@ -349,6 +352,14 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
     if (optimisticRegistered === value) return
     optimisticRegistered = value
     optimisticListeners.forEach((notify) => notify())
+  }
+  /** takes the optimistic flag down, when the call that put it up still owns
+   *  it: a later chain confirmation (`optimisticOwner` cleared) or a newer
+   *  slot's flag is not this call's to touch */
+  const clearOptimistic = (owner: object) => {
+    if (optimisticOwner !== owner) return
+    optimisticOwner = undefined
+    setOptimisticRegistered(false)
   }
   /** the game registration record (@individuality/shared-records), as the
    *  surface last read it. This flow writes it for its own sign-up too; what
@@ -755,6 +766,9 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
           // the best block that already contains Game.Players.
           const beforeRoute = await registeredOnChain(player)
           if (beforeRoute === true) return reconciled()
+          // a read that answers "not registered" takes the optimistic flag of a
+          // sign-up an earlier attempt of this tap put on the wire down
+          if (beforeRoute === false && run.wireOwner) clearOptimistic(run.wireOwner)
           if (typeof beforeRoute === "string") return retryAfter(beforeRoute)
           const routeStep = journey.step("route")
           // the route step covers everything that decides the route, the
@@ -1056,6 +1070,9 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
                 log("signup", `${route} sign-up still confirming: the landing re-read failed (${reRead})`, { detail: failure.error }, "warn")
                 return resolve(retryAfter(classifyRetry(failure.error), undefined, { stage: stage(), error: failure.error, route }))
               }
+              // a later read that answered says the player is not in: the flag
+              // this tap put up comes down
+              if (wired && reRead === false) clearOptimistic(owner)
               setOptimisticRegistered(false)
               const refused = signupFailureReason(failure.error, stage()) === "signing-refused"
               if (refused) {
@@ -1130,6 +1147,7 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
                   landedStep = journey.step("tx.landed")
                   optimisticGame = signupGameIndex ?? latestSlotIndex
                   optimisticOwner = owner
+                  run.wireOwner = owner
                   setOptimisticRegistered(true)
                   // Let the sign-up's own game read settle first when it is
                   // already available. A slow read stays unknown rather than
@@ -1368,6 +1386,11 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
               },
             })
               .then(({ end, attempts, elapsedMs }) => {
+                // a loop that ends closed, refused or stopped takes the
+                // optimistic flag of a sign-up that went out down with it:
+                // the chain never confirmed it, and nothing of this tap
+                // leaves "you're in" standing
+                if ((end === "closed" || end === "refused" || end === "stopped") && run.wireOwner) clearOptimistic(run.wireOwner)
                 if (end === "closed" && !chainClosed) {
                   // the window shut between attempts: the one end the player must hear of
                   const journey = telemetry.journey("game-signup", { "signup.taps": String(tapCount), "signup.attempt": String(attempts) })
@@ -1418,7 +1441,9 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
           return outer.promise
         }
       : undefined
-  /** the page left: stop trying. A sign-up already on the wire stands. */
+  /** the page left: stop trying. A sign-up already on the wire still stands
+   *  (it may land all the same), but the optimistic flag of this tap comes
+   *  down with the loop: nothing of this tap will confirm it any more. */
   const cancelRegister = () => {
     stopSignup = true
     stopWaiter.resolve() // an attempt still waiting on the host ends too

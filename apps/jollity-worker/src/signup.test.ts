@@ -1133,20 +1133,10 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
     expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "failed", "signup.stage": "register" })
   })
 
-  it("leaves it to the poll, never failed, when the re-read itself fails after the broadcast (#37)", async () => {
-    const { signup } = await run(async (options) => {
-      options.onBroadcast!()
-      return { ok: false, error: "Tracking stopped" }
-    }, null)
-    await flush()
-    expect(signup.state()).toEqual({ kind: "idle", unsettled: 7 })
-    expect(sent.filter((record) => record.tags["failure.kind"] === "signup-failed")).toEqual([])
-    expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "unknown", "signup.stage": "reread-failed" })
-  })
-
   it.each([
     ["a watch result", async (options: RegisterOptions): Promise<RegisterResult> => (options.onBroadcast!(), { ok: false, error: "Tracking stopped", landingUnknown: true })],
     ["a rejection", async (options: RegisterOptions): Promise<RegisterResult> => (options.onBroadcast!(), Promise.reject(new Error("the host's chain connection dropped")))],
+    ["a non-permanent failure without a landing-unknown flag", async (options: RegisterOptions): Promise<RegisterResult> => (options.onBroadcast!(), { ok: false, error: "Tracking stopped" })],
   ])("leaves a broadcast whose re-read also fails to the poll, never failed, when the failure is %s (#37)", async (_name, register) => {
     const { signup } = await run(register, null)
     await flush()
@@ -1154,6 +1144,39 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
     expect(sent.filter((record) => record.tags["failure.kind"] === "signup-failed")).toEqual([])
     expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "unknown", "signup.stage": "reread-failed" })
   })
+
+  it.each(["NoRegistration", "GameOngoing", "NoGame"])(
+    "files %s after the broadcast as window-closed even when the re-read fails, without reading the chain again",
+    async (code) => {
+      const { signup, engine } = await run(async (options) => {
+        options.onBroadcast!()
+        return { ok: false, error: code, code }
+      }, null)
+      await flush()
+      expect(signup.state()).toEqual({ kind: "failed", gameIndex: 7, notice: cardCopy.REGISTRATION_CLOSED_NOTICE })
+      expect(sent.filter((record) => record.tags["failure.kind"] === "signup-failed")).toEqual([
+        expect.objectContaining({ name: "signup-failed: window-closed", contexts: { failure: expect.objectContaining({ error: expect.stringContaining(code) }) } }),
+      ])
+      expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "closed", "signup.broadcast": "true" })
+      // the chain's own refusal is final: no re-read, failed or not
+      expect(engine.seat).toHaveBeenCalledTimes(1)
+    },
+  )
+
+  it.each(["InvalidPlayDeposit", "CreditCapacityExhausted", "NoInvites"])(
+    "files %s after the broadcast as failed even when the re-read fails, without reading the chain again",
+    async (code) => {
+      const { signup, engine } = await run(async (options) => {
+        options.onBroadcast!()
+        return { ok: false, error: code, code }
+      }, null)
+      await flush()
+      expect(signup.state()).toEqual({ kind: "failed", gameIndex: 7, notice: cardCopy.SIGN_UP_FAILED })
+      expect(sent.filter((record) => record.tags["failure.kind"] === "signup-failed")).toHaveLength(1)
+      expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "failed", "signup.broadcast": "true" })
+      expect(engine.seat).toHaveBeenCalledTimes(1)
+    },
+  )
 
   it("does not read again for a failure before the broadcast", async () => {
     const { engine } = await run(async () => ({ ok: false, error: "Tracking stopped" }), facts(["AlreadyPlaying", "AlreadyRegistered"]))

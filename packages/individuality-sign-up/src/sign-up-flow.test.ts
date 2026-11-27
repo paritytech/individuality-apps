@@ -377,6 +377,136 @@ describe("a sign-up goes", () => {
     expect(flow.optimistic().registered).toBe(true)
     flow.cancelRegister()
   }, 30_000)
+
+  it("takes the optimistic flag down when a later read says the player is not in, after the landing re-read failed", async () => {
+    // Given: broadcast, the landing re-read fails, and the next attempt's read
+    // answers definitively "not registered"
+    let reads = 0
+    let calls = 0
+    const chain = fakeChain({
+      register: vi.fn(async (_capabilities: GameRegistrationCapabilities, _id: Uint8Array, options?: RegisterOptions): Promise<DispatchResult> => {
+        calls += 1
+        if (calls === 1) {
+          options?.onBroadcast?.()
+          return { ok: false, error: "Tracking stopped", landingUnknown: true }
+        }
+        // the second attempt never reaches the wire: the flag must already be down
+        return new Promise<DispatchResult>(() => {})
+      }),
+      player: vi.fn(async (): Promise<{ registered: boolean }> => {
+        reads += 1
+        if (reads === 2) throw new Error("the host's chain connection dropped")
+        return { registered: false }
+      }),
+    })
+    const { flow } = flowOver(chain)
+
+    // When: the tap wires the sign-up, the landing re-read fails, and the loop
+    // goes again until the next read answers
+    const tap = flow.register!()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(flow.optimistic().registered).toBe(true)
+    await vi.advanceTimersByTimeAsync(12_000) // the landing wait, its re-read fails
+    await vi.advanceTimersByTimeAsync(2_000) // the first backoff
+    await vi.advanceTimersByTimeAsync(0) // the window check and the next attempt's read
+
+    // Then: the flag this tap put up is down, the chain said so
+    expect(reads).toBeGreaterThanOrEqual(3)
+    expect(chain.register).toHaveBeenCalledTimes(2)
+    expect(flow.optimistic().registered).toBe(false)
+    flow.cancelRegister()
+    await vi.advanceTimersByTimeAsync(60_000)
+    await tap
+  }, 30_000)
+
+  it("takes the optimistic flag down when the loop ends closed after the landing re-read failed", async () => {
+    // Given: broadcast, the landing re-read fails, every later read fails too,
+    // and the window shuts between attempts
+    let now = NOW
+    let reads = 0
+    let calls = 0
+    const chain = fakeChain({
+      register: vi.fn(async (_capabilities: GameRegistrationCapabilities, _id: Uint8Array, options?: RegisterOptions): Promise<DispatchResult> => {
+        calls += 1
+        options?.onBroadcast?.()
+        if (calls === 1) return { ok: false, error: "Tracking stopped", landingUnknown: true }
+        return new Promise<DispatchResult>(() => {})
+      }),
+      player: vi.fn(async (): Promise<{ registered: boolean }> => {
+        reads += 1
+        if (reads > 1) throw new Error("the host's chain connection dropped")
+        return { registered: false }
+      }),
+    })
+    const { flow, ends } = flowOver(chain, { nowSeconds: () => now })
+    flow.setSlot(7, { index: 7, registrationEnds: NOW + 50, gamePlayTime: NOW + 900 })
+
+    // When
+    const tap = flow.register!()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(flow.optimistic().registered).toBe(true)
+    now = NOW + 1_000 // the window shut while the attempt waited
+    await vi.advanceTimersByTimeAsync(12_000) // the landing wait, re-read fails
+    await vi.advanceTimersByTimeAsync(5_000) // the backoff, then the window check
+
+    // Then
+    expect(ends).toContainEqual(["game-signup", "closed"])
+    expect(flow.phase()).toBe("closed")
+    expect(flow.optimistic().registered).toBe(false)
+    await tap
+  }, 30_000)
+
+  it("takes the optimistic flag down when the tap is stopped after the landing re-read failed", async () => {
+    // Given: broadcast, the landing re-read fails, and the page leaves
+    let reads = 0
+    const chain = fakeChain({
+      register: vi.fn(async (_capabilities: GameRegistrationCapabilities, _id: Uint8Array, options?: RegisterOptions): Promise<DispatchResult> => {
+        options?.onBroadcast?.()
+        return { ok: false, error: "Tracking stopped", landingUnknown: true }
+      }),
+      player: vi.fn(async (): Promise<{ registered: boolean }> => {
+        reads += 1
+        if (reads > 1) throw new Error("the host's chain connection dropped")
+        return { registered: false }
+      }),
+    })
+    const { flow } = flowOver(chain)
+
+    // When
+    const tap = flow.register!()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(flow.optimistic().registered).toBe(true)
+    await vi.advanceTimersByTimeAsync(12_000) // the landing wait, re-read fails
+    flow.cancelRegister()
+    await vi.advanceTimersByTimeAsync(5_000)
+
+    // Then
+    expect(flow.optimistic().registered).toBe(false)
+    await tap
+  }, 30_000)
+
+  it("takes the optimistic flag down when the tap is stopped while the landing wait is still running", async () => {
+    // Given: broadcast, and the page leaves before the post-failure wait ends
+    const chain = fakeChain({
+      register: vi.fn(async (_capabilities: GameRegistrationCapabilities, _id: Uint8Array, options?: RegisterOptions): Promise<DispatchResult> => {
+        options?.onBroadcast?.()
+        return { ok: false, error: "Tracking stopped", landingUnknown: true }
+      }),
+      player: vi.fn(async () => ({ registered: false })),
+    })
+    const { flow } = flowOver(chain)
+
+    // When
+    const tap = flow.register!()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(flow.optimistic().registered).toBe(true)
+    flow.cancelRegister()
+    await vi.advanceTimersByTimeAsync(20_000)
+
+    // Then: the loop ended stopped, and the flag of this tap's wire came down
+    expect(flow.optimistic().registered).toBe(false)
+    await tap
+  }, 30_000)
 })
 
 describe("the prize draw's log", () => {

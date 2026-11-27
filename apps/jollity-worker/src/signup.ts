@@ -50,6 +50,7 @@ import {
 import { COMMUNICATION_ENTROPY_CONTEXT, network, type GameEngine } from "@jollity/protocol"
 import {
   BIND_TIMEOUT_MS,
+  classifyPermanent,
   communicationKeyFrom,
   communicationKeyRecord,
   drawResult,
@@ -385,9 +386,14 @@ export function createSignup(dependencies: SignupDependencies): Signup {
   /** After a failure that follows the broadcast: does the chain hold the player
    * after all? "unknown" when the re-read itself failed — the broadcast may
    * have landed all the same, and only a chain read that answers can say
-   * otherwise (#37, archive#1355). */
-  const landedAfterFailure = async (trace: Trace, errorText: string): Promise<boolean | "unknown"> => {
+   * otherwise (#37, archive#1355). A failure the chain already answered for
+   * good (registration closed, game ongoing, wrong deposit, …) is never
+   * unknown, whatever the re-read says, and neither is a throw's text: the
+   * shared package re-reads only the non-permanent ones, and a closed game
+   * must not come back as idle with the Register button for it. */
+  const landedAfterFailure = async (trace: Trace, errorText: string, thrown?: unknown): Promise<boolean | "unknown"> => {
     if (!trace.wired || !trace.reread || signupFailureReason(errorText, trace.stage) === "signing-refused") return false
+    if (!thrown && classifyPermanent(errorText) !== null) return false
     await new Promise((resolve) => setTimeout(resolve, LANDING_WAIT_MS))
     const now = await within(trace.reread(), SIGNUP_STEP_DEADLINE_MS).catch(() => null)
     if (now === null) return "unknown"
@@ -396,9 +402,15 @@ export function createSignup(dependencies: SignupDependencies): Signup {
 
   /** Ends the journey for a post-broadcast failure whose landing a chain read
    * settled (the player is on the chain) or could not (unknown, left to the
-   * poll); null when the sign-up failed for good. */
-  const settledAfterFailure = async (trace: Trace, gameIndex: number, errorText: string, route?: string): Promise<SignupState | null> => {
-    const landed = await landedAfterFailure(trace, errorText)
+   * poll); null when the sign-up failed for good. A throw is `thrown`. */
+  const settledAfterFailure = async (
+    trace: Trace,
+    gameIndex: number,
+    errorText: string,
+    route?: string,
+    thrown?: unknown,
+  ): Promise<SignupState | null> => {
+    const landed = await landedAfterFailure(trace, errorText, thrown)
     if (landed === true) {
       // this attempt's own sign-up landed after all: its tickets want the name too
       dependencies.linkName?.()
@@ -681,7 +693,7 @@ export function createSignup(dependencies: SignupDependencies): Signup {
         await signUp(gameIndex, trace)
       } catch (error) {
         const text = describeError(error)
-        const settled = await settledAfterFailure(trace, gameIndex, text, trace.route)
+        const settled = await settledAfterFailure(trace, gameIndex, text, trace.route, trace.wired ? error : undefined)
         if (settled) return
         dependencies.log?.("error", `The sign-up from the chat failed: ${messageOf(error)}`)
         const reason = signupFailureReason(text, trace.stage)
