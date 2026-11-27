@@ -334,7 +334,6 @@ describe("a sign-up goes", () => {
     // the later read settles it
     expect(optimisticSeen).toContain(true)
     const afterWire = optimisticSeen.slice(optimisticSeen.indexOf(true))
-    expect(afterWire.length).toBeGreaterThan(0)
     expect(afterWire).not.toContain(false)
     expect(flow.optimistic().registered).toBe(true)
     expect(ends).toContainEqual(["game-signup", "landed"])
@@ -345,20 +344,20 @@ describe("a sign-up goes", () => {
     // Given: broadcast, landing failure, and every chain read failing — the
     // loop retries on its backoff, and each attempt re-reads the player row
     // before any register call
+    // the player row answers "not registered" (a definitive read), so the
+    // attempt reaches the wire; only the post-broadcast landing re-read fails
+    let reads = 0
     const chain = fakeChain({
       register: vi.fn(async (_capabilities: GameRegistrationCapabilities, _id: Uint8Array, options?: RegisterOptions): Promise<DispatchResult> => {
         options?.onBroadcast?.()
         return { ok: false, error: "Tracking stopped", landingUnknown: true }
       }),
       game: vi.fn(async () => ({ index: 7, state: { type: "Registration" as const }, registration_ends: WINDOW.registrationEnds + 10_000 })),
-    })
-    // the player row answers "not registered" (a definitive read), so the
-    // attempt reaches the wire; only the post-broadcast landing re-read fails
-    let reads = 0
-    chain.player = vi.fn(async (): Promise<{ registered: boolean }> => {
-      reads += 1
-      if (reads > 1) throw new Error("the host's chain connection dropped")
-      return { registered: false }
+      player: vi.fn(async (): Promise<{ registered: boolean }> => {
+        reads += 1
+        if (reads > 1) throw new Error("the host's chain connection dropped")
+        return { registered: false }
+      }),
     })
     const { flow, failures } = flowOver(chain, { nowSeconds: () => NOW })
 
