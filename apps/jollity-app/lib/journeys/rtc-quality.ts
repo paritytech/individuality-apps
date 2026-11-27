@@ -82,6 +82,16 @@
  * compute alike, which rtc.peer cannot give, and from which neither account
  * is read back without the game's roster. No point carries an account. The
  * doorway adds host.kind, game.index and the device and network tags when set.
+ * Every per-round point also carries the MEASURED SPAN (archive#829):
+ * rtc.span_first_ms, rtc.span_last_ms and rtc.span_readings name the stretch
+ * of the round the summary covers — the stats timestamps of the first and
+ * last counted reading and how many readings that was — so a report can
+ * compare the same stretch on both ends of a link instead of two medians
+ * over different stretches. The timestamps are the stats reports' timestamps:
+ * epoch ms read from the device's wall clock, so the two ends compare only as
+ * well as their clocks agree, and a backward clock step can leave span_last
+ * below span_first. A link the round never measured carries no span, only its
+ * row.
  * The slice points deliberately omit codec/path attributes: they are summed
  * only by viewer, round and the stable pair, including across page sessions.
  */
@@ -158,6 +168,13 @@ interface PeerRound {
   /** the peer connections (rtc-stats `link`) the round's readings came from */
   links: Set<number>
   sdp?: SdpVideo
+  /** THE MEASURED SPAN (archive#829): the `at` of the first and last counted
+   *  reading of the round and how many readings that was, so a report can
+   *  compare the same stretch on both ends of a link. Undefined `at` is not
+   *  a reading. A link the round never measured keeps `spanReadings` 0. */
+  spanFirstAt?: number
+  spanLastAt?: number
+  spanReadings: number
 }
 
 type Numeric = Exclude<keyof RtcRates, "limited" | "reasonDurations">
@@ -258,6 +275,7 @@ function makePeer(id: string): PeerRound {
     connected: false,
     decoded: false,
     links: new Set(),
+    spanReadings: 0,
   }
 }
 
@@ -360,6 +378,11 @@ export function observeRtc(readings: readonly RtcReading[]): void {
       videoObservedAt.set(reading.id, observedAt)
       if (!counted) continue
       if (!peer) continue
+      if (sample.at !== undefined) {
+        peer.spanReadings += 1
+        peer.spanFirstAt ??= sample.at
+        peer.spanLastAt = sample.at
+      }
       noteDevice(peer, sample)
       peer.links.add(sample.link)
       if (reading.sdp) peer.sdp = reading.sdp
@@ -693,6 +716,16 @@ const linkAttrsOf = (peer: PeerRound, closing: number): Record<string, string> =
   "rtc.peer": String(peer.index),
   ...pairOf(peer.id, closing + 1),
   ...codecAttrs(peer.codec),
+  // THE MEASURED SPAN (archive#829): which stretch of the round the round's
+  // points summarise, as the stats timestamps read them. A link with no
+  // reading all round sends no span, only its row.
+  ...(peer.spanReadings > 0 && peer.spanFirstAt !== undefined && peer.spanLastAt !== undefined
+    ? {
+        "rtc.span_first_ms": String(peer.spanFirstAt),
+        "rtc.span_last_ms": String(peer.spanLastAt),
+        "rtc.span_readings": String(peer.spanReadings),
+      }
+    : {}),
 })
 
 const attempt = (send: () => void): void => {

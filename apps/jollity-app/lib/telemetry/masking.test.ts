@@ -179,6 +179,8 @@ const LANE_WORDS = [
   "rtc.pair", "rtc.peer", "g12:r2:5fd9d742609d",
   // coverage (#256)
   "rtc.coverage_pct", "rtc.coverage_s", "rtc.unsupported", "coverage", "unsupported",
+  // the measured span of a round's readings (archive#829)
+  "rtc.span_first_ms", "rtc.span_last_ms", "rtc.span_readings",
   // the connection funnel (#257)
   "rtc.funnel_ms", "rtc.role", "rtc.last_stage", ...FUNNEL_STAGES, "initiator", "answerer", "none", "stage",
   // the selected path (#258)
