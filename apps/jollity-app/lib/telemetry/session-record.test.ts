@@ -21,6 +21,7 @@ const session = new Map<string, string>()
 import { enterScene, leaveAllScenes } from "./smoothness"
 import { SESSION_ID } from "../debug/session-id"
 import { resetJourneysForTests } from "./journeys"
+import { captureLaunchLocation } from "./launch-source"
 import {
   HEARTBEAT_MS,
   MAX_PAYOFF_SAMPLES_PER_PHASE,
@@ -43,6 +44,8 @@ const NOW = 1_800_000_000_000
 const listeners = new Map<string, (event?: Event) => void>()
 let hidden = false
 let pathname = "/"
+let search = ""
+let navigationType: string | null = "navigate"
 const record = vi.fn<(diagnostic: PreviousSessionDiagnostic) => void>()
 
 function storage(map: Map<string, string>): Storage {
@@ -98,6 +101,8 @@ beforeEach(() => {
   listeners.clear()
   hidden = false
   pathname = "/"
+  search = ""
+  navigationType = "navigate"
   record.mockReset()
   replayCapture.mockReset()
   lifecycleRecord.mockReset()
@@ -109,8 +114,16 @@ beforeEach(() => {
   vi.stubGlobal("sessionStorage", storage(session))
   vi.stubGlobal("window", {
     addEventListener: (name: string, fn: (event?: Event) => void) => listeners.set(`window:${name}`, fn),
-    location: { get pathname() { return pathname } },
+    location: { get pathname() { return pathname }, get search() { return search } },
   })
+  vi.stubGlobal("performance", {
+    timeOrigin: NOW - 1000,
+    now: () => 1000,
+    getEntriesByType: (type: string) => (type === "navigation" ? [{ type: navigationType }] : []),
+  })
+  // the launch URL is captured at module load; re-capture it per test against
+  // the stubbed location, as a real page load would have
+  captureLaunchLocation()
   vi.stubGlobal("document", {
     addEventListener: (name: string, fn: (event?: Event) => void) => listeners.set(`document:${name}`, fn),
     get visibilityState() {
@@ -142,6 +155,8 @@ describe("previous-session classification", () => {
   })
 
   it("records an absent native host explicitly without waiting", async () => {
+    navigationType = null
+    captureLaunchLocation()
     await start()
     expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
       hostSessionId: null,
@@ -267,6 +282,90 @@ describe("previous-session classification", () => {
     ).resolves.toMatchObject({ classification: "killed-background" })
   })
 
+})
+
+describe("launch source on session.link", () => {
+  // classification itself is covered in launch-source.test.ts; these pin the wiring
+  it("records the launch source read from the host bootstrap and the URL", async () => {
+    vi.stubGlobal("__trinityHostTelemetry", {
+      hostSessionId: "123e4567-e89b-42d3-a456-426614174000",
+      openSource: "alarm",
+      openedAtEpochMs: NOW - 1_000,
+    })
+    search = "?jollity-notification=reminder&moment=start-5m"
+    captureLaunchLocation()
+    await start()
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.launch_source": "notification",
+      "app.launch_detail": "alarm",
+    }))
+  })
+
+  it("records a cold start on /game?card=humanity as a deeplink with its route, from the URL captured at module load", async () => {
+    // FrontDoor has already router.replace'd to "/" by the time the session
+    // record runs; the module-load capture still holds the launch location
+    pathname = "/game"
+    search = "?card=humanity"
+    captureLaunchLocation()
+    await start()
+    pathname = "/"
+    search = ""
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.launch_source": "deeplink",
+      "app.launch_detail": "/game",
+    }))
+  })
+
+  it("does not record a reload of /prize-draw?game=248 as a deeplink", async () => {
+    pathname = "/prize-draw"
+    search = "?game=248"
+    navigationType = "reload"
+    captureLaunchLocation()
+    await start()
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.launch_source": "unknown",
+      "app.launch_detail": "reload",
+    }))
+  })
+
+  it("records unknown when nothing says what opened the page", async () => {
+    await start()
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.launch_source": "unknown",
+      "app.launch_detail": null,
+    }))
+  })
+})
+
+describe("concurrent page flag on session.link", () => {
+  it.each([
+    ["flags a previous session that was killed and seen half a second ago as a concurrent page", NOW - 500, {}, "true"],
+    ["does not flag a previous session seen long ago", NOW - 20_000, {}, "false"],
+    ["does not flag a quick reload whose previous record ended cleanly", NOW - 300, { cleanExit: true, pagehideSeen: true }, "false"],
+    ["does not flag a quick own-reload", NOW - 300, { ownReload: true, cleanExit: true, pagehideSeen: true }, "false"],
+  ])("%s", async (_name, lastSeenAt, over, expected) => {
+    previous({ lastSeenAt, ...over })
+    await start()
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.concurrent_page": expected,
+    }))
+  })
+
+  it("does not flag a quick host reload whose record ended cleanly", async () => {
+    session.set(SESSION_LINEAGE_KEY, "old-lineage")
+    previous({ lineageId: "old-lineage", lastSeenAt: NOW - 150, hostChannelLost: true, cleanExit: true, pagehideSeen: true })
+    await expect(start()).resolves.toMatchObject({ classification: "host-reload" })
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.concurrent_page": "false",
+    }))
+  })
+
+  it("does not flag a first page with no previous session", async () => {
+    await start()
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.concurrent_page": "false",
+    }))
+  })
 })
 
 describe("synchronous evidence", () => {

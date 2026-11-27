@@ -20,6 +20,7 @@ import { isOpenJourneyRecord, openJourneyRecoveryRecords, setOpenJourneyListener
 import { currentScene, heapMbNow, setSceneListener } from "./smoothness"
 import { pageHidden } from "./util"
 import { readHostTelemetryContext } from "./host-context"
+import { readLaunchSource } from "./launch-source"
 import { chainNowMs } from "../chain-clock"
 import { readPageResourceCounters, type PageResourceCounters } from "./resource-counters"
 import { pageLifecycleRecord, type PageLifecycleEvent } from "./index"
@@ -29,6 +30,11 @@ export const SESSION_LINEAGE_KEY = "jollity.telemetry.session-lineage"
 export const HEARTBEAT_MS = 20_000
 export const HOST_RELOAD_MAX_GAP_MS = 2_000
 export const STALE_AFTER_MS = 30 * 60_000
+/** A previous page that ended without a clean exit and was seen this recently
+ *  means a second copy was opened alongside it (archive#1882): the double-open
+ *  signature. A clean close, own reload or host reload updates lastSeenAt just
+ *  before unload, so a quick reload of one page is not a concurrent page. */
+export const CONCURRENT_PAGE_MAX_GAP_MS = 5_000
 export const MAX_PAYOFF_SAMPLES_PER_PHASE = 15
 
 type PreviousExit =
@@ -450,6 +456,14 @@ export async function startSessionRecord(options: StartOptions): Promise<Previou
     }
     const established = refresh()
     const hostTelemetry = readHostTelemetryContext()
+    // the launch URL is the one captured at module load, before FrontDoor's
+    // redirect; the navigation type decides whether a query is a deep link
+    const launch = readLaunchSource({ now })
+    // only an end that was not clean (a crash or a kill) counts: a clean close,
+    // own reload or host reload updated lastSeenAt just before unload, so a
+    // quick reload of one page is not a second concurrent page
+    const uncleanEnd = diagnostic.classification === "crash-or-kill-foreground" || diagnostic.classification === "killed-background"
+    const concurrentPage = uncleanEnd && diagnostic.gapMs !== undefined && diagnostic.gapMs < CONCURRENT_PAGE_MAX_GAP_MS
     captureReplayObservation("session.link", {
       heartbeatSessionId: current.sessionId,
       logSessionId: SESSION_ID,
@@ -464,6 +478,10 @@ export async function startSessionRecord(options: StartOptions): Promise<Previou
       sameLineage: previous ? previous.lineageId === currentLineage : null,
       previousExitClassification: diagnostic.classification,
       previousLastSeenWallMs: previous?.lastSeenAt ?? null,
+      // string attributes: Sentry span attributes are string-typed (archive#1882)
+      "app.launch_source": launch.source,
+      "app.launch_detail": launch.detail,
+      "app.concurrent_page": concurrentPage ? "true" : "false",
       persisted: established,
     })
     if (established && previous && openJourneys.length > 0) {
