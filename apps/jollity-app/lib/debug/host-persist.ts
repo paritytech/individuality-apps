@@ -152,19 +152,10 @@ export function createHostPersist<E extends ChunkEntry & { sessionId: string }>(
       const started = generation
       return serially(async () => {
         if (generation !== started) return
-        // the scan may take long (up to RING_SLOTS host reads); the budget
-        // bounds how long the release waits for it, and the scan's own commit
-        // guard is checked again when the index write lands, so a late answer
-        // can never rewind or overwrite what the flushes behind it wrote.
-        // The advance itself is ONE index write — no chunk is read fully or
-        // rewritten, so a handover release costs a single host-storage write.
-        await withTimeout(
-          (async () => {
-            if (!(await load())) return null
-            return store.advanceOldest(before, () => generation === started)
-          })(),
-          RELEASE_READ_MS,
-        )
+        // the advance is ONE index write — no chunk is rewritten — and the
+        // scan's commit guard is checked again before that write lands, so a
+        // late answer can never rewind what the flushes behind it wrote
+        await withTimeout(load().then((ok) => ok && store.advanceOldest(before, () => generation === started)), RELEASE_READ_MS)
       }).catch(() => {})
     },
   }

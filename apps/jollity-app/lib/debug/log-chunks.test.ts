@@ -188,8 +188,7 @@ describe("the chunk store", () => {
       await store.load()
       for (let i = 1; i <= 5; i++) await store.append([{ ts: i, size: 100 }])
       writes.length = 0
-      const result = await store.advanceOldest(4)
-      expect(result).toEqual({ advanced: true, complete: true })
+      expect(await store.advanceOldest(4)).toBe(true)
       expect(writes).toHaveLength(1)
       expect(writes[0].key).toBe("jollity.debug-log.index")
       expect((await store.read())?.entries.map((entry) => entry.ts)).toEqual([4, 5])
@@ -205,8 +204,7 @@ describe("the chunk store", () => {
       await store.load()
       await store.append(rows(1, 10, 100))
       writes.length = 0
-      const result = await store.advanceOldest(5)
-      expect(result.advanced).toBe(false)
+      expect(await store.advanceOldest(5)).toBe(false)
       expect(writes).toHaveLength(0)
       expect((await store.read())?.entries).toHaveLength(10)
     })
@@ -217,8 +215,7 @@ describe("the chunk store", () => {
       await store.load()
       await store.append(rows(1, 3, 100))
       await store.append(rows(10, 3, 100))
-      const result = await store.advanceOldest(1000)
-      expect(result).toEqual({ advanced: true, complete: true })
+      expect(await store.advanceOldest(1000)).toBe(true)
       expect((await store.read())?.entries).toEqual([])
     })
 
@@ -230,8 +227,7 @@ describe("the chunk store", () => {
       await store.append(rows(10, 3, 100))
       values.set("jollity.debug-log.chunk.0", "{not json")
       writes.length = 0
-      const result = await store.advanceOldest(10)
-      expect(result).toEqual({ advanced: false, complete: false })
+      expect(await store.advanceOldest(10)).toBe(false)
       expect(writes).toHaveLength(0)
     })
 
@@ -241,8 +237,7 @@ describe("the chunk store", () => {
       await store.load()
       for (let i = 0; i < RING_SLOTS + 10; i++) await store.append([{ ts: i, size: 100 }])
       const oldest = (await store.read())!.entries[0].ts
-      const result = await store.advanceOldest(0)
-      expect(result.advanced).toBe(false)
+      expect(await store.advanceOldest(0)).toBe(false)
       expect((await store.read())!.entries[0].ts).toBe(oldest)
     })
 
@@ -264,8 +259,7 @@ describe("the chunk store", () => {
       await store.load()
       await store.append(rows(1, 3, 100))
       await store.clear()
-      const result = await store.advanceOldest(2)
-      expect(result.advanced).toBe(false)
+      expect(await store.advanceOldest(2)).toBe(false)
       expect((await store.read())?.entries).toEqual([])
     })
 
@@ -275,8 +269,7 @@ describe("the chunk store", () => {
       await store.load()
       await store.append(rows(1, 3, 100))
       writes.length = 0
-      const result = await store.advanceOldest(10, () => false)
-      expect(result.advanced).toBe(false)
+      expect(await store.advanceOldest(10, () => false)).toBe(false)
       expect(writes).toHaveLength(0)
       expect((await store.read())?.entries).toHaveLength(3)
     })
