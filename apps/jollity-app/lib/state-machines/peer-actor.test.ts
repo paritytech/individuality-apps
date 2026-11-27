@@ -71,8 +71,9 @@ describe("what a command carries for Mesh's log lines and heal records (design B
       stepPeerActor(state, event({ type: "stats-observed", readSequence, framesDecoded: 815 + readSequence, browserConnectionState: "connected", peerCannotSeeUs: true, now: 1_000 * readSequence }))
     const first = unseen(flowing(), 1)
     expect(first.commands).toEqual([expect.objectContaining({ kind: "restart-ice", cause: "peer-no-video", heal: 1 })])
-    expect(unseen(first.state, 2).commands).toEqual([])
-    expect(unseen(first.state, 2).state.budgets.unseenHeals).toBe(1)
+    const second = unseen(first.state, 2)
+    expect(second.commands).toEqual([])
+    expect(second.state.budgets.unseenHeals).toBe(1)
   })
 })
 

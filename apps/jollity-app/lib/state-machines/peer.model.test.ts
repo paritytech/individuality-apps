@@ -136,21 +136,27 @@ describe("WebRTC peer actor definition and independent model", () => {
       expect(stats(1181).map((command) => command.split("@")[0])).toEqual(["restart-ice:media-stall"])
     })
 
-    it("rebuilds on the second stall, one ICE restart per stall only (#1523 F5)", () => {
-      let state = createModelPeerState({ link: "connected", laneOpen: true, initiator: true, framesSeen: 100 })
+    const stallStats = (initial: Parameters<typeof createModelPeerState>[0], stallAfter: number) => {
+      let state = createModelPeerState(initial)
       let sequence = 0
       const stats = (framesDecoded: number) => {
         const step = stepModelPeer(state, {
           type: "stats-observed", roomEpoch: 1, connectionEpoch: 1, readSequence: ++sequence, framesDecoded,
-          browserConnectionState: "connected", stallAfter: 1, recoveryDue: true,
+          browserConnectionState: "connected", stallAfter, recoveryDue: true,
         })
         state = step.state
         return step.commands
       }
-      expect(stats(100).map((command) => command.split("@")[0])).toEqual(["restart-ice:media-stall"])
-      expect(state.budgets.stallHeals).toBe(1)
-      expect(stats(100).map((command) => command.split("@")[0])).toEqual(["replace-connection:media-stall:offer"])
-      expect(state.budgets.stallHeals).toBe(0)
+      return { stats, state: () => state }
+    }
+
+    it("rebuilds on the second stall, one ICE restart per stall only (#1523 F5)", () => {
+      const { stats, state } = stallStats({ link: "connected", laneOpen: true, initiator: true, framesSeen: 100 }, 1)
+      const kinds = (commands: string[]) => commands.map((command) => command.split("@")[0])
+      expect(kinds(stats(100))).toEqual(["restart-ice:media-stall"])
+      expect(state().budgets.stallHeals).toBe(1)
+      expect(kinds(stats(100))).toEqual(["replace-connection:media-stall:offer"])
+      expect(state().budgets.stallHeals).toBe(0)
     })
   })
 

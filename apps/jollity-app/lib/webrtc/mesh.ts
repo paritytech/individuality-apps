@@ -553,10 +553,9 @@ const CONNECTED_WITHOUT_VIDEO_MS = SEAT_TIMES.reconnectBudgetMs - MEDIA_WATCH_MS
 // the open data channels, and on the hello (useMesh → transport.setView). A
 // peer's view saying it decodes none of our video, on a link we send video on,
 // is the one-way failure our own inbound frames cannot show. Ordinarily the
-// initiator restarts ICE for it, at most UNSEEN_HEALS times while this peer
-// remains present (#1523 F5: one — a second restart while the first's lane
-// offer is still unanswered sends no offer); prior hard SDP refusal also
-// authorizes one separately budgeted round-scoped escalation rebuild.
+// initiator restarts ICE for it once while this peer remains present (the
+// actor's UNSEEN_ICE_RESTARTS); prior hard SDP refusal also authorizes one
+// separately budgeted round-scoped escalation rebuild.
 // A peer's word is weaker evidence than our own frames: iPhones have been seen
 // saying it of links whose video flowed, and a rebuild each time, its budget
 // starting over on every new link, cost every pair ~3 s each 40 s.
@@ -568,9 +567,6 @@ const VIEW_FRESH_MS = 12000
 const VIEW_CONFIRM_MS = 8000
 /** a link this young may not show video yet: its peer's view is not acted on */
 const VIEW_LINK_GRACE_MS = 12000
-/** ICE-restart budget for one continuously present peer (#1523 F5: one). */
-const UNSEEN_HEALS = 1
-
 /** One peer's latest view of the room. */
 interface PeerView {
   row: string
@@ -3421,13 +3417,12 @@ export class Mesh {
     rtcLog(`[jollity-rtc] ${what} → ICE restart (heal ${heal})`, peerId)
   }
 
-  /** restart-ice, cause peer-no-video, before restartIce; `spent` is the
-   *  actor's count of the peer's unseen heals, this one included. */
-  private beginUnseenRestart(peerId: string, conn: Conn, now: number, spent: number) {
+  /** restart-ice, cause peer-no-video, before restartIce. The actor caps this
+   *  at UNSEEN_ICE_RESTARTS per present peer, so this is the last one. */
+  private beginUnseenRestart(peerId: string, conn: Conn, now: number) {
     conn.lastMediaHealAt = now
     conn.framesStalls = 0
-    if (spent === UNSEEN_HEALS) rtcLog(`[jollity-rtc] unseen: signalingState=${conn.pc.signalingState} the peer says it decodes none of our video → ICE restart, the last until this peer leaves`, peerId)
-    else rtcLog(`[jollity-rtc] unseen: signalingState=${conn.pc.signalingState} the peer says it decodes none of our video → ICE restart (heal ${spent})`, peerId)
+    rtcLog(`[jollity-rtc] unseen: signalingState=${conn.pc.signalingState} the peer says it decodes none of our video → ICE restart, the last until this peer leaves`, peerId)
   }
 
   /** networkChanged, on each link: the answerer may offer (the actor timed the attempt). */
@@ -3693,7 +3688,7 @@ export class Mesh {
         break
       case "peer-no-video":
         trigger = "peer_no_video"
-        this.beginUnseenRestart(peerId, conn, now, command.heal ?? 0)
+        this.beginUnseenRestart(peerId, conn, now)
         break
       case "network-change":
         trigger = "network_change"

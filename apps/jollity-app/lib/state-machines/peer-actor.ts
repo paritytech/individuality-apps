@@ -198,6 +198,15 @@ interface EventEpochs {
  *  the frozen path stops (no ask, no rebuild) and the seat's own rules apply */
 export const FROZEN_REBUILDS_PER_ROUND = 2
 
+/** #1523 F5: one ICE restart per stall, then the rebuild — a second restart
+ *  while the first's lane offer is still unanswered sends no offer, so the
+ *  rebuild would come one attempt late. */
+export const STALL_ICE_RESTARTS = 1
+
+/** #1523 F5: one ICE restart per continuously present peer, then nothing until
+ *  it leaves (no rebuild rung without hard-SDP authorisation). */
+export const UNSEEN_ICE_RESTARTS = 1
+
 /** Back after this long in the background, every link is swept at once
  *  instead of waiting out backoffs counted while the phone could not answer. */
 export const KICK_AFTER_HIDDEN_MS = 8000
@@ -985,11 +994,8 @@ export function stepPeerActor(previous: PeerActorState, event: PeerActorEvent): 
         state.framesReadSequence = event.readSequence
         state.stallSamples = 0
         state.budgets.stallHeals += 1
-        // the rebuild goes through recover. #1523 F5: one ICE restart per
-        // stall, then the rebuild — a second restart while the first's lane
-        // offer is still unanswered sends no offer (as in Q2), so the rebuild
-        // would come one attempt late.
-        if (state.budgets.stallHeals <= 1) {
+        // the rebuild goes through recover
+        if (state.budgets.stallHeals <= STALL_ICE_RESTARTS) {
           emit({ kind: "restart-ice", cause: "media-stall", heal: state.budgets.stallHeals })
         } else recover("media-stall", false, state.budgets.stallHeals)
         break
@@ -1003,9 +1009,7 @@ export function stepPeerActor(previous: PeerActorState, event: PeerActorEvent): 
         if (state.budgets.negotiationImmediate > 0 && state.budgets.negotiationUnseen === 0) {
           state.budgets.negotiationUnseen = 1
           replace("peer-no-video-hard-sdp", true)
-        } else if (state.budgets.unseenHeals < 1) {
-          // #1523 F5: one ICE restart per present peer, then nothing until it
-          // leaves (no rebuild rung without hard-SDP authorisation)
+        } else if (state.budgets.unseenHeals < UNSEEN_ICE_RESTARTS) {
           state.budgets.unseenHeals += 1
           // the unseen heal restarts the stall count with its ICE restart
           state.stallSamples = 0
