@@ -1032,10 +1032,15 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
             const settle = async (failure: { error: string; landingUnknown?: true; thrown?: unknown }) => {
               const permanent = failure.thrown ? null : classifyPermanent(failure.error)
               if (permanent === "registered") return landed({ "signup.landed_by": "reread" })
+              // past the broadcast the outcome is unknown until a chain read
+              // answers: a failed read is "still confirming", never a failure
+              // that takes the optimistic "you're in" down (#1355)
+              let reRead: boolean | RetryReason = false
               if (!permanent && (wired || failure.landingUnknown)) {
                 if (wired) await Promise.race([new Promise((r) => setTimeout(r, LANDING_WAIT_MS)), run.stop()])
                 if (over) return
-                if ((await registeredOnChain(player)) === true) return landed({ "signup.landed_by": "reread" })
+                reRead = await registeredOnChain(player)
+                if (reRead === true) return landed({ "signup.landed_by": "reread" })
               }
               // the window shut, but an earlier sign-up of this player may
               // have landed meanwhile: that is no missed window (#582). Asked
@@ -1044,6 +1049,13 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
               // ended while this waited (the page's return found it landed):
               // nothing of the attempt is this settle's any more
               if (over) return
+              // a re-read that failed says nothing: the broadcast may have
+              // landed all the same, so the flag stays up until a chain read
+              // that answers says the player is not in
+              if (wired && typeof reRead === "string") {
+                log("signup", `${route} sign-up still confirming: the landing re-read failed (${reRead})`, { detail: failure.error }, "warn")
+                return resolve(retryAfter(classifyRetry(failure.error), undefined, { stage: stage(), error: failure.error, route }))
+              }
               setOptimisticRegistered(false)
               const refused = signupFailureReason(failure.error, stage()) === "signing-refused"
               if (refused) {

@@ -92,7 +92,7 @@ function fakeTelemetry() {
       markSad() {},
       end: (outcome) => void ends.push([name, outcome]),
     }),
-    failure: (kind, details) => void failures.push(`${kind}:${details.reason}`),
+    failure: (kind, details) => void failures.push(`${kind}:${details.reason}${details.context?.retrying ? ":retrying" : ""}`),
     count() {},
     distribution() {},
   }
@@ -305,6 +305,79 @@ describe("a sign-up goes", () => {
     expect(ends).toContainEqual(["game-signup", "landed"])
     expect(flow.optimistic().registered).toBe(true)
   })
+
+  it("keeps the optimistic registered when the landing re-read fails, and settles on a later read (#1355)", async () => {
+    // Given: the broadcast goes out, the landing watch fails, and the chain
+    // re-read that would say whether it landed fails too (g285's dropped
+    // host connection); a later read finds the player registered
+    let reads = 0
+    const chain = fakeChain({
+      register: vi.fn(async (_capabilities: GameRegistrationCapabilities, _id: Uint8Array, options?: RegisterOptions): Promise<DispatchResult> => {
+        options?.onBroadcast?.()
+        return { ok: false, error: "Tracking stopped", landingUnknown: true }
+      }),
+      player: vi.fn(async (): Promise<{ registered: boolean }> => {
+        reads += 1
+        if (reads === 2) throw new Error("the host's chain connection dropped")
+        return { registered: reads > 2 }
+      }),
+    })
+    const { flow, ends } = flowOver(chain)
+    const optimisticSeen: boolean[] = []
+    flow.onChange(() => optimisticSeen.push(flow.optimistic().registered))
+
+    // When
+    await flow.register!()
+    await vi.advanceTimersByTimeAsync(30_000)
+
+    // Then: "you're in" was up from the broadcast and never went down, and
+    // the later read settles it
+    expect(optimisticSeen).toContain(true)
+    const afterWire = optimisticSeen.slice(optimisticSeen.indexOf(true))
+    expect(afterWire.length).toBeGreaterThan(0)
+    expect(afterWire).not.toContain(false)
+    expect(flow.optimistic().registered).toBe(true)
+    expect(ends).toContainEqual(["game-signup", "landed"])
+    expect(chain.register).toHaveBeenCalledTimes(1)
+  })
+
+  it("never files a second sign-up, and never a non-retrying failure, while the landing re-read keeps failing (#1355)", async () => {
+    // Given: broadcast, landing failure, and every chain read failing — the
+    // loop retries on its backoff, and each attempt re-reads the player row
+    // before any register call
+    const chain = fakeChain({
+      register: vi.fn(async (_capabilities: GameRegistrationCapabilities, _id: Uint8Array, options?: RegisterOptions): Promise<DispatchResult> => {
+        options?.onBroadcast?.()
+        return { ok: false, error: "Tracking stopped", landingUnknown: true }
+      }),
+      game: vi.fn(async () => ({ index: 7, state: { type: "Registration" as const }, registration_ends: WINDOW.registrationEnds + 10_000 })),
+    })
+    // the player row answers "not registered" (a definitive read), so the
+    // attempt reaches the wire; only the post-broadcast landing re-read fails
+    let reads = 0
+    chain.player = vi.fn(async (): Promise<{ registered: boolean }> => {
+      reads += 1
+      if (reads > 1) throw new Error("the host's chain connection dropped")
+      return { registered: false }
+    })
+    const { flow, failures } = flowOver(chain, { nowSeconds: () => NOW })
+
+    // When: the whole retry ladder runs with reads still failing
+    const tap = flow.register!().catch(() => {})
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.advanceTimersByTimeAsync(5 * 60_000)
+    await Promise.race([tap, vi.advanceTimersByTimeAsync(0).then(() => "pending")])
+
+    // Then: one sign-up only, every failure on it tagged as one that goes
+    // again (the fake telemetry's failure string carries retrying: "true"), the
+    // flag still up
+    expect(chain.register).toHaveBeenCalledTimes(1)
+    const failed = failures.filter((failure) => failure.startsWith("signup-failed"))
+    expect(failed.length).toBeGreaterThan(0)
+    expect(failed.every((failure) => failure.includes("retrying"))).toBe(true)
+    expect(flow.optimistic().registered).toBe(true)
+    flow.cancelRegister()
+  }, 30_000)
 })
 
 describe("the prize draw's log", () => {

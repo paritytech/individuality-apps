@@ -16,6 +16,7 @@ import {
   createSignup,
   LANDING_WAIT_MS,
   reportInterruptedSignup,
+  SIGNUP_STEP_DEADLINE_MS,
   signingRefused,
   submitSignUp,
   type Signup,
@@ -1133,14 +1134,43 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
     expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "failed", "signup.stage": "register" })
   })
 
-  it("still files failed when the re-read itself fails", async () => {
+  it("leaves it to the poll, never failed, when the re-read itself fails after the broadcast (#37)", async () => {
     const { signup } = await run(async (options) => {
       options.onBroadcast!()
       return { ok: false, error: "Tracking stopped" }
     }, null)
     await flush()
-    expect(signup.state()).toMatchObject({ kind: "failed" })
+    expect(signup.state()).toEqual({ kind: "idle", unsettled: 7 })
+    expect(sent.filter((record) => record.tags["failure.kind"] === "signup-failed")).toEqual([])
   })
+
+  it.each([
+    ["a watch result", async (options: RegisterOptions): Promise<RegisterResult> => (options.onBroadcast!(), { ok: false, error: "Tracking stopped", landingUnknown: true })],
+    ["a rejection", async (options: RegisterOptions): Promise<RegisterResult> => (options.onBroadcast!(), Promise.reject(new Error("the host's chain connection dropped")))],
+  ])("leaves a broadcast whose re-read also fails to the poll, never failed, when the failure is %s (#37)", async (_name, register) => {
+    // Given: the broadcast went out, the landing failed, and the chain read that
+    // would say whether it landed fails too — the outcome is unknown, not failed
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })
+    try {
+      const engine = fakeEngine(facts(["AlreadyPlaying"]), register)
+      engine.seat.mockResolvedValueOnce(seatOf(facts(["AlreadyPlaying"])))
+      engine.seat.mockRejectedValue(new Error("read failed"))
+      const { signup } = signupWith(engine)
+
+      // When
+      const signingUp = signup.register(7)
+      await vi.advanceTimersByTimeAsync(LANDING_WAIT_MS + SIGNUP_STEP_DEADLINE_MS + 60_000)
+      await Promise.race([signingUp, vi.advanceTimersByTimeAsync(0).then(() => "still pending")])
+      await flush()
+
+      // Then: no failed card, no signup-failed event; the sent record stands for the poll
+      expect(signup.state()).toEqual({ kind: "idle", unsettled: 7 })
+      expect(sent.filter((record) => record.tags["failure.kind"] === "signup-failed")).toEqual([])
+      expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "unknown", "signup.stage": "reread-failed" })
+    } finally {
+      vi.useRealTimers()
+    }
+  }, 30_000)
 
   it("does not read again for a failure before the broadcast", async () => {
     const { engine } = await run(async () => ({ ok: false, error: "Tracking stopped" }), facts(["AlreadyPlaying", "AlreadyRegistered"]))
