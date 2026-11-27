@@ -15,7 +15,7 @@ import {
 } from "./peer.definition"
 
 const REGIONS = [...peerConnectionInitialStates, "closed"]
-const SCENARIOS = 200
+const SCENARIOS = 202
 const declaredCells = (table: Record<string, Record<string, string>>) =>
   Object.entries(table).flatMap(([state, row]) => Object.entries(row).filter(([, declaration]) => declaration !== "impossible").map(([event, declaration]) => `${state}::${event}::${declaration}`))
 
@@ -93,6 +93,10 @@ describe("WebRTC peer actor definition and independent model", () => {
       "#1607 a connected link our unanswered offer holds is rebuilt again for no video in the same round",
       "#1951 a never-connected link holding one host candidate is rebuilt 5 s after its descriptions, not at the ICE timeout",
       "#1951 the early rebuild spent, the next stall in the round waits for ICE",
+      "#1523 a second stall arriving while our offer is still unanswered rebuilds, not a second ICE restart",
+      "#1523 an unseen report with the one unseen heal of the episode spent issues nothing",
+      "#1523 the unseen budget refills once the peer sees our video again, so a later episode gets its one restart",
+      "#1523 a first stall while our lane offer is unanswered rebuilds at once: an ICE restart would send no offer",
     ])
   })
 
@@ -134,6 +138,29 @@ describe("WebRTC peer actor definition and independent model", () => {
       const { stats, samples } = run("answer")
       expect(samples()).toBe(5)
       expect(stats(1181).map((command) => command.split("@")[0])).toEqual(["restart-ice:media-stall"])
+    })
+
+    const stallStats = (initial: Parameters<typeof createModelPeerState>[0], stallAfter: number) => {
+      let state = createModelPeerState(initial)
+      let sequence = 0
+      const stats = (framesDecoded: number) => {
+        const step = stepModelPeer(state, {
+          type: "stats-observed", roomEpoch: 1, connectionEpoch: 1, readSequence: ++sequence, framesDecoded,
+          browserConnectionState: "connected", stallAfter, recoveryDue: true,
+        })
+        state = step.state
+        return step.commands
+      }
+      return { stats, state: () => state }
+    }
+
+    it("rebuilds on the second stall, one ICE restart per stall only (#1523 F5)", () => {
+      const { stats, state } = stallStats({ link: "connected", laneOpen: true, initiator: true, framesSeen: 100 }, 1)
+      const kinds = (commands: string[]) => commands.map((command) => command.split("@")[0])
+      expect(kinds(stats(100))).toEqual(["restart-ice:media-stall"])
+      expect(state().budgets.stallHeals).toBe(1)
+      expect(kinds(stats(100))).toEqual(["replace-connection:media-stall:offer"])
+      expect(state().budgets.stallHeals).toBe(0)
     })
   })
 
@@ -184,6 +211,41 @@ describe("WebRTC peer actor definition and independent model", () => {
       expect(result.commands.map((command) => command.split("@")[0])).toEqual(["restart-ice:peer-no-video"])
     })
 
+    it("issues one unseen ICE restart per episode, then nothing until the peer leaves (#1523 F5)", () => {
+      const first = sweep(createModelPeerState({ link: "connected", laneOpen: true, initiator: true }), 34, 1)
+      expect(first.commands.map((command) => command.split("@")[0])).toEqual(["restart-ice:peer-no-video"])
+      expect(first.state.budgets.unseenHeals).toBe(1)
+      const second = sweep(first.state, 40, 2)
+      expect(second.commands).toEqual([])
+      expect(second.state.budgets.unseenHeals).toBe(1)
+    })
+
+    it("refills the unseen budget once the peer sees our video again, so a later episode restarts again (#1523)", () => {
+      const sees = (state: ReturnType<typeof createModelPeerState>, framesDecoded: number, readSequence: number, peerSeesUs: boolean) => stepModelPeer(state, {
+        type: "stats-observed", roomEpoch: 1, connectionEpoch: 1, readSequence, framesDecoded,
+        browserConnectionState: "connected", stallAfter: 2, recoveryDue: true, peerCannotSeeUs: !peerSeesUs, peerSeesUs,
+      })
+      const first = sees(createModelPeerState({ link: "connected", laneOpen: true, initiator: true }), 34, 1, false)
+      expect(first.commands.map((command) => command.split("@")[0])).toEqual(["restart-ice:peer-no-video"])
+      expect(first.state.budgets.unseenHeals).toBe(1)
+      const seen = sees(first.state, 40, 2, true)
+      expect(seen.commands).toEqual([])
+      expect(seen.state.budgets.unseenHeals).toBe(0)
+      const later = sees(seen.state, 46, 3, false)
+      expect(later.commands.map((command) => command.split("@")[0])).toEqual(["restart-ice:peer-no-video"])
+      expect(later.state.budgets.unseenHeals).toBe(1)
+    })
+
+    it("gives two unseen reports in one episode only one restart (#1523)", () => {
+      const first = sweep(createModelPeerState({ link: "connected", laneOpen: true, initiator: true }), 34, 1)
+      expect(first.commands.map((command) => command.split("@")[0])).toEqual(["restart-ice:peer-no-video"])
+      const second = sweep(first.state, 40, 2)
+      const third = sweep(second.state, 46, 3)
+      expect(second.commands).toEqual([])
+      expect(third.commands).toEqual([])
+      expect(third.state.budgets.unseenHeals).toBe(1)
+    })
+
     it("does not count a stall off a missing stat once recovery is due", () => {
       let state = createModelPeerState({ link: "connected", laneOpen: true, initiator: true })
       const stats = (framesDecoded: number, recoveryDue: boolean, readSequence: number) => {
@@ -219,6 +281,9 @@ describe("WebRTC peer actor definition and independent model", () => {
       "reject lower positive replacement counter",
       "exclude timeout-away from supervision",
       "reset peer unseen budget at round change",
+      "never refill the unseen budget when the peer sees us again",
+      "restart ICE for an unseen peer while our offer is unanswered",
+      "restart ICE for a stall while our offer is unanswered",
       "keep away failure budget across session change",
       "rebuild for a new signalling session in the side's own role",
       "drop the leave a new signalling session over our offer grants",

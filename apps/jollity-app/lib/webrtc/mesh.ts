@@ -83,7 +83,7 @@ import { takeReturnCandidateProbe } from "../resume-reload"
 import { readRtcpClockEvidence, type RtcpClockEvidence } from "./rtcp-clock"
 import { registerPagePeerConnection } from "../telemetry/resource-counters"
 import { observeLegacyDecision } from "./legacy-decision-capture"
-import { createPeerActorState, KICK_AFTER_HIDDEN_MS, type PeerActorCommand, type PeerActorEvent, type PeerCommandSite } from "../state-machines/peer-actor"
+import { createPeerActorState, KICK_AFTER_HIDDEN_MS, UNSEEN_ICE_RESTARTS, type PeerActorCommand, type PeerActorEvent, type PeerCommandSite } from "../state-machines/peer-actor"
 import { PeerActorSummary } from "../state-machines/peer-actor-summary"
 import { PeerRoomRunner, type PeerCommandEffect, type PeerCommandResult } from "../state-machines/peer-runner"
 import { iceServerCounts } from "./turn-diagnostics"
@@ -553,9 +553,10 @@ const CONNECTED_WITHOUT_VIDEO_MS = SEAT_TIMES.reconnectBudgetMs - MEDIA_WATCH_MS
 // the open data channels, and on the hello (useMesh → transport.setView). A
 // peer's view saying it decodes none of our video, on a link we send video on,
 // is the one-way failure our own inbound frames cannot show. Ordinarily the
-// initiator restarts ICE for it, at most UNSEEN_HEALS times while this peer
-// remains present; prior hard SDP refusal also authorizes one separately
-// budgeted round-scoped escalation rebuild.
+// initiator restarts ICE for it once per unseen episode — the budget refills
+// when the peer's view says it sees our video again (the actor's
+// UNSEEN_ICE_RESTARTS); prior hard SDP refusal also authorizes one
+// separately budgeted round-scoped escalation rebuild.
 // A peer's word is weaker evidence than our own frames: iPhones have been seen
 // saying it of links whose video flowed, and a rebuild each time, its budget
 // starting over on every new link, cost every pair ~3 s each 40 s.
@@ -563,13 +564,11 @@ const CONNECTED_WITHOUT_VIDEO_MS = SEAT_TIMES.reconnectBudgetMs - MEDIA_WATCH_MS
 const VIEW_VIDEO_FRESH_MS = 10000
 /** a peer's view older than this says nothing any more */
 const VIEW_FRESH_MS = 12000
-/** a peer must say it does not see us for this long before we act on it */
+/** a peer must say it does not see us for this long before we act on it, and
+ *  that it sees us again for this long before its unseen budget refills */
 const VIEW_CONFIRM_MS = 8000
 /** a link this young may not show video yet: its peer's view is not acted on */
 const VIEW_LINK_GRACE_MS = 12000
-/** ICE-restart budget for one continuously present peer. */
-const UNSEEN_HEALS = 2
-
 /** One peer's latest view of the room. */
 interface PeerView {
   row: string
@@ -577,6 +576,8 @@ interface PeerView {
   at: number
   /** since when its view says it does not decode our video; NEVER = it does */
   unseenSince: number
+  /** since when its view says it decodes our video; NEVER = it does not */
+  seenSince: number
 }
 
 /** Resolve once ICE gathering is `complete`, or after GATHER_TIMEOUT_MS —
@@ -2703,6 +2704,17 @@ export class Mesh {
         now - conn.channelOpenAt >= CONNECTED_WITHOUT_VIDEO_MS &&
         !remoteCameraOff
       const unseen = isInitiator(this.myId, peerId) && localVideoLive && this.peerCannotSeeUs(peerId, conn, now)
+      // #1523 per-episode unseen budget: the peer's fresh view has said for
+      // VIEW_CONFIRM_MS that it decodes our video again, which refills the
+      // actor's unseen heal. A stale view (received over VIEW_FRESH_MS ago)
+      // does not, nor does one "sees us" row between "cannot see" rows (a
+      // flapping iPhone would otherwise get a restart every episode).
+      const peerView = this.views.get(peerId)
+      const peerSeesUs =
+        peerView !== undefined &&
+        now - peerView.at <= VIEW_FRESH_MS &&
+        Number.isFinite(peerView.seenSince) &&
+        now - peerView.seenSince >= VIEW_CONFIRM_MS
       const sweeps = isInitiator(this.myId, peerId) ? FRAMES_STALL_SWEEPS : ANSWERER_STALL_SWEEPS
       // the media heals' window: no keyframe on its way, and the last heal backed off
       const healDue = now >= conn.healHoldUntil && now - conn.lastMediaHealAt >= MEDIA_HEAL_BACKOFF_MS
@@ -2720,6 +2732,7 @@ export class Mesh {
         stallAfter: sweeps,
         recoveryDue,
         peerCannotSeeUs: unseen && recoveryDue,
+        peerSeesUs,
         // our camera as this sweep reads it: it may have come up after the actor started
         cameraLive: localVideoLive,
         haveLocalOffer: conn.pc.signalingState === "have-local-offer",
@@ -2781,7 +2794,13 @@ export class Mesh {
     const previous = this.views.get(peerId)
     if (previous?.row !== row) rtcLog("[jollity-rtc] view from", peerId + ":", row)
     const seesUs = codes.get(this.myId) === VIEW.video
-    this.views.set(peerId, { row, codes, at: now, unseenSince: seesUs ? NEVER : previous && Number.isFinite(previous.unseenSince) ? previous.unseenSince : now })
+    this.views.set(peerId, {
+      row,
+      codes,
+      at: now,
+      unseenSince: seesUs ? NEVER : previous && Number.isFinite(previous.unseenSince) ? previous.unseenSince : now,
+      seenSince: !seesUs ? NEVER : previous && Number.isFinite(previous.seenSince) ? previous.seenSince : now,
+    })
     if (seesUs) this.heal.peerSees(peerId, now)
   }
 
@@ -3420,13 +3439,15 @@ export class Mesh {
     rtcLog(`[jollity-rtc] ${what} → ICE restart (heal ${heal})`, peerId)
   }
 
-  /** restart-ice, cause peer-no-video, before restartIce; `spent` is the
-   *  actor's count of the peer's unseen heals, this one included. */
-  private beginUnseenRestart(peerId: string, conn: Conn, now: number, spent: number) {
+  /** restart-ice, cause peer-no-video, before restartIce. The actor caps this
+   *  at UNSEEN_ICE_RESTARTS per unseen episode (the budget refills once the
+   *  peer sees our video again); `heal` is the actor's count of unseen heals,
+   *  this one included, so the last one of the episode says so. */
+  private beginUnseenRestart(peerId: string, conn: Conn, now: number, heal: number) {
     conn.lastMediaHealAt = now
     conn.framesStalls = 0
-    if (spent === UNSEEN_HEALS) rtcLog(`[jollity-rtc] unseen: signalingState=${conn.pc.signalingState} the peer says it decodes none of our video → ICE restart, the last until this peer leaves`, peerId)
-    else rtcLog(`[jollity-rtc] unseen: signalingState=${conn.pc.signalingState} the peer says it decodes none of our video → ICE restart (heal ${spent})`, peerId)
+    const last = heal >= UNSEEN_ICE_RESTARTS ? ", the last until the peer sees us again" : ` (heal ${heal})`
+    rtcLog(`[jollity-rtc] unseen: signalingState=${conn.pc.signalingState} the peer says it decodes none of our video → ICE restart${last}`, peerId)
   }
 
   /** networkChanged, on each link: the answerer may offer (the actor timed the attempt). */

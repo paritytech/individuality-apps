@@ -198,6 +198,17 @@ interface EventEpochs {
  *  the frozen path stops (no ask, no rebuild) and the seat's own rules apply */
 export const FROZEN_REBUILDS_PER_ROUND = 2
 
+/** #1523 F5: one ICE restart per stall, then the rebuild — a second restart
+ *  while the first's lane offer is still unanswered sends no offer, so the
+ *  rebuild would come one attempt late. */
+export const STALL_ICE_RESTARTS = 1
+
+/** #1523 F5: one ICE restart per unseen episode — no back-to-back restart
+ *  while the first's lane offer is still unanswered, and the budget refills
+ *  once the peer reports it sees our video again (no rebuild rung without
+ *  hard-SDP authorisation). */
+export const UNSEEN_ICE_RESTARTS = 1
+
 /** Back after this long in the background, every link is swept at once
  *  instead of waiting out backoffs counted while the phone could not answer. */
 export const KICK_AFTER_HIDDEN_MS = 8000
@@ -448,7 +459,10 @@ export type PeerActorEvent =
    *  when Mesh stamps it: the unseen heal waits for it, and it can come up
    *  after the actor started. */
   /** haveLocalOffer: the connection holds our offer (signalingState
-   *  have-local-offer) at the read. */
+   *  have-local-offer) at the read: neither the unseen heal nor the
+   *  media-stall heal restarts ICE then (#1523).
+   *  peerSeesUs: the peer's fresh view has said, for Mesh's confirm window,
+   *  that it decodes our video: the unseen budget refills (#1523). */
   /** packetsMoving (#1917): inbound video packets rose since the sweep
    *  before, read from the same getStats as the frames (absent: not moving).
    *  healDue: the media heals' window is open (no keyframe on its way, the
@@ -456,7 +470,7 @@ export type PeerActorEvent =
    *  camera; Mesh closes it for a peer whose own view says its camera is off.
    *  frozenAskAfter: the frozen sweeps before the keyframe ask, on either side
    *  (absent: stallAfter); the rebuild still waits for stallAfter in all. */
-  | ({ type: "stats-observed"; readSequence: number; framesDecoded: number; browserConnectionState: RTCPeerConnectionState; peerCannotSeeUs?: boolean; noVideoDeadline?: boolean; stallAfter?: number; recoveryDue?: boolean; cameraLive?: boolean; haveLocalOffer?: boolean; packetsMoving?: boolean; healDue?: boolean; frozenAskAfter?: number } & EventEpochs)
+  | ({ type: "stats-observed"; readSequence: number; framesDecoded: number; browserConnectionState: RTCPeerConnectionState; peerCannotSeeUs?: boolean; peerSeesUs?: boolean; noVideoDeadline?: boolean; stallAfter?: number; recoveryDue?: boolean; cameraLive?: boolean; haveLocalOffer?: boolean; packetsMoving?: boolean; healDue?: boolean; frozenAskAfter?: number } & EventEpochs)
   /** keyframe false: the page was never marked away, so Mesh asks for no
    *  keyframe and only sweeps after a long absence (setSelfAway's kick). */
   | ({ type: "visibility-changed"; hidden: boolean; hiddenForMs?: number; keyframe?: false } & EventEpochs)
@@ -509,8 +523,11 @@ export type PeerActorEvent =
   | ({ type: "connection-replaced-externally" } & EventEpochs)
 
 export type PeerActorCommand = (
-  /** heal: the media heal's count after this one (the stall's stallHeals,
-   *  the unseen heal's unseenHeals), which Mesh's "(heal n)" line prints */
+  /** heal: the heal's count after this one (the stall's stallHeals, the
+   *  unseen heal's unseenHeals). Mesh prints it as "(heal n)" on the
+   *  media-stall line and the unseen line, except the unseen line says
+   *  "the last until the peer sees us again" when the count reaches
+   *  UNSEEN_ICE_RESTARTS. */
   | { kind: "restart-ice"; cause: string; heal?: number }
   | { kind: "yield-responder" }
   /** answererMayOffer: the leave to offer this replace grants the answerer of
@@ -925,6 +942,11 @@ export function stepPeerActor(previous: PeerActorState, event: PeerActorEvent): 
         return { state, commands: [], ignored: "held" }
       }
       if (event.readSequence < state.framesReadSequence) return { state: previous, commands: [], ignored: "stale-command" }
+      // #1523 per-episode unseen budget: the peer's view has said for the
+      // confirm window that it decodes our video again, so the episode the unseen heal answered is over and a
+      // later one gets its own restart. Held sweeps (hidden, away, standby,
+      // not connected) do not refill: they return above.
+      if (event.peerSeesUs) state.budgets.unseenHeals = 0
       if (event.noVideoDeadline && event.framesDecoded <= 0) {
         // A rebuild already spent this round is skipped, and the sweep carries
         // on to the heals below. #1607: a link that still holds our unanswered
@@ -985,8 +1007,9 @@ export function stepPeerActor(previous: PeerActorState, event: PeerActorEvent): 
         state.framesReadSequence = event.readSequence
         state.stallSamples = 0
         state.budgets.stallHeals += 1
-        // the rebuild goes through recover
-        if (state.budgets.stallHeals <= 2) {
+        // the rebuild goes through recover; #1523: an ICE restart while our
+        // lane offer is unanswered sends no offer, so that stall rebuilds at once
+        if (state.budgets.stallHeals <= STALL_ICE_RESTARTS && event.haveLocalOffer !== true) {
           emit({ kind: "restart-ice", cause: "media-stall", heal: state.budgets.stallHeals })
         } else recover("media-stall", false, state.budgets.stallHeals)
         break
@@ -1000,7 +1023,8 @@ export function stepPeerActor(previous: PeerActorState, event: PeerActorEvent): 
         if (state.budgets.negotiationImmediate > 0 && state.budgets.negotiationUnseen === 0) {
           state.budgets.negotiationUnseen = 1
           replace("peer-no-video-hard-sdp", true)
-        } else if (state.budgets.unseenHeals < 2) {
+        } else if (state.budgets.unseenHeals < UNSEEN_ICE_RESTARTS && event.haveLocalOffer !== true) {
+          // #1523 F5: never a restart while our last lane offer is unanswered
           state.budgets.unseenHeals += 1
           // the unseen heal restarts the stall count with its ICE restart
           state.stallSamples = 0

@@ -129,7 +129,7 @@ describe("who sees whom", () => {
       tell(pc, row({ a: "2", b: "-", c: "0" })) // b keeps saying it decodes none of a's video
       await sweep(pc)
     }
-    expect(pc.restartIce).toHaveBeenCalledTimes(2)
+    expect(pc.restartIce).toHaveBeenCalledTimes(1) // #1523 F5: one unseen ICE restart per unseen episode
     expect(FakePC.last).toHaveLength(1) // the same link all along
     mesh.setRound(2)
     mesh.setRound(1)
@@ -137,7 +137,7 @@ describe("who sees whom", () => {
       tell(pc, row({ a: "2", b: "-", c: "0" }))
       await sweep(pc)
     }
-    expect(pc.restartIce).toHaveBeenCalledTimes(2)
+    expect(pc.restartIce).toHaveBeenCalledTimes(1)
     mesh.close()
   })
 

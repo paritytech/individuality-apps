@@ -161,13 +161,13 @@ describe("peer actor guards found untested by mutation testing", () => {
       expect(result.commands).toEqual([])
     })
 
-    // mutants 914/916, line 844: two unseen heals exhaust the budget
-    it("does not issue a third unseen ICE restart", () => {
+    // mutants 914/916, line 844: one unseen heal exhausts the budget (#1523 F5)
+    it("does not issue a second unseen ICE restart", () => {
       const result = stepPeerActor(
-        watching({ budgets: budgets({ unseenHeals: 2 }) }),
+        watching({ budgets: budgets({ unseenHeals: 1 }) }),
         stats({ framesDecoded: 6, peerCannotSeeUs: true }),
       )
-      expect(result.state.budgets.unseenHeals).toBe(2)
+      expect(result.state.budgets.unseenHeals).toBe(1)
       expect(result.commands).toEqual([])
     })
 

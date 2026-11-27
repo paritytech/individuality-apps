@@ -675,16 +675,15 @@ describe("the peer actor drives the mesh", () => {
       mesh.close()
     })
 
-    it("heals a stall with ICE restarts, then a rebuild", async () => {
+    it("heals a stall with one ICE restart, then a rebuild (#1523 F5)", async () => {
       const { mesh, pc, program, owned } = await driven("a", "b", {}, camera)
       state(pc, "connected")
       frames(pc, 50)
       await vi.advanceTimersByTimeAsync(4_000) // frames seen
       await vi.advanceTimersByTimeAsync(60_000)
-      expect(pc.restartIce).toHaveBeenCalledTimes(2)
+      expect(pc.restartIce).toHaveBeenCalledTimes(1)
       expect(FakePC.last).toHaveLength(2)
       expect(program().filter((kind) => kind.startsWith("restart-ice") || kind.startsWith("replace-connection"))).toEqual([
-        "restart-ice:media-stall",
         "restart-ice:media-stall",
         "replace-connection:media-stall",
       ])
@@ -779,7 +778,7 @@ describe("the peer actor drives the mesh", () => {
       const { mesh, conn, actor, internals, program } = await driven()
       const seen = externalReplaces(internals)
       const before = actor().connectionEpoch
-      const spent = { ...actor(), budgets: { ...actor().budgets, failCount: 2, stallHeals: 2, noVideoRebuilds: 1 } }
+      const spent = { ...actor(), budgets: { ...actor().budgets, failCount: 2, stallHeals: 1, noVideoRebuilds: 1 } }
       internals.runner!.add("b", spent)
       mesh.rebuildAll()
       expect(FakePC.last).toHaveLength(2)

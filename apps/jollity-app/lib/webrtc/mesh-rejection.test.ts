@@ -171,7 +171,7 @@ describe("a rejected command's outcome, per site, with the peer actor driving", 
       mesh.close()
     })
 
-    it("only logs a media-stall ICE restart that throws", async () => {
+    it("only logs a media-stall ICE restart that throws, and the next stall rebuilds (#1523 F5)", async () => {
       const video = { kind: "video", readyState: "live" }
       const { mesh, pc, inputs } = await driven("a", "b", { getVideoTracks: () => [video], getTracks: () => [video] })
       vi.advanceTimersByTime(60_000)
@@ -182,7 +182,7 @@ describe("a rejected command's outcome, per site, with the peer actor driving", 
       pc.restartIce.mockImplementationOnce(() => { throw new Error("restart refused") })
       await vi.advanceTimersByTimeAsync(16_000)
       expect(pc.restartIce).toHaveBeenCalled()
-      expect(FakePC.last).toHaveLength(1)
+      expect(FakePC.last).toHaveLength(2) // the throwing restart spent the one heal: the next stall rebuilds
       expect(inputs.map(({ event }) => event)).toEqual(expect.arrayContaining([
         expect.objectContaining({ type: "command-completed", commandKind: "restart-ice", outcome: "rejected", site: "media-stall" }),
       ]))

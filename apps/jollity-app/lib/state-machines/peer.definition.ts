@@ -58,8 +58,14 @@ export type PeerEventKey =
   | "lane-offer-said"
   | "no-video-standby"
   | "stall-restart-one"
-  | "stall-restart-two"
   | "stall-rebuild"
+  | "stall-rebuild-offer-pending"
+  | "stall-offer-pending"
+  | "unseen-spent"
+  | "unseen-sees-us"
+  | "unseen-later"
+  | "unseen-refill"
+  | "unseen-offer-pending"
   | "frozen-ask"
   | "frozen-ask-answerer"
   | "frozen-ask-camera-off"
@@ -539,8 +545,8 @@ const baseWitnesses: readonly NamedSequence<PeerTestEvent, PeerActorState, Model
   sequence("both no-video rebuilds spent, an offer still pending goes on to the heals", [current("no-video-offer-pending-spent", { type: "stats-observed", readSequence: 1, framesDecoded: 0, browserConnectionState: "connected", noVideoDeadline: true, haveLocalOffer: true })], { link: "connected", laneOpen: true, budgets: { noVideoRebuilds: 2 } as PeerActorState["budgets"] }),
   sequence("standby exempts no-video rebuild", [current("no-video-standby", { type: "stats-observed", readSequence: 1, framesDecoded: -1, browserConnectionState: "connected", noVideoDeadline: true })], { link: "connected", standby: true }),
   sequence("first decoded-frame stall restarts ICE", [current("stall-restart-one", { type: "stats-observed", readSequence: 2, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1 })], { link: "connected", framesSeen: 4, framesReadSequence: 1 }),
-  sequence("second decoded-frame stall restarts ICE", [current("stall-restart-two", { type: "stats-observed", readSequence: 3, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1 })], { link: "connected", framesSeen: 4, framesReadSequence: 2, budgets: { stallHeals: 1 } as PeerActorState["budgets"] }),
-  sequence("third decoded-frame stall rebuilds", [current("stall-rebuild", { type: "stats-observed", readSequence: 4, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1 })], { link: "connected", framesSeen: 4, framesReadSequence: 3, budgets: { stallHeals: 2 } as PeerActorState["budgets"] }),
+  sequence("a stall while our lane offer is unanswered rebuilds at once, no ICE restart (#1523)", [current("stall-offer-pending", { type: "stats-observed", readSequence: 2, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1, haveLocalOffer: true })], { link: "connected", framesSeen: 4, framesReadSequence: 1 }),
+  sequence("second decoded-frame stall rebuilds (#1523 F5: one ICE restart per stall)", [current("stall-rebuild", { type: "stats-observed", readSequence: 3, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1 })], { link: "connected", framesSeen: 4, framesReadSequence: 2, budgets: { stallHeals: 1 } as PeerActorState["budgets"] }),
   // #1917: frozen video on a live link (packets rising, frames flat): a keyframe ask, then a rebuild, never an ICE restart
   sequence("a frozen link's stall asks the peer for a keyframe", [current("frozen-ask", { type: "stats-observed", readSequence: 2, framesDecoded: 131, browserConnectionState: "connected", recoveryDue: true, healDue: true, stallAfter: 2, packetsMoving: true })], { link: "connected", laneOpen: true, framesSeen: 131, framesReadSequence: 1, stallSamples: 1, frozenSamples: 1 }),
   sequence("an answerer's frozen stall asks after two sweeps, as the initiator's does", [current("frozen-ask-answerer", { type: "stats-observed", readSequence: 3, framesDecoded: 131, browserConnectionState: "connected", recoveryDue: true, healDue: true, stallAfter: 6, frozenAskAfter: 2, packetsMoving: true })], { link: "connected", laneOpen: true, initiator: false, framesSeen: 131, framesReadSequence: 2, stallSamples: 1, frozenSamples: 1 }),
@@ -572,6 +578,11 @@ const baseWitnesses: readonly NamedSequence<PeerTestEvent, PeerActorState, Model
   sequence("standby holds outbound video", [current("standby", { type: "standby-changed", standby: true })], { link: "connected" }),
   sequence("a promotion restarts the stall count and keeps the stall's heals", [current("promote-keeps-heals", { type: "standby-changed", standby: false })], { link: "connected", standby: true, stallSamples: 2, budgets: { stallHeals: 1 } as PeerActorState["budgets"] }),
   sequence("an unseen ICE restart restarts the stall count", [current("unseen-stall-reset", { type: "stats-observed", readSequence: 2, framesDecoded: 4, browserConnectionState: "connected", peerCannotSeeUs: true, stallAfter: 6, recoveryDue: true })], { link: "connected", laneOpen: true, framesSeen: 4, framesReadSequence: 1, stallSamples: 1 }),
+  // #1523: the per-episode unseen budget's refill — a sweep whose peer view
+  // says it decodes our video again sets unseenHeals back to 0
+  sequence("#1523 the unseen budget refills once the peer sees our video again", [current("unseen-refill", { type: "stats-observed", readSequence: 2, framesDecoded: 3, browserConnectionState: "connected", peerSeesUs: true })], { link: "connected", laneOpen: true, framesSeen: 2, framesReadSequence: 1, budgets: { unseenHeals: 1 } as PeerActorState["budgets"] }),
+  // #1523 F5: no unseen ICE restart while our lane offer is unanswered
+  sequence("#1523 no unseen ICE restart while our lane offer is unanswered", [current("unseen-offer-pending", { type: "stats-observed", readSequence: 2, framesDecoded: 3, browserConnectionState: "connected", peerCannotSeeUs: true, haveLocalOffer: true })], { link: "connected", laneOpen: true, framesSeen: 2, framesReadSequence: 1 }),
   sequence("network change preserves open lane", [current("network-restart", { type: "network-changed" })], { link: "connected", laneOpen: true }),
   sequence("network change rebuilds closed lane", [current("network-rebuild", { type: "network-changed" })], { link: "link-down", laneOpen: false }),
   // every recovery Mesh grants the answerer's offer on
@@ -581,12 +592,12 @@ const baseWitnesses: readonly NamedSequence<PeerTestEvent, PeerActorState, Model
   sequence("an inferred network change still repairs a link that dropped", [current("network-inferred-down", { type: "network-changed", inferred: true, onNewNetwork: false, browserConnectionState: "disconnected" })], { link: "link-down", laneOpen: true }),
   sequence("a network change on the answerer's side recovers as on the initiator's", [current("network-answerer", { type: "network-changed" })], { link: "connected", laneOpen: true, initiator: false }),
   sequence("a stall restart on the answerer's side recovers as on the initiator's", [current("stall-answerer", { type: "stats-observed", readSequence: 2, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1 })], { link: "connected", framesSeen: 4, framesReadSequence: 1, initiator: false }),
-  sequence("a stall rebuild on the answerer's side recovers as on the initiator's", [current("stall-rebuild-answerer", { type: "stats-observed", readSequence: 4, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1 })], { link: "connected", framesSeen: 4, framesReadSequence: 3, initiator: false, budgets: { stallHeals: 2 } as PeerActorState["budgets"] }),
+  sequence("a stall rebuild on the answerer's side recovers as on the initiator's", [current("stall-rebuild-answerer", { type: "stats-observed", readSequence: 3, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1 })], { link: "connected", framesSeen: 4, framesReadSequence: 2, initiator: false, budgets: { stallHeals: 1 } as PeerActorState["budgets"] }),
   sequence("a no-video rebuild on the answerer's side recovers as on the initiator's", [current("no-video-answerer", { type: "stats-observed", readSequence: 1, framesDecoded: -1, browserConnectionState: "connected", noVideoDeadline: true })], { link: "connected", laneOpen: true, initiator: false }),
   sequence("a glare rebuild on the answerer's side recovers as on the initiator's", [current("glare-rebuild-answerer", { type: "glare-observed", remoteCarriesVideo: true, lane: true })], { link: "connecting", initiator: false }),
   sequence("a new signalling session over our offer lets the answerer offer", [current("session-over-our-offer", { type: "peer-session-changed", at: 10, localOffer: true })], { initiator: false }),
   sequence("a relay policy change configures the link and rebuilds nothing", [current("policy-unchanged", { type: "ice-policy-changed" })], { link: "connected", laneOpen: true }),
-  sequence("round resets only round budgets", [current("round-change", { type: "round-changed", roundGeneration: 2 })], { roundGeneration: 1, budgets: { unseenHeals: 2, noVideoRebuilds: 1, negotiationImmediate: 1, negotiationUnseen: 1, glareRebuilds: 1 } as PeerActorState["budgets"] }),
+  sequence("round resets only round budgets", [current("round-change", { type: "round-changed", roundGeneration: 2 })], { roundGeneration: 1, budgets: { unseenHeals: 1, noVideoRebuilds: 1, negotiationImmediate: 1, negotiationUnseen: 1, glareRebuilds: 1 } as PeerActorState["budgets"] }),
   sequence("current completion lands", [current("completion", { type: "command-completed", commandEpoch: 1, commandKind: "send-offer", outcome: "resolved" })], { commandEpoch: 1, openCommands: { "send-offer": 1 } }),
   sequence("old completion cannot land", [current("old-completion", { type: "command-completed", commandEpoch: 1, commandKind: "send-offer", outcome: "resolved" })], { commandEpoch: 2, openCommands: { "send-offer": 2 } }),
   sequence("an older command's result lands after another kind completed", [current("overtaken-completion", { type: "command-completed", commandEpoch: 2, commandKind: "send-offer", outcome: "rejected" })], { link: "connecting", commandEpoch: 3, openCommands: { "send-offer": 2 } }),
@@ -820,6 +831,16 @@ const allRegressions = [
   // rebuilt 5 s after both descriptions are in, and only once a round.
   sequence("#1951 a never-connected link holding one host candidate is rebuilt 5 s after its descriptions, not at the ICE timeout", [tick("tick-gather-stalled", gatherStalled)], { ...describedAt(95_000), link: "connecting" }),
   sequence("#1951 the early rebuild spent, the next stall in the round waits for ICE", [tick("tick-gather-spent", gatherStalled)], { ...describedAt(95_000), link: "connecting", budgets: { failCount: 1, gatherStallRebuilds: 1 } as PeerActorState["budgets"], lastAttemptAt: 80_000 }),
+  // #1523 F5: one ICE restart per stall and per unseen episode, then the next
+  // rung (or nothing) — a second restart sends no offer while the first's
+  // lane offer is unanswered
+  sequence("#1523 a second stall arriving while our offer is still unanswered rebuilds, not a second ICE restart", [current("stall-rebuild-offer-pending", { type: "stats-observed", readSequence: 3, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1, haveLocalOffer: true })], { link: "connected", framesSeen: 4, framesReadSequence: 2, budgets: { stallHeals: 1 } as PeerActorState["budgets"] }),
+  sequence("#1523 an unseen report with the one unseen heal of the episode spent issues nothing", [current("unseen-spent", { type: "stats-observed", readSequence: 2, framesDecoded: 3, browserConnectionState: "connected", peerCannotSeeUs: true })], { link: "connected", laneOpen: true, framesSeen: 2, framesReadSequence: 1, budgets: { unseenHeals: 1 } as PeerActorState["budgets"] }),
+  sequence("#1523 the unseen budget refills once the peer sees our video again, so a later episode gets its one restart", [
+    current("unseen-sees-us", { type: "stats-observed", readSequence: 2, framesDecoded: 3, browserConnectionState: "connected", peerSeesUs: true }),
+    current("unseen-later", { type: "stats-observed", readSequence: 3, framesDecoded: 4, browserConnectionState: "connected", peerCannotSeeUs: true }),
+  ], { link: "connected", laneOpen: true, framesSeen: 2, framesReadSequence: 1, budgets: { unseenHeals: 1 } as PeerActorState["budgets"] }),
+  sequence("#1523 a first stall while our lane offer is unanswered rebuilds at once: an ICE restart would send no offer", [current("stall-offer-pending", { type: "stats-observed", readSequence: 2, framesDecoded: 4, browserConnectionState: "connected", recoveryDue: true, stallAfter: 1, haveLocalOffer: true })], { link: "connected", framesSeen: 4, framesReadSequence: 1 }),
 ]
 export const peerRegressionCorpus = allRegressions
 
@@ -880,6 +901,15 @@ export const peerMutationProbes = [
     const result = stepPeerActor(state, event)
     return { ...result, state: { ...result.state, budgets: { ...result.state.budgets, unseenHeals: 0 } } }
   }),
+  // #1523: the unseen budget is per episode — it refills when the peer sees us
+  executableMutation("never refill the unseen budget when the peer sees us again", "unseen-refill", (state, event) => {
+    const result = stepPeerActor(state, { ...event, peerSeesUs: undefined } as PeerActorEvent)
+    return result
+  }),
+  executableMutation("restart ICE for an unseen peer while our offer is unanswered", "unseen-offer-pending", (state, event) =>
+    stepPeerActor(state, { ...event, haveLocalOffer: undefined } as PeerActorEvent)),
+  executableMutation("restart ICE for a stall while our offer is unanswered", "stall-offer-pending", (state, event) =>
+    stepPeerActor(state, { ...event, haveLocalOffer: undefined } as PeerActorEvent)),
   executableMutation("keep away failure budget across session change", "peer-session-changed", (state, event) => {
     const result = stepPeerActor(state, event)
     return { ...result, state: { ...result.state, budgets: { ...result.state.budgets, failCount: state.budgets.failCount } } }
@@ -1502,7 +1532,7 @@ const invariants: readonly NamedInvariant<PeerActorState, ModelPeerState, PeerTe
   },
   {
     name: "round reset retains peer unseen budget",
-    specClause: "budget lifetimes: unseenHeals clears only on peer removal/room close",
+    specClause: "budget lifetimes: unseenHeals clears on peer removal/room close, or on a sweep whose peer freshly sees us (#1523), never at a round change",
     check: ({ event, previousReal, real }) => {
       if (event.key === "round-change" && real.budgets.unseenHeals !== previousReal.budgets.unseenHeals) throw new Error("peer-lifetime budget reset at round")
     },
@@ -1553,7 +1583,7 @@ export const peerMachineDefinition: MachineDefinition<PeerActorState, ModelPeerS
     link: fc.constantFrom(...peerConnectionInitialStates),
     away: fc.constantFrom("here" as const, "said" as const, "timeout" as const),
     failCount: fc.integer({ min: 0, max: 6 }),
-    unseenHeals: fc.integer({ min: 0, max: 2 }),
+    unseenHeals: fc.integer({ min: 0, max: 1 }),
     noVideoRebuilds: fc.integer({ min: 0, max: 1 }),
     negotiationImmediate: fc.integer({ min: 0, max: 1 }),
     negotiationUnseen: fc.integer({ min: 0, max: 1 }),

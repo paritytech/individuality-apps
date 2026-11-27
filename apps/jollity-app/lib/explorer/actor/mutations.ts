@@ -49,6 +49,11 @@ export const ACTOR_MUTATIONS = [
     const result = stepPeerActor(state, event)
     return { ...result, state: { ...result.state, budgets: { ...result.state.budgets, unseenHeals: 0 } } }
   }),
+  // #1523: the unseen budget is per episode — it refills when the peer sees us
+  probe("never refill the unseen budget when the peer sees us again", "unseen-refill", (state, event) =>
+    stepPeerActor(state, { ...event, peerSeesUs: undefined } as PeerActorEvent)),
+  probe("restart ICE for an unseen peer while our offer is unanswered", "unseen-offer-pending", (state, event) =>
+    stepPeerActor(state, { ...event, haveLocalOffer: undefined } as PeerActorEvent)),
   probe("keep away failure budget across session change", "peer-session-changed", (state, event) => {
     const result = stepPeerActor(state, event)
     return { ...result, state: { ...result.state, budgets: { ...result.state.budgets, failCount: state.budgets.failCount } } }
