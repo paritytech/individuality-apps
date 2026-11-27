@@ -56,13 +56,9 @@
  * lite-only, opt-in, and types the value as `{ type: string }` — presence,
  * with the position thrown away.
  */
-import type { TypedApi } from "polkadot-api";
-import type { people } from "@polkadot-api/descriptors";
-
+import type { PeopleApi } from "@humanity/shared/chain/client.ts";
 import { toHex, type HexString } from "@humanity/shared/chain/host-api.ts";
 import { ringCollectionId } from "@parity/product-sdk/individuality";
-
-type PeopleApi = TypedApi<typeof people>;
 
 /**
  * papi's per-read options — the pinned block and abort signal. Taken from the

@@ -83,6 +83,7 @@ vi.mock("@humanity/shared/chain/bounded-read.ts", () => ({
   ) => read(Object.assign(new AbortController().signal, { throwIfAborted: () => undefined })),
 }));
 vi.mock("@humanity/shared/chain/client.ts", () => ({ getPeopleClient: mocks.getPeopleClient }));
+vi.mock("@humanity/shared/chain/username-signing-context.ts", () => ({ usernameSigningContext: async () => null }));
 vi.mock("@shared/chain/query-state.ts", () => ({
   blockingError: (error: Error | null, data: unknown) =>
     data === undefined ? error : null,

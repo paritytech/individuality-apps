@@ -2,31 +2,29 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { people } from "@polkadot-api/descriptors";
+import { paseo } from "../../.papi/paseo-descriptors/dist/index.js";
 import type { PolkadotClient, TypedApi } from "polkadot-api";
 
 import { envConfig } from "@humanity/shared/config/env.ts";
 import { getOrCreateClient } from "./connection.ts";
 import { resolveNetwork, type NetworkConfig } from "./networks.ts";
 
+export type PeopleApi = TypedApi<typeof people> | TypedApi<typeof paseo>;
+
 export interface PeopleClient {
   readonly client: PolkadotClient;
-  readonly api: TypedApi<typeof people>;
+  readonly api: PeopleApi;
   readonly network: NetworkConfig;
   readonly wsUrl: string;
 }
 
-/**
- * The typed People-chain client. Types come from descriptors generated off the
- * live runtime metadata (`.papi/metadata/people.scale`) — never from
- * hand-written mirrors of the Rust structs, which drift silently.
- */
+/** Both descriptors are generated at install time from the committed SCALE metadata. */
 export async function getPeopleClient(): Promise<PeopleClient> {
   const network = resolveNetwork(envConfig.chain.network);
   const wsUrl = envConfig.chain.peopleWsUrl ?? network.peopleChain.wsUrl;
-  const client = await getOrCreateClient(
-    network.peopleChain.genesisHash,
-    wsUrl
-    
-  );
-  return { client, api: client.getTypedApi(people), network, wsUrl };
+  const client = await getOrCreateClient(network.peopleChain.genesisHash, wsUrl);
+  const api = network.key === "paseo-next-v2"
+    ? client.getTypedApi(paseo)
+    : client.getTypedApi(people);
+  return { client, api, network, wsUrl };
 }

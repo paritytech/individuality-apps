@@ -26,6 +26,7 @@ import { useUsernameUpgradeAction } from "@features/card/hooks/use-username-upgr
 const ACCOUNT = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
 const card = {
   kind: "card",
+  usernameUpgradeSupported: true,
   accountAddress: ACCOUNT,
   primaryUsername: "marlow.42",
   state: { kind: "member", activeWeeks: 3, lastAttendedGame: 42, attendanceHistory: 0xff, window: 8 },

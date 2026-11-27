@@ -62,6 +62,7 @@ vi.mock("@features/card/hooks/use-humanity-card.ts", () => ({
   useHumanityCard: () => ({
     data: {
       kind: "card",
+      usernameUpgradeSupported: true,
       accountAddress: ACCOUNT,
       primaryUsername: mocks.username,
       state: { kind: "member", activeWeeks: 3, lastAttendedGame: 42, attendanceHistory: 0xff, window: 8 },

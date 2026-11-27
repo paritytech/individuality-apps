@@ -30,6 +30,7 @@ export function useDebugCardOverride(query: HumanityCardQuery): HumanityCardQuer
     const liveCard = query.data?.kind === "card" ? query.data : null;
     const card: ResolvedHumanityCard = {
       kind: "card",
+      usernameUpgradeSupported: liveCard?.usernameUpgradeSupported === true,
       // A numbered username for every state before Membership: a bare name
       // is what upgrading grants, and `membership-ready` is precisely the
       // state that has not been granted it yet.

@@ -92,6 +92,7 @@ vi.mock("@humanity/shared/chain/bounded-read.ts", () => ({
 }));
 vi.mock("@shared/chain/query-state.ts", () => ({ blockingError: () => null }));
 vi.mock("@humanity/shared/chain/client.ts", () => ({ getPeopleClient: mocks.getPeopleClient }));
+vi.mock("@humanity/shared/chain/username-signing-context.ts", () => ({ usernameSigningContext: async () => null }));
 vi.mock("@humanity/shared/card/humanity-card-data.ts", async (importActual) => ({
   ...(await importActual<typeof import("@humanity/shared/card/humanity-card-data.ts")>()),
   toHumanityCardResult: mocks.toHumanityCardResult,
@@ -549,7 +550,7 @@ describe("useHumanityCard unregistered DotNS name", () => {
 
     const result = await renderCard().queryFn({ signal: new AbortController().signal });
 
-    expect(result).toEqual({ kind: "card" });
+    expect(result).toEqual({ kind: "card", usernameUpgradeSupported: false });
     expect(cardInputs()).toMatchObject({
       ownerAccount: null,
       litePerson: null,

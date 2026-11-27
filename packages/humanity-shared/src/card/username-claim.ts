@@ -9,6 +9,7 @@ import type { PersonRingStanding } from "@humanity/shared/chain/ring-membership.
 import { parseHumanityUserId } from "@humanity/shared/identity/humanity-user-id.ts";
 
 export interface UsernameClaimCard {
+  usernameUpgradeSupported?: boolean;
   kind: "card";
   primaryUsername: string;
   accountAddress: string;
@@ -41,6 +42,7 @@ export type UsernameClaimTarget =
       currentLiteUsername: string;
       suggestedUsername: string;
     }
+  | { kind: "upgrade-unavailable" }
   | { kind: "already-claimed" }
   | { kind: "not-ready" };
 
@@ -61,6 +63,7 @@ export function usernameClaimTarget(
 
   const identity = parseHumanityUserId(card.primaryUsername);
   if (identity?.isUpgraded === true) return { kind: "already-claimed" };
+  if (card.usernameUpgradeSupported !== true) return { kind: "upgrade-unavailable" };
   if (identity == null || (!fullPersonhood && card.state.kind !== "member")) {
     return { kind: "not-ready" };
   }

@@ -1,14 +1,14 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { Binary, Enum, type TypedApi } from "polkadot-api";
-import type { people } from "@polkadot-api/descriptors";
+import { Binary, Enum } from "polkadot-api";
 
 import {
   readAtFinalized,
   type SnapshotAt,
 } from "@humanity/shared/chain/finalized-snapshot.ts";
-import { getPeopleClient } from "@humanity/shared/chain/client.ts";
+import { usernameSigningContext } from "@humanity/shared/chain/username-signing-context.ts";
+import { getPeopleClient, type PeopleApi } from "@humanity/shared/chain/client.ts";
 import { tracedRead } from "@humanity/shared/chain/chain-read.ts";
 import {
   probeDevicehoodRing,
@@ -59,9 +59,6 @@ export interface HumanityCardReadArgs {
   gameAccount: string | null;
   signal: AbortSignal;
 }
-
-/** The people-chain typed api, as `getPeopleClient` hands it over. */
-type PeopleApi = TypedApi<typeof people>;
 
 /** A ring-VRF key the host holds for us, `null` when it holds none. */
 type RingKey = HexString | null;
@@ -231,6 +228,7 @@ export async function readHumanityCard({
       gameAccountAlias,
       personhoodThreshold,
       absenceGraceRatio,
+      signingContext,
     ] = await Promise.all([
       usernameOwner(at),
       tracedRead("Score.Participants", () =>
@@ -245,6 +243,7 @@ export async function readHumanityCard({
       tracedRead("Score.AbsenceGraceRatio", () =>
         api.query.Score.AbsenceGraceRatio.getValue(at),
       ),
+      usernameSigningContext(client, at),
     ]);
     signal.throwIfAborted();
 
@@ -367,7 +366,7 @@ export async function readHumanityCard({
       },
     );
 
-    return toHumanityCardResult({
+    const card = toHumanityCardResult({
       primaryUsername: cardIdentity.primaryUsername,
       ownerAccount: owner,
       gameAccount,
@@ -381,5 +380,6 @@ export async function readHumanityCard({
       devicehoodRing,
       deviceKeyCheck,
     });
+    return { ...card, usernameUpgradeSupported: signingContext != null };
   });
 }

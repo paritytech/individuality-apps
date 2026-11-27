@@ -1,9 +1,6 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { people } from "@polkadot-api/descriptors";
-import type { TypedApi } from "polkadot-api";
-
 import { resetClientCache } from "@humanity/shared/chain/connection.ts";
 import { loggerFor } from "@humanity/shared/logging/logger.ts";
 import { runFlow, type FlowOutcome, type FlowRun } from "@humanity/shared/telemetry/flow.ts";
@@ -12,7 +9,7 @@ import {
   TransactionSubmissionError,
 } from "@humanity/shared/chain/transaction-submission.ts";
 import { withTimeout } from "@humanity/shared/utils/with-timeout.ts";
-import { getPeopleClient } from "@humanity/shared/chain/client.ts";
+import { getPeopleClient, type PeopleApi } from "@humanity/shared/chain/client.ts";
 import {
   individualityChain,
   peopleAirdropsRegisterCalls,
@@ -192,7 +189,7 @@ async function runRegistration(
   }
 
   let airdropAccount: AirdropAccount | null;
-  let api: TypedApi<typeof people>;
+  let api: PeopleApi;
   let peopleClient: Awaited<ReturnType<typeof getPeopleClient>>;
   flow.stage("setup");
   try {
