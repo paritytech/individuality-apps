@@ -114,4 +114,51 @@ describe("turn-books state-machine model", () => {
       "turn 0 ended before entry and must remain unsealed and verdict-free",
     ).toEqual({ sealed: false, verdict: undefined })
   })
+
+  // archive#1489 R3-R5 (F5-F7), pinned as expected failures until the model
+  // is fixed (#101): the explorer must drive the same cold reconcile the
+  // production order produces (warm tick captures the remount boundary, the
+  // stored read proves the rejoin, the next tick exposes it as coldStartedAt),
+  // and the model must mirror it exactly.
+  const parityTrace = (actions: TurnBooksTestEvent["action"][]) => {
+    let real = turnBooksMachineDefinition.initialReal()
+    let model = turnBooksMachineDefinition.initialModel()
+    let realResult = undefined as ReturnType<typeof turnBooksMachineDefinition.realStep> | undefined
+    let modelResult = undefined as ReturnType<typeof turnBooksMachineDefinition.modelStep> | undefined
+    for (const action of actions) {
+      const event = { action, expected: "transition" as const }
+      realResult = turnBooksMachineDefinition.realStep(real, event)
+      modelResult = turnBooksMachineDefinition.modelStep(model, event)
+      expect(
+        turnBooksMachineDefinition.observeModel(modelResult),
+        `real/model observation mismatch after ${action}`,
+      ).toEqual(turnBooksMachineDefinition.observeReal(realResult))
+      real = realResult.state
+      model = modelResult.state
+    }
+    return { real: realResult!, model: modelResult! }
+  }
+
+  it.fails("archive#1489 R3 (F5): a warm tick before the restore still runs the cold reconcile on the post-restore tick", () => {
+    const { real } = parityTrace(["tick-turn-0", "restore", "tick-turn-1"])
+    // The reconcile opens the missed turn (ban rejects) before sealing it, so
+    // Carol's stored ban lands as a deliberate ban vote, not an auto default.
+    expect([...real.state.books.sealed]).toEqual([0])
+    expect(real.state.books.banVotes[0]).toContain("carol")
+    expect(real.state.books.autoSeals[0] ?? []).not.toContain("carol")
+  })
+
+  it.fails("archive#1489 R4 (F6): the away latch checks every unheld turn in [rejoinFrom, beforeLoad), not only the first opened one", () => {
+    const { real } = parityTrace(["tick-reporting", "restore", "tick-reporting"])
+    // Turn 0 is unheld too but needs no default (Bob's stored tap, Carol's
+    // stored ban); turn 1 is unheld and Bob needs a default there: away.
+    expect(real.output).toContain("away")
+    expect([...real.state.books.sealed].sort((a, b) => a - b)).toEqual([0, 1])
+  })
+
+  it.fails("archive#1489 R5 (F7): the remount reconcile seals through beforeReady, not only the restored first opened turn", () => {
+    const { real } = parityTrace(["tick-turn-1", "restore", "tick-reporting"])
+    expect([...real.state.books.sealed].sort((a, b) => a - b)).toEqual([0, 1])
+    expect(real.output).not.toContain("away")
+  })
 })
