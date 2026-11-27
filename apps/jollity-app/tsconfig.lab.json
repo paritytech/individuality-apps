@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "node"
+    ],
+    "noUnusedLocals": true,
+    "allowImportingTsExtensions": true,
+    "incremental": false
+  },
+  "include": [
+    "lab.opening.config.ts",
+    "lab/scenarios/**/*.ts",
+    "lab/opening/**/*.ts",
+    "scripts/lab/**/*.mts",
+    "tests/lab/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "out"
+  ]
+}

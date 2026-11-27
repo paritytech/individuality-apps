@@ -31,5 +31,5 @@
     "**/*.mts",
     "../../deploy/**/*.ts"
   ],
-  "exclude": ["node_modules", "scripts", "out", "lib/**/*.mutant-*.ts"]
+  "exclude": ["node_modules", "scripts", "out", "lib/**/*.mutant-*.ts", "lab", "tests/lab", "lab.opening.config.ts"]
 }

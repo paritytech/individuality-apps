@@ -1,0 +1,550 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Jollity lab opening and scenarios
+
+# Not a required check: spot runners and an unmeasured Linux runtime must not
+# block merging. Lab-path changes run the offline lab tests. Labelled pull
+# requests also run the positive opening and the scenario legs; the negative
+# controls run by dispatch only.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, labeled, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      scenarios:
+        description: Run the Jollity scenarios on fresh Paseo copies
+        type: boolean
+        default: true
+      negative_control:
+        description: Also run the negative controls, which must fail - the opening's registered-state check and the wrong registered home scenario
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  opening:
+    name: Jollity fork opening
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && contains(github.event.pull_request.labels.*.name, 'run-dim2-opening') && (github.event.action != 'labeled' || github.event.label.name == 'run-dim2-opening')) }}
+    concurrency:
+      # PR-scoped for pull_request: a new push cancels the PR's in-flight opening.
+      # Dispatched runs queue behind each other and are never cancelled.
+      group: jollity-lab-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'dispatch' }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    runs-on: ${{ vars.JOLLITY_LAB_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 75
+    outputs:
+      scenarios: ${{ steps.comment_summary.outputs.scenarios }}
+      demo: ${{ steps.upload_demo.outputs.artifact-url }}
+      videos: ${{ steps.upload_videos.outputs.artifact-url }}
+      results: ${{ steps.upload_results.outputs.artifact-url }}
+    env:
+      PRODUCT_LAB_FORK_BUNDLE: fresh
+      # The runner's observed ephemeral range starts at 15000.
+      PRODUCT_LAB_FORK_PORT_BASE: "10000"
+      NEGATIVE_CONTROL: ${{ github.event_name == 'workflow_dispatch' && inputs.negative_control }}
+      PRODUCT_LAB_RECORDINGS_DIR: ${{ github.workspace }}/artifacts/jollity-lab-recordings
+      JOLLITY_LAB_DEMO_DIR: ${{ github.workspace }}/artifacts/jollity-lab-demo
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+      - name: Set up Bun for host scripts
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+      - name: Record capacity
+        run: |
+          df -h
+          free -m
+          cat /proc/sys/net/ipv4/ip_local_port_range || true
+          cat /sys/fs/cgroup/memory.events || true
+      - run: /usr/bin/time -v npm ci
+      - run: /usr/bin/time -v npm run jollity:lab:check
+      - run: /usr/bin/time -v npm run jollity:lab:prepare -- --engine locked
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Open Jollity source
+        id: opening
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$NEGATIVE_CONTROL" = true ]; then
+            npm run jollity:e2e:opening -- --fresh --negative-control
+          else
+            npm run jollity:e2e:opening -- --fresh
+          fi
+      - name: Clean up owned processes
+        if: always()
+        run: |
+          if [ -x node_modules/.bin/tsx ]; then
+            node_modules/.bin/tsx apps/jollity-app/scripts/lab/opening.mts cleanup
+          fi
+          df -h
+          free -m
+          cat /sys/fs/cgroup/memory.events || true
+      - name: Install demo tools when absent
+        timeout-minutes: 5
+        if: always()
+        continue-on-error: true
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ffmpeg
+          fi
+      - name: Cut the opening demo
+        id: demo
+        if: always()
+        continue-on-error: true
+        env:
+          OPENING_OUTCOME: ${{ steps.opening.outcome }}
+        run: |
+          args=()
+          if [ "$OPENING_OUTCOME" != success ] || [ "$NEGATIVE_CONTROL" = true ]; then
+            args+=(--failed)
+          fi
+          node_modules/.bin/tsx apps/jollity-app/scripts/lab/opening.mts demo "${args[@]}"
+      - name: Upload the opening demo
+        id: upload_demo
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jollity-lab-demo
+          path: artifacts/jollity-lab-demo/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Upload the raw opening videos
+        id: upload_videos
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jollity-lab-videos
+          path: artifacts/jollity-lab-recordings/**/videos/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Retain sanitized results
+        id: upload_results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jollity-opening-${{ github.run_id }}
+          path: apps/jollity-app/.product-lab/opening-reports/sanitized/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Read sanitized scenario steps
+        id: comment_summary
+        if: always()
+        continue-on-error: true
+        run: |
+          node <<'NODE'
+          const { appendFileSync, readFileSync } = require('node:fs');
+          let scenarios = [];
+          try {
+            const text = readFileSync('apps/jollity-app/.product-lab/opening-reports/sanitized/scenario-steps.json', 'utf8');
+            if (text.length <= 40000) scenarios = JSON.parse(text);
+          } catch { /* No scenario report is available. */ }
+          appendFileSync(process.env.GITHUB_OUTPUT, `scenarios=${JSON.stringify(scenarios)}\n`);
+          NODE
+
+  comment:
+    name: Update opening comment
+    needs: [opening]
+    if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.opening.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    continue-on-error: true
+    permissions:
+      pull-requests: write
+    concurrency:
+      # Shared by all three lab workflows: serialize comment creation and updates.
+      group: lab-opening-comment-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Create or update the opening comment
+        continue-on-error: true
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          WORKFLOW: jollity
+          RESULT: ${{ needs.opening.result }}
+          SCENARIOS: ${{ needs.opening.outputs.scenarios }}
+          DEMO_URL: ${{ needs.opening.outputs.demo }}
+          VIDEOS_URL: ${{ needs.opening.outputs.videos }}
+          RESULTS_URL: ${{ needs.opening.outputs.results }}
+        with:
+          script: |
+            const marker = '<!-- lab-opening-comment:v1 -->';
+            const key = process.env.WORKFLOW;
+            const title = { humanity: 'Humanity', jollity: 'Jollity', flow: 'DIM2 play-through' }[key];
+            if (!title) throw new Error('Unknown opening workflow');
+            const begin = `<!-- lab-opening:${key}:start -->`;
+            const end = `<!-- lab-opening:${key}:end -->`;
+            const run = String(context.runId);
+            const attempt = process.env.GITHUB_RUN_ATTEMPT || '1';
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${run}`;
+            const escape = (value) => String(value).slice(0, 300).replace(/[&<>@\[\]()*_`#|\r\n:~$!\\]/g, (char) => `&#${char.charCodeAt(0)};`);
+            const lookup = (table, value) => (typeof value === 'string' && Object.hasOwn(table, value) ? table[value] : 'UNAVAILABLE');
+            const verdict = (value) => lookup({ passed: 'PASS', failed: 'FAIL', 'not-run': 'NOT RUN', skipped: 'SKIPPED', pending: 'PENDING', undefined: 'UNDEFINED', ambiguous: 'AMBIGUOUS' }, value);
+            const isObject = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
+            function buildSection() {
+              let scenarios = [];
+              try { scenarios = JSON.parse(process.env.SCENARIOS || '[]'); } catch { /* unavailable */ }
+              const notRun = key === 'flow' && Array.isArray(scenarios) && scenarios.some((scenario) => isObject(scenario) && ['not-run', 'failed'].includes(scenario.status) && scenario.reason === 'not run: imported game in Reporting');
+              const teardownFailed = notRun && scenarios.some((scenario) => isObject(scenario) && scenario.status === 'failed' && scenario.reason === 'not run: imported game in Reporting');
+              const result = teardownFailed ? 'FAIL (not run: imported game in Reporting)' : notRun ? 'NOT RUN: imported game in Reporting' : lookup({ success: 'PASS', failure: 'FAIL', cancelled: 'CANCELLED', skipped: 'SKIPPED' }, process.env.RESULT);
+              const lines = [begin, `<!-- lab-opening:${key}:run:${run}:${attempt} -->`, `## ${title}${key === 'flow' ? '' : ' opening'}`, '', `[Run ${run}, attempt ${attempt}](${runUrl}) · Result: **${result}**`, ''];
+              if (key === 'flow') {
+                const suffix = process.env.DEMO_URL?.startsWith(`${runUrl}/artifacts/`) ? process.env.DEMO_URL.slice(`${runUrl}/artifacts/`.length) : '';
+                const demo = process.env.DEMO_STATUS === 'produced' && /^\d+$/.test(suffix) ? 'produced' : 'not produced';
+                lines.push(`Demo: **${demo}**`, '');
+              }
+              if (!Array.isArray(scenarios) || !scenarios.some(isObject)) {
+                lines.push('Scenario steps unavailable (the opening may have stopped before reporting).', '');
+              } else {
+                for (const scenario of scenarios.filter(isObject).slice(0, 1)) {
+                  const status = key === 'flow' && scenario.status === 'not-run' && scenario.reason === 'not run: imported game in Reporting' ? 'NOT RUN: imported game in Reporting' : verdict(scenario.status);
+                  lines.push(`### ${escape(scenario.name)} · ${status}`, '', '| Step | Result |', '| --- | --- |');
+                  for (const step of (Array.isArray(scenario.steps) ? scenario.steps : []).filter(isObject).slice(0, 100)) {
+                    lines.push(`| ${escape(step.name)} | ${verdict(step.status)} |`);
+                  }
+                  lines.push('');
+                }
+              }
+              for (const [label, value] of [['Demo', process.env.DEMO_URL], ['Videos', process.env.VIDEOS_URL], ['Results', process.env.RESULTS_URL]]) {
+                // Only upload-artifact links from this exact run are usable.
+                const suffix = value?.startsWith(`${runUrl}/artifacts/`) ? value.slice(`${runUrl}/artifacts/`.length) : '';
+                lines.push(/^\d+$/.test(suffix) ? `- [${label}](${value})` : `- ${label}: unavailable`);
+              }
+              lines.push('', end);
+              return lines.join('\n');
+            }
+            function updateSection(body, section) {
+              if (!body) return `${marker}\n\n# Local fork openings\n\n${section}\n`;
+              const start = body.indexOf(begin);
+              const stop = body.indexOf(end);
+              if (start < 0 && stop < 0) return `${body.trimEnd()}\n\n${section}\n`;
+              if (start < 0 || stop < start || body.indexOf(begin, start + begin.length) >= 0 || body.indexOf(end, stop + end.length) >= 0) throw new Error('Invalid opening section');
+              const current = body.slice(start, stop + end.length);
+              const previous = new RegExp(`<!-- lab-opening:${key}:run:(\\d+):(\\d+) -->`).exec(current);
+              // A delayed older run must not replace a newer run or rerun.
+              if (previous && (BigInt(previous[1]) > BigInt(run) || (previous[1] === run && BigInt(previous[2]) > BigInt(attempt)))) return body;
+              return body.slice(0, start) + section + body.slice(stop + end.length);
+            }
+            // Publish only through the job token; no checkout or personal credential.
+            const section = buildSection();
+            const target = { ...context.repo, issue_number: context.issue.number };
+            for (let retry = 0; retry < 3; retry++) {
+              try {
+                const comments = await github.paginate(github.rest.issues.listComments, { ...target, per_page: 100 });
+                const found = comments.find((comment) => comment.user?.login === 'github-actions[bot]' && comment.user?.type === 'Bot' && comment.body?.startsWith(marker));
+                if (found) {
+                  // Re-read inside the shared concurrency group immediately before merging.
+                  const { data: fresh } = await github.rest.issues.getComment({ ...context.repo, comment_id: found.id });
+                  if (!fresh.body?.startsWith(marker)) throw new Error('Opening marker changed');
+                  const body = updateSection(fresh.body, section);
+                  if (body === fresh.body) break;
+                  await github.rest.issues.updateComment({ ...context.repo, comment_id: found.id, body });
+                  const { data: saved } = await github.rest.issues.getComment({ ...context.repo, comment_id: found.id });
+                  if (saved.body === body) break;
+                } else {
+                  await github.rest.issues.createComment({ ...target, body: updateSection('', section) });
+                  break;
+                }
+              } catch { /* Re-list and re-read on transient failures, including ambiguous creates. */ }
+              if (retry === 2) core.warning('Opening comment unavailable; the opening result is unchanged.');
+            }
+
+  # The offline lab tests run when a pull request changes a path the Jollity lab reads.
+  # Shipping Jollity tests are ci.yml's (test:lib), not repeated here. A label adds no
+  # commit, so a labeled run skips both jobs: it never joins their group, and never
+  # cancels the lab tests of the push it labels.
+  sources:
+    name: Jollity lab paths changed
+    if: github.event_name == 'pull_request' && github.event.action != 'labeled'
+    concurrency:
+      # The unit job's group: a newer push's sources cancel an older run of the lab tests.
+      group: jollity-lab-unit-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'dispatch' }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      changed: ${{ steps.files.outputs.changed }}
+    steps:
+      - id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          files=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR}/files" --jq '.[].filename')
+          # Everything the lab tests read: the lab, its configs and workflow, the deploy and visual
+          # classifiers and their workflows, Humanity's chest fixture, the app tsconfig and Node pin, and the
+          # app's local-network resolver that the opening checks its genesis build with, and Humanity's
+          # deploy config, whose grant to DIM2 the opening seeds on the genesis host.
+          lab='^lab/|^lab\.config\.ts$|^apps/jollity-app/(lab/|tests/lab/|scripts/lab/|lab\.[a-z]+\.config\.ts$|tsconfig(\.lab)?\.json$|e2e/dim2-opening[^/]*\.feature$|docs/lab[^/]*$)|^scripts/ci/|^\.github/workflows/(jollity-lab|ci|deploy|release|humanity-lab)\.yml$|^\.github/lab-scenario-summary\.mts$|^apps/humanity-app/tests/flow/fixtures/chest-observation\.mts$|^apps/humanity-app/lab/opening/host\.lock\.json$|^packages/jollity-protocol/src/local-network\.(mjs|d\.mts)$|^apps/humanity-app/deploy/bulletin-deploy\.config\.ts$|^package(-lock)?\.json$|^\.nvmrc$'
+          if grep -qE "$lab" <<<"$files"; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  unit:
+    name: Jollity lab tests
+    needs: [sources]
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || (github.event.action != 'labeled' && github.event.pull_request.head.repo.full_name == github.repository && needs.sources.outputs.changed == 'true')) }}
+    concurrency:
+      group: jollity-lab-unit-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'dispatch' }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PRODUCT_LAB_CACHE_DIR: ${{ github.workspace }}/apps/jollity-app/.product-lab/unit-cache
+      PRODUCT_LAB_FLAKY_LOG: ${{ github.workspace }}/artifacts/jollity-unit-flaky.jsonl
+      PRODUCT_LAB_FORK_BUNDLE: keep
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Check lab types, helpers and scenario bindings
+        run: |
+          npm run jollity:lab:check
+          npm run lab:check
+          PRODUCT_LAB_LAB=jollity-scenarios node_modules/.bin/product-lab lint --config lab.config.ts
+          PRODUCT_LAB_LAB=jollity-scenarios node_modules/.bin/product-lab test --config lab.config.ts --dry-run --report-dir artifacts/jollity-plan
+          node_modules/.bin/tsx apps/jollity-app/scripts/lab/scenarios-ci.mts plan artifacts/jollity-plan/product-lab-test.json
+      - name: Lint the workflow
+        uses: docker://rhysd/actionlint:1.7.7
+        with:
+          args: -color .github/workflows/jollity-lab.yml
+
+  scenario-legs:
+    name: Plan Jollity scenario legs
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.scenarios || github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && contains(github.event.pull_request.labels.*.name, 'run-dim2-opening') && (github.event.action != 'labeled' || github.event.label.name == 'run-dim2-opening') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      legs: ${{ steps.plan.outputs.legs }}
+    steps:
+      - id: plan
+        env:
+          NEGATIVE_CONTROL: ${{ github.event_name == 'workflow_dispatch' && inputs.negative_control }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const home = ['no-game', 'register', 'unfunded', 'registered', 'missed', 'wrapping-up'].map(state => `DIM2's home shows ${state} for the chain state the lab set`);
+          const legs = [
+            { id: 'home', name: 'Home states from chain transactions (B1)', tags: '@jollity-home', scenarios: home },
+            { id: 'registration', name: 'Register through free and deposit seats (B2)', tags: '@jollity-registration', scenarios: ['Ada registers in DIM2 on the free route', 'Ada registers in DIM2 on the deposit route'] },
+            { id: 'results', name: 'Results, credits and chest (B4)', tags: '@jollity-results', scenarios: ['After the game DIM2 shows results and Ada keeps her credits'] },
+            { id: 'pending', name: 'Play, prize and permission capability checks (B3, B5, B6)', tags: '@jollity-play or @jollity-prize or @jollity-permissions', scenarios: ['Three players play one DIM2 game and their reports are finalized', 'A recognized player claims the game airdrop in DIM2', 'Refusing access shows Try again, and allowing it reaches home'] },
+          ];
+          if (process.env.NEGATIVE_CONTROL === 'true') legs.push({ id: 'home-control', name: 'Wrong registered home must fail', tags: '@negative-control', negative: true, scenarios: ['An idle chain cannot back the registered home'] });
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `legs=${JSON.stringify(legs)}\n`);
+          NODE
+
+  scenario-bundle:
+    name: Pin the Paseo bundle for the scenario legs
+    needs: [scenario-legs]
+    runs-on: ${{ vars.JOLLITY_LAB_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 45
+    outputs:
+      manifest-sha256: ${{ steps.pin.outputs.manifest-sha256 }}
+      asset-key: ${{ steps.lookup.outputs.asset-key }}
+    env:
+      PRODUCT_LAB_CACHE_DIR: ${{ github.workspace }}/apps/jollity-app/.product-lab/cache
+      PRODUCT_LAB_FLAKY_LOG: ${{ github.workspace }}/artifacts/jollity-scenarios-flaky.jsonl
+      PRODUCT_LAB_FORK_PORT_BASE: '10000'
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.2'
+      - run: npm ci
+      - name: Prepare the locked Engine and CLI host
+        run: npm run jollity:lab:prepare -- --engine locked
+      - name: Look up the published bundle asset
+        id: lookup
+        run: node_modules/.bin/tsx apps/jollity-app/scripts/lab/scenarios-ci.mts bundle-lookup
+      - name: Restore this asset's pin
+        id: pin_cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: jollity-paseo-bundle-pin-${{ steps.lookup.outputs.asset-key }}
+          path: apps/jollity-app/.product-lab/paseo-bundle-pin
+      - name: Check for this asset's cached bundle
+        id: bundle_cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: jollity-paseo-bundle-${{ steps.lookup.outputs.asset-key }}
+          path: apps/jollity-app/.product-lab/paseo-bundle
+          lookup-only: true
+      - name: Pin the bundle, downloading only on a cache miss
+        id: pin
+        env:
+          ASSET_KEY: ${{ steps.lookup.outputs.asset-key }}
+          CACHED: ${{ steps.pin_cache.outputs.cache-hit == 'true' && steps.bundle_cache.outputs.cache-hit == 'true' }}
+        run: node_modules/.bin/tsx apps/jollity-app/scripts/lab/scenarios-ci.mts bundle-pin apps/jollity-app/.product-lab/paseo-bundle apps/jollity-app/.product-lab/paseo-bundle-pin
+      - name: Save the verified bundle
+        if: steps.pin.outputs.cached == 'false'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: jollity-paseo-bundle-${{ steps.lookup.outputs.asset-key }}
+          path: apps/jollity-app/.product-lab/paseo-bundle
+      - name: Save the bundle pin
+        if: steps.pin.outputs.cached == 'false'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: jollity-paseo-bundle-pin-${{ steps.lookup.outputs.asset-key }}
+          path: apps/jollity-app/.product-lab/paseo-bundle-pin
+
+  scenarios:
+    name: 'Jollity scenario: ${{ matrix.name }}'
+    needs: [scenario-legs, scenario-bundle, sources, unit]
+    # The lab tests are skipped when no lab path changed or on a label event; the legs still run.
+    # A failed or cancelled lab-tests job fails the legs below rather than skipping them silently.
+    if: ${{ !cancelled() && needs.scenario-legs.result == 'success' && needs.scenario-bundle.result == 'success' }}
+    runs-on: ${{ vars.JOLLITY_LAB_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.scenario-legs.outputs.legs) }}
+    concurrency:
+      group: jollity-scenarios-${{ matrix.id }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'dispatch' }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    env:
+      PRODUCT_LAB_CACHE_DIR: ${{ github.workspace }}/apps/jollity-app/.product-lab/cache
+      PRODUCT_LAB_FLAKY_LOG: ${{ github.workspace }}/artifacts/jollity-scenarios-flaky.jsonl
+      PRODUCT_LAB_FORK_BUNDLE: keep
+      PRODUCT_LAB_FORK_PORT_BASE: '10000'
+      PRODUCT_LAB_LAB: jollity-scenarios
+      PRODUCT_LAB_RECORDINGS_DIR: ${{ github.workspace }}/artifacts/jollity-scenarios-${{ matrix.id }}-recordings
+      PRODUCT_LAB_RECORDINGS_HOST_LOGS: 'off'
+      BUNDLE_SHA256: ${{ needs.scenario-bundle.outputs.manifest-sha256 }}
+      SCENARIO_NAMES: ${{ toJSON(matrix.scenarios) }}
+      SCENARIO_TAGS: ${{ matrix.tags }}
+      NEGATIVE_CONTROL: ${{ matrix.negative == true }}
+      LEG_REPORTS: ${{ github.workspace }}/apps/jollity-app/.product-lab/scenario-reports/${{ matrix.id }}
+    steps:
+      - name: Require the lab tests to have passed or been skipped
+        env:
+          SOURCES_RESULT: ${{ needs.sources.result }}
+          UNIT_RESULT: ${{ needs.unit.result }}
+        run: |
+          # A failed path check skips the lab tests, so it must fail the legs too.
+          if [ "$SOURCES_RESULT" != success ] && [ "$SOURCES_RESULT" != skipped ]; then
+            echo "::error::The lab path check ended $SOURCES_RESULT; the scenario legs do not run on an unproven lab"
+            exit 1
+          fi
+          if [ "$UNIT_RESULT" != success ] && [ "$UNIT_RESULT" != skipped ]; then
+            echo "::error::Jollity lab tests ended $UNIT_RESULT; the scenario legs do not run on an unproven lab"
+            exit 1
+          fi
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.2'
+      - run: npm ci
+      - name: Plan the leg offline
+        run: |
+          args=(--tags "$SCENARIO_TAGS")
+          if [ "$NEGATIVE_CONTROL" = true ]; then args+=(--negative-control); fi
+          node_modules/.bin/product-lab test --config lab.config.ts "${args[@]}" --dry-run --report-dir artifacts/jollity-leg-plan
+          node_modules/.bin/tsx apps/jollity-app/scripts/lab/scenarios-ci.mts plan artifacts/jollity-leg-plan/product-lab-test.json
+      - name: Prepare the locked Engine and CLI host
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run jollity:lab:prepare -- --engine locked
+      - name: Restore the pinned Paseo bundle
+        id: bundle_cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: jollity-paseo-bundle-${{ needs.scenario-bundle.outputs.asset-key }}
+          path: apps/jollity-app/.product-lab/paseo-bundle
+      - name: Verify and install the pinned bundle
+        env:
+          BUNDLE_CACHE_HIT: ${{ steps.bundle_cache.outputs.cache-hit }}
+        run: node_modules/.bin/tsx apps/jollity-app/scripts/lab/scenarios-ci.mts bundle-install apps/jollity-app/.product-lab/paseo-bundle
+      - name: Run the leg on its own fresh Paseo copy
+        id: leg
+        env:
+          # The Engine's fork tooling (ppn) reads release assets with the job's read-only token.
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          args=(--tags "$SCENARIO_TAGS")
+          if [ "$NEGATIVE_CONTROL" = true ]; then args+=(--negative-control); fi
+          rm -rf -- "$LEG_REPORTS"
+          mkdir -p "$LEG_REPORTS"
+          set +e
+          node_modules/.bin/product-lab test --config lab.config.ts "${args[@]}" --own-lab --video --report-dir "$LEG_REPORTS"
+          raw=$?
+          set -e
+          echo "raw=$raw" >> "$GITHUB_OUTPUT"
+          if [ "$raw" != 0 ]; then
+            # A start failure leaves no other trace: keep the Engine's own process logs with the reports.
+            for log in apps/jollity-app/.product-lab/scenarios-engine/run-*/paseo-copy/processes/*.log; do
+              [ -f "$log" ] || continue
+              run=$(basename "$(dirname "$(dirname "$(dirname "$log")")")")
+              cp -- "$log" "$LEG_REPORTS/engine-$run-$(basename "$log")"
+            done
+          fi
+      - name: Clean up owned processes
+        if: always()
+        run: |
+          if [ -x node_modules/.bin/tsx ]; then
+            node_modules/.bin/tsx apps/jollity-app/scripts/lab/scenarios-ci.mts cleanup
+          fi
+      - name: Classify supported and declared pending steps
+        env:
+          RAW_EXIT: ${{ steps.leg.outputs.raw }}
+          LEG_NAME: ${{ matrix.name }}
+        run: node_modules/.bin/tsx apps/jollity-app/scripts/lab/scenarios-ci.mts classify "$LEG_REPORTS/product-lab-test.json"
+      - name: Withhold key material from reports
+        if: always()
+        env:
+          # The leg's token, so a raw Engine log that echoed it is withheld too.
+          JOB_TOKEN: ${{ github.token }}
+        run: |
+          for file in "$LEG_REPORTS"/product-lab-test.json "$LEG_REPORTS"/junit.xml "$LEG_REPORTS"/report.html "$LEG_REPORTS"/cucumber.log "$LEG_REPORTS"/engine-*.log; do
+            if [ -f "$file" ] && { grep -qE -- '-----BEGIN [A-Z ]*PRIVATE KEY-----' "$file" || { [ -n "$JOB_TOKEN" ] && grep -qF -- "$JOB_TOKEN" "$file"; }; }; then
+              rm -f -- "$file"
+              echo "::warning::Withheld a report containing private key material"
+            fi
+          done
+      - name: Upload scenario reports and videos
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jollity-scenarios-${{ matrix.id }}
+          path: |
+            apps/jollity-app/.product-lab/scenario-reports/${{ matrix.id }}/product-lab-test.json
+            apps/jollity-app/.product-lab/scenario-reports/${{ matrix.id }}/junit.xml
+            apps/jollity-app/.product-lab/scenario-reports/${{ matrix.id }}/report.html
+            apps/jollity-app/.product-lab/scenario-reports/${{ matrix.id }}/cucumber.log
+            apps/jollity-app/.product-lab/scenario-reports/${{ matrix.id }}/engine-*.log
+            artifacts/jollity-scenarios-${{ matrix.id }}-recordings/**/videos/
+          retention-days: 14
+          if-no-files-found: warn

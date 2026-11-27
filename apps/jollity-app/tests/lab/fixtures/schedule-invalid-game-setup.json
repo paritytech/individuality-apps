@@ -1,0 +1,38 @@
+{
+  "sourceCommit": "1bba2f0297b591f71b2121ca1d1762f866778a71",
+  "sourceEvidenceSha256": "d2cbd5144db07a1dbf0459956a6442e074216bd13528020d9055e60c73edd14f",
+  "receipt": {
+    "label": "Game.schedule_games",
+    "ok": true,
+    "txHash": "0x335905b2b0b475342a3912fe89bf91d1691a937184527d2313d4d2045caedebf",
+    "block": {
+      "index": 2,
+      "number": 2645571,
+      "hash": "0x3b4fbd704a9fe34bc2022d382f84d5cf1251e0c3223784365228991edd3ba3d9"
+    },
+    "sudoEvents": [
+      {
+        "type": "Sudid",
+        "sudoResult": {
+          "success": false,
+          "value": {
+            "type": "Module",
+            "value": {
+              "type": "Game",
+              "value": {
+                "type": "InvalidGameSetup"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "eventNames": [
+      "Balances.Withdraw",
+      "Sudo.Sudid",
+      "Balances.Deposit",
+      "TransactionPayment.TransactionFeePaid",
+      "System.ExtrinsicSuccess"
+    ]
+  }
+}

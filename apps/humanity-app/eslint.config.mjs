@@ -8,7 +8,7 @@ import tsParser from "@typescript-eslint/parser";
 export default [
   js.configs.recommended,
   {
-    files: ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"],
+    files: ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}", "tests/flow/*.test.mts", "lab/**/*.ts", "lab.opening.config.ts", "lab.flow.config.ts", "lab.scenarios.config.ts", "scripts/lab/**/*.mts"],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -44,6 +44,8 @@ export default [
       "no-undef": "off",
     },
   },
+  // The imported runtime metadata code has dynamic pallet shapes; retain upstream's explicit types.
+  { files: ["tests/flow/speedups.test.ts"], rules: { "@typescript-eslint/no-explicit-any": "off" } },
   // What is left of the app's own `shared/` is UI: components, hooks, motion,
   // navigation, store, styles and the react-query wrappers. Everything
   // framework-free moved to `@humanity/shared`, but the direction of the

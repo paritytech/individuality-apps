@@ -1,0 +1,33 @@
+{
+  "repository": "https://github.com/paritytech/humanity-jollity-scarcity-e2e",
+  "patches": [
+    {
+      "file": "cross-app-return-control.patch",
+      "base": "645e7e152cbe0f7e71a29ae23da96515c80cac75",
+      "sha256": "9658d623a14146d978597417b589170ce69d61e7aecb1b958e519a24a172ad30",
+      "kind": "lab instrumentation",
+      "reason": "Expose an optional observation-only onControl callback for trusted payoff/return controls; preserve every click and readiness check",
+      "sourceSha256": "9c72aa4ae1536f8314be3a661f18bedfdeba4558302c5323871d739aaf5d9249",
+      "destinationSha256": "b68dac1d529862035ecdd0611950b07f21e04cec641c3f7be94073ec6675fc08",
+      "retire-when": "The upstream return helper exposes an equivalent observation callback and this lab vendors that revision",
+      "localAdaptation": "After the patch, the destination also reads the Pocket's Claim all as the opened chest's exit and leaves through the shut Pocket's Continue, so destinationSha256 is the adapted file",
+      "destination": "lab/shared/upstream/lab/steps/dim2/results.ts"
+    },
+    {
+      "file": "imported-schedule-race.patch",
+      "base": "6e3f296e7e1b64bc194725495450c4a670539134",
+      "baseRepository": "https://github.com/paritytech/individuality-apps",
+      "sha256": "75245bbe7a9858b24703920fe58e01a0b76f320f063e4c20c5c18261dd5402ca",
+      "kind": "lab fork cleanup",
+      "reason": "Accept only a proven already-consumed schedule and hand off a validated empty promotion from a snapshotted schedule; this incremental patch uses the exact previously adapted vendored file as its base",
+      "sourceSha256": "ee50851c90069253042d633d722e921fa844bc71c2900f888a3e6fd2193c84bc",
+      "destinationSha256": "311edfaed6523d847808de25a105a8166a74f1052d215d829f6b180119a568fd",
+      "retire-when": "The upstream drain handles finalized schedule-consumption races and validated empty promotions, and this lab vendors that revision",
+      "destination": "lab/shared/upstream/lab/steps/humanity/bootstrap/imported-games.ts"
+    }
+  ],
+  "relocation": {
+    "date": "2026-11-12",
+    "reason": "Vendored destinations moved to lab/shared/upstream; results.ts also rebases its local post-game import. Upstream instrumentation patches and their base/source hashes are unchanged."
+  }
+}

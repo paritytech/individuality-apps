@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "types": ["node"], "noUnusedLocals": true },
+  "include": ["lab.opening.config.ts", "lab/opening/**/*.ts", "scripts/lab/**/*.mts", "tests/lab/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

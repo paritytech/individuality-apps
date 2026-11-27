@@ -1,0 +1,26 @@
+{
+  "repository": "https://github.com/paritytech/humanity-jollity-scarcity-e2e",
+  "commit": "f21dbb567591869c2c17bdda7213986d9d09e94f",
+  "recordedAt": "2026-11-02T13:01:00+02:00",
+  "files": [
+    {
+      "sourcePath": "suites/humanity/e2e/humanity-opening.feature",
+      "sourceSha256": "bbfeb49730ef7c79d2a94e7995a6560953b15747ebd0aaf95cd7a0714c1e085f",
+      "destination": "e2e/humanity-opening.feature",
+      "adaptation": "Preserve the new hosted person, home/card and reload intent in a source-only scenario."
+    },
+    {
+      "sourcePath": "suites/humanity/e2e.lab.config.ts",
+      "sourceSha256": "fae17060e101c573622f8c7d5c296d67d2f6f02d81f693dcf83d99679a14be3a",
+      "destination": "lab.opening.config.ts",
+      "adaptation": "Select only this opening and its control; no broad integration import."
+    },
+    {
+      "sourcePath": "suites/published/lab/kept-bundle.ts",
+      "sourceSha256": "573615cd37e0c0455291b17c6d6539885506cffff67de3997e14205cdf591e64",
+      "destination": "lab/opening/session.ts",
+      "adaptation": "Bounded consumer keep shim for npm 0.1.0, used only for explicit kept local qualification."
+    }
+  ],
+  "newCode": "Session and assertions use public product-lab APIs. No application source, broad suite, descriptors or saved players imported."
+}

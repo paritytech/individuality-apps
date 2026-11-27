@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.flow.json",
+  "include": [
+    "scripts/lab/**/*.mts",
+    "lab.scenarios.config.ts",
+    "lab/scenarios/**/*.ts",
+    "tests/scenarios/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

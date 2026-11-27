@@ -1,0 +1,341 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Cross-app two-host lab
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "lab/**"
+      - "lab.config.ts"
+      - "apps/humanity-app/**"
+      - "apps/jollity-app/**"
+      - "packages/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".nvmrc"
+      - ".github/workflows/cross-app-lab.yml"
+  schedule:
+    # Schedules take effect only after this workflow reaches the default branch.
+    - cron: "25 1 * * *"
+
+permissions:
+  contents: read
+
+env:
+  # Set false after the first PR proof to keep the full loop schedule-only.
+  CROSS_APP_C6_ON_PR: "true"
+
+concurrency:
+  group: cross-app-${{ github.event.pull_request.number || 'nightly' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  plan:
+    if: github.event_name == 'schedule' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    name: Plan named scenario runs
+    timeout-minutes: 5
+    outputs:
+      runs: ${{ steps.plan.outputs.runs }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          node --input-type=module -e 'import { planRuns } from "./lab/cross-app/runs.ts"; import { appendFileSync } from "node:fs"; const runs = planRuns(process.env.EVENT, process.env.CROSS_APP_C6_ON_PR); console.log(JSON.stringify(runs, null, 2)); appendFileSync(process.env.GITHUB_OUTPUT, "runs=" + JSON.stringify(runs) + "\n");'
+
+  bundle:
+    name: Pin the Paseo bundle for the scenario runs
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.runs != '[]' }}
+    concurrency:
+      group: cross-app-bundle-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'nightly' }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    runs-on: ${{ vars.HUMANITY_LAB_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 45
+    outputs:
+      manifest-sha256: ${{ steps.pin.outputs.manifest-sha256 }}
+      asset-key: ${{ steps.lookup.outputs.asset-key }}
+      source: ${{ steps.pin.outputs.source }}
+      bitten-at: ${{ steps.pin.outputs.bitten-at }}
+      seconds: ${{ steps.pin.outputs.seconds }}
+      cached: ${{ steps.pin.outputs.cached }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+      PRODUCT_LAB_FORK_BUNDLE: fresh
+      PRODUCT_LAB_FORK_PORT_BASE: "10000"
+      PRODUCT_LAB_CACHE_DIR: ${{ github.workspace }}/apps/humanity-app/.product-lab/cache
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Set up Bun for host scripts
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+      - run: /usr/bin/time -v npm ci
+      - run: /usr/bin/time -v npm run humanity:lab:prepare -- --engine locked
+      - name: Look up the published bundle's asset
+        id: lookup
+        run: node_modules/.bin/tsx apps/humanity-app/scripts/lab/scenarios-ci.mts bundle-lookup
+      - name: Restore this asset's pin
+        id: pin_cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: cross-app-paseo-bundle-${{ github.event.pull_request.number || 'nightly' }}-pin-${{ steps.lookup.outputs.asset-key }}
+          path: apps/humanity-app/.product-lab/paseo-bundle-pin
+      - name: Check for this asset's cached bundle
+        id: bundle_cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: cross-app-paseo-bundle-${{ github.event.pull_request.number || 'nightly' }}-${{ steps.lookup.outputs.asset-key }}
+          path: apps/humanity-app/.product-lab/paseo-bundle
+          lookup-only: true
+      - name: Pin the published bundle, downloading it only on a cache miss
+        id: pin
+        env:
+          ASSET_KEY: ${{ steps.lookup.outputs.asset-key }}
+          CACHED: ${{ steps.pin_cache.outputs.cache-hit == 'true' && steps.bundle_cache.outputs.cache-hit == 'true' }}
+        run: node_modules/.bin/tsx apps/humanity-app/scripts/lab/scenarios-ci.mts bundle-pin apps/humanity-app/.product-lab/paseo-bundle apps/humanity-app/.product-lab/paseo-bundle-pin
+      - name: Save the pinned bundle for every scenario run
+        if: steps.pin.outputs.cached == 'false'
+        # A path inside the workspace: the cache stores it relative to the workspace on every runner layout.
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: cross-app-paseo-bundle-${{ github.event.pull_request.number || 'nightly' }}-${{ steps.lookup.outputs.asset-key }}
+          path: apps/humanity-app/.product-lab/paseo-bundle
+      - name: Save the bundle's pin
+        if: steps.pin.outputs.cached == 'false'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: cross-app-paseo-bundle-${{ github.event.pull_request.number || 'nightly' }}-pin-${{ steps.lookup.outputs.asset-key }}
+          path: apps/humanity-app/.product-lab/paseo-bundle-pin
+
+  build:
+    name: Build Humanity and Jollity once
+    needs: [plan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Type-check all lab and report scripts
+        run: |
+          node_modules/.bin/tsc --noEmit -p apps/humanity-app/tsconfig.scenarios.json
+          node_modules/.bin/tsc --noEmit -p lab/tsconfig.json
+      - name: Type-check the lab entry scripts
+        run: node_modules/.bin/tsc --noEmit -p apps/humanity-app/tsconfig.lab.json
+      - name: Build the commit's static app output
+        run: node_modules/.bin/tsx lab/cross-app/scripts/cross-app-ci.mts build artifacts/cross-app-shared-build
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cross-app-build-${{ github.sha }}
+          path: artifacts/cross-app-shared-build/
+          retention-days: 14
+          if-no-files-found: error
+
+  runs:
+    name: ${{ matrix.name }}
+    needs: [plan, bundle, build]
+    runs-on: ${{ vars.HUMANITY_LAB_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ github.event_name == 'pull_request' && 11 || 8 }}
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.runs) }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+      PRODUCT_LAB_CACHE_DIR: ${{ github.workspace }}/apps/humanity-app/.product-lab/cache
+      PRODUCT_LAB_FORK_PORT_BASE: "10000"
+      PRODUCT_LAB_FORK_BUNDLE: keep
+      HUMANITY_SCENARIOS_FORK_DIRECTORY: ${{ github.workspace }}/.product-lab/scenarios-engine
+      HUMANITY_SCENARIOS_SETUP: ${{ github.event_name == 'pull_request' && 'fast' || 'full' }}
+      CROSS_APP_CI_OUT: ${{ github.workspace }}/artifacts/cross-app/${{ matrix.id }}
+      BUNDLE_SHA256: ${{ needs.bundle.outputs.manifest-sha256 }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+      - run: npm ci
+      - name: Prepare pinned Engine, CLI host and Chromium
+        run: npm run humanity:lab:prepare -- --engine locked
+      - name: Recorder and report controls
+        env:
+          CROSS_APP_BROWSER_CONTROLS: '1'
+        if: matrix.id == 'c3-1' || github.event_name == 'schedule'
+        run: |
+          npm test --workspace @individuality/lab -- --maxWorkers=1
+          npm test --workspace @humanity/app -- tests/scenarios --maxWorkers=1
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: bundle_cache
+        with:
+          key: cross-app-paseo-bundle-${{ github.event.pull_request.number || 'nightly' }}-${{ needs.bundle.outputs.asset-key }}
+          path: apps/humanity-app/.product-lab/paseo-bundle
+      - name: Verify the run's pinned Paseo bundle
+        env:
+          BUNDLE_CACHE_HIT: ${{ steps.bundle_cache.outputs.cache-hit }}
+        run: node_modules/.bin/tsx apps/humanity-app/scripts/lab/scenarios-ci.mts bundle-install apps/humanity-app/.product-lab/paseo-bundle
+      - name: Download this commit's shared app build
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: cross-app-build-${{ github.sha }}
+          path: artifacts/cross-app-shared-build
+      - name: Run one scenario on its own Paseo copy
+        env:
+          SCENARIO_RUN: ${{ matrix.id }}
+        run: node_modules/.bin/tsx lab/cross-app/scripts/cross-app-ci.mts run "$SCENARIO_RUN"
+      - name: Clean up this workspace's abandoned processes
+        if: always()
+        run: |
+          if [ -x node_modules/.bin/tsx ]; then
+            node_modules/.bin/tsx lab/cross-app/scripts/cross-app-ci.mts cleanup
+          fi
+      - name: Retain sanitized timing evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cross-app-data-${{ matrix.id }}
+          path: |
+            artifacts/cross-app/${{ matrix.id }}/dataset.json
+            artifacts/cross-app/${{ matrix.id }}/transactions.jsonl
+            artifacts/cross-app/${{ matrix.id }}/timings/timings.jsonl
+            artifacts/cross-app/${{ matrix.id }}/timings/observations.jsonl
+            artifacts/cross-app/${{ matrix.id }}/report.html
+            artifacts/cross-app/${{ matrix.id }}/comment.md
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Retain app videos only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cross-app-videos-${{ matrix.id }}
+          path: artifacts/cross-app/${{ matrix.id }}/recordings/**/videos/
+          retention-days: 14
+          if-no-files-found: warn
+
+  summarize:
+    name: Merge timing reports from every scenario run
+    timeout-minutes: 10
+    needs: [plan, bundle, build, runs]
+    if: ${{ always() && needs.plan.result == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      artifact: ${{ steps.upload.outputs.artifact-url }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        continue-on-error: true
+        with:
+          pattern: cross-app-data-*
+          path: artifacts/cross-app-inputs
+      - name: Merge real timing files and summarize missing or failed scenario runs
+        if: always()
+        env:
+          BUNDLE_RESULT: ${{ needs.bundle.result }}
+          RUNS_RESULT: ${{ needs.runs.result }}
+        run: |
+          mkdir -p artifacts/cross-app-summary
+          if ! node_modules/.bin/tsx lab/cross-app/scripts/cross-app-ci.mts summarize artifacts/cross-app-inputs artifacts/cross-app-summary; then
+            printf '<!-- cross-app-lab-comment:v1 -->\n## Cross-app lab\n\nNo complete timing report. Bundle: %s. Scenario runs: %s. See this run for failures.\n' "$BUNDLE_RESULT" "$RUNS_RESULT" > artifacts/cross-app-summary/comment.md
+            cat artifacts/cross-app-summary/comment.md >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          cat artifacts/cross-app-summary/comment.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        id: upload
+        if: always()
+        with:
+          name: cross-app-summary
+          path: artifacts/cross-app-summary/
+          retention-days: 14
+
+  comment:
+    name: Update the lab's PR summary
+    needs: [summarize]
+    if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.summarize.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      pull-requests: write
+    concurrency:
+      group: cross-app-comment-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: cross-app-summary
+          path: summary
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          REPORT_URL: ${{ needs.summarize.outputs.artifact }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const marker = '<!-- cross-app-lab-comment:v1 -->';
+            const text = fs.readFileSync('summary/comment.md', 'utf8');
+            if (!text.startsWith(marker) || text.length > 50000) throw new Error('Invalid cross-app summary');
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const stamp = `<!-- cross-app-lab-run:${context.runId}:${process.env.GITHUB_RUN_ATTEMPT || '1'} -->`;
+            const body = `${text}\n${stamp}\n[Workflow run](${runUrl}) · [HTML report artifact](${process.env.REPORT_URL})`;
+            const target = { ...context.repo, issue_number: context.issue.number };
+            for (let retry = 0; retry < 3; retry++) {
+              try {
+                const comments = await github.paginate(github.rest.issues.listComments, { ...target, per_page: 100 });
+                const found = comments.find(c => c.user?.login === 'github-actions[bot]' && c.user?.type === 'Bot' && c.body?.startsWith(marker));
+                if (found) {
+                  const { data: fresh } = await github.rest.issues.getComment({ ...context.repo, comment_id: found.id });
+                  const old = /<!-- cross-app-lab-run:(\d+):(\d+) -->/.exec(fresh.body || '');
+                  if (old && (BigInt(old[1]) > BigInt(context.runId) || old[1] === String(context.runId) && Number(old[2]) > Number(process.env.GITHUB_RUN_ATTEMPT || '1'))) break;
+                  await github.rest.issues.updateComment({ ...context.repo, comment_id: found.id, body });
+                }
+                else await github.rest.issues.createComment({ ...target, body });
+                break;
+              } catch (error) { if (retry === 2) throw error; }
+            }
+
+  cache-cleanup:
+    name: Remove older pinned bundles for this PR or nightly run
+    timeout-minutes: 5
+    needs: [bundle, runs]
+    if: ${{ always() && needs.bundle.outputs.asset-key != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Prune only this ref's older cross-app bundle assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF: ${{ github.ref }}
+          PREFIX: cross-app-paseo-bundle-${{ github.event.pull_request.number || 'nightly' }}-
+          KEEP: ${{ needs.bundle.outputs.asset-key }}
+        run: |
+          gh cache list --repo "$GITHUB_REPOSITORY" --ref "$REF" --key "$PREFIX" --limit 100 --json key,lastAccessedAt \
+            | jq -r --arg prefix "$PREFIX" --arg keep "$KEEP" '.[] | select(.key != ($prefix + $keep) and .key != ($prefix + "pin-" + $keep)) | select((.lastAccessedAt | fromdateiso8601) < (now - 21600)) | .key' \
+            | while IFS= read -r key; do
+                gh cache delete "$key" --repo "$GITHUB_REPOSITORY" || echo "::warning::Older cross-app cache could not be deleted"
+              done

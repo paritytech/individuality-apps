@@ -1,0 +1,311 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Humanity to DIM2 play-through
+
+# Advisory only: main requires no checks. No workflow depends on this result.
+on:
+  pull_request:
+    branches: [main]
+    types: [labeled, synchronize, reopened, opened]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      negative_control:
+        description: Expect Alice's deliberately wrong three-credit assertion to fail
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  sources:
+    name: Humanity flow inputs changed
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && (github.event.action != 'labeled' || github.event.label.name == 'run-dim2-flow')
+    concurrency:
+      group: humanity-dim2-flow-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event_name == 'push' && 'main' || format('dispatch-{0}', github.ref) }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      changed: ${{ steps.files.outputs.changed }}
+    steps:
+      - id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          files=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR}/files" --jq '.[].filename')
+          if grep -qE '^lab/shared/|^lab/package\.json$|^lab\.config\.ts$|^apps/humanity-app/(lab/flows/|lab/opening/session\.ts$|scripts/lab/(flow|locked-dot-cli)\.mts$|lab/opening/host\.lock\.json$|lab\.flow\.config\.ts$)|^\.github/(workflows/humanity-dim2-flow\.yml|lab-(scenario|demo)-summary\.mts)$' <<<"$files"; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  flow:
+    name: Humanity to DIM2 source flow (advisory)
+    needs: [sources]
+    if: ${{ !cancelled() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && (github.event.action != 'labeled' || github.event.label.name == 'run-dim2-flow') && (contains(github.event.pull_request.labels.*.name, 'run-dim2-flow') || needs.sources.outputs.changed == 'true'))) }}
+    concurrency:
+      group: humanity-dim2-flow-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event_name == 'push' && 'main' || format('dispatch-{0}', github.ref) }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    runs-on: ${{ vars.DIM2_FLOW_RUNNER || 'ubuntu-24.04' }}
+    # Local positive: 22 min (8 min environment, 3 min actors, 13 min scenario).
+    # Explicit step caps total 105 min. Reserve 15 min for setup, uploads and summary.
+    # The journey cap includes CI's 10 min import wait and both source builds.
+    timeout-minutes: 120
+    outputs:
+      scenarios: ${{ steps.comment_summary.outputs.scenarios }}
+      demo_status: ${{ steps.comment_summary.outputs.demo_status }}
+      demo: ${{ steps.upload_demo.outputs.artifact-url }}
+      videos: ${{ steps.upload_videos.outputs.artifact-url }}
+      results: ${{ steps.upload_results.outputs.artifact-url }}
+    env:
+      PRODUCT_LAB_FORK_BUNDLE: fresh
+      # The runner's observed ephemeral range is 15000-65000, which the OS hands to outgoing connections. The default
+      # fork block 42000-42999 sat inside it (port 42916 was taken on #1982). 14000-14999 is below that range and clear
+      # of the 10000-10999 block the other lab jobs use.
+      PRODUCT_LAB_FORK_PORT_BASE: "14000"
+      HUMANITY_FLOW_IMPORTED_GAME_WAIT_MS: "600000"
+      NEGATIVE_CONTROL: ${{ github.event_name == 'workflow_dispatch' && inputs.negative_control }}
+      PRODUCT_LAB_RECORDINGS_DIR: ${{ github.workspace }}/artifacts/humanity-dim2-recordings
+      HUMANITY_FLOW_DEMO_DIR: ${{ github.workspace }}/artifacts/humanity-dim2-demo
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+      - name: Set up Bun for host scripts
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+      - name: Record capacity
+        run: |
+          df -h
+          free -m
+          cat /proc/sys/net/ipv4/ip_local_port_range || true
+          cat /sys/fs/cgroup/memory.events || true
+      - name: Install dependencies
+        timeout-minutes: 10
+        run: /usr/bin/time -v npm ci
+      - name: Check the flow offline
+        timeout-minutes: 5
+        run: /usr/bin/time -v npm run --workspace @humanity/app humanity:flow:check
+      - name: Prepare locked tooling
+        timeout-minutes: 15
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: /usr/bin/time -v npm run --workspace @humanity/app humanity:flow:prepare -- --engine locked
+      - name: Build both apps from this commit and run the three-player journey
+        id: flow
+        timeout-minutes: 50
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$NEGATIVE_CONTROL" = true ]; then
+            /usr/bin/time -v npm run --workspace @humanity/app humanity:e2e:flow -- --fresh --negative-control
+          else
+            /usr/bin/time -v npm run --workspace @humanity/app humanity:e2e:flow -- --fresh
+          fi
+      - name: Clean up owned processes
+        timeout-minutes: 5
+        if: always()
+        run: |
+          if [ -x node_modules/.bin/tsx ]; then
+            node_modules/.bin/tsx apps/humanity-app/scripts/lab/flow.mts cleanup
+          fi
+          df -h
+          free -m
+          cat /sys/fs/cgroup/memory.events || true
+      - name: Install demo tools when absent
+        timeout-minutes: 5
+        if: always()
+        continue-on-error: true
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ffmpeg
+          fi
+      - name: Cut the journey demo
+        id: demo
+        timeout-minutes: 15
+        if: always()
+        continue-on-error: true
+        env:
+          FLOW_OUTCOME: ${{ steps.flow.outcome }}
+        run: |
+          args=()
+          if [ "$FLOW_OUTCOME" != success ] || [ "$NEGATIVE_CONTROL" = true ]; then
+            args+=(--failed)
+          fi
+          node_modules/.bin/tsx apps/humanity-app/scripts/lab/flow.mts demo "${args[@]}"
+      - name: Upload demo
+        id: upload_demo
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: humanity-dim2-demo
+          path: |
+            artifacts/humanity-dim2-demo/**/*.mp4
+            artifacts/humanity-dim2-demo/**/*.webm
+            artifacts/humanity-dim2-demo/**/*.vtt
+            artifacts/humanity-dim2-demo/**/slide.png
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Upload actor videos
+        id: upload_videos
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: humanity-dim2-videos
+          path: artifacts/humanity-dim2-recordings/**/videos/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Read sanitized scenario steps
+        id: comment_summary
+        if: always()
+        continue-on-error: true
+        env:
+          DEMO_OUTCOME: ${{ steps.demo.outcome }}
+          DEMO_URL: ${{ steps.upload_demo.outputs.artifact-url }}
+          FLOW_OUTCOME: ${{ steps.flow.outcome }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync, readFileSync } from 'node:fs';
+          import { writeFlowDemoStatus } from './.github/lab-demo-summary.mts';
+          let scenarios = [];
+          try {
+            const text = readFileSync('apps/humanity-app/.product-lab/flow-reports/sanitized/scenario-steps.json', 'utf8');
+            if (text.length <= 40000) scenarios = JSON.parse(text);
+          } catch { /* No scenario report is available. */ }
+          appendFileSync(process.env.GITHUB_OUTPUT, `scenarios=${JSON.stringify(scenarios)}\n`);
+          writeFlowDemoStatus({ outcome: process.env.DEMO_OUTCOME, url: process.env.DEMO_URL,
+            runUrl: `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
+            journey: process.env.FLOW_OUTCOME, scenarios, directory: 'apps/humanity-app/.product-lab/flow-reports/sanitized',
+            output: process.env.GITHUB_OUTPUT, summary: process.env.GITHUB_STEP_SUMMARY });
+          NODE
+
+      - name: Retain sanitized results
+        id: upload_results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: humanity-dim2-results-${{ github.run_id }}
+          path: apps/humanity-app/.product-lab/flow-reports/sanitized/
+          retention-days: 14
+          if-no-files-found: warn
+
+
+  comment:
+    name: Update opening comment
+    needs: [flow]
+    if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.flow.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    continue-on-error: true
+    permissions:
+      pull-requests: write
+    concurrency:
+      # Shared by all three lab workflows: serialize comment creation and updates.
+      group: lab-opening-comment-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Create or update the opening comment
+        continue-on-error: true
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          WORKFLOW: flow
+          DEMO_STATUS: ${{ needs.flow.outputs.demo_status }}
+          RESULT: ${{ needs.flow.result }}
+          SCENARIOS: ${{ needs.flow.outputs.scenarios }}
+          DEMO_URL: ${{ needs.flow.outputs.demo }}
+          VIDEOS_URL: ${{ needs.flow.outputs.videos }}
+          RESULTS_URL: ${{ needs.flow.outputs.results }}
+        with:
+          script: |
+            const marker = '<!-- lab-opening-comment:v1 -->';
+            const key = process.env.WORKFLOW;
+            const title = { humanity: 'Humanity', jollity: 'Jollity', flow: 'DIM2 play-through' }[key];
+            if (!title) throw new Error('Unknown opening workflow');
+            const begin = `<!-- lab-opening:${key}:start -->`;
+            const end = `<!-- lab-opening:${key}:end -->`;
+            const run = String(context.runId);
+            const attempt = process.env.GITHUB_RUN_ATTEMPT || '1';
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${run}`;
+            const escape = (value) => String(value).slice(0, 300).replace(/[&<>@\[\]()*_`#|\r\n:~$!\\]/g, (char) => `&#${char.charCodeAt(0)};`);
+            const lookup = (table, value) => (typeof value === 'string' && Object.hasOwn(table, value) ? table[value] : 'UNAVAILABLE');
+            const verdict = (value) => lookup({ passed: 'PASS', failed: 'FAIL', 'not-run': 'NOT RUN', skipped: 'SKIPPED', pending: 'PENDING', undefined: 'UNDEFINED', ambiguous: 'AMBIGUOUS' }, value);
+            const isObject = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
+            function buildSection() {
+              let scenarios = [];
+              try { scenarios = JSON.parse(process.env.SCENARIOS || '[]'); } catch { /* unavailable */ }
+              const notRun = key === 'flow' && Array.isArray(scenarios) && scenarios.some((scenario) => isObject(scenario) && ['not-run', 'failed'].includes(scenario.status) && scenario.reason === 'not run: imported game in Reporting');
+              const teardownFailed = notRun && scenarios.some((scenario) => isObject(scenario) && scenario.status === 'failed' && scenario.reason === 'not run: imported game in Reporting');
+              const result = teardownFailed ? 'FAIL (not run: imported game in Reporting)' : notRun ? 'NOT RUN: imported game in Reporting' : lookup({ success: 'PASS', failure: 'FAIL', cancelled: 'CANCELLED', skipped: 'SKIPPED' }, process.env.RESULT);
+              const lines = [begin, `<!-- lab-opening:${key}:run:${run}:${attempt} -->`, `## ${title}${key === 'flow' ? '' : ' opening'}`, '', `[Run ${run}, attempt ${attempt}](${runUrl}) · Result: **${result}**`, ''];
+              if (key === 'flow') {
+                const suffix = process.env.DEMO_URL?.startsWith(`${runUrl}/artifacts/`) ? process.env.DEMO_URL.slice(`${runUrl}/artifacts/`.length) : '';
+                const demo = process.env.DEMO_STATUS === 'produced' && /^\d+$/.test(suffix) ? 'produced' : 'not produced';
+                lines.push(`Demo: **${demo}**`, '');
+              }
+              if (!Array.isArray(scenarios) || !scenarios.some(isObject)) {
+                lines.push('Scenario steps unavailable (the opening may have stopped before reporting).', '');
+              } else {
+                for (const scenario of scenarios.filter(isObject).slice(0, 1)) {
+                  const status = key === 'flow' && scenario.status === 'not-run' && scenario.reason === 'not run: imported game in Reporting' ? 'NOT RUN: imported game in Reporting' : verdict(scenario.status);
+                  lines.push(`### ${escape(scenario.name)} · ${status}`, '', '| Step | Result |', '| --- | --- |');
+                  for (const step of (Array.isArray(scenario.steps) ? scenario.steps : []).filter(isObject).slice(0, 100)) {
+                    lines.push(`| ${escape(step.name)} | ${verdict(step.status)} |`);
+                  }
+                  lines.push('');
+                }
+              }
+              for (const [label, value] of [['Demo', process.env.DEMO_URL], ['Videos', process.env.VIDEOS_URL], ['Results', process.env.RESULTS_URL]]) {
+                // Only upload-artifact links from this exact run are usable.
+                const suffix = value?.startsWith(`${runUrl}/artifacts/`) ? value.slice(`${runUrl}/artifacts/`.length) : '';
+                lines.push(/^\d+$/.test(suffix) ? `- [${label}](${value})` : `- ${label}: unavailable`);
+              }
+              lines.push('', end);
+              return lines.join('\n');
+            }
+            function updateSection(body, section) {
+              if (!body) return `${marker}\n\n# Local fork openings\n\n${section}\n`;
+              const start = body.indexOf(begin);
+              const stop = body.indexOf(end);
+              if (start < 0 && stop < 0) return `${body.trimEnd()}\n\n${section}\n`;
+              if (start < 0 || stop < start || body.indexOf(begin, start + begin.length) >= 0 || body.indexOf(end, stop + end.length) >= 0) throw new Error('Invalid opening section');
+              const current = body.slice(start, stop + end.length);
+              const previous = new RegExp(`<!-- lab-opening:${key}:run:(\\d+):(\\d+) -->`).exec(current);
+              // A delayed older run must not replace a newer run or rerun.
+              if (previous && (BigInt(previous[1]) > BigInt(run) || (previous[1] === run && BigInt(previous[2]) > BigInt(attempt)))) return body;
+              return body.slice(0, start) + section + body.slice(stop + end.length);
+            }
+            // Publish only through the job token; no checkout or personal credential.
+            const section = buildSection();
+            const target = { ...context.repo, issue_number: context.issue.number };
+            for (let retry = 0; retry < 3; retry++) {
+              try {
+                const comments = await github.paginate(github.rest.issues.listComments, { ...target, per_page: 100 });
+                const found = comments.find((comment) => comment.user?.login === 'github-actions[bot]' && comment.user?.type === 'Bot' && comment.body?.startsWith(marker));
+                if (found) {
+                  // Re-read inside the shared concurrency group immediately before merging.
+                  const { data: fresh } = await github.rest.issues.getComment({ ...context.repo, comment_id: found.id });
+                  if (!fresh.body?.startsWith(marker)) throw new Error('Opening marker changed');
+                  const body = updateSection(fresh.body, section);
+                  if (body === fresh.body) break;
+                  await github.rest.issues.updateComment({ ...context.repo, comment_id: found.id, body });
+                  const { data: saved } = await github.rest.issues.getComment({ ...context.repo, comment_id: found.id });
+                  if (saved.body === body) break;
+                } else {
+                  await github.rest.issues.createComment({ ...target, body: updateSection('', section) });
+                  break;
+                }
+              } catch { /* Re-list and re-read on transient failures, including ambiguous creates. */ }
+              if (retry === 2) core.warning('Opening comment unavailable; the opening result is unchanged.');
+            }

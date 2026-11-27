@@ -1,0 +1,244 @@
+{
+  "repository": "https://github.com/paritytech/humanity-jollity-scarcity-e2e",
+  "commit": "645e7e152cbe0f7e71a29ae23da96515c80cac75",
+  "speedupCommit": "51d40995a21513a709cce11b9669ddd29cc854ea",
+  "files": [
+    {
+      "source": "suites/humanity/lab/chain/descriptors.ts",
+      "destination": "lab/shared/upstream/lab/chain/descriptors.ts",
+      "sourceSha256": "476f6fae2390190336d630facf1a9aef21efb0f07c182981672f2ec248aa42e0",
+      "sha256": "2c9a1dd81a135c6942233f9bfc42db5b0e4fdf6f10689c7dfa4c571976f930fa",
+      "adaptation": "Use repository descriptors"
+    },
+    {
+      "source": "suites/humanity/lab/chain/people.ts",
+      "destination": "lab/shared/upstream/lab/chain/people.ts",
+      "sourceSha256": "3d601991a9db80e028a7bcf6fc4b4690238c22730e0baf160512f2170d224c66",
+      "sha256": "3d601991a9db80e028a7bcf6fc4b4690238c22730e0baf160512f2170d224c66",
+      "adaptation": null
+    },
+    {
+      "source": "suites/humanity/lab/chain/sudo.ts",
+      "destination": "lab/shared/upstream/lab/chain/sudo.ts",
+      "sourceSha256": "1153ee53c835cdd50fe5477ea06077763359f69608ba289de94c78da7b2f0674",
+      "sha256": "1153ee53c835cdd50fe5477ea06077763359f69608ba289de94c78da7b2f0674",
+      "adaptation": null
+    },
+    {
+      "source": "suites/humanity/lab/full-journey/identity.ts",
+      "destination": "lab/shared/upstream/lab/full-journey/identity.ts",
+      "sourceSha256": "04f5e92fd8c147a69ced7b14a2d29b5da0ef1d070c047fa47477a05ead7d957e",
+      "sha256": "04f5e92fd8c147a69ced7b14a2d29b5da0ef1d070c047fa47477a05ead7d957e",
+      "adaptation": null
+    },
+    {
+      "source": "suites/humanity/lab/network-session.ts",
+      "destination": "lab/shared/upstream/lab/network-session.ts",
+      "sourceSha256": "a0081a4fa925bf6dff2abeb1438e622f9dfc76818883c4dc6ce0b54cee55e178",
+      "sha256": "a0081a4fa925bf6dff2abeb1438e622f9dfc76818883c4dc6ce0b54cee55e178",
+      "adaptation": null
+    },
+    {
+      "source": "suites/humanity/lab/steps/dim2/camera-evidence.ts",
+      "destination": "lab/shared/upstream/lab/steps/dim2/camera-evidence.ts",
+      "sourceSha256": "eadf8f50dcd40a0ce23452b7d4ea2de18ebab79a556dbe29e7155bb0e865f9ca",
+      "sha256": "eadf8f50dcd40a0ce23452b7d4ea2de18ebab79a556dbe29e7155bb0e865f9ca",
+      "adaptation": null
+    },
+    {
+      "source": "suites/humanity/lab/steps/dim2/confirm-together.ts",
+      "destination": "lab/shared/upstream/lab/steps/dim2/confirm-together.ts",
+      "sourceSha256": "9d7fbaa581b27f5c3fa8127eddda3234b4bf8ea7d7faa160d6fd94df2f510bc7",
+      "sha256": "9d7fbaa581b27f5c3fa8127eddda3234b4bf8ea7d7faa160d6fd94df2f510bc7",
+      "adaptation": null
+    },
+    {
+      "source": "suites/humanity/lab/steps/dim2/finalized-votes.ts",
+      "destination": "lab/shared/upstream/lab/steps/dim2/finalized-votes.ts",
+      "sourceSha256": "3c480eddf0a39bc80d415286763dc352708b99e8ba020d69d201fefe5692bd4c",
+      "sha256": "3c480eddf0a39bc80d415286763dc352708b99e8ba020d69d201fefe5692bd4c",
+      "adaptation": null
+    },
+    {
+      "source": "suites/humanity/lab/steps/dim2/live-game.ts",
+      "destination": "lab/shared/upstream/lab/steps/dim2/live-game.ts",
+      "sourceSha256": "25a1f87e7b24eacf731d9f951eb824bfd95ebe7a32d942986b166015aac1b9e9",
+      "sha256": "fb69b61f9c02e113f926d0e1821d219429d3f60220daa4190f70254544c957ff",
+      "adaptation": "Bound transient unreadable tile verdicts and disabled all-verdict Confirm states to 15 seconds of condition polling; keep vote gestures and report deadlines unchanged"
+    },
+    {
+      "source": "suites/humanity/lab/steps/dim2/results.ts",
+      "destination": "lab/shared/upstream/lab/steps/dim2/results.ts",
+      "sourceSha256": "9c72aa4ae1536f8314be3a661f18bedfdeba4558302c5323871d739aaf5d9249",
+      "sha256": "b68dac1d529862035ecdd0611950b07f21e04cec641c3f7be94073ec6675fc08",
+      "adaptation": "Follow the current collecting bubble and Continue on open; share the safe chest observation, reject restart/identity-loss and already-closing preparation, wait through the long-wait notice without ever taking its skip, up to a 240 s bound, and record when it showed and cleared, and scope the second Continue to the album with hand-off retries; expose an optional observation-only onControl callback for trusted payoff/return controls, preserving every click and readiness check; read the Pocket's Claim all as the opened chest's exit, press it with Enter since it is drawn clipped until focused, and leave through the shut Pocket's Continue"
+    },
+    {
+      "source": "suites/humanity/lab/steps/dim2/signup-telemetry.ts",
+      "destination": "lab/shared/upstream/lab/steps/dim2/signup-telemetry.ts",
+      "sourceSha256": "4f8abe3ef492893445bb08074b860a2aeb747ffdb02fd57d461f3304c16f8a63",
+      "sha256": "4f8abe3ef492893445bb08074b860a2aeb747ffdb02fd57d461f3304c16f8a63",
+      "adaptation": null
+    },
+    {
+      "source": "suites/humanity/lab/steps/games/attendance/game.repository.ts",
+      "destination": "lab/shared/upstream/lab/steps/games/attendance/game.repository.ts",
+      "sourceSha256": "6bc5c82725bc6058021f3220132d446b3f6df5b6466976a767fd0edaeca860ff",
+      "sha256": "c7cdcdae6258cc8e972f4b18ca015ab0975c52287a4e3343d18aed715b18e1d4",
+      "adaptation": "Forward the atomic setup failure attachment callback before private run cleanup; preserve the existing successful setup record; schedule with an empty tenure_claim_window, as runtime 3_005_000 requires"
+    },
+    {
+      "source": "suites/humanity/lab/steps/games/chain.ts",
+      "destination": "lab/shared/upstream/lab/steps/games/chain.ts",
+      "sourceSha256": "c734418406b4e470a2df0e26dc93469dadea065c6a99d5fc32de03f360ea32ba",
+      "sha256": "c734418406b4e470a2df0e26dc93469dadea065c6a99d5fc32de03f360ea32ba",
+      "adaptation": null
+    },
+    {
+      "source": "suites/humanity/lab/steps/games/fork-setup-plan.ts",
+      "destination": "lab/shared/upstream/lab/steps/games/fork-setup-plan.ts",
+      "sourceSha256": "568a9354b943d7345ae4df3dd2b8f13a4e38ca64b6d360c5f7f0a107d9665e92",
+      "sha256": "3d8965137827e90c01f0fc712545af6f618feb706b2bd129fa5f1ff754138e94",
+      "adaptation": "Separate empty imported-game cleanup from provisioning; require finalized game absence before phase changes and scheduling"
+    },
+    {
+      "source": "suites/humanity/lab/steps/games/fork-setup.ts",
+      "destination": "lab/shared/upstream/lab/steps/games/fork-setup.ts",
+      "sourceSha256": "443cfe368aec1c0e87b124c00a6ed238eefcd5fd3016d56e31cccc71c63c6bf0",
+      "sha256": "f512259ac4d672a7d27e0276f9ee31561fb137a3a90d2e8866df9e83d9cec6e2",
+      "adaptation": "Preserve metadata storage defaults; remove remaining schedules and cancel an empty imported Registration in a cleanup batch, wait up to 180 seconds for finalized absence, reread Sudo/state, then provision atomically; attach allowlisted decoded dispatch failures before throwing without private journal paths"
+    },
+    {
+      "source": "suites/humanity/lab/steps/games/game-retime.ts",
+      "destination": "lab/shared/upstream/lab/steps/games/game-retime.ts",
+      "sourceSha256": "5ec58aa3d72016e7c6eebdedb6e21d80a39c0c272c4ccf2efb717a1bc1222ea1",
+      "sha256": "5ec58aa3d72016e7c6eebdedb6e21d80a39c0c272c4ccf2efb717a1bc1222ea1",
+      "adaptation": null
+    },
+    {
+      "source": "suites/humanity/lab/steps/games/operations.ts",
+      "destination": "lab/shared/upstream/lab/steps/games/operations.ts",
+      "sourceSha256": "a56f2050cf6029235c106e71dc1d6962d21714ef70e02be6610fa48cacaf6b24",
+      "sha256": "fa4ac9f30fb0437afc2ace1d31d6ea10a334e273c0ea88fb792bce349c8f27cf",
+      "adaptation": "Expose the async sanitized atomic setup failure attachment callback"
+    },
+    {
+      "source": "suites/humanity/lab/steps/games/participant.ts",
+      "destination": "lab/shared/upstream/lab/steps/games/participant.ts",
+      "sourceSha256": "029ac85c469e011901190af6e8c8bf128e9660a38cf67abbc9fb12bb81fb0634",
+      "sha256": "029ac85c469e011901190af6e8c8bf128e9660a38cf67abbc9fb12bb81fb0634",
+      "adaptation": null
+    },
+    {
+      "source": "suites/humanity/lab/steps/games/reporting/reporting-completion.ts",
+      "destination": "lab/shared/upstream/lab/steps/games/reporting/reporting-completion.ts",
+      "sourceSha256": "729b501efd99429d4034852dd03b3d486555bdbbcb8c3c1565dc0006874f12a6",
+      "sha256": "729b501efd99429d4034852dd03b3d486555bdbbcb8c3c1565dc0006874f12a6",
+      "adaptation": null
+    },
+    {
+      "source": "suites/humanity/lab/steps/humanity/bootstrap/imported-games.ts",
+      "destination": "lab/shared/upstream/lab/steps/humanity/bootstrap/imported-games.ts",
+      "sourceSha256": "275b5dd81feedac8f6a886c4f8c018d67c7b2997ee24ece292919f6e2bc1e6b3",
+      "sha256": "311edfaed6523d847808de25a105a8166a74f1052d215d829f6b180119a568fd",
+      "adaptation": "Wait for the snapshotted import past Shuffle before removing schedules; hand off only its next-index empty Registration promotion dated by a snapshotted schedule to the existing atomic setup, and refuse other replacements; accept a validated optional completion wait cap for CI, with an explicit non-passing Reporting not-run result on timeout; preserve the finality-stall diagnostic when no finalized head advances; classify finality from the last minute of head progress, including a late freeze; tolerate only Game.NoSuchGameScheduled with absence proved at the receipt block, and validate a snapshotted empty promotion when the import initially had no game"
+    },
+    {
+      "source": "suites/humanity/lab/steps/humanity/chain/people.ts",
+      "destination": "lab/shared/upstream/lab/steps/humanity/chain/people.ts",
+      "sourceSha256": "d282ce2a37a27b685116e616190345320d77d343489b58f15d54b7760bbf8b03",
+      "sha256": "d282ce2a37a27b685116e616190345320d77d343489b58f15d54b7760bbf8b03",
+      "adaptation": null
+    },
+    {
+      "source": "suites/humanity/lab/system.ts",
+      "destination": "lab/shared/upstream/lab/system.ts",
+      "sourceSha256": "5b158097eeacd870f7ff165a34ae850711e2c44568016a45fd2514920f5b83fc",
+      "sha256": "5b158097eeacd870f7ff165a34ae850711e2c44568016a45fd2514920f5b83fc",
+      "adaptation": null
+    },
+    {
+      "source": "suites/humanity/three-apps/chain.ts",
+      "destination": "lab/shared/upstream/three-apps/chain.ts",
+      "sourceSha256": "16d6d5ca1e8faef09c1625302a0351ca268e97ebe04daa5531df5f1287362881",
+      "sha256": "a64b4f958bc9247f419496494d7cb626ad6be1d5ca19d7d37e2a5922ec191ab0",
+      "adaptation": "Keep delivered-credit reads only, drop unused Scarcity helpers, use noble v2 export"
+    },
+    {
+      "source": "scripts/three-apps-demo.mjs",
+      "destination": "apps/humanity-app/lab/flows/demo.mjs",
+      "sourceSha256": "3df92f268e407c573b7ea02352be9133ba91f44a35ac5ba08f082ef1d8292c23",
+      "sha256": "f35f670a99252f15b6931b5a047e82a0e3e91f61d723e4f1f9673a4f384e6b9d",
+      "adaptation": "Select this flow, one explicit run directory, monorepo CLI/config; retain the shared recording-store video paths; use PATH node launchers with early validation of both source apps; run the last page to its measured close so product-lab 0.1.2 can hold the last step; cut only the app-owned record, never product-lab's own recording of the feature"
+    },
+    {
+      "source": "suites/humanity/three-apps/video-frames.ts",
+      "destination": "apps/humanity-app/lab/flows/session.ts",
+      "sourceSha256": "a9ed98044c198184d265842d81696aa8df8b1eb853e2ef239ea07725aa99f3e2",
+      "sha256": "8e595ed92458582866e9b5af68a3b033697b50725195ad5578bc3dad03e66f8b",
+      "adaptation": "Track the active page directly in the owned session map; no Scarcity page or session; project session port bounds to the strict host options schema; use PATH node launchers with early validation of both source apps; retain served HTTP actor URLs separately from navigation deep links and share owned flow across module loaders; retain each actor's observed payoff timestamp for pre-recovery diagnostic capture; collect measured actor setup times and actual page-video descriptors for custom-step demo recording; note when session cleanup begins as the videos' measured close"
+    },
+    {
+      "source": "suites/humanity/tests/runner-speedups.test.ts",
+      "destination": "apps/humanity-app/tests/flow/speedups.test.ts",
+      "sourceSha256": "f039cf064c3ae0b3ee6498bf90f0b576a88a65f9b76681d74b712c6b25caac5f",
+      "sha256": "ebad758544fe3bd1bc4b608680b7cac4678a6b2b706a7618cfbd0ff583d6b363",
+      "adaptation": "Use Vitest and local support paths; encode cleanup and provisioning batches separately with a required runtime drain between them; retain idle provisioning receipt and final-state controls"
+    },
+    {
+      "source": "suites/humanity/tests/fixtures/people-3004000.metadata16.scale.gz",
+      "destination": "apps/humanity-app/tests/flow/fixtures/people-3004000.metadata16.scale.gz",
+      "sourceSha256": "675f65b4db8f15b104ad1e62560efbaeda899f8cef41457ee38b0e8eef3794d9",
+      "sha256": "675f65b4db8f15b104ad1e62560efbaeda899f8cef41457ee38b0e8eef3794d9",
+      "adaptation": null
+    }
+  ],
+  "landedCommit": "c833b3d5a4a086a277b82d8430b63a40dd5c6d67",
+  "landedDifferences": {
+    "commit": "c833b3d5a4a086a277b82d8430b63a40dd5c6d67",
+    "refactorCommit": "19cac5c25ff70dbce61343d30ee5afc5a442b70d",
+    "change": "The landed version injects OwnedGameFork in place of repeated requireOwnedGameFork checks. This port retains the original snapshot and its ownership checks.",
+    "files": [
+      {
+        "source": "suites/humanity/lab/steps/games/attendance/game.repository.ts",
+        "landedSha256": "77c6e87c26294ccb71f930f2afe2eb44f3fb8cdd96de732cf12ba3a9b983d043"
+      },
+      {
+        "source": "suites/humanity/lab/steps/games/fork-setup.ts",
+        "landedSha256": "b17c1d5d71d507becc6afeb08cd280b3e71260f55acb5b969d3aaadb49f05cae"
+      },
+      {
+        "source": "suites/humanity/lab/steps/games/operations.ts",
+        "landedSha256": "b3e381a4c4489d73aa005891bef4afa7223d82f2f858ea138622992eeb8b62bb"
+      }
+    ],
+    "renames": [
+      {
+        "from": "suites/humanity/tests/runner-speedups.test.ts",
+        "to": "suites/humanity/tests/games-runner-speedups.test.ts"
+      }
+    ]
+  },
+  "localPorts": [
+    {
+      "source": "standalone journey support: guards.mjs",
+      "origin": "standalone qualified journey support (not in the e2e repository)",
+      "sourceSha256": "0942fab1d101ac05d539dd2d779e20de53a652920ae2fed3fae493378b06990f",
+      "destination": "apps/humanity-app/lab/flows/guards.mjs",
+      "sha256": "868935bfa0e84de97e7e3b5aa23390637c5b18742577c6a1304982e49ccd807e",
+      "adaptation": "Describe Candidate and finalized-alias guard semantics using the flow reader names"
+    },
+    {
+      "source": "standalone journey support: watched-text.mjs",
+      "origin": "standalone qualified journey support (not in the e2e repository)",
+      "sourceSha256": "0a0353c8e14756784ffcba80a2bb0a6c47c2be72eb3937ee939579f258136045",
+      "destination": "lab/shared/watched-text.ts",
+      "sha256": "46623f261fd69d8c33c5571d63f6ed54c768c3f82f851ff3efe7a06a3cd97250",
+      "adaptation": "Type the generic observation, preserve the exact navigation-error rule, and read an absent document body safely"
+    }
+  ],
+  "relocation": {
+    "date": "2026-11-12",
+    "reason": "Shared lab helpers and vendored dependencies now live in the private root lab workspace; feature behavior is unchanged."
+  }
+}
