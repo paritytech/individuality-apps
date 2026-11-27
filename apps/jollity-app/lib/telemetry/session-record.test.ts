@@ -43,6 +43,7 @@ const NOW = 1_800_000_000_000
 const listeners = new Map<string, (event?: Event) => void>()
 let hidden = false
 let pathname = "/"
+let search = ""
 const record = vi.fn<(diagnostic: PreviousSessionDiagnostic) => void>()
 
 function storage(map: Map<string, string>): Storage {
@@ -98,6 +99,7 @@ beforeEach(() => {
   listeners.clear()
   hidden = false
   pathname = "/"
+  search = ""
   record.mockReset()
   replayCapture.mockReset()
   lifecycleRecord.mockReset()
@@ -109,7 +111,7 @@ beforeEach(() => {
   vi.stubGlobal("sessionStorage", storage(session))
   vi.stubGlobal("window", {
     addEventListener: (name: string, fn: (event?: Event) => void) => listeners.set(`window:${name}`, fn),
-    location: { get pathname() { return pathname } },
+    location: { get pathname() { return pathname }, get search() { return search } },
   })
   vi.stubGlobal("document", {
     addEventListener: (name: string, fn: (event?: Event) => void) => listeners.set(`document:${name}`, fn),
@@ -125,8 +127,7 @@ afterEach(() => {
 })
 
 describe("previous-session classification", () => {
-  it("rounds the epoch time origin to integer milliseconds before capture", async () => {
-    vi.stubGlobal("performance", {
+  it("rounds the epoch time origin to integer milliseconds before capture", async () => {    vi.stubGlobal("performance", {
       timeOrigin: 1_792_413_000_123.456,
       getEntriesByType: () => [{ type: "reload" }],
     })
@@ -267,6 +268,85 @@ describe("previous-session classification", () => {
     ).resolves.toMatchObject({ classification: "killed-background" })
   })
 
+})
+
+describe("launch source on session.link", () => {
+  it("records a host alarm open as notification with its raw host value", async () => {
+    vi.stubGlobal("__trinityHostTelemetry", {
+      hostSessionId: "123e4567-e89b-42d3-a456-426614174000",
+      openSource: "alarm",
+      openedAtEpochMs: NOW - 1_000,
+    })
+    await start()
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.launch_source": "notification",
+      "app.launch_detail": "alarm",
+    }))
+  })
+
+  it("records a host deeplink open as deeplink", async () => {
+    vi.stubGlobal("__trinityHostTelemetry", {
+      hostSessionId: "123e4567-e89b-42d3-a456-426614174000",
+      openSource: "deeplink",
+      openedAtEpochMs: NOW - 1_000,
+    })
+    await start()
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.launch_source": "deeplink",
+    }))
+  })
+
+  it("records a reminder notification from the launch URL with its moment", async () => {
+    search = "?jollity-notification=reminder&moment=start-5m"
+    await start()
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.launch_source": "notification",
+      "app.launch_detail": "start-5m",
+    }))
+  })
+
+  it("records any other launch query as a deeplink with the route", async () => {
+    pathname = "/game"
+    search = "?card=humanity"
+    await start()
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.launch_source": "deeplink",
+      "app.launch_detail": "/game",
+    }))
+  })
+
+  it("records unknown when nothing says what opened the page", async () => {
+    await start()
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.launch_source": "unknown",
+      "app.launch_detail": null,
+    }))
+  })
+})
+
+describe("concurrent page flag on session.link", () => {
+  it("flags a previous session seen half a second earlier as a concurrent page", async () => {
+    previous({ lastSeenAt: NOW - 500 })
+    await start()
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.concurrent_page": "true",
+    }))
+  })
+
+  it("does not flag a previous session seen long ago", async () => {
+    previous({ lastSeenAt: NOW - 20_000 })
+    await start()
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.concurrent_page": "false",
+    }))
+  })
+
+  it("does not flag a first page with no previous session", async () => {
+    await start()
+    expect(replayCapture).toHaveBeenCalledWith("session.link", expect.objectContaining({
+      "app.concurrent_page": "false",
+    }))
+  })
 })
 
 describe("synchronous evidence", () => {

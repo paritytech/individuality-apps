@@ -20,6 +20,7 @@ import { isOpenJourneyRecord, openJourneyRecoveryRecords, setOpenJourneyListener
 import { currentScene, heapMbNow, setSceneListener } from "./smoothness"
 import { pageHidden } from "./util"
 import { readHostTelemetryContext } from "./host-context"
+import { readLaunchSource } from "./launch-source"
 import { chainNowMs } from "../chain-clock"
 import { readPageResourceCounters, type PageResourceCounters } from "./resource-counters"
 import { pageLifecycleRecord, type PageLifecycleEvent } from "./index"
@@ -29,6 +30,9 @@ export const SESSION_LINEAGE_KEY = "jollity.telemetry.session-lineage"
 export const HEARTBEAT_MS = 20_000
 export const HOST_RELOAD_MAX_GAP_MS = 2_000
 export const STALE_AFTER_MS = 30 * 60_000
+/** A previous page still alive this recently means a second copy was opened
+ *  alongside it (archive#1882): the double-open signature. */
+export const CONCURRENT_PAGE_MAX_GAP_MS = 5_000
 export const MAX_PAYOFF_SAMPLES_PER_PHASE = 15
 
 type PreviousExit =
@@ -450,6 +454,11 @@ export async function startSessionRecord(options: StartOptions): Promise<Previou
     }
     const established = refresh()
     const hostTelemetry = readHostTelemetryContext()
+    const launch = readLaunchSource({
+      search: typeof window === "undefined" ? "" : window.location.search,
+      pathname: typeof window === "undefined" ? "/" : window.location.pathname,
+    })
+    const concurrentPage = previous !== null && now - previous.lastSeenAt >= 0 && now - previous.lastSeenAt < CONCURRENT_PAGE_MAX_GAP_MS
     captureReplayObservation("session.link", {
       heartbeatSessionId: current.sessionId,
       logSessionId: SESSION_ID,
@@ -464,6 +473,10 @@ export async function startSessionRecord(options: StartOptions): Promise<Previou
       sameLineage: previous ? previous.lineageId === currentLineage : null,
       previousExitClassification: diagnostic.classification,
       previousLastSeenWallMs: previous?.lastSeenAt ?? null,
+      // string attributes: Sentry span attributes are string-typed (archive#1882)
+      "app.launch_source": launch.source,
+      "app.launch_detail": launch.detail,
+      "app.concurrent_page": concurrentPage ? "true" : "false",
       persisted: established,
     })
     if (established && previous && openJourneys.length > 0) {
