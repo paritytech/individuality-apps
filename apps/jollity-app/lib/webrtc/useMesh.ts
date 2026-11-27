@@ -611,8 +611,8 @@ export function useMesh({ roomKey, selfId, peers, standby, createTransport, self
         {
           // the link's steps, gathering, heals and round trips go to the trace alone (lib/webrtc/rtc-events.ts)
           onRtcEvent: recordMeshEvent,
-          initialVideoRung: adaptation.rung(),
-          onVideoRungResult: (result) => adaptation.videoRungResult(result),
+          initialVideoRung: adaptation.targetRung(),
+          onVideoRungResult: (result) => adaptation.videoRungResult(result, mesh),
           onActiveVideoSendersChanged: (count) => void adaptation.activeSendersChanged(count),
           // the waiting room's dots: a link added, heard from, up, down, moved or gone
           onLinkChange: () => {

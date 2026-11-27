@@ -23,6 +23,9 @@ import {
 export interface SendAdaptationMesh {
   applyVideoRung(rung: VideoRung): Promise<VideoRungApplyResult>
   videoRung(): SendRungIndex
+  /** True while any peer connection is up; an apply with no senders then
+   * means no sender carries a track (camera off), not a fresh peerless mesh. */
+  hasLiveConnections?(): boolean
 }
 
 export interface SendAdaptationPorts {
@@ -216,25 +219,39 @@ export class SendAdaptationDriver {
     return VIDEO_RUNGS.find((rung) => rung.index === this.videoRung()) ?? FULL_VIDEO_RUNG
   }
 
-  videoRungResult(result: VideoRungApplyResult): void {
+  /** The rung a fresh mesh should be built at: the pending target of an
+   * unanswered down request, otherwise the settled rung. */
+  targetRung(): VideoRung {
+    return VIDEO_RUNGS.find((rung) => rung.index === this.controller.targetRung()) ?? FULL_VIDEO_RUNG
+  }
+
+  /** Results carry the mesh they came from: a detached mesh's late answer
+   * never settles the request (a regroup swapped the mesh before it landed). */
+  videoRungResult(result: VideoRungApplyResult, from?: SendAdaptationMesh): void {
+    if (from !== undefined && from !== this.mesh) return
     if (!this.controller.acceptsResult(result)) {
-      if (result.requested !== this.videoRung()) this.reapplyCurrentRung()
+      if (result.requested !== this.controller.targetRung()) this.reapplyCurrentRung()
       return
     }
     this.evidence.apply(result)
     if (result.senders.length === 0) {
-      this.neutralRegroup()
+      // An empty apply on an outstanding down request counts as a refusal, so
+      // the controller rolls back and the driver rewrites its rung instead of
+      // treating the regroup as neutral. An empty apply on an up request
+      // (probe) stays a neutral regroup: a refused probe would double the
+      // recovery hold.
+      // With live connections the empty result is only trackless senders
+      // (camera off, standby), so it stays neutral.
+      const peerless = !(from ?? this.mesh)?.hasLiveConnections?.()
+      if (peerless && this.controller.state().transition?.direction === "down") this.refuse(result)
+      else this.neutralRegroup()
       this.publish()
       return
     }
     const held = result.senders.some((sender) => sender.appliedFields.includes("maxBitrate"))
     const allPending = result.senders.length > 0 && result.senders.every((sender) => sender.status === "pending" || sender.status === "missing")
     if (held || allPending) this.controller.accepted(result, this.ports.nowMs())
-    else {
-      this.controller.rejected(result, this.ports.nowMs())
-      this.evidence.reconcile(this.videoRung())
-      this.reapplyCurrentRung()
-    }
+    else this.refuse(result)
     this.publish()
   }
 
@@ -338,6 +355,7 @@ export class SendAdaptationDriver {
     }
     const transition = this.controller.observe(actionable)
     if (transition) await this.applyTransition(transition)
+    else this.reapplyCurrentRung()
     this.publish()
   }
 
@@ -376,21 +394,31 @@ export class SendAdaptationDriver {
     }
     try {
       const result = await mesh.applyVideoRung(VIDEO_RUNGS.find((rung) => rung.index === transition.to) ?? FULL_VIDEO_RUNG)
-      if (this.controller.state().mode === "awaiting-apply") this.videoRungResult(result)
+      if (this.controller.state().mode === "awaiting-apply" && mesh === this.mesh) this.videoRungResult(result, mesh)
     } catch {
+      if (mesh !== this.mesh) return
       this.videoRungResult({ requested: transition.to, senders: [], uniform: false })
     }
   }
 
+  /** Writes the target rung (pending down request or settled rung) to the
+   * attached mesh when it differs — a fresh mesh is built at the target, so
+   * attach itself usually makes no write. */
   private reapplyCurrentRung(): void {
     const mesh = this.mesh
-    const rung = this.rung()
+    const rung = this.targetRung()
     if (!mesh || mesh.videoRung() === rung.index) return
     void mesh.applyVideoRung(rung).catch(() => undefined)
   }
 
   private neutralRegroup(): void {
     this.controller.regroup()
+    this.evidence.reconcile(this.videoRung())
+    this.reapplyCurrentRung()
+  }
+
+  private refuse(result: VideoRungApplyResult): void {
+    this.controller.rejected(result, this.ports.nowMs())
     this.evidence.reconcile(this.videoRung())
     this.reapplyCurrentRung()
   }
