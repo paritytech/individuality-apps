@@ -10,7 +10,6 @@
  * books land before or after the 3 s release, and a genuine late join — and
  * every clause is checked after every step. A failure prints its seed.
  */
-import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 import { calculateSnapshot, hostSeat } from "@jollity/game-chain/game"
 import type { GameSnapshot, GameTimingInfo } from "@jollity/game-chain"
@@ -905,11 +904,10 @@ describe("the trail the books hand the session", () => {
     expect(ticked.trail).toContainEqual({ kind: "away" })
   })
 
-  it("#1470: the game session applies the captured remount boundary after restore", () => {
-    const source = readFileSync(new URL("./game-session.ts", import.meta.url), "utf8")
-    expect(source).toContain("remountClockState(")
-    expect(source).toContain("booksRef.current.restoredFirstOpenedTurn")
-  })
+  // #1470: the game session applies the captured remount boundary after
+  // restore — behaviour is pinned by the #1470 remount regressions above and
+  // by the useGameSession harness (game-session.fv.test.ts), not by reading
+  // this file's source text.
 
   it.each([
     { name: "round", at: G + 3, state: { ready: true }, boundary: G + 3 },
