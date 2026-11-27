@@ -178,16 +178,6 @@ export function cameraRecoveryStep(
   if (event.kind === "still-muted-quick" || event.kind === "still-muted-slow") {
     if (state.tap === "tapping") return stay
     const mutedStreak = event.kind === "still-muted-quick" ? state.mutedStreak + 1 : 1
-    // once the tap is offered (or spent), the automatic reopen keeps going at
-    // the 12 s cap (#1539, Ionut 27 Nov): a never-tapping player still gets a
-    // working camera back. The streak still counts, so telemetry sees how
-    // often the loop ran. The host-side backoff counter (mutedChecks) is what
-    // paces the reopens; this streak only decides when the tap is offered.
-    if (state.tap === "offered" || state.tap === "spent")
-      return {
-        state: { ...state, mutedStreak },
-        commands: [{ kind: "recover", reason: "still muted", trigger: "force" }],
-      }
     if (state.tap === "none" && mutedStreak >= 3) return {
       state: { ...state, mutedStreak, tap: "offered" },
       commands: [{ kind: "offer-tap" }, { kind: "recover", reason: "still muted", trigger: "force" }],
@@ -257,10 +247,10 @@ let releaseTimer: ReturnType<typeof setTimeout> | undefined
 let mutedTimer: ReturnType<typeof setTimeout> | undefined
 let retryTimer: ReturnType<typeof setTimeout> | undefined
 let recovery = startCameraRecovery()
-/** still-muted checks since the camera was last healthy (unmuted, framed or
- *  freshly opened unmuted): drives the reopen backoff and is the episode's
- *  autoRetries count. Reset on any healthy event, so a later incident starts
- *  its own episode and backoff (#1535, #1539). */
+/** still-muted checks since the camera was last healthy: drives the reopen
+ *  backoff, so a stuck camera is not reopened every 3 s (#1539). Reset by
+ *  stepRecovery on unmute, frame, page hidden or stop, so a later incident
+ *  starts its own backoff (#1535) — but not by a healthy reopen itself. */
 let mutedChecks = 0
 let openedAt = 0
 let mutedQuick = false
@@ -586,6 +576,12 @@ function clearRecovery() {
 }
 
 function stepRecovery(event: CameraRecoveryEvent): void {
+  // a healthy event ends the still-muted backoff episode (#1539); reset
+  // before stepping, so commands emitted by this step already see the count
+  // of the new episode. Tap outcomes are not health: a tapped stream's frame
+  // or mute does not reset the counter.
+  if (event.kind === "unmuted" || event.kind === "frame" || event.kind === "hidden" || event.kind === "stop")
+    mutedChecks = 0
   const step = cameraRecoveryStep(recovery, event)
   recovery = step.state
   step.commands.forEach(runRecoveryCommand)
@@ -697,7 +693,6 @@ function scheduleMutedCheck() {
       mutedChecks += 1
       cameraRecovering("still-muted")
       tapEpisode ??= { beganAt: Date.now(), autoRetries: 0 }
-      if (tapEpisode.shownAt === undefined) tapEpisode.autoRetries = mutedChecks
       stepRecovery({ kind: mutedQuick ? "still-muted-quick" : "still-muted-slow" })
     }
   }, graceMs)
@@ -741,7 +736,6 @@ function watchTrack(stream: MediaStream) {
     setMuted(false)
     if (mutedTimer) clearTimeout(mutedTimer)
     mutedTimer = undefined
-    mutedChecks = 0
     stepRecovery({ kind: "unmuted" })
     if (recovery.tap === "none") tapEpisode = null
   }
@@ -790,7 +784,6 @@ function watchPage() {
   watchingPage = true
   watchPageHidden(() => {
     if (outage) outage.hidden = true
-    mutedChecks = 0
     stepRecovery({ kind: "hidden" })
     if (recovery.tap === "none") tapEpisode = null
     pauseNoFrameTerminalCheck()
@@ -921,7 +914,6 @@ async function stopCamera() {
   stepRecovery({ kind: "stop" })
   wasLive = false
   outage = null // a late answer now is stopped
-  mutedChecks = 0
   for (const observer of previewObservers.values()) observer.stop()
   previewObservers.clear()
   previewObserverStreams.clear()
@@ -1018,7 +1010,6 @@ export function attachCameraPreview(video: HTMLVideoElement, attached: MediaStre
         }
         checked.add(key)
         setCameraGaveUp(false) // a camera that comes back by itself
-        mutedChecks = 0
         stepRecovery({ kind: "frame" })
         if (recovery.tap === "none") tapEpisode = null
         if (noFrameIncident && cameraGeneration > noFrameIncident.generation) closeNoFrameIncident("frame", current)

@@ -14,10 +14,9 @@ import { defineTransitionTable, type MachineDefinition, type NamedInvariant, typ
 /** Independent recovery model from camera.ts's header:
  * K1 hidden/unheld work never opens a camera; K2 retry waits are bounded;
  * K3 only the current timer may recover; K4 live resets only retry backoff;
- * K5 three quick still-muted reopens offer one tap, and the automatic reopen
- * keeps going at the 12 s cap once the tap is offered or spent (#1539, Ionut
- * 27 Nov); K6 tapping schedules no recovery; K7 one end command closes each
- * offered episode. */
+ * K5 three quick still-muted reopens offer one tap, and the reopen keeps
+ * going once the tap is offered or spent; K6 tapping schedules no recovery;
+ * K7 one end command closes each offered episode. */
 type BaseKey = "ready" | "scheduled" | "deferred" | "deferred-scheduled"
 type TapPhase = CameraRecoveryState["tap"]
 type StateKey = BaseKey | `${BaseKey}:${Exclude<TapPhase, "none">}`
@@ -88,8 +87,6 @@ function modelStep(before: ModelState, event: TestEvent): { state: ModelState; o
   if (event === "still-muted-quick" || event === "still-muted-slow") {
     if (before.tap === "tapping") return none
     const mutedStreak = event === "still-muted-quick" ? before.mutedStreak + 1 : 1
-    if (before.tap === "offered" || before.tap === "spent")
-      return { state: { ...before, mutedStreak }, output: ["recover:still muted:force"] }
     if (before.tap === "none" && mutedStreak >= 3)
       return { state: { ...before, mutedStreak, tap: "offered" }, output: ["offer-tap", "recover:still muted:force"] }
     return { state: { ...before, mutedStreak }, output: ["recover:still muted:force"] }
@@ -221,7 +218,7 @@ const invariants: Inv[] = [
   { name: "offer only at streak three and once per episode", specClause: "K5", check: ({ real, realObservation }) => {
     if (realObservation.commands.includes("offer-tap")) assert(real.mutedStreak >= 3 && real.tap === "offered", "early or unowned offer")
   } },
-  { name: "tapping ignores still-muted; offered or spent keeps the automatic reopen at the cap and the streak counting (#1539)", specClause: "K6", check: ({ event, previousReal, realObservation }) => {
+  { name: "tapping ignores still-muted; offered or spent still reopens and counts the streak (locks existing behaviour)", specClause: "K6", check: ({ event, previousReal, realObservation }) => {
     if (previousReal.tap === "tapping" && event.startsWith("still-muted")) assert(realObservation.commands.length === 0, "tapping recovered")
     if ((previousReal.tap === "offered" || previousReal.tap === "spent") && event.startsWith("still-muted")) {
       assert(realObservation.commands.filter((word) => word.startsWith("recover:")).length === 1, "offered or spent tap did not keep reopening automatically")

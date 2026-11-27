@@ -83,6 +83,25 @@ function current(): MediaStream | null {
   const state = cameraState()
   return state.kind === "live" ? state.stream : null
 }
+/** a fake <video> presenting a stream: attach it, then call frame() to
+ *  present a frame, as attachCameraPreview's observer would */
+function preview(stream: MediaStream, options: { paused?: boolean; rejectPlay?: boolean; pendingPlay?: boolean } = {}) {
+  let callback: VideoFrameRequestCallback | undefined
+  const video = {
+    srcObject: stream,
+    currentTime: 0,
+    readyState: 4,
+    paused: options.paused ?? false,
+    play: vi.fn(async () => {
+      if (options.pendingPlay) return new Promise<void>(() => {})
+      if (options.rejectPlay) throw new DOMException("blocked", "NotAllowedError")
+      video.paused = false
+    }),
+    requestVideoFrameCallback: vi.fn((next: VideoFrameRequestCallback) => ((callback = next), 1)),
+    cancelVideoFrameCallback: vi.fn(),
+  }
+  return { video, frame: () => callback?.(performance.now(), {} as VideoFrameCallbackMetadata) }
+}
 
 afterEach(async () => {
   setVisible(true)
@@ -136,24 +155,6 @@ describe("holding the camera", () => {
 })
 
 describe("presented-frame health", () => {
-  function preview(stream: MediaStream, options: { paused?: boolean; rejectPlay?: boolean; pendingPlay?: boolean } = {}) {
-    let callback: VideoFrameRequestCallback | undefined
-    const video = {
-      srcObject: stream,
-      currentTime: 0,
-      readyState: 4,
-      paused: options.paused ?? false,
-      play: vi.fn(async () => {
-        if (options.pendingPlay) return new Promise<void>(() => {})
-        if (options.rejectPlay) throw new DOMException("blocked", "NotAllowedError")
-        video.paused = false
-      }),
-      requestVideoFrameCallback: vi.fn((next: VideoFrameRequestCallback) => ((callback = next), 1)),
-      cancelVideoFrameCallback: vi.fn(),
-    }
-    return { video, frame: () => callback?.(performance.now(), {} as VideoFrameCallbackMetadata) }
-  }
-
   it("reopens once after three visible seconds without a frame and verifies the replacement", async () => {
     vi.useFakeTimers()
     const release = holdCamera()
@@ -621,18 +622,9 @@ describe("recovery", () => {
       const healthy = current()!
       expect(healthy).not.toBe(first) // a healthy reopen, no frame seen yet
       // present a frame on the healthy camera: genuinely healthy
-      let callback: VideoFrameRequestCallback | undefined
-      const video = {
-        srcObject: healthy,
-        currentTime: 0,
-        readyState: 4,
-        paused: false,
-        play: vi.fn(async () => {}),
-        requestVideoFrameCallback: vi.fn((next: VideoFrameRequestCallback) => ((callback = next), 1)),
-        cancelVideoFrameCallback: vi.fn(),
-      }
-      const detach = attachCameraPreview(video as unknown as HTMLVideoElement, healthy, "open")
-      callback?.(performance.now(), {} as VideoFrameCallbackMetadata)
+      const view = preview(healthy)
+      const detach = attachCameraPreview(view.video as unknown as HTMLVideoElement, healthy, "open")
+      view.frame()
       detach()
       await vi.advanceTimersByTimeAsync(60_000) // much later, a new incident
 
@@ -713,18 +705,9 @@ describe("recovery", () => {
     trackOf(first).dispatchEvent(new Event("mute"))
     await vi.advanceTimersByTimeAsync(3_000)
     const healthy = current()!
-    let callback: VideoFrameRequestCallback | undefined
-    const video = {
-      srcObject: healthy,
-      currentTime: 0,
-      readyState: 4,
-      paused: false,
-      play: vi.fn(async () => {}),
-      requestVideoFrameCallback: vi.fn((next: VideoFrameRequestCallback) => ((callback = next), 1)),
-      cancelVideoFrameCallback: vi.fn(),
-    }
-    const detach = attachCameraPreview(video as unknown as HTMLVideoElement, healthy, "open")
-    callback?.(performance.now(), {} as VideoFrameCallbackMetadata)
+    const view = preview(healthy)
+    const detach = attachCameraPreview(view.video as unknown as HTMLVideoElement, healthy, "open")
+    view.frame()
     detach()
     await vi.advanceTimersByTimeAsync(60_000)
 
@@ -822,18 +805,9 @@ describe("recovery", () => {
       tapCamera()
       await vi.advanceTimersByTimeAsync(0)
       const tapped = current()!
-      let callback: VideoFrameRequestCallback | undefined
-      const video = {
-        srcObject: tapped,
-        currentTime: 0,
-        readyState: 4,
-        paused: false,
-        play: vi.fn(async () => {}),
-        requestVideoFrameCallback: vi.fn((next: VideoFrameRequestCallback) => ((callback = next), 1)),
-        cancelVideoFrameCallback: vi.fn(),
-      }
-      detach = attachCameraPreview(video as unknown as HTMLVideoElement, tapped, "open")
-      callback?.(performance.now(), {} as VideoFrameCallbackMetadata)
+      const view = preview(tapped)
+      detach = attachCameraPreview(view.video as unknown as HTMLVideoElement, tapped, "open")
+      view.frame()
       trackOf(tapped).muted = true
       trackOf(tapped).dispatchEvent(new Event("mute"))
 
