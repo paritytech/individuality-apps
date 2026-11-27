@@ -1,0 +1,231 @@
+{
+ "cases": [
+  {
+   "game": 260,
+   "record": {
+    "gameDate": 1792418700,
+    "maxGroupSize": 6,
+    "rounds": 2
+   },
+   "players": [
+    {
+     "id": "russel",
+     "username": "player-russel-00"
+    }
+   ],
+   "joined": [
+    "russel"
+   ],
+   "logs": {
+    "russel": {
+     "meta": {},
+     "entries": [
+      {
+       "ts": 1792418854575,
+       "sessionId": "game-260",
+       "tag": "foreground",
+       "message": "away open",
+       "data": {
+        "hiddenAtMs": 1792418853259,
+        "hiddenChainS": 1792418846.259
+       }
+      },
+      {
+       "ts": 1792418854941,
+       "sessionId": "game-260",
+       "tag": "foreground",
+       "message": "away interval",
+       "data": {
+        "hiddenAtMs": 1792418853259,
+        "shownAtMs": 1792418854940,
+        "hiddenChainS": 1792418846.259,
+        "shownChainS": 1792418847.94,
+        "via": "visibility"
+       }
+      }
+     ]
+    }
+   }
+  },
+  {
+   "game": 263,
+   "record": {
+    "gameDate": 1792505100,
+    "maxGroupSize": 6,
+    "rounds": 2
+   },
+   "players": [
+    {
+     "id": "bigspender",
+     "username": "player-bigspe-08"
+    },
+    {
+     "id": "michael",
+     "username": "player-michae-09"
+    }
+   ],
+   "joined": [
+    "bigspender",
+    "michael"
+   ],
+   "logs": {
+    "bigspender": {
+     "meta": {},
+     "entries": [
+      {
+       "ts": 1792483156218,
+       "sessionId": "bigspender-old",
+       "tag": "foreground",
+       "message": "away open",
+       "data": {
+        "hiddenAtMs": 1792482872386,
+        "hiddenChainS": 1792482865.386
+       }
+      },
+      {
+       "ts": 1792505093453,
+       "sessionId": "bigspender-game",
+       "tag": "replay",
+       "message": "session.link"
+      },
+      {
+       "ts": 1792505265454,
+       "sessionId": "bigspender-game",
+       "tag": "vote",
+       "message": "report built"
+      }
+     ]
+    },
+    "michael": {
+     "meta": {},
+     "entries": [
+      {
+       "ts": 1792493903101,
+       "sessionId": "michael-old",
+       "tag": "foreground",
+       "message": "away open",
+       "data": {
+        "hiddenAtMs": 1792493792117,
+        "hiddenChainS": 1792493785.117
+       }
+      },
+      {
+       "ts": 1792505104904,
+       "sessionId": "michael-game",
+       "tag": "replay",
+       "message": "session.link"
+      },
+      {
+       "ts": 1792505260000,
+       "sessionId": "michael-game",
+       "tag": "vote",
+       "message": "report built"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "game": 264,
+   "record": {
+    "gameDate": 1792512000,
+    "maxGroupSize": 6,
+    "rounds": 2
+   },
+   "players": [
+    {
+     "id": "dreamticket",
+     "username": "player-dreamt-10"
+    },
+    {
+     "id": "deedee",
+     "username": "player-deedee-11"
+    },
+    {
+     "id": "sage",
+     "username": "player-sagepo-12"
+    }
+   ],
+   "joined": [
+    "dreamticket"
+   ],
+   "logs": {
+    "dreamticket": {
+     "meta": {},
+     "entries": [
+      {
+       "ts": 1792505332507,
+       "sessionId": "dreamticket-old",
+       "tag": "foreground",
+       "message": "away open",
+       "data": {
+        "hiddenAtMs": 1792505331092,
+        "hiddenChainS": 1792505324.092
+       }
+      },
+      {
+       "ts": 1792512007643,
+       "sessionId": "dreamticket-game",
+       "tag": "replay",
+       "message": "session.link"
+      },
+      {
+       "ts": 1792512021429,
+       "sessionId": "dreamticket-game",
+       "tag": "camera",
+       "message": "page.hidden"
+      },
+      {
+       "ts": 1792512022291,
+       "sessionId": "dreamticket-game",
+       "tag": "camera",
+       "message": "page.shown"
+      },
+      {
+       "ts": 1792512140000,
+       "sessionId": "dreamticket-game",
+       "tag": "vote",
+       "message": "report built"
+      }
+     ]
+    },
+    "deedee": {
+     "meta": {},
+     "entries": [
+      {
+       "ts": 1792512675358,
+       "sessionId": "deedee-idle",
+       "tag": "foreground",
+       "message": "away interval",
+       "data": {
+        "hiddenAtMs": 1792505362576,
+        "shownAtMs": 1792512675356,
+        "hiddenChainS": 1792505355.576,
+        "shownChainS": 1792512668.356,
+        "via": "visibility"
+       }
+      }
+     ]
+    },
+    "sage": {
+     "meta": {},
+     "entries": [
+      {
+       "ts": 1792512820799,
+       "sessionId": "sage-idle",
+       "tag": "foreground",
+       "message": "away interval",
+       "data": {
+        "hiddenAtMs": 1792509938188,
+        "shownAtMs": 1792512820785,
+        "hiddenChainS": 1792509932.188,
+        "shownChainS": 1792512814.785,
+        "via": "visibility"
+       }
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

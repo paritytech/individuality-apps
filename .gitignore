@@ -45,9 +45,17 @@ next-env.d.ts
 
 # local agent state: sessions, settings, editor rules
 .claude/*
+!.claude/skills/
 .claude/sessions/
 .claude/settings.local.json
 .cursor/
+
+# dim2-sentry telemetry store and report output: local runtime state, never committed
+# (the CI guard job in ci.yml scans everything tracked, including the skill tree above)
+/docs-internal/telemetry-store/
+/docs-internal/game-logs/
+/docs-internal/game-reports/
+/.claude/skills/dim2-sentry/.venv/
 
 # e2e run transcripts — generated, shareable, not source
 scripts/out/

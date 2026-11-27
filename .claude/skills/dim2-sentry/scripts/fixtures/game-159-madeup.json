@@ -1,0 +1,25 @@
+{
+ "meta": {
+  "address": "5F0159A",
+  "username": "player-fake-07",
+  "gameIndex": 159,
+  "device": "fake-device-01",
+  "release": "jollity-next@0fak3h4sh",
+  "environment": "dim2.paseo",
+  "startedAt": "2026-10-16T10:00:00+00:00"
+ },
+ "entries": [
+  {
+   "ts": "2026-10-16T10:00:01.000Z",
+   "tag": "alpha",
+   "message": "mesh open room g159:5F0159A_5F0160A",
+   "data": {"room": "g159:5F0159A_5F0160A", "self": "5F0159A", "peers": ["5F0160A"], "iceServers": 2}
+  },
+  {
+   "ts": "2026-10-16T10:00:05.000Z",
+   "tag": "beta",
+   "message": "rtc link connected to peer 1",
+   "data": {"peer": 1, "rtc.path": "stun"}
+  }
+ ]
+}

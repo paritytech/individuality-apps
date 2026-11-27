@@ -1,0 +1,161 @@
+{
+ "game259": {
+  "account": "5F0012A",
+  "roots": [
+   {
+    "id": "be39b7afd9f01316",
+    "timestamp": "2026-10-16T14:05:11+00:00",
+    "span.op": "journey.app-open",
+    "session.id": "98d87aa7-ff05-48c1-959e-4eda1bcc683e",
+    "journey.outcome": "ready",
+    "host.kind": "ios"
+   },
+   {
+    "id": "b1231dbb7f0c7efa",
+    "timestamp": "2026-10-16T14:05:26+00:00",
+    "span.op": "journey.app-open",
+    "session.id": "2ad33349-3b17-4b93-abd2-2695e6929d1c",
+    "journey.outcome": "ready",
+    "host.kind": "ios"
+   },
+   {
+    "id": "b9a386dd89ec74e3",
+    "timestamp": "2026-10-16T14:05:28+00:00",
+    "span.op": "journey.join",
+    "session.id": "a2acecb7-9745-4835-8764-63785212b491",
+    "game.index": "259",
+    "journey.recovered": "true",
+    "journey.previous_session_id": "ef38f2f6fb0f4d44865277829ee979e1",
+    "journey.outcome": "interrupted",
+    "wall.time.start": "1792159528611",
+    "wall.time.end": "1792159529215",
+    "host.kind": "ios"
+   },
+   {
+    "id": "9e3d3a9aeaa67f7f",
+    "timestamp": "2026-10-16T14:05:49+00:00",
+    "span.op": "journey.app-open",
+    "session.id": "a2acecb7-9745-4835-8764-63785212b491",
+    "journey.outcome": "ready",
+    "host.kind": "ios"
+   },
+   {
+    "id": "83bf07fe0f9feb52",
+    "timestamp": "2026-10-16T14:06:03+00:00",
+    "span.op": "journey.game",
+    "session.id": "a2acecb7-9745-4835-8764-63785212b491",
+    "game.index": "259",
+    "journey.outcome": "completed",
+    "host.kind": "ios"
+   }
+  ],
+  "errors": [
+   {
+    "id": "efde33cdc9c7460dae54f69ec05e47b1",
+    "project": "jollity-next",
+    "timestamp": "2026-10-16T14:05:26+00:00",
+    "session.id": "2ad33349-3b17-4b93-abd2-2695e6929d1c",
+    "previous.end": "host-reload",
+    "previous.game": "259",
+    "previous.in_game": "False",
+    "previous.turn": "1",
+    "previous.screen": "unknown"
+   },
+   {
+    "id": "1e9803c8b6d84988a1925cfaaa8e4605",
+    "project": "jollity-next",
+    "timestamp": "2026-10-16T14:05:50+00:00",
+    "session.id": "a2acecb7-9745-4835-8764-63785212b491",
+    "previous.end": "crash-or-kill-foreground",
+    "previous.game": "259",
+    "previous.in_game": "True",
+    "previous.turn": "unknown",
+    "previous.screen": "unknown"
+   }
+  ],
+  "details": {
+   "efde33cdc9c7460dae54f69ec05e47b1": {
+    "contexts": {
+     "previous.session": {
+      "game_index": 259,
+      "gap_ms": 61,
+      "live_video": 0,
+      "session_id": "e56208355e814c4c8d154db9aab29dec",
+      "turn": 1,
+      "visibility_changes": 1
+     }
+    }
+   },
+   "1e9803c8b6d84988a1925cfaaa8e4605": {
+    "contexts": {
+     "failure": {
+      "open_journey_steps": "join:chain.read",
+      "open_journeys": "join"
+     },
+     "previous.session": {
+      "game_index": 259,
+      "gap_ms": 20778,
+      "live_video": 0,
+      "open_journey_steps": "join:chain.read",
+      "open_journeys": "join",
+      "session_id": "ef38f2f6fb0f4d44865277829ee979e1",
+      "visibility_changes": 0
+     }
+    }
+   }
+  }
+ },
+ "game835Logs": [
+  {
+   "id": "01a14bbe06e77618a93a8d47d281bec5",
+   "timestamp": "2026-10-17T21:21:47+00:00",
+   "timestamp_precise": 1792272107239000000,
+   "message": "previous-session-end",
+   "session.id": "cd636b25-0f39-42eb-bcf6-d9b8f4c9dbc4",
+   "previous.end": "crash-or-kill-foreground",
+   "previous.game": "835",
+   "tags[previous.in_game,boolean]": true,
+   "previous.turn": "7",
+   "previous.screen": "game.round",
+   "previous.session.session_id": "43d19b56507b49d894fbaf5417cd8444",
+   "tags[previous.session.gap_ms,number]": 8027.0,
+   "previous.session.game_index": "835",
+   "previous.session.open_journeys": "home-first-status,game",
+   "previous.session.open_journey_steps": "home-first-status:none,game:round.2"
+  },
+  {
+   "id": "01a14bbe07f072718d9a602be851d1a3",
+   "timestamp": "2026-10-17T21:21:47+00:00",
+   "timestamp_precise": 1792272107504000000,
+   "message": "previous-session-end",
+   "session.id": "0154cf17-6a94-4f2c-affa-9ef5cbf647cd",
+   "previous.end": "crash-or-kill-foreground",
+   "previous.game": "835",
+   "tags[previous.in_game,boolean]": true,
+   "previous.turn": "7",
+   "previous.screen": "game.round",
+   "previous.session.session_id": "e271ffda3be841cbbe31de15e64a582c",
+   "tags[previous.session.gap_ms,number]": 9344.0,
+   "previous.session.game_index": "835",
+   "previous.session.open_journeys": "home-first-status,game",
+   "previous.session.open_journey_steps": "home-first-status:none,game:round.2"
+  },
+  {
+   "id": "01a14bbe738c7654aa7959de211ea923",
+   "timestamp": "2026-10-17T21:22:15+00:00",
+   "timestamp_precise": 1792272135052000000,
+   "message": "previous-session-end",
+   "session.id": "3a4fe446-4834-44d5-afda-05a10f3662ce",
+   "previous.end": "host-reload",
+   "previous.game": "835",
+   "tags[previous.in_game,boolean]": true,
+   "previous.turn": "10",
+   "previous.screen": "game",
+   "previous.session.session_id": "457d7748a48740c78b8c53e3b29e0640",
+   "tags[previous.session.gap_ms,number]": 346.0,
+   "previous.session.game_index": "835",
+   "previous.session.open_journeys": null,
+   "previous.session.open_journey_steps": null
+  }
+ ]
+}

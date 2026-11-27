@@ -1,0 +1,89 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: DIM2 Reports
+
+# Fixture checks only, offline. Report Page and ArtifactData publication remain manual.
+# Path list = the isolated report paths PLUS the shared helpers, so a change to a
+# helper (sentry.py, store_*.py, game-chain-report.mts, ...) runs their tests too.
+# ci.yml has no paths-ignore, so the app gates run on every PR as well.
+on:
+  pull_request:
+    branches: [main]
+    paths: &report_paths
+      - ".claude/skills/dim2-sentry/SKILL.md"
+      - ".claude/skills/dim2-sentry/page/game-reports.html"
+      - ".claude/skills/dim2-sentry/references/example-report-g160.json"
+      - ".claude/skills/dim2-sentry/references/game-report.md"
+      - ".claude/skills/dim2-sentry/requirements-store.txt"
+      - ".claude/skills/dim2-sentry/scripts/agg.py"
+      - ".claude/skills/dim2-sentry/scripts/chat-coverage.py"
+      - ".claude/skills/dim2-sentry/scripts/codec-map.py"
+      - ".claude/skills/dim2-sentry/scripts/fixtures/away-facts-g260-g263-g264.json"
+      - ".claude/skills/dim2-sentry/scripts/fixtures/game-159-madeup.json"
+      - ".claude/skills/dim2-sentry/scripts/fixtures/game-251-one-sided-log-gap.json"
+      - ".claude/skills/dim2-sentry/scripts/fixtures/game-259-player-coverage.json"
+      - ".claude/skills/dim2-sentry/scripts/fixtures/game-263-clock-lines.json"
+      - ".claude/skills/dim2-sentry/scripts/fixtures/logs-g999.json"
+      - ".claude/skills/dim2-sentry/scripts/fixtures/logs-task6-golden.json"
+      - ".claude/skills/dim2-sentry/scripts/fixtures/page-lives-g259-g835.json"
+      - ".claude/skills/dim2-sentry/scripts/game-links.py"
+      - ".claude/skills/dim2-sentry/scripts/game-report-pull.py"
+      - ".claude/skills/dim2-sentry/scripts/game-report.py"
+      - ".claude/skills/dim2-sentry/scripts/local_report_preview.py"
+      - ".claude/skills/dim2-sentry/scripts/report-lint.py"
+      - ".claude/skills/dim2-sentry/scripts/seed-usernames.py"
+      - ".claude/skills/dim2-sentry/scripts/sentry.py"
+      - ".claude/skills/dim2-sentry/scripts/sentry_logs.py"
+      - ".claude/skills/dim2-sentry/scripts/store.py"
+      - ".claude/skills/dim2-sentry/scripts/store_dump.py"
+      - ".claude/skills/dim2-sentry/scripts/store_golden.py"
+      - ".claude/skills/dim2-sentry/scripts/store_paths.py"
+      - ".claude/skills/dim2-sentry/scripts/store_source.py"
+      - ".claude/skills/dim2-sentry/scripts/store_views.sql"
+      - ".claude/skills/dim2-sentry/scripts/store_write.py"
+      - ".claude/skills/dim2-sentry/scripts/test_agg.py"
+      - ".claude/skills/dim2-sentry/scripts/test_chat_coverage.py"
+      - ".claude/skills/dim2-sentry/scripts/test_codec_map.py"
+      - ".claude/skills/dim2-sentry/scripts/test_game_links.py"
+      - ".claude/skills/dim2-sentry/scripts/test_game_report.py"
+      - ".claude/skills/dim2-sentry/scripts/test_game_report_pull.py"
+      - ".claude/skills/dim2-sentry/scripts/test_report_lint.py"
+      - ".claude/skills/dim2-sentry/scripts/test_sentry.py"
+      - ".claude/skills/dim2-sentry/scripts/test_sentry_logs_reader.py"
+      - ".claude/skills/dim2-sentry/scripts/test_store.py"
+      - ".claude/skills/dim2-sentry/scripts/test_store_dump.py"
+      - ".claude/skills/dim2-sentry/scripts/test_store_golden.py"
+      - ".claude/skills/dim2-sentry/scripts/test_store_paths.py"
+      - ".claude/skills/dim2-sentry/scripts/test_store_source.py"
+      - ".claude/skills/dim2-sentry/scripts/test_store_write.py"
+      - ".github/tests/test_dim2_report_ci.py"
+      - ".github/workflows/dim2-report.yml"
+      - "scripts/game-chain-report.mts"
+      - "scripts/game-chain-report.test.mts"
+      - "scripts/fixtures/game170-block1319690.json.gz"
+  push:
+    branches: [main]
+    paths: *report_paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dim2-report-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # Ubuntu's stdlib Python is enough: no package install, token or data pull.
+      # The network namespace also contains subprocesses started by fixture tests.
+      - name: Validate DIM2 reports and offline consumers
+        run: sudo unshare --net -- python3 -B .github/tests/test_dim2_report_ci.py
+      - name: Check source inputs remained unchanged
+        run: git diff --exit-code
