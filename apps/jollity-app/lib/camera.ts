@@ -108,13 +108,15 @@ const RELEASE_GRACE_MS = 10_000
 const OPEN = { video: true, audio: false, width: 360, height: 360, fps: 24, facing: "user" } as const
 /** a muted camera gets this long, visible, to unmute on its own before it is
  *  reopened: iOS unmutes on return, and a reopen would cost it a blink. The
- *  wait is owned by the reducer (#1539): 3 s while no tap is offered, so the
- *  offer lands on the third still-muted check, about 9 s in; then one 6 s
- *  step and a 12 s cap for as long as the tap is offered or spent (Ionut,
- *  27 Nov), so a stuck host camera is not opened every 3 s (#1539) and a
- *  never-tapping player still gets a working camera back. Only a frame (not
- *  while tapping), an unmute, a page return or a working tap resets it. */
-const MUTED_GRACE_BACKOFF_MS = [3_000, 6_000, 12_000]
+ *  wait is owned by the reducer (#1539) and indexed by the still-muted check
+ *  count alone: 3 s after checks 1-2 (so the offer lands on the third check,
+ *  about 9 s in), 6 s after check 3, and a 12 s cap after check 4+ for as long
+ *  as the episode runs (Ionut, 27 Nov), so a stuck host camera is not opened
+ *  every 3 s (#1539) and a never-tapping player still gets a working camera
+ *  back. Only a 12 s unmuted quiet (healthy), a page hide or a working tap
+ *  resets it — a plain frame or unmute does not. */
+const MUTED_GRACE_BACKOFF_MS = [3_000, 3_000, 3_000, 6_000, 12_000]
+export const MUTED_HEALTH_QUIET_MS = 12_000
 /** waits between reopen attempts after a failed one, the last repeating.
  *  Capped at 10 s so a recovering camera comes back within one turn. */
 const RETRY_BACKOFF_MS = [2000, 4000, 8000, 10_000]
@@ -155,7 +157,8 @@ export type CameraRecoveryEvent =
   | { kind: "clear" }
   | { kind: "live" }
   | { kind: "still-muted-quick" | "still-muted-slow" }
-  | { kind: "unmuted" | "frame" | "hidden" | "tap" | "tap-frames" | "tap-muted" | "tap-error" }
+  | { kind: "unmuted" | "frame" | "healthy" | "hidden" | "tap" | "tap-frames" | "tap-muted" }
+  | { kind: "tap-error"; reason: CameraFailure }
   | { kind: "stop" }
 
 export type CameraRecoveryCommand =
@@ -168,15 +171,14 @@ export function startCameraRecovery(): CameraRecoveryState {
   return { retries: 0, deferred: false, scheduledAttempt: null, mutedStreak: 0, mutedChecks: 0, tap: "none" }
 }
 
-/** the wait before the next still-muted check reopens the camera: 3 s while
- *  no tap is offered (the offer lands on the third check, ~9 s in), then one
- *  6 s step, then the 12 s cap while the tap is offered, tapping or spent
- *  (Ionut, 27 Nov). `mutedChecks` counts the still-muted checks since the
- *  camera was last healthy; the check that offers the tap is the third, so
- *  the 6 s step is the wait after the FOURTH check. */
+/** the wait before the next still-muted check reopens the camera, indexed by
+ *  `mutedChecks` alone: 3 s after checks 1-2, 6 s after check 3, and the
+ *  12 s cap after check 4+ (the offering check is the third, so the offer
+ *  lands ~9 s in and the first post-offer wait is 6 s in the quick case).
+ *  `mutedChecks` counts the still-muted checks since the camera was last
+ *  healthy (#1539). */
 export function mutedGraceMs(state: CameraRecoveryState): number {
-  if (state.tap === "none") return MUTED_GRACE_BACKOFF_MS[0]!
-  return MUTED_GRACE_BACKOFF_MS[Math.min(Math.max(0, state.mutedChecks - 2), MUTED_GRACE_BACKOFF_MS.length - 1)]!
+  return MUTED_GRACE_BACKOFF_MS[Math.min(state.mutedChecks, MUTED_GRACE_BACKOFF_MS.length - 1)]!
 }
 
 export function cameraRecoveryStep(
@@ -210,16 +212,34 @@ export function cameraRecoveryStep(
   if (event.kind === "tap-frames" || event.kind === "tap-muted" || event.kind === "tap-error") {
     if (state.tap !== "tapping") return stay
     const reason = event.kind === "tap-frames" ? "frames" : event.kind === "tap-muted" ? "still_muted" : "error"
+    // only a WORKING tap is health: it resets the backoff too, so the next
+    // mute starts at the 3 s grace again. A spent tap (muted again, error)
+    // changes nothing about the camera, so the backoff stays at the cap
+    // (#1539 review)
+    const tap = event.kind === "tap-frames" ? "none" as const : "spent" as const
+    const mutedChecks = event.kind === "tap-frames" ? 0 : state.mutedChecks
+    // a refused tap (denied) stays terminal: a timed retry would prompt the
+    // host's camera permission again. Any other failure gets one 12 s retry
+    // after the tap is spent (#1539 Q3)
+    if (event.kind === "tap-error" && event.reason === "denied")
+      return { state: { ...state, mutedStreak: 0, mutedChecks, tap }, commands: [{ kind: "episode-end", reason }] }
+    if (event.kind === "tap-error") {
+      const attempt = state.retries + 1
+      return {
+        state: { ...state, mutedStreak: 0, mutedChecks, tap, retries: attempt, scheduledAttempt: attempt },
+        commands: [
+          { kind: "episode-end", reason },
+          { kind: "schedule", reason: event.reason, trigger: "force", attempt, waitMs: MUTED_GRACE_BACKOFF_MS[MUTED_GRACE_BACKOFF_MS.length - 1]! },
+        ],
+      }
+    }
     return {
-      // only a WORKING tap is health: it resets the backoff too, so the next
-      // mute starts at the 3 s grace again. A spent tap (muted again, error)
-      // changes nothing about the camera, so the backoff stays at the cap
-      // (#1539 review)
-      state: { ...state, mutedStreak: 0, mutedChecks: event.kind === "tap-frames" ? 0 : state.mutedChecks, tap: event.kind === "tap-frames" ? "none" : "spent" },
+      state: { ...state, mutedStreak: 0, mutedChecks, tap },
       commands: [{ kind: "episode-end", reason }],
     }
   }
-  if (event.kind === "unmuted" || event.kind === "frame" || event.kind === "hidden") {
+  if (event.kind === "unmuted" || event.kind === "frame") return stay
+  if (event.kind === "healthy" || event.kind === "hidden") {
     // a frame while tapping is the tapped stream's own frame, not health: it
     // does not clear the episode or reset the backoff (#1539 review)
     if (state.tap === "tapping" && event.kind !== "hidden") return stay
@@ -267,6 +287,17 @@ let opening: Promise<MediaStream | null> | null = null
 let holders = 0
 let releaseTimer: ReturnType<typeof setTimeout> | undefined
 let mutedTimer: ReturnType<typeof setTimeout> | undefined
+let healthTimer: ReturnType<typeof setTimeout> | undefined
+function cancelHealth() { if (healthTimer) clearTimeout(healthTimer); healthTimer = undefined }
+function armHealth() {
+  cancelHealth()
+  healthTimer = setTimeout(() => {
+    healthTimer = undefined
+    if (state.kind !== "live" || state.muted) return
+    stepRecovery({ kind: "healthy" })
+    if (recovery.tap === "none") tapEpisode = null
+  }, MUTED_HEALTH_QUIET_MS)
+}
 let retryTimer: ReturnType<typeof setTimeout> | undefined
 let recovery = startCameraRecovery()
 let openedAt = 0
@@ -464,7 +495,7 @@ function freshAttempt(
       // a refusal waits for the player: a timed retry would prompt again
       if (options.tapped) {
         markNoFramesTerminal()
-        stepRecovery({ kind: "tap-error" })
+        stepRecovery({ kind: "tap-error", reason })
       }
       if (options.retryFailure !== false && reason !== "denied") scheduleRetry(reason)
       return null
@@ -502,8 +533,9 @@ function goLive(stream: MediaStream, answeredLate: boolean, trigger: CameraOpenT
   // the tap episode: a stuck camera reopens unmuted and re-mutes ~500 ms
   // later, and each such reopen would otherwise restart the episode, so the
   // #1535 report would only count the last mute (~12.5 s of ~23 s dead).
-  // Only a frame, an unmute or a page return clears it. A tap's own open
-  // keeps the episode, and an offered tap must stay offered.
+  // Only a 12 s unmuted quiet (healthy), a page return or a working tap
+  // clears it. A tap's own open keeps the episode, and an offered tap must
+  // stay offered.
   wasLive = true
   hiddenSinceOpen = false
   cameraGeneration++
@@ -512,6 +544,7 @@ function goLive(stream: MediaStream, answeredLate: boolean, trigger: CameraOpenT
   recordCameraTrail("open.resolved", stream, { trigger, attempt: triesAttempts, open_ms: openMs, late: answeredLate })
   setState({ kind: "live", stream, muted: track?.muted === true })
   watchTrack(stream)
+  if (track && !track.muted) armHealth() // 12 s unmuted since open is health, preview or not
   if (recoveryReason && recoveryReason !== "no-frames") {
     recordCameraTrail("recover.done", stream, { reason: recoveryReason, outcome: "frame-source-open" })
     recoveryReason = null
@@ -587,13 +620,14 @@ function clearRecovery() {
   unwatchTrack = null
   if (mutedTimer) clearTimeout(mutedTimer)
   if (retryTimer) clearTimeout(retryTimer)
+  cancelHealth()
   mutedTimer = retryTimer = undefined
   recovery = cameraRecoveryStep(recovery, { kind: "clear" }).state
 }
 
 function stepRecovery(event: CameraRecoveryEvent): void {
-  // the reducer owns the still-muted backoff: unmuted, frame (not while
-  // tapping), hidden and stop reset it inside cameraRecoveryStep, so the
+  // the reducer owns the still-muted backoff: healthy, hidden and stop reset
+  // it inside cameraRecoveryStep (a plain unmuted/frame does not), so the
   // commands emitted by this step already see the count of the new episode
   const step = cameraRecoveryStep(recovery, event)
   recovery = step.state
@@ -634,8 +668,10 @@ function finishTapEpisode(reason: Extract<CameraRecoveryCommand, { kind: "episod
 
 function runRecoveryCommand(command: CameraRecoveryCommand): void {
   if (command.kind === "offer-tap") {
-    tapEpisode ??= { beganAt: Date.now(), autoRetries: recovery.mutedStreak }
-    tapEpisode.autoRetries = Math.max(0, recovery.mutedStreak - 1)
+    // autoRetries counts one per still-muted check of the episode, so the
+    // value at the offer is the check number and it keeps growing after (#1539 Q2)
+    tapEpisode ??= { beganAt: Date.now(), autoRetries: recovery.mutedChecks }
+    tapEpisode.autoRetries = recovery.mutedChecks
     tapEpisode.shownAt = Date.now()
     tapEpisode.turnShown = currentGameTurn()
     notifyCamera()
@@ -706,6 +742,9 @@ function scheduleMutedCheck() {
       cameraRecovering("still-muted")
       tapEpisode ??= { beganAt: Date.now(), autoRetries: 0 }
       stepRecovery({ kind: mutedQuick ? "still-muted-quick" : "still-muted-slow" })
+      // every still-muted check of the episode counts as one automatic
+      // retry in the restore report (#1539 Q2)
+      if (tapEpisode) tapEpisode.autoRetries = recovery.mutedChecks
     }
   }, graceMs)
 }
@@ -730,6 +769,7 @@ function watchTrack(stream: MediaStream) {
     recordCameraTrail("track.muted", stream, { visible: !pageHidden() })
     updateCameraTrack(stream)
     setMuted(true)
+    cancelHealth()
     mutedQuick = Date.now() - openedAt <= QUICK_MUTE_MS
     tapEpisode ??= { beganAt: Date.now(), autoRetries: 0 }
     if (recovery.tap === "tapping" && stream === tappedStream) {
@@ -749,7 +789,7 @@ function watchTrack(stream: MediaStream) {
     if (mutedTimer) clearTimeout(mutedTimer)
     mutedTimer = undefined
     stepRecovery({ kind: "unmuted" })
-    if (recovery.tap === "none") tapEpisode = null
+    armHealth()
   }
   track.addEventListener("ended", onEnded)
   track.addEventListener("mute", onMute)
@@ -796,6 +836,7 @@ function watchPage() {
   watchingPage = true
   watchPageHidden(() => {
     if (outage) outage.hidden = true
+    cancelHealth()
     stepRecovery({ kind: "hidden" })
     if (recovery.tap === "none") tapEpisode = null
     pauseNoFrameTerminalCheck()
@@ -1023,7 +1064,7 @@ export function attachCameraPreview(video: HTMLVideoElement, attached: MediaStre
         checked.add(key)
         setCameraGaveUp(false) // a camera that comes back by itself
         stepRecovery({ kind: "frame" })
-        if (recovery.tap === "none") tapEpisode = null
+        if (recovery.tap !== "tapping") armHealth()
         if (noFrameIncident && cameraGeneration > noFrameIncident.generation) closeNoFrameIncident("frame", current)
       },
       onWindow(frames, elapsedMs) {
@@ -1154,7 +1195,7 @@ export function tapCamera(): void {
   outage = null
   const previous = state.kind === "live" ? state.stream : null
   previous?.getTracks().forEach((track) => track.stop())
-  tapEpisode ??= { beganAt: Date.now(), autoRetries: recovery.mutedStreak }
+  tapEpisode ??= { beganAt: Date.now(), autoRetries: recovery.mutedChecks }
   tapEpisode.tappedAt = Date.now()
   recordCameraTrail("open.requested", previous, { trigger: "tap", attempt: 1 })
   setState({ kind: "opening" })

@@ -13,13 +13,15 @@ import {
 import { defineTransitionTable, type MachineDefinition, type NamedInvariant, type NamedSequence } from "./framework"
 
 /** Independent recovery model from camera.ts's header:
- * K1 hidden/unheld work never opens a camera; K2 retry waits are bounded;
+ * K1 hidden/unheld work never opens a camera; K2 retry waits are bounded
+ * (10 s; the one retry after a non-denied tap error waits the 12 s cap and a
+ * denied one never retries, #1539 Q3);
  * K3 only the current timer may recover; K4 live resets only retry backoff;
  * K5 three quick still-muted reopens offer one tap, the reopen keeps going
- * once the tap is offered or spent, and the check paces 3 s until the offer,
- * then 6 s, then a 12 s cap (Ionut, 27 Nov); K6 tapping schedules no
- * recovery and a frame while tapping is not health; K7 one end command
- * closes each offered episode. */
+ * once the tap is offered or spent, and the check paces 3 s after checks 1-2,
+ * 6 s after check 3, then a 12 s cap after check 4+ (Ionut, 27 Nov); K6
+ * tapping schedules no recovery and a frame while tapping is not health;
+ * K7 one end command closes each offered episode. */
 type BaseKey = "ready" | "scheduled" | "deferred" | "deferred-scheduled"
 type TapPhase = CameraRecoveryState["tap"]
 type StateKey = BaseKey | `${BaseKey}:${Exclude<TapPhase, "none">}`
@@ -28,8 +30,8 @@ type EventKey =
   | "busy" | "other" | "override" | "retry-hidden" | "retry-unheld"
   | "fire" | "fire-hidden" | "fire-unheld" | "stale-fire" | "shown" | "shown-unavailable"
   | "clear" | "live" | "stop"
-  | "still-muted-quick" | "still-muted-slow" | "unmuted" | "frame" | "hidden"
-  | "tap" | "tap-frames" | "tap-muted" | "tap-error"
+  | "still-muted-quick" | "still-muted-slow" | "unmuted" | "frame" | "healthy" | "hidden"
+  | "tap" | "tap-frames" | "tap-muted" | "tap-error" | "tap-error-denied"
 type TestEvent = EventKey
 interface ModelState { failures: number; behind: boolean; alarm: number | undefined; mutedStreak: number; mutedChecks: number; tap: TapPhase }
 interface Observation { state: StateKey; failures: number; mutedStreak: number; mutedChecks: number; graceMs: number; tap: TapPhase; commands: string[] }
@@ -38,7 +40,7 @@ const EVENTS: TestEvent[] = [
   "recover", "recover-hidden", "recover-hidden-unheld", "open-hidden-unheld", "recover-unheld",
   "busy", "other", "override", "retry-hidden", "retry-unheld", "fire", "fire-hidden", "fire-unheld", "stale-fire",
   "shown", "shown-unavailable", "clear", "live", "stop",
-  "still-muted-quick", "still-muted-slow", "unmuted", "frame", "hidden", "tap", "tap-frames", "tap-muted", "tap-error",
+  "still-muted-quick", "still-muted-slow", "unmuted", "frame", "healthy", "hidden", "tap", "tap-frames", "tap-muted", "tap-error", "tap-error-denied",
 ]
 const TAPS: TapPhase[] = ["none", "offered", "tapping", "spent"]
 
@@ -69,6 +71,7 @@ const concrete = (state: CameraRecoveryState, event: TestEvent): CameraRecoveryE
   }
   if (event === "stale-fire") return { kind: "retry-fired", attempt: (state.scheduledAttempt ?? state.retries) + 99, held: true, hidden: false }
   if (event === "shown" || event === "shown-unavailable") return { kind: "shown", held: true, hidden: false, unavailable: event === "shown-unavailable" }
+  if (event === "tap-error" || event === "tap-error-denied") return { kind: "tap-error", reason: event === "tap-error" ? "busy" : "denied" }
   return { kind: event }
 }
 
@@ -79,11 +82,10 @@ const words = (commands: readonly CameraRecoveryCommand[]): string[] => commands
   return command.kind
 })
 
-/** the model's own copy of the pacing rule, written from the spec: 3 s while
- *  no tap is offered, then 6 s once, then the 12 s cap */
+/** the model's own copy of the pacing rule, written from the spec: 3 s after
+ *  still-muted checks 1-2, 6 s after check 3, the 12 s cap after check 4+ */
 const modelGraceMs = (state: ModelState): number => {
-  if (state.tap === "none") return 3_000
-  return [6_000, 12_000, 12_000][Math.min(Math.max(0, state.mutedChecks - 3), 2)]!
+  return state.mutedChecks <= 2 ? 3_000 : state.mutedChecks === 3 ? 6_000 : 12_000
 }
 
 function modelStep(before: ModelState, event: TestEvent): { state: ModelState; output: string[] } {
@@ -103,12 +105,20 @@ function modelStep(before: ModelState, event: TestEvent): { state: ModelState; o
     return { state: { ...before, mutedStreak, mutedChecks }, output: ["recover:still muted:force"] }
   }
   if (event === "tap") return before.tap === "offered" ? { state: { ...before, tap: "tapping" }, output: [] } : none
-  if (event === "tap-frames" || event === "tap-muted" || event === "tap-error") {
+  if (event === "tap-frames" || event === "tap-muted" || event === "tap-error" || event === "tap-error-denied") {
     if (before.tap !== "tapping") return none
     const reason = event === "tap-frames" ? "frames" : event === "tap-muted" ? "still_muted" : "error"
-    return { state: { ...before, mutedStreak: 0, mutedChecks: event === "tap-frames" ? 0 : before.mutedChecks, tap: event === "tap-frames" ? "none" : "spent" }, output: [`episode-end:${reason}`] }
+    const after = { ...before, mutedStreak: 0, mutedChecks: event === "tap-frames" ? 0 : before.mutedChecks, tap: event === "tap-frames" ? "none" as const : "spent" as const }
+    // a busy (non-denied) tap error gets one retry at the 12 s cap; denied
+    // stays terminal (#1539 Q3)
+    if (event === "tap-error") {
+      const attempt = before.failures + 1
+      return { state: { ...after, failures: attempt, alarm: attempt }, output: [`episode-end:${reason}`, `schedule:busy:${attempt}:12000:force`] }
+    }
+    return { state: after, output: [`episode-end:${reason}`] }
   }
-  if (event === "unmuted" || event === "frame" || event === "hidden") {
+  if (event === "unmuted" || event === "frame") return none
+  if (event === "healthy" || event === "hidden") {
     if (before.tap === "tapping" && event !== "hidden") return none
     const output = before.tap === "offered" || before.tap === "tapping"
       ? [`episode-end:${event === "hidden" ? "hidden" : "recovered"}`]
@@ -151,7 +161,7 @@ const CASES: Array<{ real: CameraRecoveryState; model: ModelState }> = baseCases
 )
 
 type Cell = "transition" | "no-op"
-type OldEvent = Exclude<EventKey, "still-muted-quick" | "still-muted-slow" | "unmuted" | "frame" | "hidden" | "tap" | "tap-frames" | "tap-muted" | "tap-error">
+type OldEvent = Exclude<EventKey, "still-muted-quick" | "still-muted-slow" | "unmuted" | "frame" | "healthy" | "hidden" | "tap" | "tap-frames" | "tap-muted" | "tap-error" | "tap-error-denied">
 const baseRows: Record<BaseKey, Record<OldEvent, Cell>> = {
   ready: {
     recover: "transition", "recover-hidden": "transition", "recover-hidden-unheld": "no-op", "open-hidden-unheld": "transition", "recover-unheld": "no-op",
@@ -182,13 +192,15 @@ const phaseRow = (base: BaseKey, tap: TapPhase): Record<EventKey, Cell> => ({
   ...baseRows[base],
   "still-muted-quick": tap === "tapping" ? "no-op" : "transition",
   "still-muted-slow": tap === "tapping" ? "no-op" : "transition",
-  unmuted: tap === "tapping" ? "no-op" : "transition",
-  frame: tap === "tapping" ? "no-op" : "transition",
+  unmuted: "no-op",
+  frame: "no-op",
+  healthy: tap === "tapping" ? "no-op" : "transition",
   hidden: "transition",
   tap: tap === "offered" ? "transition" : "no-op",
   "tap-frames": tap === "tapping" ? "transition" : "no-op",
   "tap-muted": tap === "tapping" ? "transition" : "no-op",
   "tap-error": tap === "tapping" ? "transition" : "no-op",
+  "tap-error-denied": tap === "tapping" ? "transition" : "no-op",
 })
 const table = Object.fromEntries((Object.keys(baseRows) as BaseKey[]).flatMap((base) =>
   TAPS.map((tap) => [phaseKey(base, tap), phaseRow(base, tap)]),
@@ -211,6 +223,7 @@ export const cameraRegressionCorpus: NamedSequence<TestEvent, CameraRecoveryStat
   { name: "host camera muting: fresh tracks keep muting, offer after three at the 3 s cadence, tap gets frames", events: ["still-muted-quick", "live", "still-muted-quick", "live", "still-muted-quick", "tap", "live", "tap-frames"] },
   { name: "host camera muting: a tap that mutes again shows the restart notice, no second offer", events: ["still-muted-quick", "live", "still-muted-quick", "live", "still-muted-quick", "tap", "still-muted-quick", "tap-muted", "still-muted-quick", "still-muted-quick", "still-muted-quick"] },
   { name: "host camera muting: 3 s until the offer (~9 s), then 6 s, then the 12 s cap while offered or spent (#1539)", events: ["still-muted-quick", "still-muted-quick", "still-muted-quick", "still-muted-quick", "still-muted-slow", "tap", "still-muted-quick", "tap-muted", "still-muted-quick", "still-muted-slow"] },
+  { name: "a busy tap error retries once at the 12 s cap, a denied one stays terminal (#1539 Q3)", events: ["still-muted-quick", "still-muted-quick", "still-muted-quick", "tap", "tap-error", "fire", "hidden", "still-muted-quick", "still-muted-quick", "still-muted-quick", "tap", "tap-error-denied"] },
 ]
 
 const assert = (condition: unknown, message: string): void => { if (!condition) throw new Error(message) }
@@ -220,12 +233,15 @@ const invariants: Inv[] = [
     if (["recover-hidden", "recover-hidden-unheld", "open-hidden-unheld", "retry-hidden", "recover-unheld", "retry-unheld"].includes(event))
       assert(!realObservation.commands.some((word) => word.startsWith("schedule:")), `timer scheduled on ${event}`)
   } },
-  { name: "backoff is bounded and busy stays at two seconds", specClause: "K2", check: ({ realObservation }) => {
+  { name: "backoff is bounded, busy stays at two seconds, a spent tap's error retries at the 12 s cap", specClause: "K2", check: ({ event, realObservation }) => {
     realObservation.commands.filter((word) => word.startsWith("schedule:")).forEach((word) => {
-      const [, reason, , wait] = word.split(":")
+      const [, reason, , wait, trigger] = word.split(":")
+      // the one retry after a non-denied tap error waits the 12 s cap (#1539 Q3)
+      if (event === "tap-error") { assert(wait === "12000" && trigger === "force", `tap-error retry ${word}`); return }
       assert(Number(wait) <= 10_000, `unbounded ${word}`)
       if (reason === "busy") assert(wait === "2000", `busy cadence ${word}`)
     })
+    if (event === "tap-error-denied") assert(!realObservation.commands.some((word) => word.startsWith("schedule:")), "denied tap error scheduled a retry")
   } },
   { name: "offer only at streak three and once per episode", specClause: "K5", check: ({ real, realObservation }) => {
     if (realObservation.commands.includes("offer-tap")) assert(real.mutedStreak >= 3 && real.tap === "offered", "early or unowned offer")
@@ -240,7 +256,7 @@ const invariants: Inv[] = [
     // the spec rule, asserted on the post-step state: 3 s while no tap is
     // offered (the offering check is the third, mutedChecks = 3, so the offer
     // lands ~9 s in); once offered or spent, one 6 s step and then the 12 s cap
-    const expected = real.tap === "none" ? 3_000 : real.mutedChecks <= 3 ? 6_000 : 12_000
+    const expected = real.mutedChecks <= 2 ? 3_000 : real.mutedChecks === 3 ? 6_000 : 12_000
     assert(realObservation.graceMs === expected, `grace ${realObservation.graceMs} after ${event} in tap=${real.tap} streak=${real.mutedStreak} checks=${real.mutedChecks}, expected ${expected}`)
     if (real.tap === "offered" || real.tap === "spent") {
       assert(realObservation.commands.filter((word) => word.startsWith("recover:")).length === 1, "offered or spent tap did not keep reopening automatically")

@@ -46,15 +46,15 @@ describe("camera tap recovery (host bug #174)", () => {
     expect(mutedGraceMs(step(spent.state, "still-muted-quick").state)).toBe(12_000)
   })
 
-  it("resets the backoff on an unmute, a frame or a page return — but not on a frame while tapping", () => {
+  it("resets the backoff only on healthy (12 s unmuted quiet) or a page return — not on a plain unmute or frame, nor a frame while tapping", () => {
     let state = startCameraRecovery()
     for (let i = 0; i < 3; i += 1) state = step(state, "still-muted-quick").state
     expect(state.tap).toBe("offered")
     expect(mutedGraceMs(state)).toBe(6_000) // the 6 s step after the offer
-    expect(mutedGraceMs(step(state, "unmuted").state)).toBe(3_000)
+    expect(mutedGraceMs(step(state, "unmuted").state)).toBe(6_000); expect(mutedGraceMs(step(state, "healthy").state)).toBe(3_000)
     for (let i = 0; i < 4; i += 1) state = step(state, "still-muted-quick").state
     expect(mutedGraceMs(state)).toBe(12_000) // offered at the cap
-    expect(mutedGraceMs(step(state, "frame").state)).toBe(3_000)
+    expect(mutedGraceMs(step(state, "frame").state)).toBe(12_000); state = step(state, "healthy").state; expect(mutedGraceMs(state)).toBe(3_000)
     for (let i = 0; i < 4; i += 1) state = step(state, "still-muted-quick").state
     expect(mutedGraceMs(state)).toBe(12_000)
     expect(mutedGraceMs(step(state, "hidden").state)).toBe(3_000)
@@ -103,6 +103,26 @@ describe("camera tap recovery (host bug #174)", () => {
     }
   })
 
+  it("a non-denied tap error keeps a 12 s retry; a denied one stays terminal (#1539 Q3)", () => {
+    let state = startCameraRecovery()
+    for (let i = 0; i < 3; i += 1) state = step(state, "still-muted-quick").state
+    state = step(state, "tap").state
+    expect(state.tap).toBe("tapping")
+
+    const busy = cameraRecoveryStep(state, { kind: "tap-error", reason: "busy" })
+    expect(busy.state).toMatchObject({ tap: "spent", retries: 1, scheduledAttempt: 1, mutedChecks: 3 })
+    expect(busy.commands).toEqual([
+      { kind: "episode-end", reason: "error" },
+      { kind: "schedule", reason: "busy", trigger: "force", attempt: 1, waitMs: 12_000 },
+    ])
+
+    // a refusal stays terminal: a timed retry would prompt the host's camera
+    // permission again, so denied schedules nothing and changes no attempt
+    const denied = cameraRecoveryStep(state, { kind: "tap-error", reason: "denied" })
+    expect(denied.state).toMatchObject({ tap: "spent", retries: 0, scheduledAttempt: null })
+    expect(denied.commands).toEqual([{ kind: "episode-end", reason: "error" }])
+  })
+
   it("keeps the automatic reopen going once the tap is offered, and the offer itself reopens (#1539)", () => {
     let state = startCameraRecovery()
     state = step(state, "still-muted-quick").state
@@ -117,5 +137,29 @@ describe("camera tap recovery (host bug #174)", () => {
     expect(later.state).toMatchObject({ mutedStreak: 4, tap: "offered" })
     expect(mutedGraceMs(later.state)).toBe(12_000)
     expect(later.commands).toEqual([{ kind: "recover", reason: "still muted", trigger: "force" }])
+  })
+})
+
+describe("review #1539 row 3", () => {
+  it("slow, quick, quick offers on check 3 (slow sets streak 1, not 0)", () => {
+    let state = startCameraRecovery()
+    const offers: number[] = []
+    for (const [i, kind] of (["still-muted-slow", "still-muted-quick", "still-muted-quick"] as const).entries()) {
+      const next = step(state, kind); if (next.commands.some((c) => c.kind === "offer-tap")) offers.push(i + 1); state = next.state
+    }
+    expect(offers).toEqual([3])
+  })
+  it("mixed quick, slow, quick, quick: offer on check 4; waits 3,3,3,6,12", () => {
+    let state = startCameraRecovery()
+    const waits = [mutedGraceMs(state)]
+    const offers: number[] = []
+    for (const [i, kind] of (["still-muted-quick", "still-muted-slow", "still-muted-quick", "still-muted-quick"] as const).entries()) {
+      const next = step(state, kind)
+      if (next.commands.some((c) => c.kind === "offer-tap")) offers.push(i + 1)
+      state = next.state
+      waits.push(mutedGraceMs(state))
+    }
+    expect(offers).toEqual([4])
+    expect(waits).toEqual([3_000, 3_000, 3_000, 6_000, 12_000])
   })
 })
