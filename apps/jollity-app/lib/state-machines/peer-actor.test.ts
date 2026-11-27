@@ -75,6 +75,70 @@ describe("what a command carries for Mesh's log lines and heal records (design B
     expect(second.commands).toEqual([])
     expect(second.state.budgets.unseenHeals).toBe(1)
   })
+
+  it("refills the unseen budget once the peer sees our video again, so a later episode gets its one restart (#1523)", () => {
+    const unseen = (state: PeerActorState, readSequence: number) =>
+      stepPeerActor(state, event({ type: "stats-observed", readSequence, framesDecoded: 815 + readSequence, browserConnectionState: "connected", peerCannotSeeUs: true, now: 1_000 * readSequence }))
+    const seesUs = (state: PeerActorState, readSequence: number) =>
+      stepPeerActor(state, event({ type: "stats-observed", readSequence, framesDecoded: 815 + readSequence, browserConnectionState: "connected", peerSeesUs: true, now: 1_000 * readSequence }))
+    // the one unseen restart of the episode is spent early
+    const first = unseen(flowing(), 1)
+    expect(first.commands).toEqual([expect.objectContaining({ kind: "restart-ice", cause: "peer-no-video", heal: 1 })])
+    expect(first.state.budgets.unseenHeals).toBe(1)
+    // the peer reports it can see our video again: the budget refills
+    const seen = seesUs(first.state, 2)
+    expect(seen.commands).toEqual([])
+    expect(seen.state.budgets.unseenHeals).toBe(0)
+    // a later, separate unseen episode gets its one restart
+    const later = unseen(seen.state, 3)
+    expect(later.commands).toEqual([expect.objectContaining({ kind: "restart-ice", cause: "peer-no-video", heal: 1 })])
+    expect(later.state.budgets.unseenHeals).toBe(1)
+  })
+
+  it("never restarts ICE for an unseen peer while our lane offer is unanswered, and a refill then waits for the answer (#1523 F5)", () => {
+    const sweep = (state: PeerActorState, readSequence: number, extra: { peerCannotSeeUs?: boolean; peerSeesUs?: boolean; haveLocalOffer?: boolean }) =>
+      stepPeerActor(state, event({ type: "stats-observed", readSequence, framesDecoded: 815 + readSequence, browserConnectionState: "connected", now: 1_000 * readSequence, ...extra }))
+    // budget unspent, offer pending: no restart, budget kept
+    const pending = sweep(flowing(), 1, { peerCannotSeeUs: true, haveLocalOffer: true })
+    expect(pending.commands).toEqual([])
+    expect(pending.state.budgets.unseenHeals).toBe(0)
+    const first = sweep(pending.state, 2, { peerCannotSeeUs: true })
+    expect(first.commands).toEqual([expect.objectContaining({ kind: "restart-ice", cause: "peer-no-video", heal: 1 })])
+    // the peer sees us while our restart's offer is still pending: refill, no restart
+    const seen = sweep(first.state, 3, { peerSeesUs: true, haveLocalOffer: true })
+    expect(seen.commands).toEqual([])
+    expect(seen.state.budgets.unseenHeals).toBe(0)
+    // a new episode while that offer is still pending: nothing back to back
+    const again = sweep(seen.state, 4, { peerCannotSeeUs: true, haveLocalOffer: true })
+    expect(again.commands).toEqual([])
+    expect(again.state.budgets.unseenHeals).toBe(0)
+    // the offer answered: the new episode gets its restart
+    const answered = sweep(again.state, 5, { peerCannotSeeUs: true })
+    expect(answered.commands).toEqual([expect.objectContaining({ kind: "restart-ice", cause: "peer-no-video", heal: 1 })])
+  })
+
+  it("does not refill the unseen budget on a held sweep, nor on a round change (#1523)", () => {
+    const unseen = stepPeerActor(flowing(), event({ type: "stats-observed", readSequence: 1, framesDecoded: 816, browserConnectionState: "connected", peerCannotSeeUs: true, now: 1_000 }))
+    expect(unseen.state.budgets.unseenHeals).toBe(1)
+    const held = stepPeerActor(unseen.state, event({ type: "stats-observed", readSequence: 2, framesDecoded: 816, browserConnectionState: "disconnected", peerSeesUs: true, now: 2_000 }))
+    expect(held.state.budgets.unseenHeals).toBe(1)
+    const round = stepPeerActor(held.state, event({ type: "round-changed", roundGeneration: 2, now: 3_000 }))
+    expect(round.state.budgets.unseenHeals).toBe(1)
+  })
+
+  it("gives two unseen reports in one episode only one restart (#1523)", () => {
+    const unseen = (state: PeerActorState, readSequence: number) =>
+      stepPeerActor(state, event({ type: "stats-observed", readSequence, framesDecoded: 815 + readSequence, browserConnectionState: "connected", peerCannotSeeUs: true, now: 1_000 * readSequence }))
+    const first = unseen(flowing(), 1)
+    expect(first.commands).toEqual([expect.objectContaining({ kind: "restart-ice", cause: "peer-no-video", heal: 1 })])
+    // no peerSeesUs between them: still the same episode
+    const second = unseen(first.state, 2)
+    expect(second.commands).toEqual([])
+    expect(second.state.budgets.unseenHeals).toBe(1)
+    const third = unseen(second.state, 3)
+    expect(third.commands).toEqual([])
+    expect(third.state.budgets.unseenHeals).toBe(1)
+  })
 })
 
 describe("pure WebRTC peer actor", () => {

@@ -431,8 +431,9 @@ describe("Mesh mutation gaps (its execution of the peer actor's commands)", () =
       return lines[0]!
     }
 
-    expect(run(UNSEEN_ICE_RESTARTS - 1)).toBe("[jollity-rtc] unseen: signalingState=stable the peer says it decodes none of our video → ICE restart (heal 0) b")
-    expect(run(UNSEEN_ICE_RESTARTS)).toBe("[jollity-rtc] unseen: signalingState=stable the peer says it decodes none of our video → ICE restart, the last until this peer leaves b")
+    // with the budget at one, the actor's one and only unseen restart is the
+    // episode's last: the line says so, and no "(heal n)" wording is printed
+    expect(run(UNSEEN_ICE_RESTARTS)).toBe("[jollity-rtc] unseen: signalingState=stable the peer says it decodes none of our video → ICE restart, the last until the peer sees us again b")
   })
 
   it("rejects a restart when the browser exposes no restartIce function", async () => {

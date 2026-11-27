@@ -95,7 +95,7 @@ function laneDescription(world: ActorWorld, kind: "offer" | "answer"): PeerActor
  *  It stamps our camera (localVideoLive) and recoveryDue = localVideoLive &&
  *  healDue (3719). The heal window (healDue: the keyframe hold and the heal
  *  backoff) is not modelled: it is open unless the read says `healHeld`. */
-function framesRead(world: ActorWorld, frames: number, extra: { noVideoDeadline?: boolean; peerCannotSeeUs?: boolean; healHeld?: boolean; packetsMoving?: boolean } = {}): PeerActorEvent | null {
+function framesRead(world: ActorWorld, frames: number, extra: { noVideoDeadline?: boolean; peerCannotSeeUs?: boolean; peerSeesUs?: boolean; healHeld?: boolean; packetsMoving?: boolean } = {}): PeerActorEvent | null {
   if (hidden(world) || !connected(world) || world.facts.away !== null || world.actor.standby) return null
   if (frames > 2) return null
   const readSequence = world.nextReadSequence
@@ -115,6 +115,8 @@ function framesRead(world: ActorWorld, frames: number, extra: { noVideoDeadline?
     stallAfter: world.actor.initiator ? 2 : 6,
     recoveryDue: world.mesh.cameraLive && !extra.healHeld,
     peerCannotSeeUs: (extra.peerCannotSeeUs ?? false) && world.mesh.cameraLive && !extra.healHeld,
+    // #1523: the peer's view says it decodes our video again (mesh.ts's fresh-view read)
+    peerSeesUs: extra.peerSeesUs ?? false,
     cameraLive: world.mesh.cameraLive,
     haveLocalOffer: world.mesh.signaling === "have-local-offer",
     // #1917: whether the inbound packets rose since the sweep before, and the heal window without the camera gate
@@ -296,6 +298,9 @@ const FACTS: readonly AlphabetEvent[] = [
   }, { uncertain: "as stats:camera-down; the camera may come up after the actor started (mesh.ts:3730-3734)" }),
   fact("stats:peer-cannot-see-us", (w) => (w.actor.initiator && w.mesh.cameraLive ? framesRead(w, w.facts.framesSeen, { peerCannotSeeUs: true }) : null), {
     uncertain: "the peer's report of what it sees (peerCannotSeeUs) is not modelled: the initiator may read it on any sweep",
+  }),
+  fact("stats:peer-sees-us", (w) => framesRead(w, w.facts.framesSeen, { peerSeesUs: true }), {
+    uncertain: "#1523: the peer's view saying it decodes our video again refills the unseen budget; any connected sweep may carry it",
   }),
   fact("stats:probe", (w) => {
     // probeFrames (4256-4275): a look outside the sweep, after the link came up;

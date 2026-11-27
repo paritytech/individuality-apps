@@ -9,6 +9,7 @@
  * each heal record (rtc.heal_ms runs from the attempt's instant).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { encodeAway } from "./away-frame"
 import { encodeView, encodeViewFrame } from "./link-view"
 import type { HealEvent } from "./heal"
 import { chromeStats } from "./test-stats"
@@ -160,7 +161,7 @@ describe("the recovery lines a log reader parses, for a known count sequence", (
     mesh.close()
   })
 
-  it("the peer cannot see us: one ICE restart, the last until the peer leaves (#1523 F5)", async () => {
+  it("the peer cannot see us: one ICE restart, the last of the episode until the peer sees us again (#1523 F5)", async () => {
     const lines = recoveryLines()
     const ROOM = ["a", "b", "c"]
     const { mesh, pc } = await healed("a", "b", camera, ROOM)
@@ -174,8 +175,80 @@ describe("the recovery lines a log reader parses, for a known count sequence", (
     }
     expect(pc.restartIce).toHaveBeenCalledTimes(1)
     expect(lines).toEqual([
-      "[jollity-rtc] unseen: signalingState=stable the peer says it decodes none of our video → ICE restart, the last until this peer leaves b",
+      "[jollity-rtc] unseen: signalingState=stable the peer says it decodes none of our video → ICE restart, the last until the peer sees us again b",
     ])
+    mesh.close()
+  })
+
+  it("a fresh view saying the peer decodes our video again refills the unseen budget, so a later episode restarts ICE again (#1523)", async () => {
+    const lines = recoveryLines()
+    const ROOM = ["a", "b", "c"]
+    const { mesh, pc } = await healed("a", "b", camera, ROOM)
+    pc.channels[0]!.readyState = "open"
+    state(pc, "connected")
+    const tell = (row: string) => (pc.channels[0]!.onmessage as (e: { data: unknown }) => void)({ data: encodeViewFrame(row).buffer })
+    // b's view says it decodes none of our video ("-" for a): the one unseen
+    // restart of the episode fires
+    const unseen = encodeView(ROOM, (m) => ({ a: "2", b: "-", c: "0" } as Record<string, "-" | "0" | "2">)[m]!)
+    // b's view says it decodes our video again ("3" = video for a)
+    const seesUs = encodeView(ROOM, (m) => ({ a: "3", b: "-", c: "0" } as Record<string, "-" | "0" | "2" | "3">)[m]!)
+    const step = async (row: string, decoded: number) => {
+      tell(row)
+      frames(pc, decoded)
+      await vi.advanceTimersByTimeAsync(4_000)
+    }
+    let decoded = 0
+    for (let i = 0; i < 10; i++) await step(unseen, ++decoded * 30)
+    expect(pc.restartIce).toHaveBeenCalledTimes(1)
+    // the peer sees our video again: the budget refills
+    await step(seesUs, ++decoded * 30)
+    // a later, separate unseen episode gets its one restart
+    for (let i = 0; i < 10; i++) await step(unseen, ++decoded * 30)
+    expect(pc.restartIce).toHaveBeenCalledTimes(2)
+    expect(lines.filter((line) => line.startsWith("[jollity-rtc] unseen:"))).toEqual([
+      "[jollity-rtc] unseen: signalingState=stable the peer says it decodes none of our video → ICE restart, the last until the peer sees us again b",
+      "[jollity-rtc] unseen: signalingState=stable the peer says it decodes none of our video → ICE restart, the last until the peer sees us again b",
+    ])
+    mesh.close()
+  })
+
+  it("a stale view saying the peer decodes our video again does not refill the unseen budget (#1523)", async () => {
+    const lines = recoveryLines()
+    const ROOM = ["a", "b", "c"]
+    const { mesh, pc } = await healed("a", "b", camera, ROOM)
+    pc.channels[0]!.readyState = "open"
+    state(pc, "connected")
+    const tell = (row: string) => (pc.channels[0]!.onmessage as (e: { data: unknown }) => void)({ data: encodeViewFrame(row).buffer })
+    const unseen = encodeView(ROOM, (m) => ({ a: "2", b: "-", c: "0" } as Record<string, "-" | "0" | "2">)[m]!)
+    const seesUs = encodeView(ROOM, (m) => ({ a: "3", b: "-", c: "0" } as Record<string, "-" | "0" | "2" | "3">)[m]!)
+    let decoded = 0
+    // one unseen episode: its one restart fires inside the first sweeps
+    for (let i = 0; i < 4; i++) {
+      tell(unseen)
+      frames(pc, ++decoded * 30)
+      await vi.advanceTimersByTimeAsync(4_000)
+    }
+    expect(pc.restartIce).toHaveBeenCalledTimes(1)
+    // a "sees us" row arrives while every sweep is held (the peer said it is
+    // away), and is stale (VIEW_FRESH_MS, 12 s) by the first sweep that reads
+    // it: it refills nothing
+    const away = (on: boolean) => (pc.channels[0]!.onmessage as (e: { data: unknown }) => void)({ data: encodeAway(on).buffer })
+    away(true)
+    tell(seesUs)
+    await vi.advanceTimersByTimeAsync(16_000)
+    away(false)
+    // a sweep reads that stale row before the next one arrives
+    frames(pc, ++decoded * 30)
+    await vi.advanceTimersByTimeAsync(4_000)
+    // the unseen episode goes on, well past the heal backoff
+    // (MEDIA_HEAL_BACKOFF_MS, 12 s): still only the episode's one restart
+    for (let i = 0; i < 20; i++) {
+      tell(unseen)
+      frames(pc, ++decoded * 30)
+      await vi.advanceTimersByTimeAsync(4_000)
+    }
+    expect(pc.restartIce).toHaveBeenCalledTimes(1)
+    expect(lines.filter((line) => line.startsWith("[jollity-rtc] unseen:"))).toHaveLength(1)
     mesh.close()
   })
 })
