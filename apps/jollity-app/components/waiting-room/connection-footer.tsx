@@ -6,7 +6,7 @@
 /**
  * THE CONNECTION FOOTER: a headline and its line, one row of
  * connection dots, each round's group of co-players in turn, then the
- * indicators read almost as a sentence: Stream (your camera), Quality,
+ * indicators read almost as a sentence: Camera (your own), Quality,
  * Network, Chain. Headline, dots and indicators sit 16 apart. The block is
  * FOOTER_H tall and holds its content to its foot, so a state without a line
  * grows down from the same headline space and the dots never move. The words
@@ -72,7 +72,7 @@ const DOT_LABEL: Record<PeerDot, string> = {
   connecting: "not connected yet",
   "no-endpoint": "no endpoint",
 }
-/** the indicators' slot: the Stream circle's size, so every label sits on one line */
+/** The side of an indicator box, as big as the camera circle, so every label sits on one line. */
 const SLOT = 32
 
 /** the footer's height, all of it: the headline and its line (24 + 20), 16,
@@ -113,7 +113,7 @@ export function ConnectionFooter({
         ))}
       </span>
       <span className="flex items-start gap-4 pt-0.5">
-        <Stream camera={camera} />
+        <Camera camera={camera} />
         <Indicator {...quality} />
         <Indicator {...NETWORK[footer.network]} />
         <Indicator {...CHAIN[footer.chain]} label="Chain" />
@@ -184,11 +184,11 @@ function Indicator({ icon: Icon, label, color, spin = false, children }: { icon?
   )
 }
 
-/** Stream: your camera, mirrored, in the slot's 32 circle; off, a nested disc with the camera-off glyph */
-function Stream({ camera }: { camera: CameraState }) {
+/** Your camera, mirrored, in the 32 circle of the slot. Off, it is a nested disc with the camera-off glyph. */
+function Camera({ camera }: { camera: CameraState }) {
   const stream = camera.kind === "live" ? camera.stream : null
   return (
-    <Indicator label="Stream" color="var(--muted-foreground)">
+    <Indicator label="Camera" color="var(--muted-foreground)">
       <span role="img" aria-label="Your camera" className="grid size-8 place-items-center overflow-hidden rounded-full bg-muted">
         {stream ? <StreamVideo stream={stream} mirrored onAttach={observeSelf} /> : <VideoOff aria-hidden size={16} strokeWidth={1.75} />}
       </span>
