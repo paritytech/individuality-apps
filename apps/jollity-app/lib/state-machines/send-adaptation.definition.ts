@@ -29,6 +29,8 @@ import { defineTransitionTable, type MachineDefinition, type NamedInvariant, typ
  * S6 pending/missing-only application parks the request, but four eligible
  *    windows settle that rung so the ladder cannot freeze;
  * S7 regroup clears all accumulated credit without counting as probe failure;
+ *    an unanswered down request stays pending across it (it still parks after
+ *    four windows), an unanswered up probe rolls back to the last good rung;
  * S8 every move follows ordered rungs and video is never disabled.
  */
 
@@ -42,9 +44,12 @@ type StateKey =
   | "steady-fresh"
   | "steady-quiet"
   | "steady-credited"
-  | "awaiting-new"
-  | "awaiting-pending"
-  | "awaiting-parked"
+  | "awaiting-down"
+  | "awaiting-up"
+  | "awaiting-pending-down"
+  | "awaiting-pending-up"
+  | "awaiting-parked-down"
+  | "awaiting-parked-up"
   | "down-hold-quiet"
   | "down-hold-credited"
   | "probing"
@@ -86,6 +91,11 @@ const initialModel = (): ModelState => ({
 const backoff = (hold: ModelState["hold"]): ModelState["hold"] => hold === 12_000 ? 24_000 : hold === 24_000 ? 48_000 : 60_000
 const isPressure = (action: Action): boolean => action.startsWith("pressure-")
 
+/** S4: a settled down move becomes the good tier; a settled up move never
+ * changes it. Spec clause, not a copy of the implementation's helper. */
+const settledGoodTier = (state: ModelState, direction: Direction, to: number): number =>
+  direction === "down" ? to : state.goodTier
+
 const requestModel = (state: ModelState, to: number, cause: ModelMove["cause"], probe: ModelMove["probe"]): { state: ModelState; output: ModelMove[] } => {
   const move: ModelMove = { direction: to < state.tier ? "up" : "down", cause, from: state.tier, to, probe }
   return {
@@ -97,17 +107,20 @@ const requestModel = (state: ModelState, to: number, cause: ModelMove["cause"], 
 /** Policy model expressed as tier movement, credits and one request token. */
 function modelAction(before: ModelState, action: Action): { state: ModelState; output: ModelMove[] } {
   if (action === "regroup") {
+    const request = before.request
+    const keepDownRequest = before.stage === "awaiting" && request !== undefined && request.direction === "down"
+    const rollbackUpRequest = before.stage === "awaiting" && request !== undefined && request.direction === "up"
     return {
       state: {
         ...before,
-        stage: "steady",
-        tier: before.stage === "probing" ? before.goodTier : before.tier,
+        stage: keepDownRequest ? "awaiting" : "steady",
+        tier: rollbackUpRequest ? before.goodTier : keepDownRequest ? before.tier : before.stage === "probing" ? before.goodTier : before.tier,
         healthy: 0,
         pressure: 0,
-        request: undefined,
-        transition: undefined,
+        request: keepDownRequest ? request : undefined,
+        transition: keepDownRequest ? before.transition : undefined,
         probeWindows: 0,
-        parkedWindows: 0,
+        parkedWindows: keepDownRequest ? before.parkedWindows : 0,
       },
       output: [],
     }
@@ -120,7 +133,7 @@ function modelAction(before: ModelState, action: Action): { state: ModelState; o
         state: {
           ...before,
           tier: before.request!.to,
-          goodTier: before.request!.direction === "down" ? before.request!.to : before.goodTier,
+          goodTier: settledGoodTier(before, before.request!.direction, before.request!.to),
           parkedWindows: 0,
         },
         output: [],
@@ -132,7 +145,7 @@ function modelAction(before: ModelState, action: Action): { state: ModelState; o
           ...before,
           stage: up ? "probing" : "down-hold",
           tier: before.request!.to,
-          goodTier: up ? before.goodTier : before.request!.to,
+          goodTier: settledGoodTier(before, before.request!.direction, before.request!.to),
           healthy: 0,
           pressure: 0,
           request: undefined,
@@ -170,7 +183,7 @@ function modelAction(before: ModelState, action: Action): { state: ModelState; o
         ...before,
         stage: up ? "probing" : "down-hold",
         tier: before.request!.to,
-        goodTier: up ? before.goodTier : before.request!.to,
+        goodTier: settledGoodTier(before, before.request!.direction, before.request!.to),
         healthy: 0,
         pressure: 0,
         request: undefined,
@@ -235,6 +248,7 @@ const searchId = (state: ModelState): string => [
   `w${state.stage === "probing" ? Math.min(2, state.probeWindows) : 0}`,
   `k${state.stage === "awaiting" ? Math.min(4, state.parkedWindows) : 0}`,
 ].join("|")
+
 const modelOfReal = (state: SendAdaptationMachineState): ModelState => ({
   stage: stageOfReal(state),
   tier: state.value.rung,
@@ -254,8 +268,11 @@ const stateKey = (state: ModelState): StateKey => {
     return state.healthy > 0 || state.pressure > 0 ? "steady-credited" : "steady-quiet"
   }
   if (state.stage === "awaiting") {
-    if (state.parkedWindows > 0) return "awaiting-parked"
-    return state.tier === state.request?.to ? "awaiting-pending" : "awaiting-new"
+    if (state.parkedWindows > 0)
+      return state.request?.direction === "down" ? "awaiting-parked-down" : "awaiting-parked-up"
+    if (state.tier === state.request?.to)
+      return state.request?.direction === "down" ? "awaiting-pending-down" : "awaiting-pending-up"
+    return state.request?.direction === "down" ? "awaiting-down" : "awaiting-up"
   }
   if (state.stage === "down-hold")
     return state.healthy > 0 || state.pressure > 0 ? "down-hold-credited" : "down-hold-quiet"
@@ -353,19 +370,37 @@ export const sendAdaptationTransitionTable = defineTransitionTable<StateKey, Eve
     "accept-held": "no-op", "accept-pending": "no-op", "accept-refused": "no-op", reject: "no-op",
     "stale-accept": "no-op", "stale-reject": "no-op", regroup: "transition",
   },
-  "awaiting-new": {
+  "awaiting-down": {
+    hidden: "no-op", senderless: "no-op", unknown: "transition", healthy: "transition",
+    "pressure-known": "transition", "pressure-unknown": "transition", "pressure-severe": "transition",
+    "accept-held": "transition", "accept-pending": "transition", "accept-refused": "transition", reject: "transition",
+    "stale-accept": "no-op", "stale-reject": "no-op", regroup: "no-op",
+  },
+  "awaiting-up": {
     hidden: "no-op", senderless: "no-op", unknown: "transition", healthy: "transition",
     "pressure-known": "transition", "pressure-unknown": "transition", "pressure-severe": "transition",
     "accept-held": "transition", "accept-pending": "transition", "accept-refused": "transition", reject: "transition",
     "stale-accept": "no-op", "stale-reject": "no-op", regroup: "transition",
   },
-  "awaiting-pending": {
+  "awaiting-pending-down": {
     hidden: "no-op", senderless: "no-op", unknown: "transition", healthy: "transition",
     "pressure-known": "transition", "pressure-unknown": "transition", "pressure-severe": "transition",
-    "accept-held": "transition", "accept-pending": "no-op", "accept-refused": "transition", reject: "transition",
+    "accept-held": "transition", "accept-pending": "transition", "accept-refused": "transition", reject: "transition",
+    "stale-accept": "no-op", "stale-reject": "no-op", regroup: "no-op",
+  },
+  "awaiting-pending-up": {
+    hidden: "no-op", senderless: "no-op", unknown: "transition", healthy: "transition",
+    "pressure-known": "transition", "pressure-unknown": "transition", "pressure-severe": "transition",
+    "accept-held": "transition", "accept-pending": "transition", "accept-refused": "transition", reject: "transition",
     "stale-accept": "no-op", "stale-reject": "no-op", regroup: "transition",
   },
-  "awaiting-parked": {
+  "awaiting-parked-down": {
+    hidden: "no-op", senderless: "no-op", unknown: "transition", healthy: "transition",
+    "pressure-known": "transition", "pressure-unknown": "transition", "pressure-severe": "transition",
+    "accept-held": "transition", "accept-pending": "transition", "accept-refused": "transition", reject: "transition",
+    "stale-accept": "no-op", "stale-reject": "no-op", regroup: "no-op",
+  },
+  "awaiting-parked-up": {
     hidden: "no-op", senderless: "no-op", unknown: "transition", healthy: "transition",
     "pressure-known": "transition", "pressure-unknown": "transition", "pressure-severe": "transition",
     "accept-held": "transition", "accept-pending": "transition", "accept-refused": "transition", reject: "transition",
@@ -402,6 +437,8 @@ export const sendAdaptationRegressions: NamedSequence<SendAdaptationTestEvent, S
   { name: "pending request settles after four windows", events: compile(["pressure-known", "accept-pending", "unknown", "unknown", "unknown", "unknown"]) },
   { name: "regroup clears probe credit without backoff", events: compile(["pressure-known", "accept-held", "healthy", "healthy", "healthy", "healthy", "accept-held", "healthy", "regroup"]) },
   { name: "pending down move survives regroup and failed recovery probe", events: compile(["pressure-known", "accept-pending", "regroup", "healthy", "healthy", "healthy", "healthy", "accept-held", "pressure-known"]) },
+  { name: "unanswered down request keeps awaiting across regroup and settles the late accept", events: compile(["pressure-known", "regroup", "accept-held"]) },
+  { name: "unconfirmed up probe rolls back to the last good rung on regroup", events: compile(["pressure-known", "accept-held", "healthy", "healthy", "healthy", "healthy", "accept-pending", "regroup"]) },
   { name: "rejected pending down move restores the prior last good rung", events: compile(["pressure-unknown", "accept-held", "pressure-unknown", "accept-held", "pressure-severe", "accept-pending", "reject", "healthy", "healthy", "healthy", "healthy", "accept-held", "pressure-known"]) },
   { name: "settled parked probe leaves steady regroup inert", events: compile(["pressure-known", "accept-held", "healthy", "healthy", "healthy", "healthy", "unknown", "accept-held", "healthy", "healthy", "regroup"]) },
   { name: "stale duplicate and out-of-order results are inert", events: compile(["stale-accept", "reject", "pressure-known", "stale-reject", "accept-held", "accept-held", "reject"]) },
@@ -453,7 +490,7 @@ const invariants: NamedInvariant<SendAdaptationMachineState, ModelState, SendAda
     specClause: "S6 PARKED_APPLY_WINDOWS",
     check: ({ previousReal, real, event }) => {
       if (!event.action.includes("accept") && !event.action.includes("reject") && event.action !== "hidden" && event.action !== "senderless" && previousReal.value.mode === "awaiting-apply" && previousReal.parkedWindows === 3)
-        assert(real.value.mode !== "awaiting-apply", "request remained parked")
+        assert(real.value.mode !== "awaiting-apply" || event.action === "regroup", "request remained parked")
     },
   },
 ]

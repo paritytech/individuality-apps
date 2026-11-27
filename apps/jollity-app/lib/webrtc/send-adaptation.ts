@@ -104,6 +104,15 @@ const position = (state: SendAdaptationMachineState, index: SendRungIndex): numb
   return found < 0 ? state.policy.rungs.length : found
 }
 
+/** S4/S5: a down move the host has taken becomes the last good rung, even
+ * while only pending; an up move never changes it. One rule for the pending
+ * accept, the held accept and the parked settle. */
+const settledGoodRung = (
+  previous: SendAdaptationMachineState,
+  direction: SendTransition["direction"],
+  to: SendRungIndex,
+): SendRungIndex => (direction === "down" ? to : previous.value.lastGoodRung)
+
 const request = (
   previous: SendAdaptationMachineState,
   to: SendRungIndex,
@@ -164,20 +173,28 @@ export function sendAdaptationStep(
 ): { state: SendAdaptationMachineState; commands: SendAdaptationCommand[] } {
   const unchanged = { state: previous, commands: [] as SendAdaptationCommand[] }
   if (event.kind === "regroup") {
+    // S7: a regroup clears accumulated credit without counting as a probe
+    // failure. An unanswered down request stays pending — its parked-window
+    // count carries over, so the request still settles after four windows and
+    // the ladder cannot freeze; an unanswered up request is an unconfirmed
+    // probe and rolls back to the last good rung (S4).
+    const requested = previous.requested
+    const keepDownRequest = previous.value.mode === "awaiting-apply" && requested !== undefined && requested.direction === "down"
+    const rollbackUpRequest = previous.value.mode === "awaiting-apply" && requested !== undefined && requested.direction === "up"
     return {
       state: {
         ...previous,
         value: {
           ...previous.value,
-          mode: "steady",
-          rung: previous.value.mode === "probing-up" ? previous.value.lastGoodRung : previous.value.rung,
+          mode: keepDownRequest ? "awaiting-apply" : "steady",
+          rung: rollbackUpRequest ? previous.value.lastGoodRung : keepDownRequest ? previous.value.rung : previous.value.mode === "probing-up" ? previous.value.lastGoodRung : previous.value.rung,
           healthyWindows: 0,
           pressureWindows: 0,
-          transition: undefined,
+          transition: keepDownRequest ? previous.value.transition : undefined,
         },
-        requested: undefined,
+        requested: keepDownRequest ? requested : undefined,
         probeWindows: 0,
-        parkedWindows: 0,
+        parkedWindows: keepDownRequest ? previous.parkedWindows : 0,
       },
       commands: [],
     }
@@ -197,8 +214,12 @@ export function sendAdaptationStep(
             ...previous.value,
             rung: event.result.requested,
             mode: "awaiting-apply",
-            lastGoodRung: previous.requested.direction === "down" ? event.result.requested : previous.value.lastGoodRung,
+            lastGoodRung: settledGoodRung(previous, previous.requested.direction, event.result.requested),
           },
+          // F3: a pending-only accept still happened at atMs, so the recovery
+          // hold after the request parks is measured from here, not from an
+          // older apply.
+          lastAppliedAt: event.atMs,
           parkedWindows: 0,
         },
         commands: [],
@@ -217,7 +238,7 @@ export function sendAdaptationStep(
           mode: probing ? "probing-up" : "down-hold",
           healthyWindows: 0,
           pressureWindows: 0,
-          lastGoodRung: probing ? previous.value.lastGoodRung : event.result.requested,
+          lastGoodRung: settledGoodRung(previous, previous.requested.direction, event.result.requested),
           transition: previous.requested,
         },
         lastAppliedAt: event.atMs,
@@ -245,7 +266,7 @@ export function sendAdaptationStep(
           mode: probing ? "probing-up" : "down-hold",
           healthyWindows: 0,
           pressureWindows: 0,
-          lastGoodRung: probing ? previous.value.lastGoodRung : requested.to,
+          lastGoodRung: settledGoodRung(previous, requested.direction, requested.to),
           transition: requested,
         },
         lastAppliedAt: summary.atMs,

@@ -14,13 +14,14 @@ const result = (requested: number): VideoRungApplyResult => ({
 
 const mesh = (): SendAdaptationMesh & { applyVideoRung: ReturnType<typeof vi.fn> } => {
   let rung = 0
-  return {
+  const m: SendAdaptationMesh & { applyVideoRung: ReturnType<typeof vi.fn> } = {
     videoRung: () => rung,
     applyVideoRung: vi.fn(async (next) => {
       rung = next.index
       return result(next.index)
     }),
   }
+  return m
 }
 
 const reports = (at: number, availableKbps: number, reason: "none" | "bandwidth" = "none", framesEncoded = at / 100): PeerReport[] =>
@@ -468,6 +469,50 @@ describe("SendAdaptationDriver", () => {
     resolveProbe!(result(3))
     await observing
     expect(sendAdaptationSnapshot()).toMatchObject({ currentRung: 4, state: { mode: "steady", rung: 4 } })
+  })
+
+  it("keeps an unanswered down request across a regroup and rewrites the mesh rung, not full", async () => {
+    const { driver, setNow } = setup()
+    const attached = mesh()
+    driver.startGame(17)
+    driver.attachMesh(attached)
+    setNow(1_000)
+    await driver.observeReports(reports(1_000, 60, "bandwidth"))
+    // hold the apply so the request is in flight when the regroup lands
+    let resolveDown: ((value: VideoRungApplyResult) => void) | undefined
+    attached.applyVideoRung.mockImplementationOnce((next) => new Promise<VideoRungApplyResult>((resolve) => (resolveDown = resolve)).then(() => result(next.index)))
+    setNow(4_000)
+    const observing = driver.observeReports(reports(4_000, 60, "bandwidth"))
+    await Promise.resolve()
+    expect(resolveDown).toBeTypeOf("function")
+    driver.detachMesh(attached)
+    expect(sendAdaptationSnapshot().state).toMatchObject({ mode: "awaiting-apply", rung: 0 })
+    // the host finally answers the move it actually applied
+    resolveDown!(result(4))
+    await observing
+    expect(sendAdaptationSnapshot().state).toMatchObject({ mode: "down-hold", rung: 4 })
+    const second = mesh()
+    driver.attachMesh(second)
+    await vi.waitFor(() => expect(second.applyVideoRung).toHaveBeenCalledWith(VIDEO_RUNGS[4]))
+    expect(driver.videoRung()).toBe(4)
+  })
+
+  it("counts an empty apply result on a down request as a refusal, not a neutral regroup", async () => {
+    const { driver, setNow } = setup()
+    const attached = mesh()
+    driver.startGame(17)
+    driver.attachMesh(attached)
+    // the mesh applies rung 4 itself and answers the request with no senders
+    attached.applyVideoRung.mockImplementationOnce(async (next) => {
+      ;(attached as unknown as { videoRung: () => number }).videoRung = () => next.index
+      return { requested: next.index, uniform: false, senders: [] }
+    })
+    setNow(1_000)
+    await driver.observeReports(reports(1_000, 60, "bandwidth"))
+    setNow(4_000)
+    await driver.observeReports(reports(4_000, 60, "bandwidth"))
+    expect(sendAdaptationSnapshot().state).toMatchObject({ mode: "steady", rung: 0, recoveryHoldMs: 12_000 })
+    await vi.waitFor(() => expect(attached.applyVideoRung).toHaveBeenLastCalledWith(VIDEO_RUNGS[0]))
   })
 
   it("retains account-keyed decoded-frame growth for live receiver proof", async () => {

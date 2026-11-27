@@ -223,7 +223,19 @@ export class SendAdaptationDriver {
     }
     this.evidence.apply(result)
     if (result.senders.length === 0) {
-      this.neutralRegroup()
+      // An empty apply on an outstanding down request counts as a refusal, so
+      // the controller rolls back and the driver rewrites its rung instead of
+      // treating the regroup as neutral. An empty apply on an up request
+      // (probe) stays a neutral regroup: a refused probe would double the
+      // recovery hold.
+      const awaitingDown = this.controller.acceptsResult(result) && this.controller.state().transition?.direction === "down"
+      if (awaitingDown) {
+        this.controller.rejected(result, this.ports.nowMs())
+        this.evidence.reconcile(this.videoRung())
+        this.reapplyCurrentRung()
+      } else {
+        this.neutralRegroup()
+      }
       this.publish()
       return
     }
