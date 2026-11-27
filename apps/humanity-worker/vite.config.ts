@@ -110,5 +110,9 @@ const config = defineConfig({
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, envDir, "VITE_");
   if (mode !== "test" && env["VITE_NETWORK"]?.trim() === "local") resolveLocalNetwork(env);
-  return config;
+  const network = env["VITE_NETWORK"]?.trim() || "paseo-next-v2";
+  return {
+    ...config,
+    define: { ...config.define, __WORKER_PASEO__: JSON.stringify(network === "paseo-next-v2") },
+  };
 });

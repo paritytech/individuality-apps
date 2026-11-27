@@ -292,6 +292,7 @@ interface Harness {
   registerPerson: Mock;
   reservationQueue: Mock;
   getFinalizedBlock: Mock;
+  supportsSigningContext: Mock;
 }
 
 function args(
@@ -329,7 +330,9 @@ beforeEach(() => {
     hash: FINALIZED_BLOCK_HASH,
     number: FINALIZED_BLOCK_NUMBER,
   }));
+  const supportsSigningContext = vi.fn(() => true);
   harness = {
+    supportsSigningContext,
     provider,
     api,
     truApi,
@@ -343,7 +346,15 @@ beforeEach(() => {
   mocks.getTruApi.mockResolvedValue(truApi);
   mocks.getPeopleClient.mockResolvedValue({
     api,
-    client: { getFinalizedBlock },
+    client: {
+      getFinalizedBlock,
+      getTypedApi: () => ({
+        getStaticApis: async () => ({
+          compat: { constants: { Resources: { SigningContext: { isCompatible: supportsSigningContext } } } },
+          constants: { Resources: { SigningContext: RESOURCES_SIGNING_CONTEXT_HEX } },
+        }),
+      }),
+    },
     network: {},
     wsUrl: "",
   });
@@ -353,6 +364,15 @@ afterEach(() => {
   clearPendingUsernameUpgrade(expectedLiteAddress, TX_HASH);
   clearFailedUsernameUpgrade(expectedLiteAddress);
   vi.restoreAllMocks();
+});
+
+it("stops before binding or signing when the runtime lacks the username signing context", async () => {
+  harness.supportsSigningContext.mockReturnValue(false);
+  await expect(upgradeLiteUsername(args())).rejects.toMatchObject({ code: "upgrade-unavailable" });
+  expect(harness.provider.getUserId).not.toHaveBeenCalled();
+  expect(mocks.bindResourcesAlias).not.toHaveBeenCalled();
+  expect(harness.signLiteProof).not.toHaveBeenCalled();
+  expect(harness.registerPerson).not.toHaveBeenCalled();
 });
 
 describe("upgradeLiteUsername username validation", () => {

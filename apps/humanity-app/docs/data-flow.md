@@ -79,6 +79,8 @@ flowchart LR
 | Q8 | scratched today | Q4 address, Q7 event | 30s | — | no | daily-dollar tile |
 | Q9 | prize settled | Q4 address, Q7 event | 30s | — | no | settled-win restore |
 
+The card checks whether the finalized runtime supports `Resources.SigningContext`. The home offers a username upgrade only when this check succeeds. A direct claim link explains when upgrades are unavailable, and the submission checks again before binding or signing.
+
 The 12s and 30s polls also run in the background
 (`refetchIntervalInBackground`).
 

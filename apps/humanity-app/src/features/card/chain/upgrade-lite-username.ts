@@ -9,6 +9,7 @@ import {
   type CreateResourcesAliasProof,
 } from "@humanity/shared/chain/bind-resources-alias.ts";
 import { resetClientCache } from "@humanity/shared/chain/connection.ts";
+import { usernameSigningContext } from "@humanity/shared/chain/username-signing-context.ts";
 import { getPeopleClient } from "@humanity/shared/chain/client.ts";
 import { getAccountsProvider, getTruApi } from "@humanity/shared/chain/host-api.ts";
 import { resolveNetwork } from "@humanity/shared/chain/networks.ts";
@@ -200,6 +201,15 @@ async function runUpgrade(
       );
     }
 
+    const signingContext = await withTimeout(
+      usernameSigningContext(client),
+      CHAIN_PHASE_TIMEOUT_MS,
+      CHAIN_TIMEOUT_MESSAGE,
+    );
+    if (signingContext == null) {
+      throw new UsernameUpgradeError("upgrade-unavailable", "Username upgrades aren't available here yet.");
+    }
+
     flow.stage("accounts");
     const accounts = await withTimeout(
       resolveUpgradeAccounts(provider, truApi, expectedLiteAddress),
@@ -249,7 +259,7 @@ async function runUpgrade(
     flow.stage("sign");
     flow.set({ "username.choice": usernameChoice });
     const proofMessage = registerPersonProofMessage(
-      Binary.fromHex(await api.constants.Resources.SigningContext()),
+      Binary.fromHex(signingContext),
       aliasBytes,
     );
     let signature: Uint8Array;

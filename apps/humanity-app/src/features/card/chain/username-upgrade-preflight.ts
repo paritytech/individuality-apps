@@ -1,10 +1,9 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
+import type { PeopleApi } from "@humanity/shared/chain/client.ts";
 import type { ProductAccountSigner } from "@humanity/shared/chain/host-api.ts";
-import type { people } from "@polkadot-api/descriptors";
 import { ss58Encode } from "@parity/product-sdk/address";
 import { Binary } from "polkadot-api";
-import type { TypedApi } from "polkadot-api";
 import type {
   AccountsProvider,
   TruApi,
@@ -140,7 +139,7 @@ export async function resolveUpgradeAccounts(
 const BEST = { at: "best" } as const;
 
 export async function preflightUpgradeChain(
-  api: TypedApi<typeof people>,
+  api: PeopleApi,
   currentLiteUsername: string,
   fullUsername: string,
   expectedLiteAddress: string,

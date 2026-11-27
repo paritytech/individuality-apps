@@ -23,6 +23,7 @@ function unavailableMessage(
   if (pending) return "Checking your card.";
   // Ahead of `failed`: the full-personhood probe also fails while the ring
   // root does not cover the key yet, and that is a wait, not an error.
+  if (target.kind === "upgrade-unavailable") return "Username upgrades aren't available here yet.";
   if (preparing) return "Preparing your membership. Your name will be ready in a moment.";
   if (failed) return "Couldn't check your card. Go back and try again.";
   if (target.kind === "already-claimed") return "Your name has no numbers to drop.";

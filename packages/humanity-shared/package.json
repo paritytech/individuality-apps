@@ -17,12 +17,12 @@
     "./*": "./src/*"
   },
   "scripts": {
-    "postinstall": "papi generate",
+    "postinstall": "papi generate && papi generate --config .papi/paseo.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "lint": "eslint .",
     "format": "eslint . --fix",
-    "papi:update": "papi update"
+    "papi:update": "papi update && papi update --config .papi/paseo.json"
   },
   "dependencies": {
     "@individuality/daily-dollar": "*",

@@ -27,6 +27,7 @@ const ACCOUNT = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
 const member = { kind: "member", activeWeeks: 1, lastAttendedGame: 42, attendanceHistory: 1, window: 8 } as const;
 const cardResult = {
   kind: "card",
+  usernameUpgradeSupported: true,
   primaryUsername: "marlow.42",
   accountAddress: ACCOUNT,
   ownerAccount: ACCOUNT,

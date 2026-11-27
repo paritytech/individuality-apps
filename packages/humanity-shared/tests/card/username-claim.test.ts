@@ -11,6 +11,7 @@ function card(
 ): Extract<HumanityCardResult, { kind: "card" }> {
   return {
     kind: "card",
+    usernameUpgradeSupported: true,
     primaryUsername: "alice.42.dot",
     accountAddress: "5Alice",
     ownerAccount: "5Alice",
@@ -72,6 +73,12 @@ describe("usernameClaimTarget", () => {
     expect(usernameClaimTarget(faucetCard, true).kind).toBe("available");
     expect(usernameClaimTarget(undefined, true)).toEqual({ kind: "not-ready" });
   });
+  it("withholds the claim when the runtime lacks the signing context", () => {
+    expect(usernameClaimTarget(card({ usernameUpgradeSupported: false }), true)).toEqual({
+      kind: "upgrade-unavailable",
+    });
+  });
+
   it("allows a member who still owns a lite username", () => {
     expect(usernameClaimTarget(card())).toEqual({
       kind: "available",

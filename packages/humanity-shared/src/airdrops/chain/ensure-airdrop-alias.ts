@@ -1,9 +1,9 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import type { PeopleApi } from "@humanity/shared/chain/client.ts";
 import type { ProductAccountSigner } from "@humanity/shared/chain/host-api.ts";
-import type { people } from "@polkadot-api/descriptors";
-import type { PolkadotClient, TypedApi } from "polkadot-api";
+import type { PolkadotClient } from "polkadot-api";
 
 import {
   getTruApi,
@@ -47,8 +47,6 @@ const SIGNING_FAILURE_MESSAGE =
   "We couldn't bind your Daily Dollar identity. Try again shortly.";
 const FINALITY_FAILURE_MESSAGE =
   "We couldn't confirm your Daily Dollar identity. Try again shortly.";
-
-type PeopleApi = TypedApi<typeof people>;
 
 export interface EnsureAirdropAliasArgs {
   api: PeopleApi;
