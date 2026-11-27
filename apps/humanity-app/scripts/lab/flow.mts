@@ -68,8 +68,8 @@ function versions() {
   if (spawnSync("node", ["--version"], { encoding: "utf8" }).stdout?.trim() !== process.version) throw new Error("PATH node differs from the running Node version");
   const manifest = read(join(root, "package.json"));
   const lock = read(join(root, "package-lock.json"));
-  if (manifest.devDependencies["@parity/product-lab"] !== "0.4.0" || manifest.overrides["@parity/product-lab"]?.["@parity/truapi-host"] !== "0.27.0") throw new Error("The lab pin or scoped host override drifted");
-  for (const [name, version] of [["@parity/product-sdk-host", "0.31.0"], ["@parity/truapi", "0.27.0"], ["@parity/truapi-host", "0.27.0"], ["@parity/product-lab", "0.4.0"]]) {
+  if (manifest.devDependencies["@parity/product-lab"] !== "0.6.0" || manifest.overrides["@parity/product-lab"]?.["@parity/truapi-host"] !== "0.27.0") throw new Error("The lab pin or scoped host override drifted");
+  for (const [name, version] of [["@parity/product-sdk-host", "0.31.0"], ["@parity/truapi", "0.27.0"], ["@parity/truapi-host", "0.27.0"], ["@parity/product-lab", "0.6.0"]]) {
     const rows = Object.entries(lock.packages).filter(([path]) => path.endsWith(`node_modules/${name}`));
     if (rows.length !== 1 || (rows[0]![1] as { version: string }).version !== version) throw new Error(`Expected one ${name} ${version} in the root lock`);
     const installed = read(join(root, rows[0]![0], "package.json"));

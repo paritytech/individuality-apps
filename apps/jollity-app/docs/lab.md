@@ -59,7 +59,7 @@ On shared development machines, acquire the machine lock before prepare/run usin
 
 Lab-only app paths do not count as bundle or visual sources and are excluded from main deploy triggers. Mixed source changes still deploy. The existing hermetic Playwright suite remains in place. The root script additions and app tsconfig exclusions are build-tooling changes and can still trigger normal source classifiers on this initial PR.
 
-product-lab is pinned to 0.4.0, the scoped WASM host override to 0.27.0, truapi to 0.27.0 and sdk-host to 0.31.0. Provisioning and launch must acquire the same attested official CLI 0.27.0 binary. The copied lock is digest-checked against `IMPORTED.json` (Humanity's lock moved to 0.31.0 separately); no installed package is patched. Provenance: `../lab/opening/IMPORTED.json`.
+product-lab is pinned to 0.6.0, the scoped WASM host override to 0.27.0, truapi to 0.27.0 and sdk-host to 0.31.0. Provisioning and launch must acquire the same attested official CLI 0.27.0 binary. The copied lock is digest-checked against `IMPORTED.json` (Humanity's lock moved to 0.31.0 separately); no installed package is patched. Provenance: `../lab/opening/IMPORTED.json`.
 
 This does not test registration, gameplay, credits, the worker or another app. Linux timing and 16 GB capacity remain unmeasured until one positive and one control run. The planning estimate, including a download per run, is 20-35 minutes, this is an estimate, not a measured result. Escalate capacity only after an OOM, sustained swapping with under 1 GiB available for 60 seconds, or two valid runs over the cap.
 

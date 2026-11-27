@@ -228,7 +228,8 @@ export async function playDim2InApp(page: LocatorRoot, ui: AppSurface | undefine
         await new Promise((resolve) => setTimeout(resolve, 250));
         continue;
       }
-      if (state.path === "/chest" || state.path === "/prize-draw" || state.path === "/results") {
+      // "/collectables" is the chest's route since Jollity 0.1.73 (PR 60); "/chest" stays for older builds.
+      if (state.path === "/collectables" || state.path === "/chest" || state.path === "/prize-draw" || state.path === "/results") {
         sawChest = true;
         postGameRoute = state.path;
         break;

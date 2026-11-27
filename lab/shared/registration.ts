@@ -15,7 +15,7 @@ export async function readRegistrationView(page: BrowserPage) {
       buttons: Array.from(document.querySelectorAll('button'))
         .filter(b => b.getClientRects().length > 0 && getComputedStyle(b).visibility !== 'hidden')
         .map(b => ({ name: (b.getAttribute('aria-label') || b.textContent || '').trim(), disabled: b.disabled }))
-        .filter(b => /^(Register|Sign up|Join game|Allow access|Requesting…|Joining…|Saving your seat…)$/.test(b.name)),
+        .filter(b => /^(I'll be there|Register|Sign up|Join game|Allow access|Requesting…|Joining…|Saving your seat…)$/.test(b.name)),
     };
   });
 }
@@ -75,7 +75,8 @@ export async function registerWhenReady<T>(page: BrowserPage, options: {
         reason = 'permission click attempted; permission gate has not completed';
       }
     } else if (last.path === '/') {
-      const controls = last.buttons.filter(b => /^(Register|Sign up|Join game)$/.test(b.name)), button = controls.find(b => !b.disabled);
+      // "I'll be there" is the home's sign-up button since PR 70 (it hides on the tap); the older names stay for older builds.
+      const controls = last.buttons.filter(b => /^(I'll be there|Register|Sign up|Join game)$/.test(b.name)), button = controls.find(b => !b.disabled);
       reason = !button && controls.length ? 'lite registration control is still disabled'
         : last.buttons.some(b => /^(Joining…|Saving your seat…)$/.test(b.name)) ? 'sign-up is already in progress; waiting for finalized registration'
         : 'no enabled lite registration control on DIM2 home';

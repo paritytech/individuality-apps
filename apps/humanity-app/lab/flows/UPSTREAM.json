@@ -63,8 +63,8 @@
       "source": "suites/humanity/lab/steps/dim2/live-game.ts",
       "destination": "lab/shared/upstream/lab/steps/dim2/live-game.ts",
       "sourceSha256": "25a1f87e7b24eacf731d9f951eb824bfd95ebe7a32d942986b166015aac1b9e9",
-      "sha256": "fb69b61f9c02e113f926d0e1821d219429d3f60220daa4190f70254544c957ff",
-      "adaptation": "Bound transient unreadable tile verdicts and disabled all-verdict Confirm states to 15 seconds of condition polling; keep vote gestures and report deadlines unchanged"
+      "sha256": "12a821d9eb4ff783c9474de2dee28cee5b34b4950de1ddcaf666176f6c5fba6d",
+      "adaptation": "Bound transient unreadable tile verdicts and disabled all-verdict Confirm states to 15 seconds of condition polling; keep vote gestures and report deadlines unchanged; end the play loop on /collectables too, the chest's route since Jollity 0.1.73"
     },
     {
       "source": "suites/humanity/lab/steps/dim2/results.ts",

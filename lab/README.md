@@ -2,7 +2,7 @@
 
 This private npm workspace owns the cross-app Humanity and Jollity E2E lab and
 the helpers used by both product labs. It has no publish script. Product-lab
-0.4.0 is installed once at the repository root; the qualified CLI host is
+0.6.0 is installed once at the repository root; the qualified CLI host is
 0.31.0 for Humanity and the cross-app lab, and 0.27.0 for Jollity. Product-lab
 0.4.0 routes a 0.30.0 or later host to the local copy through `--stack` and an
 older one through its routing file, so both hosts run from the same install. Both products keep their existing features and tests, except that the

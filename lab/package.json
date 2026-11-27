@@ -10,6 +10,6 @@
     "check": "npm run typecheck && npm run lint && npm test && tsx scripts/check.mts"
   },
   "devDependencies": {
-    "@parity/product-lab": "0.4.0"
+    "@parity/product-lab": "0.6.0"
   }
 }

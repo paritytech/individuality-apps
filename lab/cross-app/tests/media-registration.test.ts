@@ -125,6 +125,21 @@ it('passes the permission click and one Register click, and records both inputs 
   expect(result.inputs.map(i => `${i.control} ${i.sent} ${i.view?.path}`)).toEqual(['Allow access clicked /permissions', 'Register clicked /']);
 });
 
+it("taps I'll be there, the home's sign-up button since PR 70, once, and waits out the home that hides it on the tap", async () => {
+  const clicks: string[] = []; let proven = false;
+  home("I'll be there");
+  // The tap takes the button off the screen: nothing replaces it while the sign-up runs.
+  const page = pageOf(clicks, () => { proven = true; document.body.innerHTML = '<span data-testid="home-status">Next game</span>'; });
+  const chain = chainFor({ registered: (account, read) => {
+    if (!(proven && account === lab1 && read >= 4)) return false;
+    document.body.innerHTML = `<span data-testid="home-status">You're in</span>`; return true;
+  } });
+  const task = registerMediaPlayer(page, player, chain as never, peers(page)); await vi.advanceTimersByTimeAsync(2_000);
+  const result = await task;
+  expect(clicks).toEqual(["I'll be there"]); expect(result.uiClicks).toBe(1);
+  expect(result.inputs.map(i => `${i.control} ${i.sent} ${i.view?.path}`)).toEqual(["I'll be there clicked /"]);
+});
+
 it('@negative-control: a registration no click caused fails on its own message, and its evidence names the account, the registration, its sender, every read and both screens', async () => {
   const clicks: string[] = [], page = pageOf(clicks);
   const error = await settle(registerMediaPlayer(page, player, noClick() as never, peers(page))) as MediaRegistrationError;
