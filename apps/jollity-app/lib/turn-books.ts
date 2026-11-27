@@ -84,6 +84,10 @@ export interface TurnBooks {
   presentBeforeFirstTurn: boolean
   /** the first turn this page opened (or the stored books name) */
   firstOpenedTurn: number | undefined
+  /** this page opened a turn itself (openTurn observed one): page-set
+   *  evidence, as opposed to a firstOpenedTurn that only the stored books
+   *  brought in, which must not open the sealing floor on its own */
+  openedTurnOnPage: boolean
   /** the first turn the STORED books say this player opened in this game:
    *  proof of a rejoin, as opposed to a genuine late join (#527) */
   restoredFirstOpenedTurn: number | undefined
@@ -121,6 +125,7 @@ export function emptyTurnBooks(): TurnBooks {
     lastSealedTurn: -1,
     presentBeforeFirstTurn: false,
     firstOpenedTurn: undefined,
+    openedTurnOnPage: false,
     restoredFirstOpenedTurn: undefined,
     restoredSealed: undefined,
     videoRoleHistory: {},
@@ -354,7 +359,10 @@ export function tickBooks(
     roundTurn: number,
     observed = false,
   ): Partial<Record<PlayerId, Vote>> => {
-    if (observed) b.firstOpenedTurn = b.firstOpenedTurn ?? turn
+    if (observed) {
+      b.firstOpenedTurn = b.firstOpenedTurn ?? turn
+      b.openedTurnOnPage = true
+    }
     const bound = bindPendingVideoRoles(b.videoRoleHistory, turn)
     if (bound.changed) b.videoRoleHistory = bound.history
     const rejects = bannedRejects(b, world, round, roundTurn, turn)
@@ -370,17 +378,20 @@ export function tickBooks(
   // Replay every completed turn between the last tick and this one. A page
   // suspended across several turns gets one tick on return; each missed
   // turn must still open (ban rejects) and seal (defaults) in order.
-  const sealThrough = (completedExclusive: number) => {
+  const sealThrough = (completedExclusive: number, fromCold = false) => {
     const previous = b.prevTurn
     const lastProcessed = previous >= 0 ? previous : b.lastSealedTurn
-    // The entry floor comes from the monotone evidence, exactly as the model
-    // computes it (lib/state-machines/turn-books.definition.ts): a backward
-    // tick rewrites prevTurn, so the cursor must not decide how far this page
-    // got or whether it attended (#390 gaps 1 and 3). It is NOT clamped by
-    // coldReadyBoundary: the rejoin path replays sealThrough(beforeReady)
-    // with the boundary already set, and a floor of beforeReady would seal
-    // nothing there (#1178).
+    // The entry floor comes from monotone evidence, as in the model
+    // (turn-books.definition.ts), never from prevTurn: a backward tick
+    // rewrites it, so it must not decide how far this page got or whether it
+    // attended (#390 gaps 1, 3). Not clamped by coldReadyBoundary: the
+    // rejoin replay would then seal nothing (#1178).
     const floor = b.presentBeforeFirstTurn ? 0 : (b.firstOpenedTurn ?? -1)
+    // Unattended turns replay only from the cold reconcile or from a position
+    // this page set itself (a turn it opened, or its own cursor).
+    // A restored firstOpenedTurn alone is not evidence this page attended
+    // the later turns, and must not open the floor while lastProcessed < 0.
+    if (lastProcessed < 0 && !fromCold && !b.presentBeforeFirstTurn && !b.openedTurnOnPage) return
     if ((lastProcessed < 0 && floor < 0) || completedExclusive <= lastProcessed) return
     if (previous >= 0 && previous >= floor) sealTurn(previous)
     for (let missed = Math.max(floor, lastProcessed + 1); missed < completedExclusive; missed++) {
@@ -467,7 +478,7 @@ export function tickBooks(
       }
       b.presentBeforeFirstTurn = true
       b.lastSealedTurn = Math.max(b.lastSealedTurn, (rejoinFrom ?? b.firstOpenedTurn ?? 0) - 1)
-      sealThrough(rejoined ? beforeReady : beforeLoad)
+      sealThrough(rejoined ? beforeReady : beforeLoad, true)
     } else {
       // A genuine late join keeps those players unseen. Advance the book
       // without inventing votes for turns before this page existed.
@@ -500,7 +511,9 @@ export function tickBooks(
   const completed = completedTurns(snap)
   // Two non-round snapshots both use -1 as their active turn. A page can
   // sleep in the gap and wake in reporting, so compare their completed
-  // boundary too; otherwise that whole last round looks unchanged.
+  // boundary too; otherwise that whole last round looks unchanged. Whether
+  // the replay then seals anything is sealThrough's own gate: a restored
+  // firstOpenedTurn alone opens nothing while this page holds no position.
   const missedNonRoundBoundary =
     turn < 0 &&
     (b.prevTurn >= 0 || b.lastSealedTurn >= 0 || b.presentBeforeFirstTurn || b.firstOpenedTurn !== undefined) &&

@@ -285,8 +285,7 @@ const TRACE = process.env.TURN_BOOKS_SEED !== undefined
 function randomEvent(r: ReturnType<typeof rng>, life: Life): Event {
   const roll = r.next()
   // a live chain clock steps back inside the game (#390); a step back over
-  // T-0, or over a late joiner's load, is pinned on its own below (the known
-  // gaps)
+  // T-0, or over a late joiner's load, is pinned on its own below
   const floor = life.mode === "late" ? (life.clock()?.coldStartedAt ?? G) : G
   const back = [-3, -8, -14].filter((dt) => life.t + dt >= floor)
   if (roll < 0.55) {
@@ -647,8 +646,9 @@ describe("the turn books' contract", () => {
     ])
   })
 
-  // ── known gaps: found by the properties, kept as they are (an extraction
-  // changes no behaviour); each passes the day the gap is closed ──────────
+  // ── pinned gaps: still open, each pinned as an it.fails below ────────────
+  // (#390 gaps 1 and 3 are closed by this branch; the remaining ones are
+  // tracked in the follow-up issue for PR #90's review)
 
   /** a page that opened turn 0, ticked through the given chain seconds */
   const pageAt = (seconds: number[], firstTick = G + 2) => {
@@ -663,11 +663,12 @@ describe("the turn books' contract", () => {
     return { life, ticks }
   }
 
-  it("known gap (clauses 2, 7): a step back from turn 0 over T-0 marks the page present only on the next tick", () => {
-    // A late joiner opens turn 0, the chain clock steps back into the
-    // connect beat: that tick resets prevTurn, but the entry floor in
-    // sealThrough reads the monotone firstOpenedTurn instead, so a page that
-    // freezes right then still seals turns 0 and 1 when it wakes in turn 2.
+  it("#390 (clauses 2, 7): a page that steps back from turn 0 over T-0 and freezes still seals turns 0 and 1", () => {
+    // Was a known gap until #390. A late joiner opens turn 0, the chain
+    // clock steps back into the connect beat: that tick resets prevTurn, but
+    // the entry floor in sealThrough reads the monotone firstOpenedTurn, so a
+    // page that freezes right then still seals turns 0 and 1 when it wakes in
+    // turn 2.
     const { life } = pageAt([G - 5, G + 25])
     expect(life.books.sealed.has(0) && life.books.sealed.has(1)).toBe(true)
   })
@@ -682,13 +683,13 @@ describe("the turn books' contract", () => {
     expect(again.books.firstOpenedTurn).toBe(books.firstOpenedTurn)
   })
 
-  it("known gap (clause 3): a step back into a turn before a late joiner's load seals it with defaults", () => {
-    // A genuine late joiner loads in turn 1. The chain clock steps back into
-    // turn 0, which ended before the load; a frame there makes B and C seen
-    // from turn 0 (#562 B: decoded in an open turn), but when the clock moves
-    // on, the entry floor in sealThrough (firstOpenedTurn = 1) keeps the
-    // re-lived turn 0 below the entry: it is never sealed and files no
-    // verdicts the late joiner was not charged for.
+  it("#390 (clause 3): a step back into a turn before a late joiner's load files no defaults there", () => {
+    // Was a known gap until #390. A genuine late joiner loads in turn 1.
+    // The chain clock steps back into turn 0, which ended before the load; a
+    // frame there makes B and C seen from turn 0 (#562 B: decoded in an open
+    // turn), but when the clock moves on, the entry floor in sealThrough
+    // (firstOpenedTurn = 1) keeps the re-lived turn 0 below the entry: it is
+    // never sealed and files no verdicts the late joiner was not charged for.
     const life = newLife("late", G + 13)
     life.restored = true
     life.clock = () => ({ ready: true, coldStartedAt: G + 13 })
@@ -902,6 +903,31 @@ describe("the trail the books hand the session", () => {
 
     expect([...ticked.books.sealed]).toEqual([0, 1, 2])
     expect(ticked.trail).toContainEqual({ kind: "away" })
+  })
+
+  it("a page reopened after the game ends files no verdicts for turns it never lived through", () => {
+    // Review blocker 1 on PR #90: the stored books name firstOpenedTurn 0 and
+    // hold turns 0-1 sealed, but this page reopened after the game finished
+    // (no cold start, prevTurn and lastSealedTurn both -1). One tick from the
+    // finished snapshot must seal nothing new: a restored firstOpenedTurn
+    // alone is not evidence this page attended the later turns.
+    const stored: StoredVotes = {
+      ...saved(emptyTurnBooks()),
+      autoSeals: { 0: [], 1: [] },
+      firstOpenedTurn: 0,
+      videoRoleHistory: SEEN,
+    }
+    const restored = restoreBooks(emptyTurnBooks(), stored, false).books
+    const ticked = tickBooks(
+      restored,
+      calculateSnapshot(G + 201, timing),
+      clockOf({ ready: true }),
+      worldOf(restored),
+    )
+    expect([...ticked.books.sealed].sort((a, b) => a - b)).toEqual([0, 1])
+    for (let turn = 2; turn < STRIDE * timing.rounds; turn++)
+      expect(ticked.books.turnVotes[turn] ?? {}).toEqual({})
+    expect(ticked.trail.filter((step) => step.kind === "row" && step.message === "turn sealed")).toEqual([])
   })
 
   it("#1470: the game session applies the captured remount boundary after restore", () => {

@@ -97,17 +97,17 @@ describe("turn-books state-machine model", () => {
     expect(state.books.autoSeals[0]).not.toContain("bob")
   })
 
-  it("#390 known gap 1 (clause 2): a backward T-0 reset drops completion sealing", () => {
+  it("#390 gap 1 (clause 2): completion sealing survives a backward T-0 reset", () => {
     const state = productTrace(["tick-turn-0", "frame-bob", "tick-waiting", "tick-reporting"])
     expect(state.books.sealed.has(0), "completed turn 0 must seal after the clock advances again").toBe(true)
   })
 
-  it("#390 known gap 1 (clause 2): a backward reset also drops sealing at T-1", () => {
+  it("#390 gap 1 (clause 2): completion sealing survives a backward reset at T-1", () => {
     const state = productTrace(["tick-turn-0", "frame-bob", "tick-waiting", "tick-turn-1"])
     expect(state.books.sealed.has(0), "completed turn 0 must seal when the clock returns at turn 1").toBe(true)
   })
 
-  it("#390 known gap 3 (clause 3): a late-join rewind seals a pre-entry turn", () => {
+  it("#390 gap 3 (clause 3): a late-join rewind leaves a pre-entry turn unsealed", () => {
     const state = productTrace(["late-join-turn-1", "tick-turn-0", "frame-bob", "tick-turn-1"])
     expect(
       { sealed: state.books.sealed.has(0), verdict: state.books.turnVotes[0]?.bob },
