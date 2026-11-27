@@ -470,6 +470,180 @@ describe("SendAdaptationDriver", () => {
     expect(sendAdaptationSnapshot()).toMatchObject({ currentRung: 4, state: { mode: "steady", rung: 4 } })
   })
 
+  it("ignores a late result from the detached mesh and builds the new mesh at the pending target", async () => {
+    const { driver, setNow } = setup()
+    const attached = mesh()
+    driver.startGame(17)
+    driver.attachMesh(attached)
+    setNow(1_000)
+    await driver.observeReports(reports(1_000, 60, "bandwidth"))
+    // hold the apply so the request is in flight when the regroup lands
+    let resolveDown: ((value: VideoRungApplyResult) => void) | undefined
+    attached.applyVideoRung.mockImplementationOnce((next) => new Promise<VideoRungApplyResult>((resolve) => (resolveDown = resolve)).then(() => result(next.index)))
+    setNow(4_000)
+    const observing = driver.observeReports(reports(4_000, 60, "bandwidth"))
+    await Promise.resolve()
+    expect(resolveDown).toBeTypeOf("function")
+    driver.detachMesh(attached)
+    expect(sendAdaptationSnapshot().state).toMatchObject({ mode: "awaiting-apply", rung: 0 })
+    // the detached mesh's late answer no longer settles the request
+    resolveDown!(result(4))
+    await observing
+    expect(sendAdaptationSnapshot().state).toMatchObject({ mode: "awaiting-apply", rung: 0 })
+    // the new mesh is written the pending target rung, not the old full one
+    const second = mesh()
+    driver.attachMesh(second)
+    expect(driver.targetRung()).toBe(VIDEO_RUNGS[4])
+    await vi.waitFor(() => expect(second.applyVideoRung).toHaveBeenCalledWith(VIDEO_RUNGS[4]))
+    // the new mesh's own result settles the request
+    driver.videoRungResult(result(4), second)
+    expect(sendAdaptationSnapshot().state).toMatchObject({ mode: "down-hold", rung: 4 })
+    expect(driver.videoRung()).toBe(4)
+  })
+
+  it("makes no write to a peerless new mesh built at the target; its first sender result settles the request", async () => {
+    const { driver, setNow } = setup()
+    const attached = mesh()
+    driver.startGame(17)
+    driver.attachMesh(attached)
+    setNow(1_000)
+    await driver.observeReports(reports(1_000, 60, "bandwidth"))
+    let resolveDown: ((value: VideoRungApplyResult) => void) | undefined
+    attached.applyVideoRung.mockImplementationOnce((next) => new Promise<VideoRungApplyResult>((resolve) => (resolveDown = resolve)).then(() => result(next.index)))
+    setNow(4_000)
+    const observing = driver.observeReports(reports(4_000, 60, "bandwidth"))
+    await Promise.resolve()
+    driver.detachMesh(attached)
+    resolveDown!(result(4))
+    await observing
+    expect(sendAdaptationSnapshot().state).toMatchObject({ mode: "awaiting-apply", rung: 0 })
+
+    // a fresh mesh has no peers at attach (addPeer runs later) and is built at
+    // the target rung; like mesh.ts:1115 it reports every apply through the callback
+    let rung = 4
+    const second: SendAdaptationMesh & { applyVideoRung: ReturnType<typeof vi.fn> } = {
+      videoRung: () => rung,
+      applyVideoRung: vi.fn(async (next) => {
+        rung = next.index
+        const empty: VideoRungApplyResult = { requested: next.index, senders: [], uniform: false }
+        driver.videoRungResult(empty, second)
+        return empty
+      }),
+    }
+    driver.attachMesh(second)
+    expect(second.applyVideoRung).not.toHaveBeenCalled()
+    expect(sendAdaptationSnapshot().state).toMatchObject({ mode: "awaiting-apply", rung: 0 })
+    // the first peer's sender tune reports the applied target (mesh.ts:1203)
+    driver.videoRungResult(result(4), second)
+    expect(sendAdaptationSnapshot().state).toMatchObject({ mode: "down-hold", rung: 4 })
+  })
+
+  it("targets the pending down rung while the apply is unanswered, the settled rung otherwise", async () => {
+    const { driver, setNow } = setup()
+    const attached = mesh()
+    driver.startGame(17)
+    driver.attachMesh(attached)
+    expect(driver.targetRung()).toBe(VIDEO_RUNGS[0])
+    setNow(1_000)
+    await driver.observeReports(reports(1_000, 60, "bandwidth"))
+    let resolveDown: ((value: VideoRungApplyResult) => void) | undefined
+    attached.applyVideoRung.mockImplementationOnce((next) => new Promise<VideoRungApplyResult>((resolve) => (resolveDown = resolve)).then(() => result(next.index)))
+    setNow(4_000)
+    const observing = driver.observeReports(reports(4_000, 60, "bandwidth"))
+    await Promise.resolve()
+    expect(resolveDown).toBeTypeOf("function")
+    expect(driver.videoRung()).toBe(0)
+    expect(driver.targetRung()).toBe(VIDEO_RUNGS[4])
+    resolveDown!(result(4))
+    await observing
+    expect(driver.videoRung()).toBe(4)
+    expect(driver.targetRung()).toBe(VIDEO_RUNGS[4])
+  })
+
+  it("counts an empty apply result on a down request as a refusal, not a neutral regroup", async () => {
+    const { driver, setNow } = setup()
+    const attached = mesh()
+    driver.startGame(17)
+    driver.attachMesh(attached)
+    // the mesh applies rung 4 itself and answers the request with no senders
+    attached.applyVideoRung.mockImplementationOnce(async (next) => {
+      ;(attached as unknown as { videoRung: () => number }).videoRung = () => next.index
+      return { requested: next.index, uniform: false, senders: [] }
+    })
+    setNow(1_000)
+    await driver.observeReports(reports(1_000, 60, "bandwidth"))
+    setNow(4_000)
+    await driver.observeReports(reports(4_000, 60, "bandwidth"))
+    expect(sendAdaptationSnapshot().state).toMatchObject({ mode: "steady", rung: 0, recoveryHoldMs: 12_000 })
+    await vi.waitFor(() => expect(attached.applyVideoRung).toHaveBeenLastCalledWith(VIDEO_RUNGS[0]))
+  })
+
+  it("does not roll back when the detached mesh's apply throws after a regroup", async () => {
+    const { driver, setNow } = setup()
+    const attached = mesh()
+    driver.startGame(17)
+    driver.attachMesh(attached)
+    setNow(1_000)
+    await driver.observeReports(reports(1_000, 60, "bandwidth"))
+    let rejectDown: ((error: Error) => void) | undefined
+    attached.applyVideoRung.mockImplementationOnce(() => new Promise<VideoRungApplyResult>((_, reject) => (rejectDown = reject)))
+    setNow(4_000)
+    const observing = driver.observeReports(reports(4_000, 60, "bandwidth"))
+    await Promise.resolve()
+    driver.detachMesh(attached)
+    const second = mesh()
+    driver.attachMesh(second)
+    rejectDown!(new Error("setParameters failed"))
+    await observing
+    expect(sendAdaptationSnapshot().state).toMatchObject({ mode: "awaiting-apply", rung: 0 })
+    expect(driver.targetRung()).toBe(VIDEO_RUNGS[4])
+  })
+
+  it("treats an empty apply result from a mesh with live connections as neutral and still steps down", async () => {
+    const { driver, setNow } = setup()
+    const attached = Object.assign(mesh(), { hasLiveConnections: () => true })
+    driver.startGame(17)
+    driver.attachMesh(attached)
+    // camera off: no sender carries a track, so the apply reports no senders
+    attached.applyVideoRung.mockImplementation(async (next) => {
+      ;(attached as unknown as { videoRung: () => number }).videoRung = () => next.index
+      return { requested: next.index, uniform: false, senders: [] }
+    })
+    setNow(1_000)
+    await driver.observeReports(reports(1_000, 60, "bandwidth"))
+    setNow(4_000)
+    await driver.observeReports(reports(4_000, 60, "bandwidth"))
+    // neutral: the request stays pending at the target instead of rolling back
+    expect(sendAdaptationSnapshot().state).toMatchObject({ mode: "awaiting-apply", rung: 0 })
+    expect(driver.targetRung()).toBe(VIDEO_RUNGS[4])
+    // the unanswered request parks and settles at the lower rung
+    for (let at = 7_000; at <= 19_000 && driver.videoRung() !== 4; at += 3_000) {
+      setNow(at)
+      await driver.observeReports(reports(at, 60, "bandwidth"))
+    }
+    expect(driver.videoRung()).toBe(4)
+  })
+
+  it("repairs the mesh to the pending target when a stale result at the starting rung lands", async () => {
+    const { driver, setNow } = setup()
+    const attached = mesh()
+    driver.startGame(17)
+    driver.attachMesh(attached)
+    setNow(1_000)
+    await driver.observeReports(reports(1_000, 60, "bandwidth"))
+    let resolveDown: ((value: VideoRungApplyResult) => void) | undefined
+    attached.applyVideoRung.mockImplementationOnce(() => new Promise<VideoRungApplyResult>((resolve) => (resolveDown = resolve)))
+    setNow(4_000)
+    const observing = driver.observeReports(reports(4_000, 60, "bandwidth"))
+    await Promise.resolve()
+    expect(driver.targetRung()).toBe(VIDEO_RUNGS[4])
+    attached.applyVideoRung.mockClear()
+    driver.videoRungResult(result(0), attached)
+    expect(attached.applyVideoRung).toHaveBeenCalledWith(VIDEO_RUNGS[4])
+    resolveDown!(result(4))
+    await observing
+  })
+
   it("retains account-keyed decoded-frame growth for live receiver proof", async () => {
     const { driver, setNow } = setup()
     driver.startGame(17)

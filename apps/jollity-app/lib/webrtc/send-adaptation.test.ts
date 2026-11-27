@@ -159,17 +159,62 @@ describe("SendAdaptationController", () => {
     const down = c.observe(summary(3_000, { pressure: "bandwidth", availableKbps: 60 }))!
     c.accepted(applied(down.to, "pending"), 3_000)
     c.regroup()
+    // the unanswered down request survives the regroup and parks into down-hold
+    expect(c.state()).toMatchObject({ rung: down.to, mode: "awaiting-apply", lastGoodRung: down.to })
     for (const at of [6_000, 9_000, 12_000]) expect(c.observe(summary(at, { pressure: "healthy" }))).toBeNull()
-    const probe = c.observe(summary(15_000, { pressure: "healthy" }))!
-    c.accepted(applied(probe.to), 15_000)
+    expect(c.observe(summary(15_000, { pressure: "healthy" }))).toBeNull()
+    expect(c.state()).toMatchObject({ rung: down.to, mode: "down-hold", lastGoodRung: down.to })
+    for (const at of [18_000, 21_000, 24_000]) expect(c.observe(summary(at, { pressure: "healthy" }))).toBeNull()
+    const probe = c.observe(summary(27_000, { pressure: "healthy" }))!
+    expect(probe).toMatchObject({ from: down.to, to: 3, direction: "up", probe: "start" })
+    c.accepted(applied(probe.to), 27_000)
 
-    expect(c.observe(summary(18_000, { pressure: "bandwidth", availableKbps: 60 }))).toMatchObject({
+    expect(c.observe(summary(30_000, { pressure: "bandwidth", availableKbps: 60 }))).toMatchObject({
       from: 3,
-      to: 4,
+      to: down.to,
       direction: "down",
       cause: "bandwidth",
       probe: "failed",
     })
+  })
+  it("keeps an unanswered down request across a regroup and settles the late result", () => {
+    const c = new SendAdaptationController()
+    const down = c.observe(summary(3_000, { pressure: "bandwidth", availableKbps: 60 }))!
+    expect(down).toMatchObject({ from: 0, to: 4, direction: "down" })
+    c.regroup()
+    expect(c.state()).toMatchObject({ rung: 0, mode: "awaiting-apply" })
+    expect(c.acceptsResult(applied(4))).toBe(true)
+    c.accepted(applied(4), 6_000)
+    expect(c.state()).toMatchObject({ rung: 4, mode: "down-hold", lastGoodRung: 4 })
+  })
+
+  it("rolls an unconfirmed up probe back to the last good rung on regroup", () => {
+    const c = new SendAdaptationController()
+    const down = c.observe(summary(3_000, { pressure: "bandwidth", availableKbps: 60 }))!
+    c.accepted(applied(down.to), 3_000)
+    for (const at of [6_000, 9_000, 12_000]) expect(c.observe(summary(at, { pressure: "healthy" }))).toBeNull()
+    const probe = c.observe(summary(15_000, { pressure: "healthy" }))!
+    expect(probe).toMatchObject({ from: 4, to: 3, direction: "up", probe: "start" })
+    // the probe is pending-accepted, so the controller sits on the unconfirmed rung
+    c.accepted(applied(probe.to, "pending"), 15_000)
+    expect(c.state()).toMatchObject({ rung: 3, mode: "awaiting-apply", lastGoodRung: 4 })
+    c.regroup()
+    expect(c.state()).toMatchObject({ rung: 4, mode: "steady", lastGoodRung: 4, recoveryHoldMs: 12_000 })
+  })
+
+  it("measures the recovery hold from a pending-only accepted down move", () => {
+    const c = new SendAdaptationController({ nowMs: 0 })
+    c.observe(summary(3_000, { pressure: "bandwidth", availableKbps: 200 }))
+    c.accepted(applied(2), 3_000)
+    const down = c.observe(summary(6_000, { pressure: "bandwidth", availableKbps: 60, severe: true }))!
+    expect(down).toMatchObject({ from: 2, to: 4 })
+    c.accepted(applied(4, "pending"), 60_000)
+    c.rejected(applied(4, "refused"), 60_000)
+    expect(c.state()).toMatchObject({ rung: 2, mode: "steady" })
+    // the hold is measured from the pending accept at 60_000, so four healthy
+    // windows within the hold do not yet start a probe
+    for (const at of [61_000, 62_000, 63_000, 64_000]) expect(c.observe(summary(at, { pressure: "healthy" }))).toBeNull()
+    expect(c.observe(summary(75_000, { pressure: "healthy" }))).toMatchObject({ from: 2, to: 1, direction: "up", probe: "start" })
   })
 
   it("keeps steady quiet unchanged when regroup follows a settled parked probe", () => {
