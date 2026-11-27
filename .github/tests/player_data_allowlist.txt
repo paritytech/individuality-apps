@@ -1,0 +1,68 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Allowlist of made-up names and device strings used in fixtures, tests and docs.
+# Real player data never appears here: every entry is invented, and the made-up
+# shapes (player-NN with a dash, never the name.NN dot) cannot collide with the
+# guard's username pattern. Add a new made-up name here when a fixture needs one.
+
+# made-up usernames (dash form; the guard flags the dot form name.NN)
+player-a
+player-b
+player-c
+player-d
+player-seed
+player-master
+player-custom
+player-fake
+fake-device
+
+# made-up device/model strings
+fake-device-01
+Fake
+iPhone
+iPhone 15
+Pixel 9
+phone
+bot
+unknown
+iphone-6.1in
+iPhone (6.1 in, 414x896, inferred)
+
+# pre-existing made-up dev/test usernames already tracked in apps/ and packages/
+alice.01
+alice.05
+alice.06
+alice.07
+alice.35
+alice.42
+alice.61
+ana.74
+bob.02
+bob.07
+bob.42
+carol.01
+carol.02
+carol.03
+carol.04
+carol.05
+carol.06
+dave.01
+dave.42
+erin.35
+erin.38
+erin.80
+frank.01
+humanity.42
+humanity.62
+jet.42
+jollityqxzk.62
+lena.12
+lite.01
+marlow.12
+marlow.42
+set.42
+a.01
+ob.02
+bot.07
+debug.42

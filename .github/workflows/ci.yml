@@ -57,3 +57,15 @@ jobs:
       - run: npm run humanity:typecheck
       - run: npm run humanity:test
       - run: npm run humanity:build
+
+  player-data-guard:
+    # No plaintext player data in this public repo, on EVERY pull request (no path
+    # filter above): scan all tracked files for SS58/hex/username/person-key patterns,
+    # decompress *.gz, and assert no usernames* or *.enc file is tracked. Stdlib only.
+    name: Player-data guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 .github/tests/player_data_guard.py
+      - run: python3 -B .github/tests/test_player_data_guard.py

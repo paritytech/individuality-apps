@@ -1193,7 +1193,7 @@ describe("the player's registration read on app open (#357)", () => {
   })
 })
 
-// redherring.07, game 270 (22 Oct): the alarm opened the app 28 s before the
+// fake-name-07, game 270 (22 Oct): the alarm opened the app 28 s before the
 // start, and the home said "You missed this one" until the player read landed.
 describe("a registered player opening the app just before the game (#1108)", () => {
   const SOON: PalletGame = {
