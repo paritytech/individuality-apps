@@ -195,7 +195,7 @@ describe("sign-up from the chat works", () => {
     expect(linkName).toHaveBeenCalledTimes(1)
   })
 
-  it("links no name when the sign-up fails, or was another's already", async () => {
+  it("links no name when the sign-up fails, and does when another's sign-up was already in", async () => {
     // Given
     const failing = fakeEngine(facts(["AlreadyPlaying"]), async () => poolRefusal("NoRegistration"))
     const taken = fakeEngine(facts(["AlreadyPlaying"]), async () => ({ ok: false, error: "AlreadyRegistered" }))
@@ -206,11 +206,12 @@ describe("sign-up from the chat works", () => {
     await first.signup.register(7)
     await second.signup.register(7)
 
-    // Then
+    // Then: the failed sign-up links no name; the already-registered one is a
+    // landing (the player is on the chain), so its tickets want the name
     expect(first.signup.state().kind).toBe("failed")
     expect(second.signup.state()).toEqual({ kind: "sent", gameIndex: 7 })
     expect(first.linkName).not.toHaveBeenCalled()
-    expect(second.linkName).not.toHaveBeenCalled()
+    expect(second.linkName).toHaveBeenCalledTimes(1)
   })
 
   it("waits on the name link before it asks the host for anything, then signs up", async () => {
@@ -1082,12 +1083,13 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
   afterEach(() => resetTelemetry())
   const journeys = () => telemetryRecords(sent, "journey.game-signup", "transaction")
 
-  async function run(register: (options: RegisterOptions) => Promise<RegisterResult>, after: ReturnType<typeof facts> | null) {
+  async function run(register: (options: RegisterOptions) => Promise<RegisterResult>, after: ReturnType<typeof facts> | null, seatReads?: "fail" | "not-in") {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })
     try {
       const engine = fakeEngine(facts(["AlreadyPlaying"]), register)
       engine.seat.mockResolvedValueOnce(seatOf(facts(["AlreadyPlaying"])))
       if (after) engine.seat.mockResolvedValue(seatOf(after))
+      else if (seatReads === "not-in") engine.seat.mockResolvedValue(seatOf(facts(["AlreadyPlaying"])))
       else engine.seat.mockRejectedValue(new Error("read failed"))
       const { signup, linkName } = signupWith(engine)
       const signingUp = signup.register(7)
@@ -1098,6 +1100,72 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
       vi.useRealTimers()
     }
   }
+
+  it("ends sent, not failed, when a post-broadcast failure classifies permanent as registered in a wrapped message form (row 4)", async () => {
+    // Given: the broadcast goes out and the pool refuses with AlreadyRegistered
+    // wrapped in the SDK's own message — classifyPermanent reads it as
+    // "registered", so the chat sign-up has landed, not failed
+    const { signup, linkName } = await run(async (options) => {
+      options.onBroadcast!()
+      return { ok: false, error: "game registration failed at sign: AlreadyRegistered", code: "AlreadyRegistered" }
+    }, facts(["AlreadyPlaying"]))
+    await flush()
+    expect(signup.state()).toEqual({ kind: "sent", gameIndex: 7 })
+    expect(linkName).toHaveBeenCalledTimes(1)
+    expect(sent.filter((record) => record.tags["failure.kind"] === "signup-failed")).toEqual([])
+    expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "sent", "signup.landed_by": "already-registered", "signup.broadcast": "true" })
+  })
+
+  it("resends once on a Stale nonce when the re-read answers not-in (row 10, guard)", async () => {
+    // Given: the broadcast goes out, the pool refuses the nonce as Stale, and
+    // the re-read answers not-in — the same nonce did not land, so it resends
+    const refused = poolRefusal("Stale")
+    const answers: Array<RegisterResult> = [refused, { ok: true }]
+    const { signup, engine } = await run(async (options) => {
+      options.onBroadcast!()
+      return answers.shift()!
+    }, facts(["AlreadyPlaying"]))
+    await flush()
+    expect(signup.state()).toEqual({ kind: "sent", gameIndex: 7 })
+    expect(engine.register).toHaveBeenCalledTimes(2)
+    expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "sent", "signup.resend": "Stale" })
+  })
+
+  it("leaves a Stale nonce whose re-read fails to the poll, never resending (row 10, guard)", async () => {
+    // Given: the broadcast goes out, the pool refuses the nonce as Stale (the
+    // same-nonce transaction may have landed), and the re-read fails — a
+    // failed read is unknown, so the Stale must not be resent on it
+    const refused = poolRefusal("Stale")
+    const { signup, engine } = await run(async (options) => {
+      options.onBroadcast!()
+      return refused
+    }, null)
+    await flush()
+    expect(signup.state()).toEqual({ kind: "idle", unsettled: 7 })
+    expect(engine.register).toHaveBeenCalledTimes(1)
+    expect(sent.filter((record) => record.tags["failure.kind"] === "signup-failed")).toEqual([])
+  })
+
+  it("resends once on a Future nonce when the re-read fails (row 11)", async () => {
+    // Given: the broadcast goes out, the pool refuses the nonce as Future (a
+    // transaction of the account is queued ahead), and the re-read fails —
+    // a second send clears Future, so it resends once
+    const refused = poolRefusal("Future")
+    const answers: Array<RegisterResult> = [refused, { ok: true }]
+    const { signup, engine } = await run(
+      async (options) => {
+        options.onBroadcast!()
+        return answers.shift()!
+      },
+      null,
+      "not-in",
+    )
+    await flush()
+    expect(signup.state()).toEqual({ kind: "sent", gameIndex: 7 })
+    expect(engine.register).toHaveBeenCalledTimes(2)
+    expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "sent", "signup.resend": "Future" })
+    expect(telemetryRecords(sent, "chat.signup.resend", "metric")).toEqual([expect.objectContaining({ value: 1 })])
+  })
 
   it("ends sent, and links the name, when the chain holds the player after a Tracking stopped result", async () => {
     const { signup, linkName } = await run(async (options) => {

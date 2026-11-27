@@ -351,6 +351,7 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
   const setOptimisticRegistered = (value: boolean) => {
     if (optimisticRegistered === value) return
     optimisticRegistered = value
+    if (!value) stopPostLoopReader()
     optimisticListeners.forEach((notify) => notify())
   }
   /** takes the optimistic flag down, when the call that put it up still owns
@@ -360,6 +361,45 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
     if (optimisticOwner !== owner) return
     optimisticOwner = undefined
     setOptimisticRegistered(false)
+  }
+
+  /** THE POST-LOOP READER: a sign-up on the wire whose loop has ended (the
+   *  page left, the window shut unverified) still may land, and nothing of
+   *  the ended loop confirms it any more. While the flag of a wired attempt
+   *  is up, this keeps reading Game.Players on a slow poll and takes the flag
+   *  down ONLY on a read that answers "not in" — a failed read is unknown,
+   *  never "not in" (#1355). It stops on a new slot, on the chain's own
+   *  confirmation (confirmRegistered), on a new tap, and when the flag is
+   *  otherwise taken down; every timer it armed is cleared then. */
+  const POST_LOOP_READ_MS = 15_000
+  let postLoopTimer: ReturnType<typeof setTimeout> | undefined
+  const stopPostLoopReader = () => {
+    if (postLoopTimer === undefined) return
+    clearTimeout(postLoopTimer)
+    postLoopTimer = undefined
+  }
+  const startPostLoopReader = (owner: object) => {
+    if (!player || postLoopTimer !== undefined) return
+    if (optimisticOwner !== owner || !optimisticRegistered) return
+    const read = async () => {
+      postLoopTimer = undefined
+      if (!player || optimisticOwner !== owner || !optimisticRegistered) return
+      const answer = await registeredOnChain(player)
+      if (!player || optimisticOwner !== owner || !optimisticRegistered) return
+      if (answer === false) {
+        // an answered not-in is the only thing that takes the flag down here
+        optimisticOwner = undefined
+        setOptimisticRegistered(false)
+        return
+      }
+      if (answer === true) {
+        optimisticOwner = undefined
+        return
+      }
+      // still unknown: keep reading
+      postLoopTimer = setTimeout(() => void read(), POST_LOOP_READ_MS)
+    }
+    postLoopTimer = setTimeout(() => void read(), POST_LOOP_READ_MS)
   }
   /** the game registration record (@individuality/shared-records), as the
    *  surface last read it. This flow writes it for its own sign-up too; what
@@ -767,7 +807,9 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
           const beforeRoute = await registeredOnChain(player)
           if (beforeRoute === true) return reconciled()
           // a read that answers "not registered" takes the optimistic flag of a
-          // sign-up an earlier attempt of this tap put on the wire down
+          // sign-up an earlier attempt of this tap put on the wire down. (The
+          // read is at the best block and cannot see the pool, so it is not
+          // the last word — settle()'s post-landing-wait read is.)
           if (beforeRoute === false && run.wireOwner) clearOptimistic(run.wireOwner)
           if (typeof beforeRoute === "string") return retryAfter(beforeRoute)
           const routeStep = journey.step("route")
@@ -891,17 +933,26 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
             // attempt, with one exception: a refusal of the sign-up it
             // broadcast takes down the flag it put up, unless the chain has
             // the player anyway (another sign-up, or the result is wrong
-            // about this one). Nothing else would: the player read only ever
-            // raises it, and a new slot only clears another game's (#580).
+            // about this one). A read that fails says nothing — the broadcast
+            // may have landed all the same — so the flag stays up until a
+            // read that answers says the player is not in (#1355).
             const rollBackAbandoned = async (error: string) => {
               if (!wired || optimisticOwner !== owner) return
-              if (classifyPermanent(error) === "registered") return
+              const permanent = classifyPermanent(error)
+              if (permanent === "registered") return
               // one Players read first, as settle() does before it ends closed
-              if ((await registeredOnChain(player)) === true) return
-              if (optimisticOwner !== owner) return
-              optimisticOwner = undefined
-              log("signup", `${route} sign-up refused after the page let it go: ${error}`, undefined, "warn")
-              setOptimisticRegistered(false)
+              const read = await registeredOnChain(player)
+              if (read === true) return
+              // a failed read is unknown, never "not in": keep the flag
+              if (typeof read === "string") return
+              // a permanent refused/closed error is the chain's own word; an
+              // answered not-in read is definitive: either takes the flag down
+              if (permanent !== null || read === false) {
+                if (optimisticOwner !== owner) return
+                optimisticOwner = undefined
+                log("signup", `${route} sign-up refused after the page let it go: ${error}`, undefined, "warn")
+                setOptimisticRegistered(false)
+              }
             }
             let over = false
             let deadline: ReturnType<typeof setTimeout> | undefined
@@ -1049,7 +1100,9 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
               // past the broadcast the outcome is unknown until a chain read
               // answers: a failed read is "still confirming", never a failure
               // that takes the optimistic "you're in" down (#1355)
-              let reRead: boolean | RetryReason = false
+              // undefined: no read was made (a pre-wire failure, a permanent
+              // refusal), which is not an answer and clears nobody else's flag
+              let reRead: boolean | RetryReason | undefined
               if (!permanent && (wired || failure.landingUnknown)) {
                 if (wired) await Promise.race([new Promise((r) => setTimeout(r, LANDING_WAIT_MS)), run.stop()])
                 if (over) return
@@ -1068,12 +1121,14 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
               // that answers says the player is not in
               if (wired && typeof reRead === "string") {
                 log("signup", `${route} sign-up still confirming: the landing re-read failed (${reRead})`, { detail: failure.error }, "warn")
-                return resolve(retryAfter(classifyRetry(failure.error), undefined, { stage: stage(), error: failure.error, route }))
+                return resolve(retryAfter(reRead, undefined, { stage: stage(), error: failure.error, route }))
               }
               // a later read that answered says the player is not in: the flag
-              // this tap put up comes down
+              // this tap put up comes down. The clear below only when this
+              // attempt owns the flag or a read answered — a later tap's
+              // pre-wire failure must not take an earlier tap's wired flag down
               if (wired && reRead === false) clearOptimistic(owner)
-              setOptimisticRegistered(false)
+              if (optimisticOwner === owner || reRead === false) setOptimisticRegistered(false)
               const refused = signupFailureReason(failure.error, stage()) === "signing-refused"
               if (refused) {
                 failSignup(journey, stage(), failure.error, route)
@@ -1303,6 +1358,7 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
           )
             return Promise.resolve()
           const tapCount = taps.tap()
+          stopPostLoopReader() // a new tap's flag is its own; the old reader stops
           // The record of this sign-up for the other surfaces and products
           // (@individuality/shared-records): one attempt per tap, in the phases
           // of its end. A tap with no game on the slot writes none. Every
@@ -1386,26 +1442,37 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
               },
             })
               .then(({ end, attempts, elapsedMs }) => {
-                // a loop that ends closed, refused or stopped takes the
-                // optimistic flag of a sign-up that went out down with it:
-                // the chain never confirmed it, and nothing of this tap
-                // leaves "you're in" standing
-                if ((end === "closed" || end === "refused" || end === "stopped") && run.wireOwner) clearOptimistic(run.wireOwner)
+                // a loop that ends closed or refused takes the optimistic flag
+                // of a sign-up that went out down with it when the chain
+                // answered: the chain never confirmed it, and nothing of
+                // this tap leaves "you're in" standing. A loop that ends
+                // stopped, or closed with the Players read unverified, never
+                // clears a wired flag here: the sign-up is on the wire and may
+                // land all the same, so the post-loop reader keeps reading and
+                // only an answered not-in takes the flag down (#1355)
+                if (end === "refused" && run.wireOwner) clearOptimistic(run.wireOwner)
+                if (end === "closed" && (chainClosed || !closedUnverified) && run.wireOwner) clearOptimistic(run.wireOwner)
                 if (end === "closed" && !chainClosed) {
                   // the window shut between attempts: the one end the player must hear of
-                  const journey = telemetry.journey("game-signup", { "signup.taps": String(tapCount), "signup.attempt": String(attempts) })
-                  telemetry.failure("signup-failed", { reason: "window-closed", context: { route: "unknown", error: lastReason ?? "none" } }, journey)
-                  journey.end("closed", {
-                    ...(lastReason ? { "signup.retry_reason": lastReason } : {}),
-                    ...(closedUnverified ? { "signup.closed_unverified": "true" } : {}),
-                  })
+                  const unverifiedWire = closedUnverified && run.wireOwner !== undefined
+                  if (!unverifiedWire) {
+                    const journey = telemetry.journey("game-signup", { "signup.taps": String(tapCount), "signup.attempt": String(attempts) })
+                    telemetry.failure("signup-failed", { reason: "window-closed", context: { route: "unknown", error: lastReason ?? "none" } }, journey)
+                    journey.end("closed", {
+                      ...(lastReason ? { "signup.retry_reason": lastReason } : {}),
+                      ...(closedUnverified ? { "signup.closed_unverified": "true" } : {}),
+                    })
+                  }
                 }
                 if (end === "closed" || end === "refused") taps.reset()
                 if (end === "landed" || end === "registered") {
                   telemetry.distribution("signup.landed_ms", elapsedMs, "millisecond", { "signup.attempt": String(attempts) })
                   record("registered")
-                } else if (end === "closed") record("failed", "window-closed")
-                else if (end === "refused") record("failed", "refused")
+                } else if (end === "closed") {
+                  // closed unverified after this tap broadcast: the record stays
+                  // sent and lapses via SENT_TTL_MS (Ionut's decision, 7.1)
+                  if (!(closedUnverified && !chainClosed && run.wireOwner !== undefined)) record("failed", "window-closed")
+                } else if (end === "refused") record("failed", "refused")
                 // a loop the page stopped is not a success for the tap. One
                 // nothing went out of takes its record with it; one on the wire
                 // stands, and its sent record with it, until the chain or the
@@ -1415,6 +1482,10 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
                   outer.reject(new Error("the sign-up was cancelled"))
                 }
                 if (end !== "stopped") outer.resolve() // a no-op once wired
+                // a wired flag the loop ended without confirming is left to
+                // the post-loop reader, which clears it only on an answered
+                // not-in
+                if (run.wireOwner) startPostLoopReader(run.wireOwner)
               })
               .catch((error: unknown) => {
                 record("failed", "refused")
@@ -1442,8 +1513,9 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
         }
       : undefined
   /** the page left: stop trying. A sign-up already on the wire still stands
-   *  (it may land all the same), but the optimistic flag of this tap comes
-   *  down with the loop: nothing of this tap will confirm it any more. */
+   *  (it may land all the same); the optimistic flag of this tap stays up for
+   *  the post-loop reader, which takes it down only on a chain read that
+   *  answers the player is not in. */
   const cancelRegister = () => {
     stopSignup = true
     stopWaiter.resolve() // an attempt still waiting on the host ends too
@@ -1482,10 +1554,14 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
       latestRegistrationWindow = window
     },
     newSlot(index) {
+      stopPostLoopReader()
       if (index !== optimisticGame) setOptimisticRegistered(false)
       if (!signingUp) setSignupPhase("idle") // a "closed" belongs to the game that closed
     },
-    confirmRegistered: () => setOptimisticRegistered(false),
+    confirmRegistered: () => {
+      stopPostLoopReader()
+      setOptimisticRegistered(false)
+    },
     onChange(listener) {
       optimisticListeners.add(listener)
       return () => {

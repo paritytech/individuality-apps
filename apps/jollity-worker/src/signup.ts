@@ -390,10 +390,14 @@ export function createSignup(dependencies: SignupDependencies): Signup {
    * good (registration closed, game ongoing, wrong deposit, …) is never
    * unknown, whatever the re-read says, and neither is a throw's text: the
    * shared package re-reads only the non-permanent ones, and a closed game
-   * must not come back as idle with the Register button for it. */
+   * must not come back as idle with the Register button for it. The one
+   * permanent word that means the opposite — AlreadyRegistered in any message
+   * form — is a landing, not a failure: the chat sign-up ends sent. */
   const landedAfterFailure = async (trace: Trace, errorText: string, thrown?: unknown): Promise<boolean | "unknown"> => {
     if (!trace.wired || !trace.reread || signupFailureReason(errorText, trace.stage) === "signing-refused") return false
-    if (!thrown && classifyPermanent(errorText) !== null) return false
+    const permanent = thrown ? null : classifyPermanent(errorText)
+    if (permanent === "registered") return true
+    if (permanent !== null) return false
     await new Promise((resolve) => setTimeout(resolve, LANDING_WAIT_MS))
     const now = await within(trace.reread(), SIGNUP_STEP_DEADLINE_MS).catch(() => null)
     if (now === null) return "unknown"
@@ -630,17 +634,25 @@ export function createSignup(dependencies: SignupDependencies): Signup {
         dependencies.linkName?.()
         return endJourney(trace, "sent", { kind: "sent", gameIndex })
       }
-      if (result.error === "AlreadyRegistered") {
+      if (classifyPermanent(result.error) === "registered") {
+        dependencies.linkName?.()
         return endJourney(trace, "sent", { kind: "sent", gameIndex }, { "signup.landed_by": "already-registered" })
       }
       const settled = await settledAfterFailure(trace, gameIndex, result.error, route)
       if (settled) return settled
       if (!resent && isNonceRefusal(result.code)) {
         resent = true
-        if (await holdsPlayer()) {
+        // a Stale nonce's same-nonce transaction may have landed: only a read
+        // that answers may say the player is not in, and only then is the
+        // sign-up sent again. A failed read leaves it to the poll. A Future
+        // nonce has a transaction queued ahead, which a second send clears,
+        // so it resends once on a failed or not-in read alike.
+        const read = await readSeat(engine, address, false).catch(() => null)
+        if (read?.registered === true) {
           dependencies.linkName?.()
           return endJourney(trace, "sent", { kind: "sent", gameIndex }, { "signup.landed_by": "reread" })
         }
+        if (result.code === "Stale" && read === null) return leaveToPoll(trace, gameIndex, "reread-failed")
         chatCount("chat.signup.resend", { "signup.resend_reason": result.code })
         journey.set({ "signup.resend": result.code })
         continue
