@@ -666,9 +666,12 @@ describe("the turn books' contract", () => {
   it("#390 (clauses 2, 7): a page that steps back from turn 0 over T-0 and freezes still seals turns 0 and 1", () => {
     // Was a known gap until #390. A late joiner opens turn 0, the chain
     // clock steps back into the connect beat: that tick resets prevTurn, but
-    // the entry floor in sealThrough reads the monotone firstOpenedTurn, so a
-    // page that freezes right then still seals turns 0 and 1 when it wakes in
-    // turn 2.
+    // the entry floor in sealThrough reads the first turn this page opened
+    // (pageFirstOpenedTurn, monotone), so a page that freezes right then
+    // still seals turns 0 and 1 when it wakes in turn 2. Still open: that
+    // backward tick is not idempotent (it resets prevTurn AFTER the
+    // present-before-turn-0 test, so the same reading again marks the page
+    // present; seed 261871 of the clause-7 property, also on main).
     const { life } = pageAt([G - 5, G + 25])
     expect(life.books.sealed.has(0) && life.books.sealed.has(1)).toBe(true)
   })
@@ -928,6 +931,27 @@ describe("the trail the books hand the session", () => {
     for (let turn = 2; turn < STRIDE * timing.rounds; turn++)
       expect(ticked.books.turnVotes[turn] ?? {}).toEqual({})
     expect(ticked.trail.filter((step) => step.kind === "row" && step.message === "turn sealed")).toEqual([])
+  })
+
+  it("a warm page that opened turn 4 seals from its own first turn after restore and a backward step", () => {
+    // Review blocker on PR #90 (archive#1504): a warm page opens turn 4, the
+    // stored books then lower the merged firstOpenedTurn to 0, the clock
+    // steps back into the gap (G+50) and then forward to turn 6 (G+80). The
+    // floor on this page's own evidence is the first turn IT opened (4), not
+    // the merged value: turns 1-3, which it never lived through, get no
+    // NotPerson defaults.
+    const stored: StoredVotes = {
+      ...saved(emptyTurnBooks()),
+      autoSeals: { 0: [] },
+      firstOpenedTurn: 0,
+      videoRoleHistory: SEEN,
+    }
+    let { books } = play({ ...emptyTurnBooks(), videoRoleHistory: SEEN }, [G + 57], () => clockOf({ ready: true }))
+    books = restoreBooks(books, stored, false).books
+    expect(books.firstOpenedTurn).toBe(0)
+    ;({ books } = play(books, [G + 50, G + 80], () => clockOf({ ready: true })))
+    expect([...books.sealed].sort((a, b) => a - b)).toEqual([0, 4, 5])
+    for (const turn of [1, 2, 3]) expect(books.turnVotes[turn] ?? {}, `turn ${turn}`).toEqual({})
   })
 
   it("#1470: the game session applies the captured remount boundary after restore", () => {

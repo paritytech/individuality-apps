@@ -657,10 +657,10 @@ function compileGenerated(actions: readonly Action[]): TurnBooksTestEvent[] {
       if (rewound || ++backwardCandidates % 12 !== 0) return `tick-${phase}` as Action
       rewound = true
     }
-    // Forward-after-backward still exposes product gaps pinned below (the
-    // review of PR #90 lists them as follow-ups). Keep backward ticks in
-    // generated traces, but leave those known failures to their explicit
-    // shrinking expected-fail cases.
+    // After the one rewind, hold the clock: the forward-after-backward cases
+    // (#390 gaps 1 and 3, archive#1504) are pinned as named regressions, and
+    // letting the clock run on after a rewind drops the generated traces
+    // below the state-changing depth gate in turn-books.model.test.ts.
     if (rewound && phaseRank[candidate] > phaseRank[phase]) return `tick-${phase}` as Action
     phase = candidate
     if (action === "late-join-turn-1") lateJoined = true

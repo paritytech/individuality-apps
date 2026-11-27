@@ -84,10 +84,11 @@ export interface TurnBooks {
   presentBeforeFirstTurn: boolean
   /** the first turn this page opened (or the stored books name) */
   firstOpenedTurn: number | undefined
-  /** this page opened a turn itself (openTurn observed one): page-set
-   *  evidence, as opposed to a firstOpenedTurn that only the stored books
-   *  brought in, which must not open the sealing floor on its own */
-  openedTurnOnPage: boolean
+  /** the first turn THIS page opened itself (openTurn observed it), never
+   *  merged with the stored books: restoreBooks may lower firstOpenedTurn to
+   *  a turn this page never lived through, so a floor that runs on this
+   *  page's own evidence starts here, not there (archive#1504) */
+  pageFirstOpenedTurn: number | undefined
   /** the first turn the STORED books say this player opened in this game:
    *  proof of a rejoin, as opposed to a genuine late join (#527) */
   restoredFirstOpenedTurn: number | undefined
@@ -125,7 +126,7 @@ export function emptyTurnBooks(): TurnBooks {
     lastSealedTurn: -1,
     presentBeforeFirstTurn: false,
     firstOpenedTurn: undefined,
-    openedTurnOnPage: false,
+    pageFirstOpenedTurn: undefined,
     restoredFirstOpenedTurn: undefined,
     restoredSealed: undefined,
     videoRoleHistory: {},
@@ -361,7 +362,7 @@ export function tickBooks(
   ): Partial<Record<PlayerId, Vote>> => {
     if (observed) {
       b.firstOpenedTurn = b.firstOpenedTurn ?? turn
-      b.openedTurnOnPage = true
+      b.pageFirstOpenedTurn = b.pageFirstOpenedTurn ?? turn
     }
     const bound = bindPendingVideoRoles(b.videoRoleHistory, turn)
     if (bound.changed) b.videoRoleHistory = bound.history
@@ -378,7 +379,7 @@ export function tickBooks(
   // Replay every completed turn between the last tick and this one. A page
   // suspended across several turns gets one tick on return; each missed
   // turn must still open (ban rejects) and seal (defaults) in order.
-  const sealThrough = (completedExclusive: number, fromCold = false) => {
+  const sealThrough = (completedExclusive: number) => {
     const previous = b.prevTurn
     const lastProcessed = previous >= 0 ? previous : b.lastSealedTurn
     // The entry floor comes from monotone evidence, as in the model
@@ -386,12 +387,13 @@ export function tickBooks(
     // rewrites it, so it must not decide how far this page got or whether it
     // attended (#390 gaps 1, 3). Not clamped by coldReadyBoundary: the
     // rejoin replay would then seal nothing (#1178).
-    const floor = b.presentBeforeFirstTurn ? 0 : (b.firstOpenedTurn ?? -1)
-    // Unattended turns replay only from the cold reconcile or from a position
-    // this page set itself (a turn it opened, or its own cursor).
-    // A restored firstOpenedTurn alone is not evidence this page attended
-    // the later turns, and must not open the floor while lastProcessed < 0.
-    if (lastProcessed < 0 && !fromCold && !b.presentBeforeFirstTurn && !b.openedTurnOnPage) return
+    // With no cursor and no presence before turn 0 (the cold reconcile sets
+    // that flag before it replays), the floor runs on this page's own
+    // evidence: the first turn it opened itself. A restored firstOpenedTurn
+    // is not evidence this page attended the turns after it, so it neither
+    // opens the floor nor lowers it (archive#1504).
+    const ownEvidence = lastProcessed < 0 && !b.presentBeforeFirstTurn
+    const floor = b.presentBeforeFirstTurn ? 0 : ((ownEvidence ? b.pageFirstOpenedTurn : b.firstOpenedTurn) ?? -1)
     if ((lastProcessed < 0 && floor < 0) || completedExclusive <= lastProcessed) return
     if (previous >= 0 && previous >= floor) sealTurn(previous)
     for (let missed = Math.max(floor, lastProcessed + 1); missed < completedExclusive; missed++) {
@@ -478,7 +480,7 @@ export function tickBooks(
       }
       b.presentBeforeFirstTurn = true
       b.lastSealedTurn = Math.max(b.lastSealedTurn, (rejoinFrom ?? b.firstOpenedTurn ?? 0) - 1)
-      sealThrough(rejoined ? beforeReady : beforeLoad, true)
+      sealThrough(rejoined ? beforeReady : beforeLoad)
     } else {
       // A genuine late join keeps those players unseen. Advance the book
       // without inventing votes for turns before this page existed.
