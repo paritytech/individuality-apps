@@ -387,13 +387,16 @@ export function tickBooks(
     // rewrites it, so it must not decide how far this page got or whether it
     // attended (#390 gaps 1, 3). Not clamped by coldReadyBoundary: the
     // rejoin replay would then seal nothing (#1178).
-    // With no cursor and no presence before turn 0 (the cold reconcile sets
-    // that flag before it replays), the floor runs on this page's own
-    // evidence: the first turn it opened itself. A restored firstOpenedTurn
-    // is not evidence this page attended the turns after it, so it neither
-    // opens the floor nor lowers it (archive#1504).
-    const ownEvidence = lastProcessed < 0 && !b.presentBeforeFirstTurn
-    const floor = b.presentBeforeFirstTurn ? 0 : ((ownEvidence ? b.pageFirstOpenedTurn : b.firstOpenedTurn) ?? -1)
+    // Unless the page was present before turn 0 (the cold reconcile sets
+    // that flag before it replays), a page that opened a turn itself seals
+    // nothing below the first turn IT opened, whatever its cursor: a
+    // restored firstOpenedTurn is not evidence this page attended the turns
+    // after it, so it never lowers that floor, and with no cursor it does
+    // not open one either (archive#1504). Only a page that opened no turn
+    // and holds a cursor falls back to the merged firstOpenedTurn.
+    const floor = b.presentBeforeFirstTurn
+      ? 0
+      : (b.pageFirstOpenedTurn ?? (lastProcessed < 0 ? undefined : b.firstOpenedTurn) ?? -1)
     if ((lastProcessed < 0 && floor < 0) || completedExclusive <= lastProcessed) return
     if (previous >= 0 && previous >= floor) sealTurn(previous)
     for (let missed = Math.max(floor, lastProcessed + 1); missed < completedExclusive; missed++) {

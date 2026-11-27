@@ -954,6 +954,27 @@ describe("the trail the books hand the session", () => {
     for (const turn of [1, 2, 3]) expect(books.turnVotes[turn] ?? {}, `turn ${turn}`).toEqual({})
   })
 
+  // Focused review on PR #90: the same leak when the backward step lands
+  // inside a turn (prevTurn is set, so the floor left the page-own-evidence
+  // path), and with an extra tick before the restore.
+  for (const [name, before] of [
+    ["a backward step into turn 2", [G + 57]],
+    ["a backward step into turn 2 after a tick in turn 5", [G + 57, G + 69]],
+  ] as const)
+    it(`a warm page that opened turn 4 never seals below it after restore and ${name}`, () => {
+      const stored: StoredVotes = {
+        ...saved(emptyTurnBooks()),
+        autoSeals: { 0: [] },
+        firstOpenedTurn: 0,
+        videoRoleHistory: SEEN,
+      }
+      let { books } = play({ ...emptyTurnBooks(), videoRoleHistory: SEEN }, [...before], () => clockOf({ ready: true }))
+      books = restoreBooks(books, stored, false).books
+      ;({ books } = play(books, [G + 30, G + 80], () => clockOf({ ready: true })))
+      expect([...books.sealed].sort((a, b) => a - b)).toEqual([0, 4, 5])
+      for (const turn of [1, 2, 3]) expect(books.turnVotes[turn] ?? {}, `turn ${turn}`).toEqual({})
+    })
+
   it("#1470: the game session applies the captured remount boundary after restore", () => {
     const source = readFileSync(new URL("./game-session.ts", import.meta.url), "utf8")
     expect(source).toContain("remountClockState(")

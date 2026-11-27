@@ -297,7 +297,19 @@ describe("state-machine regression corpus", () => {
     for (const turn of [1, 2, 3]) expect(books.turnVotes[turn] ?? {}).toEqual({})
   })
 
-  it.fails("formal lane-b gap 4— issue: prompt-restore ban lag; reason: a stored ban is deliberate and must never enter autoSeals", () => {
+  it("archive#1504 — issue: restored floor via an in-turn backward step; reason: a page that opened turn 4 never seals below it", () => {
+    for (const before of [[G + 57], [G + 57, G + 69]]) {
+      let books: TurnBooks = { ...emptyTurnBooks(), videoRoleHistory: seenFromZero }
+      for (const at of before) books = tick(books, at)
+      books = restoreBooks(books, stored({ ...emptyTurnBooks(), autoSeals: { 0: [] }, firstOpenedTurn: 0, videoRoleHistory: seenFromZero }), false).books
+      books = tick(books, G + 30)
+      books = tick(books, G + 80)
+      expect([...books.sealed].sort((a, b) => a - b), `ticks ${before.join(",")}`).toEqual([0, 4, 5])
+      for (const turn of [1, 2, 3]) expect(books.turnVotes[turn] ?? {}).toEqual({})
+    }
+  })
+
+  it.fails("formal lane-b gap 4 — issue: prompt-restore ban lag; reason: a stored ban is deliberate and must never enter autoSeals", () => {
     const savedBooks: TurnBooks = {
       ...emptyTurnBooks(),
       banned: new Set([C]),
