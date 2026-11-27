@@ -1,12 +1,13 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// The way on after a game, as a person takes it: a hold on the draw ("HOLD ANYWHERE"), then the book at the foot of
-// the collectables screen, closed by dragging its cover across. Jollity 0.1.73 has no button for either, so a bot
-// that only taps stood on the draw for good (Paseo game 375, 26 November 2026).
+// The way on after a game, as a person takes it: her coin dragged into the draw's slot ("INSERT COIN", for a player
+// who is in the draw), a hold on the draw ("HOLD ANYWHERE"), then the book at the foot of the collectables screen,
+// closed by dragging its cover across. Jollity 0.1.73 has no button for any of them, so a bot that only taps stood
+// on the draw for good (Paseo game 375, 26 November 2026).
 //
-// The gestures are pointer events dispatched in the page, at the places the page itself reports: the draw's ring and
-// the book's right page. So they are the same on a phone's WebView, an iOS simulator and the lab's own browser, and
+// The gestures are pointer events dispatched in the page, at the places the page itself reports: the draw's coin, its
+// ring and the book's right page. So they are the same on a phone's WebView, an iOS simulator and the lab's own browser, and
 // they reach the handlers a finger reaches. They are not the device's touch: what the app's shell does with a touch
 // before the page hears of it is not exercised here.
 //
@@ -20,17 +21,21 @@ type Page = Pick<BrowserPage, 'evaluate'>;
 const HOLD_MS = 2_600;
 /** How long the page has to leave the draw after a hold, and the book to shut after its cover is let go. */
 const HOLD_SETTLES_MS = 20_000, BOOK_SHUTS_MS = 15_000;
+/** How long the stage has to take the coin after it was let go over the slot. */
+const COIN_GOES_IN_MS = 10_000;
 /** How long the lab waits on "Drawing the winners…" for the wheel before it takes that screen's Continue past it. */
 const DRAW_COMES_MS = 3 * 60_000;
 
 export type AfterGameView = {
   path: string; width: number; height: number; text: string;
   /**
-   * on the draw: the hold is offered and heard (and where its ring is), a Continue is shown instead (`drawing`: on the
-   * screen that waits for the winners), or neither yet. `state` is what the hold's scene says of itself for a test,
+   * on the draw: the stage waits for the player's coin (where it is, and how far down its slot is), the hold is
+   * offered and heard (and where its ring is), a Continue is shown instead (`drawing`: on the screen that waits for
+   * the winners), or none of them yet. `state` is what the hold's scene says of itself for a test,
    * "<phase> held|free …" (lib/draw/hold/scene.ts): it hears a press only in "ready" and "hold".
    */
-  draw: { way: 'hold'; x: number; y: number; state: string | null } | { way: 'continue'; drawing: boolean } | { way: 'wait'; state: string | null } | null;
+  draw: { way: 'coin'; x: number; y: number; to: number } | { way: 'hold'; x: number; y: number; state: string | null } | { way: 'continue'; drawing: boolean }
+    | { way: 'wait'; state: string | null } | null;
   /** on the collectables screen: the book and its right page, when it is up */
   book: { shut: boolean; hidden: boolean; left: number; top: number; width: number } | null;
   /** on the collectables screen without a book: still waiting, nothing to keep (its Continue shown), or a restart card */
@@ -59,7 +64,13 @@ const view = (): AfterGameView => {
     const state = document.querySelector<HTMLElement>('canvas[data-hold]')?.dataset.hold ?? null;
     if (holdWay && ring && ring.width > 0 && (state === null || state.startsWith('ready') || state.startsWith('hold')))
       draw = { way: 'hold', x: ring.left + ring.width / 2, y: ring.top + ring.height / 2, state };
-    else draw = goShown ? { way: 'continue', drawing: (document.body.innerText || '').includes('Drawing the winners') } : { way: 'wait', state };
+    else {
+      // A player in the draw starts it herself: the stage shows her coin (#coin, in the DOM until it went in) over a
+      // slot it paints, about 77 % down the stage, and waits for the coin to be dragged into it.
+      const coin = document.querySelector('#app #coin:not(.is-hidden)')?.getBoundingClientRect(), stage = document.querySelector('#app')?.getBoundingClientRect();
+      if (coin && coin.width > 0 && stage) draw = { way: 'coin', x: coin.left + coin.width / 2, y: coin.top + coin.height / 2, to: stage.top + stage.height * 0.83 };
+      else draw = goShown ? { way: 'continue', drawing: (document.body.innerText || '').includes('Drawing the winners') } : { way: 'wait', state };
+    }
   }
   let book: AfterGameView['book'] = null, collectables: AfterGameView['collectables'] = null;
   if (onCollectables) {
@@ -93,6 +104,8 @@ export function coverDrag(book: { left: number; top: number; width: number }, sc
 }
 
 export type AfterGame = {
+  /** the draw's coin: dragged into its slot, still there after three drags, or the stage never asked for it */
+  coin: 'went-in' | 'stayed' | 'not-asked';
   /** the draw's hold: it took the page on, it did not (and the page's own way on was taken), or no hold was offered */
   hold: 'went-on' | 'did-nothing' | 'not-offered';
   /** the book: closed by the drag, still open after it, or never up (and why) */
@@ -113,8 +126,8 @@ export async function goOnAfterGame(page: Page, options: { waitMs: number; signa
   const pause = (ms: number) => delay(ms, undefined, { signal }).catch(() => undefined);
   const look = async () => page.evaluate(view, undefined).catch(error => ({ unreadable: String(error).slice(0, 200) }));
   const shoot = async (name: string) => { await options.shot?.(name).catch(() => undefined); };
-  let hold: AfterGame['hold'] = 'not-offered', book: AfterGame['book'] = 'not-shown', ended = 'the wait ran out', last: AfterGame['last'] = { unreadable: 'never read' };
-  let holds = 0, drags = 0, sawPostGame = false, drawingSince = 0;
+  let coin: AfterGame['coin'] = 'not-asked', hold: AfterGame['hold'] = 'not-offered', book: AfterGame['book'] = 'not-shown', ended = 'the wait ran out', last: AfterGame['last'] = { unreadable: 'never read' };
+  let coins = 0, holds = 0, drags = 0, sawPostGame = false, drawingSince = 0;
   const did = (what: string) => { trail.push({ at: new Date().toISOString(), did: what, path: 'path' in last ? last.path : '?' }); };
   /** Reads the page until `until` holds or the time is up; true when it held. */
   const waitFor = async (ms: number, until: (seen: AfterGameView) => boolean) => {
@@ -130,6 +143,20 @@ export async function goOnAfterGame(page: Page, options: { waitMs: number; signa
     const seen = last;
     if (seen.draw) {
       sawPostGame = true;
+      if (seen.draw.way === 'coin') {
+        // Three drags that the stage did not take: the lab waits on, for the stage's own bound and its Continue.
+        if (coins >= 3) { coin = 'stayed'; await pause(2_000); continue; }
+        coins++;
+        await shoot('draw-coin');
+        const { x, y, to } = seen.draw;
+        await page.evaluate(pointer, { type: 'pointerdown', x, y });
+        for (let move = 1; move <= 12; move++) { await pause(40); await page.evaluate(pointer, { type: 'pointermove', x, y: y + (to - y) * move / 12 }); }
+        await page.evaluate(pointer, { type: 'pointerup', x, y: to });
+        did(`dragged the coin from ${Math.round(x)},${Math.round(y)} down to ${Math.round(to)} (try ${coins})`);
+        if (await waitFor(COIN_GOES_IN_MS, now => now.draw?.way !== 'coin')) { coin = 'went-in'; did('the coin went in'); }
+        else coin = 'stayed';
+        continue;
+      }
       if (seen.draw.way === 'hold' && holds < 2) {
         holds++;
         await shoot('draw-before-hold');
@@ -197,5 +224,5 @@ export async function goOnAfterGame(page: Page, options: { waitMs: number; signa
     await pause(1_500);
   }
   if (ended === 'the wait ran out' && !('unreadable' in last)) ended = `the wait ran out on ${last.path} ("${last.text.slice(0, 140)}")`;
-  return { hold, book, ended, trail, last };
+  return { coin, hold, book, ended, trail, last };
 }

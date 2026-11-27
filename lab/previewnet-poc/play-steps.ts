@@ -333,8 +333,8 @@ step("{actor}'s Jollity can be read as a game is read", async ({ lab }, name) =>
   if (failed.length) fail('unsupported-here', `${who.name}'s page cannot be read as a game needs: ${failed.join('; ')}`);
 }, { timeoutMs: 180_000 });
 
-// The way on after the game, as a person takes it (after-game.ts): a hold on the draw, then the book's cover dragged
-// across. It fails only where a gesture was made and the page did not answer it; a game without a draw, nothing to
+// The way on after the game, as a person takes it (after-game.ts): her coin into the draw's slot where she is in the
+// draw, a hold on the draw, then the book's cover dragged across. It fails only where a gesture was made and the page did not answer it; a game without a draw, nothing to
 // keep, or collectables that were not there yet within the wait are said in the evidence and pass.
 step('{actor} holds on the draw and closes the book on her collectables', async ({ lab }, name) => {
   const state = world(), who = playerOf(lab.actor(String(name))), page = await who.page();
@@ -347,6 +347,7 @@ step('{actor} holds on the draw and closes the book on her collectables', async 
   const went = await goOnAfterGame(page, { waitMs: AFTER_GAME_WAIT_MS, signal: state.signal, shot });
   await shot('end');
   await lab.attach(jsonEvidence({ afterGame: went, screenshots: shots }));
+  if (went.coin === 'stayed') throw Error(`${who.name}'s drag of her coin into the draw's slot did not start the draw (${went.ended}); trail: ${JSON.stringify(went.trail)}`);
   if (went.hold === 'did-nothing') throw Error(`${who.name}'s hold on the draw did not take the page on (${went.ended}); trail: ${JSON.stringify(went.trail)}`);
   if (went.book === 'still-open') throw Error(`${who.name}'s drag of the book's cover did not shut it (${went.ended}); trail: ${JSON.stringify(went.trail)}`);
 }, { timeoutMs: AFTER_GAME_WAIT_MS + 3 * 60_000 });
