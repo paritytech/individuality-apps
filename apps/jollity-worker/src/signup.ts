@@ -635,18 +635,21 @@ export function createSignup(dependencies: SignupDependencies): Signup {
         return endJourney(trace, "sent", { kind: "sent", gameIndex })
       }
       if (classifyPermanent(result.error) === "registered") {
-        dependencies.linkName?.()
+        // the player is in, but maybe by another surface's sign-up: no name
+        // link for tickets this attempt may not own
         return endJourney(trace, "sent", { kind: "sent", gameIndex }, { "signup.landed_by": "already-registered" })
       }
-      const settled = await settledAfterFailure(trace, gameIndex, result.error, route)
-      if (settled) return settled
       if (!resent && isNonceRefusal(result.code)) {
         resent = true
+        // nonce refusals come before the post-failure settling: its failed
+        // read would leave a Future to the poll, which a resend clears
         // a Stale nonce's same-nonce transaction may have landed: only a read
         // that answers may say the player is not in, and only then is the
         // sign-up sent again. A failed read leaves it to the poll. A Future
         // nonce has a transaction queued ahead, which a second send clears,
         // so it resends once on a failed or not-in read alike.
+        // a broadcast one gets the same landing wait the settling gives it
+        if (trace.wired) await new Promise((resolve) => setTimeout(resolve, LANDING_WAIT_MS))
         const read = await readSeat(engine, address, false).catch(() => null)
         if (read?.registered === true) {
           dependencies.linkName?.()
@@ -657,6 +660,8 @@ export function createSignup(dependencies: SignupDependencies): Signup {
         journey.set({ "signup.resend": result.code })
         continue
       }
+      const settled = await settledAfterFailure(trace, gameIndex, result.error, route)
+      if (settled) return settled
       dependencies.log?.("error", `The ${route} sign-up from the chat failed: ${result.error}`)
       const closed = CLOSED_CODES.has(result.code ?? result.error)
       const reason = closed ? "window-closed" : signupFailureReason(result.error, "register")

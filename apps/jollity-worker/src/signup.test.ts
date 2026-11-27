@@ -195,7 +195,7 @@ describe("sign-up from the chat works", () => {
     expect(linkName).toHaveBeenCalledTimes(1)
   })
 
-  it("links no name when the sign-up fails, and does when another's sign-up was already in", async () => {
+  it("links no name when the sign-up fails, or was another's already", async () => {
     // Given
     const failing = fakeEngine(facts(["AlreadyPlaying"]), async () => poolRefusal("NoRegistration"))
     const taken = fakeEngine(facts(["AlreadyPlaying"]), async () => ({ ok: false, error: "AlreadyRegistered" }))
@@ -206,12 +206,11 @@ describe("sign-up from the chat works", () => {
     await first.signup.register(7)
     await second.signup.register(7)
 
-    // Then: the failed sign-up links no name; the already-registered one is a
-    // landing (the player is on the chain), so its tickets want the name
+    // Then
     expect(first.signup.state().kind).toBe("failed")
     expect(second.signup.state()).toEqual({ kind: "sent", gameIndex: 7 })
     expect(first.linkName).not.toHaveBeenCalled()
-    expect(second.linkName).toHaveBeenCalledTimes(1)
+    expect(second.linkName).not.toHaveBeenCalled()
   })
 
   it("waits on the name link before it asks the host for anything, then signs up", async () => {
@@ -1111,7 +1110,7 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
     }, facts(["AlreadyPlaying"]))
     await flush()
     expect(signup.state()).toEqual({ kind: "sent", gameIndex: 7 })
-    expect(linkName).toHaveBeenCalledTimes(1)
+    expect(linkName).not.toHaveBeenCalled() // maybe another surface's sign-up
     expect(sent.filter((record) => record.tags["failure.kind"] === "signup-failed")).toEqual([])
     expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "sent", "signup.landed_by": "already-registered", "signup.broadcast": "true" })
   })
@@ -1158,9 +1157,10 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
         return answers.shift()!
       },
       null,
-      "not-in",
+      "fail", // every read after the first seat read fails
     )
     await flush()
+    expect(engine.seat.mock.calls.length).toBeGreaterThan(1) // the re-read was made, and failed
     expect(signup.state()).toEqual({ kind: "sent", gameIndex: 7 })
     expect(engine.register).toHaveBeenCalledTimes(2)
     expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "sent", "signup.resend": "Future" })
@@ -1370,7 +1370,10 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
     // Then
     expect(signup.state()).toMatchObject({ kind: "failed", gameIndex: 7 })
     expect(engine.register).toHaveBeenCalledTimes(2)
-    expect(engine.seat).toHaveBeenCalledTimes(3)
+    // the first seat read, then the nonce refusal's one re-read for the
+    // broadcast (it comes before the post-failure settling, which no longer
+    // reads the same broadcast a second time)
+    expect(engine.seat).toHaveBeenCalledTimes(2)
   })
 
   it("ends sent, read again, when the resend after a nonce refusal loses its watch and the chain holds the player", async () => {

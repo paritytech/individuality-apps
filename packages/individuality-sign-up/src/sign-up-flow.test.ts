@@ -461,6 +461,7 @@ describe("a sign-up goes", () => {
     // Then: the loop ended closed, but the flag this tap's wire put up stays,
     // and no window-closed journey or failure is filed (Ionut 7.1)
     expect(ends).not.toContainEqual(["game-signup", "closed"])
+    expect(ends).toContainEqual(["game-signup", "unknown"]) // the missed window is still on record
     expect(flow.phase()).toBe("closed")
     expect(flow.optimistic().registered).toBe(true)
     expect(failures).not.toContain("signup-failed:window-closed")
@@ -737,6 +738,120 @@ describe("a sign-up goes", () => {
     // Then: the second tap's refusal was filed, but the first tap's flag is
     // still up — only its owner or an answered read may take it down
     expect(ends.filter(([name, outcome]) => name === "game-signup" && outcome === "failed")).toHaveLength(1)
+  }, 30_000)
+
+  it("clears the flag when a stopped wired attempt's late result is a final refusal, even when the read fails (row 20, refused)", async () => {
+    // Given: broadcast, the page leaves, the late result is a permanent
+    // refusal of this very sign-up (InvalidPlayDeposit), and the reads fail
+    let late: ((result: DispatchResult) => void) | undefined
+    let reads = 0
+    const chain = fakeChain({
+      register: vi.fn((_capabilities: GameRegistrationCapabilities, _id: Uint8Array, options?: RegisterOptions) => {
+        options?.onDraws?.({ entered: 0, scheduled: 0, waitedMs: 0, retries: 0 })
+        options?.onBroadcast?.()
+        return new Promise<DispatchResult>((resolve) => (late = resolve))
+      }),
+      player: vi.fn(async (): Promise<{ registered: boolean }> => {
+        reads += 1
+        if (reads === 1) return { registered: false } // the pre-route read answers
+        throw new Error("the host's chain connection dropped")
+      }),
+    })
+    const { flow } = flowOver(chain)
+
+    // When
+    const tap = flow.register!().catch(() => {})
+    await vi.advanceTimersByTimeAsync(0)
+    expect(flow.optimistic().registered).toBe(true)
+    flow.cancelRegister()
+    await vi.advanceTimersByTimeAsync(0)
+    late!({ ok: false, error: "InvalidPlayDeposit" })
+    await vi.advanceTimersByTimeAsync(30_000)
+
+    // Then: the chain's own refusal of this sign-up takes the flag down; a
+    // failed read cannot hold it up
+    expect(flow.optimistic().registered).toBe(false)
+    await tap
+  }, 30_000)
+
+  it("keeps the post-loop reader for an earlier tap's flag when a later tap fails before the wire (row 22)", async () => {
+    // Given: the first tap wires and is stopped, its reads fail, so its flag
+    // stays up for the post-loop reader; a second tap fails before the wire
+    let mode: "not-in" | "fail" | "not-in-once" = "not-in"
+    let calls = 0
+    const chain = fakeChain({
+      register: vi.fn((_capabilities: GameRegistrationCapabilities, _id: Uint8Array, options?: RegisterOptions) => {
+        calls += 1
+        if (calls === 1) {
+          options?.onDraws?.({ entered: 0, scheduled: 0, waitedMs: 0, retries: 0 })
+          options?.onBroadcast?.()
+          return new Promise<DispatchResult>(() => {})
+        }
+        return Promise.resolve({ ok: false, error: "NoInvites" })
+      }),
+      player: vi.fn(async (): Promise<{ registered: boolean }> => {
+        if (mode === "not-in-once") {
+          mode = "fail"
+          return { registered: false }
+        }
+        if (mode === "fail") throw new Error("the host's chain connection dropped")
+        return { registered: false }
+      }),
+    })
+    const { flow } = flowOver(chain)
+    const first = flow.register!().catch(() => {})
+    await vi.advanceTimersByTimeAsync(0)
+    mode = "fail"
+    flow.cancelRegister()
+    await vi.advanceTimersByTimeAsync(45_000)
+    await first
+    await vi.advanceTimersByTimeAsync(0)
+    expect(flow.optimistic().registered).toBe(true)
+
+    // When: the second tap's pre-route read answers, it reaches register and
+    // is refused before the wire; later the chain answers not-in
+    mode = "not-in-once"
+    const second = flow.register!().catch(() => {})
+    await vi.advanceTimersByTimeAsync(2_000)
+    await second
+    expect(flow.optimistic().registered).toBe(true)
+    mode = "not-in"
+    await vi.advanceTimersByTimeAsync(30_000)
+
+    // Then: the first tap's reader still runs, and its answered not-in takes
+    // the flag down
+    expect(flow.optimistic().registered).toBe(false)
+  }, 30_000)
+
+  it("keeps the post-loop reader on a new slot for the same game", async () => {
+    // Given: broadcast, the tap stops, and reads fail at first
+    let mode: "not-in" | "fail" = "not-in"
+    const chain = fakeChain({
+      register: vi.fn(async (_capabilities: GameRegistrationCapabilities, _id: Uint8Array, options?: RegisterOptions): Promise<DispatchResult> => {
+        options?.onBroadcast?.()
+        return { ok: false, error: "Tracking stopped", landingUnknown: true }
+      }),
+      player: vi.fn(async (): Promise<{ registered: boolean }> => {
+        if (mode === "fail") throw new Error("the host's chain connection dropped")
+        return { registered: false }
+      }),
+    })
+    const { flow } = flowOver(chain)
+    const tap = flow.register!().catch(() => {})
+    await vi.advanceTimersByTimeAsync(0)
+    mode = "fail"
+    flow.cancelRegister()
+    await vi.advanceTimersByTimeAsync(20_000)
+    expect(flow.optimistic().registered).toBe(true)
+
+    // When: the same game's slot is set again, and a later read answers not-in
+    flow.newSlot(7)
+    mode = "not-in"
+    await vi.advanceTimersByTimeAsync(30_000)
+
+    // Then: the reader kept reading and took the flag down
+    expect(flow.optimistic().registered).toBe(false)
+    await tap
   }, 30_000)
 
   it("the post-loop reader stops on a new slot and leaves no timer behind", async () => {
