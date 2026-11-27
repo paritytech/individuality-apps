@@ -9,6 +9,9 @@ import { envConfig } from "@humanity/shared/config/env.ts";
 import { getOrCreateClient } from "./connection.ts";
 import { resolveNetwork, type NetworkConfig } from "./networks.ts";
 
+// The worker build folds this branch before bundling generated metadata.
+declare const __WORKER_PASEO__: boolean | undefined;
+
 export type PeopleApi = TypedApi<typeof people> | TypedApi<typeof paseo>;
 
 export interface PeopleClient {
@@ -23,7 +26,8 @@ export async function getPeopleClient(): Promise<PeopleClient> {
   const network = resolveNetwork(envConfig.chain.network);
   const wsUrl = envConfig.chain.peopleWsUrl ?? network.peopleChain.wsUrl;
   const client = await getOrCreateClient(network.peopleChain.genesisHash, wsUrl);
-  const api = network.key === "paseo-next-v2"
+  const usePaseo = typeof __WORKER_PASEO__ === "undefined" ? network.key === "paseo-next-v2" : __WORKER_PASEO__;
+  const api = usePaseo
     ? client.getTypedApi(paseo)
     : client.getTypedApi(people);
   return { client, api, network, wsUrl };

@@ -258,7 +258,7 @@ this app has to read to see each one.
 | Token | `PAS`, 10 decimals |
 
 Chain types are **generated, never hand-written**, and `@humanity/shared` owns them.
-`packages/humanity-shared/.papi/metadata/people.scale` is committed; `.papi/descriptors/` is generated and
+`packages/humanity-shared/.papi/metadata/paseo.scale` is committed; `.papi/paseo-descriptors/` is generated and
 git-ignored. After a runtime upgrade run `npm run papi:update --workspace @humanity/shared` and
 commit the refreshed metadata — stale descriptors typecheck clean but fail at runtime with
 `Incompatible runtime entry Storage(...)`.
