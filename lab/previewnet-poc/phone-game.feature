@@ -9,6 +9,8 @@ Feature: A new person on a phone signs up for the coming live game on Paseo Next
   game time, so that the sign-up has its ten minutes and the game is inside the play step's wait.
   The others in her group are whoever signed up.
 
+  # Her collectables read their last word when the game is settled, an hour after it where she earned nothing.
+  @step-limit:85m
   Scenario: Pat gives Jollity its permissions, signs up, plays the live game and her report is finalized
     Given Pat is a new actor
     And the next game is open for sign-up

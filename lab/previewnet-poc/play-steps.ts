@@ -33,6 +33,9 @@ const REPORT_WAIT_MS = 15 * 60_000;
 
 /** How long her collectables may take to come after the game: they wait for the votes of the others in her group. */
 const AFTER_GAME_WAIT_MS = Math.max(1, Number(process.env.PREVIEWNET_POC_AFTER_GAME_MINUTES ?? 10) || 10) * 60_000;
+// Her collectables say "players are still voting" until the game is settled, which is after its `report_ends` on chain
+// (an hour after the game on Paseo Next V2): a person who earned nothing reads the page's last word only then.
+const SETTLE_NEEDS_MS = 5 * 60_000, AFTER_GAME_LIMIT_MS = 80 * 60_000;
 
 /** One person at the game: her page and her game account, asked for once. */
 type Seat = { player: Player; name: string; id: string; page: BrowserPage; account: string };
@@ -334,8 +337,25 @@ step("{actor}'s Jollity can be read as a game is read", async ({ lab }, name) =>
 }, { timeoutMs: 180_000 });
 
 // The way on after the game, as a person takes it (after-game.ts): her coin into the draw's slot where she is in the
-// draw, a hold on the draw, then the book's cover dragged across. It fails only where a gesture was made and the page did not answer it; a game without a draw, nothing to
-// keep, or collectables that were not there yet within the wait are said in the evidence and pass.
+// draw, a hold on the draw, then the book's cover dragged across. It fails where a gesture was made and the page did
+// not answer it, and where her collectables never came to their last word (a book to close, or why there is nothing):
+// a page still waiting when the game is settled is a failure, not a pass. A game without a draw passes.
+/** How long her collectables may take: the wait a run names (`PREVIEWNET_POC_AFTER_GAME_MINUTES`), else to the game's
+ *  `report_ends` on chain and the settle after it, read from the chain since each network has its own. */
+async function afterGameWait(state: ReturnType<typeof world>): Promise<{ ms: number; why: string }> {
+  if (process.env.PREVIEWNET_POC_AFTER_GAME_MINUTES) return { ms: AFTER_GAME_WAIT_MS, why: 'the wait this run names' };
+  try {
+    const head = await state.people.finalizedHead();
+    const game = await state.people.historicalStorage('Game', 'Game', [], head.hash) as { index?: number; report_ends?: number | bigint } | undefined;
+    if (game && played && Number(game.index) === played.index && game.report_ends !== undefined) {
+      const ms = Number(game.report_ends) * 1000 + SETTLE_NEEDS_MS - Date.now();
+      return { ms: Math.min(AFTER_GAME_LIMIT_MS, Math.max(AFTER_GAME_WAIT_MS, ms)), why: `game ${played.index} takes reports until ${new Date(Number(game.report_ends) * 1000).toISOString()}` };
+    }
+    return { ms: AFTER_GAME_WAIT_MS, why: 'the chain is past the game that was played' };
+  } catch (error) {
+    return { ms: AFTER_GAME_WAIT_MS, why: `the game's report_ends could not be read (${String((error as Error)?.message ?? error).slice(0, 120)})` };
+  }
+}
 step('{actor} holds on the draw and closes the book on her collectables', async ({ lab }, name) => {
   const state = world(), who = playerOf(lab.actor(String(name))), page = await who.page();
   const shots = join(state.directory, 'screens'); mkdirSync(shots, { recursive: true });
@@ -344,10 +364,13 @@ step('{actor} holds on the draw and closes the book on her collectables', async 
     const png = await who.screenshot();
     if (png) writeFileSync(join(shots, `after-${String(++taken).padStart(2, '0')}-${who.name}-${label}-${new Date().toISOString().slice(11, 19).replace(/:/g, '')}.png`), png);
   };
-  const went = await goOnAfterGame(page, { waitMs: AFTER_GAME_WAIT_MS, signal: state.signal, shot });
+  const wait = await afterGameWait(state);
+  const went = await goOnAfterGame(page, { waitMs: wait.ms, signal: state.signal, shot });
   await shot('end');
-  await lab.attach(jsonEvidence({ afterGame: went, screenshots: shots }));
+  await lab.attach(jsonEvidence({ afterGame: went, waited: { minutes: Math.round(wait.ms / 6_000) / 10, why: wait.why }, screenshots: shots }));
   if (went.coin === 'stayed') throw Error(`${who.name}'s drag of her coin into the draw's slot did not start the draw (${went.ended}); trail: ${JSON.stringify(went.trail)}`);
   if (went.hold === 'did-nothing') throw Error(`${who.name}'s hold on the draw did not take the page on (${went.ended}); trail: ${JSON.stringify(went.trail)}`);
   if (went.book === 'still-open') throw Error(`${who.name}'s drag of the book's cover did not shut it (${went.ended}); trail: ${JSON.stringify(went.trail)}`);
-}, { timeoutMs: AFTER_GAME_WAIT_MS + 3 * 60_000 });
+  if (went.book === 'not-shown' && 'collectables' in went.last && went.last.collectables === 'waiting')
+    throw Error(`${who.name}'s collectables never came to their last word in ${Math.round(wait.ms / 60_000)} minutes (${wait.why}): ${went.ended}; trail: ${JSON.stringify(went.trail)}`);
+}, { timeoutMs: Math.max(AFTER_GAME_WAIT_MS, AFTER_GAME_LIMIT_MS) + 3 * 60_000 });
