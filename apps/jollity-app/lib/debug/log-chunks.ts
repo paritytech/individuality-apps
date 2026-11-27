@@ -85,6 +85,18 @@ export interface ChunkStore<E extends ChunkEntry> {
   read(since?: number, until?: number): Promise<ChunkReadResult<E> | null>
   /** Forgets every entry (the index is emptied; chunks are overwritten in time). */
   clear(): Promise<void>
+  /** Advances the index's `oldest` past every whole chunk whose last entry is
+   *  older than `before`, with ONE index write and no chunk rewrite: the dropped
+   *  chunks stay in their slots until the ring overwrites them. A chunk that
+   *  straddles `before` is kept whole, so the cut is chunk-granular. Refuses
+   *  (writes nothing, answers false) when a chunk in the scanned range could
+   *  not be read — advancing past a gap would make the loss permanent.
+   *  `commit` may veto the write after the scan (e.g. a clear ran meanwhile).
+   *  The scan runs outside the write chain so it never holds back an append;
+   *  only the index write rides the chain, landing after every append that
+   *  started before it and clamping against the then-current index, so a late
+   *  answer can never rewind it. Never rejects. */
+  advanceOldest(before: number, commit?: () => boolean): Promise<boolean>
 }
 
 const indexKey = (prefix: string) => `${prefix}.index`
@@ -99,13 +111,17 @@ function parse(text: string | null): { ok: true; value: unknown } | { ok: false 
   }
 }
 
+/** the ring never holds more than its last RING_SLOTS seqs, and never rewinds */
+function clampOldest(next: number, oldest: number): number {
+  return Math.max(oldest, next - RING_SLOTS)
+}
+
 function asIndex(raw: unknown): Index | null {
   if (raw === null) return { next: 0, oldest: 0 }
   const value = raw as Partial<Index>
   if (typeof value.next !== "number") return null
   // `oldest` is derivable from `next`: the ring holds the last RING_SLOTS
-  const floor = Math.max(0, value.next - RING_SLOTS)
-  return { next: value.next, oldest: typeof value.oldest === "number" ? Math.max(value.oldest, floor) : floor }
+  return { next: value.next, oldest: clampOldest(value.next, typeof value.oldest === "number" ? value.oldest : 0) }
 }
 
 export function createChunkStore<E extends ChunkEntry>(
@@ -135,6 +151,32 @@ export function createChunkStore<E extends ChunkEntry>(
       : null
   }
 
+  /** the cached index, re-read once when the store was never loaded */
+  async function currentIndex(): Promise<Index | null> {
+    return index ?? readIndex()
+  }
+
+  /** runs `fn` on the store's own chain: after every write that started before
+   *  it. `fn` must update the in-memory `index` itself after its last write.
+   *  Never rejects: the returned promise is the chain's swallowed one. */
+  function onChain(fn: () => Promise<void>): Promise<void> {
+    const run = chain.then(fn)
+    chain = run.catch(() => {})
+    return chain
+  }
+
+  /** one index write on the chain, clamped against the then-current index so
+   *  it can never rewind `oldest` or `next` */
+  function writeIndexOnChain(oldestCandidate: number): Promise<void> {
+    return onChain(async () => {
+      const fresh = await currentIndex()
+      if (!fresh) return
+      const written: Index = { next: fresh.next, oldest: clampOldest(fresh.next, Math.max(oldestCandidate, fresh.oldest)) }
+      await kv.write(indexKey(prefix), JSON.stringify(written))
+      index = written
+    })
+  }
+
   async function load(): Promise<boolean> {
     const loaded = await readIndex()
     if (!loaded) return false
@@ -161,7 +203,7 @@ export function createChunkStore<E extends ChunkEntry>(
       await kv.write(chunkKey(prefix, next), JSON.stringify(chunk))
       next += 1
     }
-    const written: Index = { next, oldest: Math.max(index.oldest, next - RING_SLOTS) }
+    const written: Index = { next, oldest: clampOldest(next, index.oldest) }
     await kv.write(indexKey(prefix), JSON.stringify(written))
     index = written
   }
@@ -172,12 +214,11 @@ export function createChunkStore<E extends ChunkEntry>(
       return index !== null
     },
     append(entries) {
-      chain = chain.then(() => doAppend(entries)).catch(() => {})
-      return chain
+      return onChain(() => doAppend(entries))
     },
     async read(since, until) {
       await chain
-      const current = index ?? (await readIndex())
+      const current = await currentIndex()
       if (!current) return null
       const entries: E[] = []
       let complete = true
@@ -195,15 +236,42 @@ export function createChunkStore<E extends ChunkEntry>(
       return { entries, complete }
     },
     clear() {
-      chain = chain
-        .then(async () => {
-          if (!index) return
-          const emptied: Index = { next: index.next, oldest: index.next }
-          await kv.write(indexKey(prefix), JSON.stringify(emptied))
-          index = emptied
-        })
-        .catch(() => {})
-      return chain
+      return onChain(async () => {
+        const current = await currentIndex()
+        if (!current) return
+        const emptied: Index = { next: current.next, oldest: current.next }
+        await kv.write(indexKey(prefix), JSON.stringify(emptied))
+        index = emptied
+      })
+    },
+    async advanceOldest(before, commit) {
+      // the scan runs OUTSIDE the write chain (see the interface doc): it may
+      // take long (up to RING_SLOTS host reads) and must never hold back an
+      // append. It returns the target `oldest`, or null when it must not write.
+      const scan = async (): Promise<number | null> => {
+        const current = await currentIndex()
+        if (!current) return null
+        // scan oldest-first and stop at the first chunk that reaches `before`:
+        // the chunks before it are wholly older and drop, that one stays whole
+        let target = current.oldest
+        for (let seq = current.oldest; seq < current.next; seq++) {
+          const chunk = await readChunk(seq)
+          // an unreadable chunk in the scanned range: write nothing, a read
+          // failure must not become permanent
+          if (!chunk) return null
+          // lines are in log order, not time order (the clock can step back), so
+          // judge the chunk by its newest line, not its last
+          if (chunk.entries.some((entry) => entry.ts >= before)) break
+          // every line is older than the cut: the whole chunk drops
+          target = seq + 1
+        }
+        return target === current.oldest ? null : target
+      }
+      const target = await scan().catch(() => null)
+      if (target === null || (commit && !commit())) return false
+      // an index-write failure is swallowed here, so `true` means "attempted"
+      await writeIndexOnChain(target)
+      return true
     },
   }
 }

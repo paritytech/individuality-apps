@@ -197,7 +197,7 @@ describe("the host persister", () => {
     expect(kept.at(-1)?.ts).toBe((RING_SLOTS * 3 - 1) * 100 + 49)
   })
 
-  it("keeps writing new lines while a release's read never answers, and never rewrites late", async () => {
+  it("keeps writing new lines while a release's read never answers, and never writes late", async () => {
     const { kv, state } = fakeKV()
     const persist = createHostPersist<Row>(kv)
     await persist.start()
@@ -205,16 +205,39 @@ describe("the host persister", () => {
     persist.enqueue(row(1))
     await persist.flushNow()
     state.hangChunkReads = true
+    // the release promise resolves once its RELEASE_READ_MS budget expires,
+    // whether or not the hung scan ever answered — flushes queued behind it
+    // must not wait on it forever
     const releasing = persist.release(2)
     persist.enqueue(row(5))
     const flushing = persist.flushNow()
     await vi.advanceTimersByTimeAsync(RELEASE_READ_MS + 10)
     await Promise.all([releasing, flushing])
+    // the timed-out release wrote no index at all: ts 1 is still there
     state.hangChunkReads = false
     expect((await persist.readEarlier(undefined, undefined, "x"))?.map((entry) => entry.ts)).toEqual([1, 5])
   })
 
-  it("never shows a reader an empty ring between a release's clear and its rewrite", async () => {
+  it("writes no index when the scan answers after the release gave up", async () => {
+    const { kv, state, values } = fakeKV()
+    const persist = createHostPersist<Row>(kv)
+    await persist.start()
+    persist.activate()
+    persist.enqueue(row(1))
+    await persist.flushNow()
+    let open!: () => void
+    state.chunkGate = new Promise<void>((resolve) => (open = resolve))
+    const releasing = persist.release(2)
+    await vi.advanceTimersByTimeAsync(RELEASE_READ_MS + 10)
+    await releasing
+    const writesAtTimeout = state.writes
+    open()
+    await vi.advanceTimersByTimeAsync(10)
+    expect(state.writes).toBe(writesAtTimeout)
+    expect(JSON.parse(values.get(`${KEY_PREFIX}.index`)!).oldest).toBe(0)
+  })
+
+  it("never shows a reader a torn ring while a release advances the pointer", async () => {
     const { kv } = fakeKV()
     const persist = createHostPersist<Row>(kv)
     await persist.start()
@@ -228,7 +251,50 @@ describe("the host persister", () => {
       reads.push((await persist.readEarlier(undefined, undefined, "x"))?.map((entry) => entry.ts))
     }
     await releasing
+    // every read sees a whole ring: either the pre-release one or the advanced
+    // one, never a mix — the index write is atomic
     expect(reads.every((ts) => ts !== undefined && ts.includes(3))).toBe(true)
+  })
+
+  it("release advances the ring's oldest pointer: one index write, no chunk rewrite", async () => {
+    const { kv, state, values } = fakeKV()
+    const persist = createHostPersist<Row>(kv)
+    await persist.start()
+    persist.activate()
+    // five flushed batches = five chunks, so a clear+rewrite release would
+    // rewrite every kept chunk
+    for (let batch = 1; batch <= 5; batch++) {
+      persist.enqueue(row(batch * 10))
+      await persist.flushNow()
+    }
+    const writesBefore = state.writes
+    await persist.release(35)
+    // exactly one write: the advanced index
+    expect(state.writes - writesBefore).toBe(1)
+    const index = JSON.parse(values.get(`${KEY_PREFIX}.index`)!) as { next: number; oldest: number }
+    expect(index.oldest).toBe(3)
+    // the old lines read as gone, the kept ones intact, across a restart too
+    expect((await persist.readEarlier(undefined, undefined, "x"))?.map((entry) => entry.ts)).toEqual([40, 50])
+    const reloaded = createHostPersist<Row>(kv)
+    await reloaded.start()
+    expect((await reloaded.readEarlier(undefined, undefined, "x"))?.map((entry) => entry.ts)).toEqual([40, 50])
+  })
+
+  it("release still drops nothing when a stored chunk cannot be read (no rewrite either)", async () => {
+    const { kv, values, state } = fakeKV()
+    const persist = createHostPersist<Row>(kv)
+    await persist.start()
+    persist.activate()
+    persist.enqueue(row(1))
+    await persist.flushNow()
+    persist.enqueue(row(2))
+    await persist.flushNow()
+    values.set(`${KEY_PREFIX}.chunk.0`, "{not json")
+    const before = new Map(values)
+    const writesBefore = state.writes
+    await persist.release(2)
+    expect(state.writes).toBe(writesBefore)
+    expect(values).toEqual(before)
   })
 
   it("lets a clear win permanently over a release whose read is still in flight", async () => {
