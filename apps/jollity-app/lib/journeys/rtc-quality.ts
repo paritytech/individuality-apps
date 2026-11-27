@@ -87,9 +87,11 @@
  * of the round the summary covers — the stats timestamps of the first and
  * last counted reading and how many readings that was — so a report can
  * compare the same stretch on both ends of a link instead of two medians
- * over different stretches. The timestamps are the browser's stats clock,
- * device-local ms, never wall-clock: each side's span is relative to its own
- * round. A link the round never measured carries no span, only its row.
+ * over different stretches. The timestamps are the stats reports' timestamps:
+ * epoch ms read from the device's wall clock, so the two ends compare only as
+ * well as their clocks agree, and a backward clock step can leave span_last
+ * below span_first. A link the round never measured carries no span, only its
+ * row.
  * The slice points deliberately omit codec/path attributes: they are summed
  * only by viewer, round and the stable pair, including across page sessions.
  */
