@@ -113,6 +113,8 @@ export interface CollectablesScene {
   openPiece(index: number): void
   /** the pieces float above this, CSS px from the canvas's top (the Pocket's book); null: the canvas's foot */
   setFloor(px: number | null): void
+  /** the pieces float below this, CSS px from the canvas's top (the words at the top); null: the canvas's top */
+  setCeiling(px: number | null): void
   /** another layer draws this piece now: stop painting its flat art */
   setSpriteHidden(index: number, hidden: boolean): void
   /** the host element changed size, in CSS px */

@@ -36,7 +36,7 @@
  *
  * API: createCollectablesScene(canvas, { count, onEvent, onDiscs, canOpen, carried, onCarriedShown }) ->
  *   { replay, tap, press, move, release, setSprites, openPiece, addPiece, open,
- *     setSpriteHidden, setFloor, resize, destroy }
+ *     setSpriteHidden, setFloor, setCeiling, resize, destroy }
  */
 import { floatLayout } from './float';
 
@@ -320,6 +320,16 @@ function setFloor(px) {
   floorPx = next;
   if (seq.burstAt >= 0) relayout();
 }
+/* THE CEILING: the words at the top of the screen (what to do next) keep their
+   line, and the pieces float below it, never over it (setCeiling: px from the
+   canvas's top; null, the canvas's own top) */
+let ceilPx = null;
+function setCeiling(px) {
+  const next = px == null || !Number.isFinite(px) ? null : px;
+  if (next === ceilPx || (next !== null && ceilPx !== null && Math.abs(next - ceilPx) < 1)) return;
+  ceilPx = next;
+  if (seq.burstAt >= 0) relayout();
+}
 
 /* THE SCREEN'S EDGES: every piece stays on the screen, whole. Running into
    an edge it stops there and comes back off it a little, as off a wall: the
@@ -335,8 +345,9 @@ function keepOnScreen(b) {
   if (b.u < cu - hw) { b.u = cu - hw; if (b.vu < 0) b.vu *= -EDGE_BOUNCE; }
   else if (b.u > cu + hw) { b.u = cu + hw; if (b.vu > 0) b.vu *= -EDGE_BOUNCE; }
   const low = floorPx === null ? cv - hh : Math.max(cv - hh, cv + (VH / 2 - floorPx) / viewScale + r);
+  const high = Math.max(low, ceilPx === null ? cv + hh : Math.min(cv + hh, cv + (VH / 2 - ceilPx) / viewScale - r));
   if (b.v < low) { b.v = low; if (b.vv < 0) b.vv *= -EDGE_BOUNCE; }
-  else if (b.v > cv + hh) { b.v = cv + hh; if (b.vv > 0) b.vv *= -EDGE_BOUNCE; }
+  else if (b.v > high) { b.v = high; if (b.vv > 0) b.vv *= -EDGE_BOUNCE; }
 }
 
 /** the piece in the camera's plane, from where it is in the world */
@@ -354,7 +365,12 @@ function relayout() {
   const halfW = VW / 2 / s, halfH = VH / 2 / s;
   const spots = floatLayout(
     live.map((b) => ({ u: b.u, v: b.v, r: BALL_R, opened: b.opened, lift: b.lift })),
-    { left: -halfW, right: halfW, bottom: floorPx === null ? -halfH : Math.min(halfH * 0.5, Math.max(-halfH, (VH / 2 - floorPx) / s)), top: halfH },
+    {
+      left: -halfW,
+      right: halfW,
+      bottom: floorPx === null ? -halfH : Math.min(halfH * 0.5, Math.max(-halfH, (VH / 2 - floorPx) / s)),
+      top: ceilPx === null ? halfH : Math.max(-halfH * 0.5, Math.min(halfH, (VH / 2 - ceilPx) / s)),
+    },
   );
   live.forEach((b, i) => { b.tu = spots[i].u; b.tv = spots[i].v; });
 }
@@ -1891,6 +1907,8 @@ return {
   openPiece,
   /** the pieces float above this, px from the canvas's top (the Pocket's book); null: the canvas's foot */
   setFloor,
+  /** the pieces float below this, px from the canvas's top (the words at the top); null: the canvas's top */
+  setCeiling,
   /** the wrapping layer draws this piece now — stop painting its flat art */
   setSpriteHidden(index, hidden) {
     if (hidden) spriteHidden.add(index);

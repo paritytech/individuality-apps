@@ -121,6 +121,8 @@ export interface CollectablesSceneProps {
 }
 
 const HIT: readonly [number, number] = [0.5, 0.5]
+/** air between the words at the top and the opened pieces under them, px */
+const CEILING_GAP = 10
 
 /** The pop: one tap on a focused piece and uBreak runs 0 → 1 from the tap
  *  point — the shell shatters outright, no cracking stages in between. */
@@ -208,16 +210,21 @@ export function CollectablesScene({
   useEffect(() => {
     coverRef.current = cover
   }, [cover])
-  // the floor, in the canvas's own px: said to the engine when it changes, and when the canvas moves
+  // the floor and the ceiling, in the canvas's own px: said to the engine when
+  // they change, and when the canvas moves. The ceiling is under the words at
+  // the top, so the opened pieces never cover what to do next
   const floorRef = useRef(floor)
-  const applyFloor = () => {
+  const applyEdges = () => {
     const canvas = canvasRef.current
+    const top = canvas?.getBoundingClientRect().top ?? 0
     const f = floorRef.current
-    sceneRef.current?.setFloor(f == null || !canvas ? null : f - canvas.getBoundingClientRect().top)
+    sceneRef.current?.setFloor(f == null || !canvas ? null : f - top)
+    const words = wordsRef.current
+    sceneRef.current?.setCeiling(!words || !canvas ? null : words.getBoundingClientRect().bottom - top + CEILING_GAP)
   }
   useEffect(() => {
     floorRef.current = floor
-    applyFloor()
+    applyEdges()
   }, [floor])
   const rendererRef = useRef<WrappingRenderer | null>(null)
   // the press point of each piece's LAST crack, in its own uv — computed once
@@ -466,11 +473,11 @@ export function CollectablesScene({
     const observer = new ResizeObserver(() => {
       scene.resize(host.clientWidth, host.clientHeight)
       canvasBox = null
-      applyFloor()
+      applyEdges()
     })
     observer.observe(host)
     scene.resize(host.clientWidth, host.clientHeight)
-    applyFloor()
+    applyEdges()
 
     // the wrapping renderer — lazily, and only where it can actually run;
     // any failure leaves rendererRef null and the flat sprites stay
