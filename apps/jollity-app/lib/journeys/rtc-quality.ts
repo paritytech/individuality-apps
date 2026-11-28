@@ -88,7 +88,13 @@
  * of the round the summary covers — the stats timestamps of the first and
  * last counted reading and how many readings that was — so a report can
  * compare the same stretch on both ends of a link instead of two medians
- * over different stretches. The timestamps are the stats reports' timestamps:
+ * over different stretches. span_first is the timestamp of the reading the
+ * first median window opens from (the previous reading on the same link, when
+ * there is one and it is not later), so the span covers exactly what the
+ * medians cover; span_readings counts the counted readings from the first
+ * timestamped one on, that opening reading not included, and ONLY timestamped
+ * readings, while the medians use every counted reading: a link whose
+ * readings carry no timestamps has no span, only its row. The timestamps are the stats reports' timestamps:
  * epoch ms read from the device's wall clock, so the two ends compare only as
  * well as their clocks agree, and a backward clock step can leave span_last
  * below span_first. A link the round never measured carries no span, only its
@@ -399,7 +405,9 @@ export function observeRtc(readings: readonly RtcReading[]): void {
       if (!peer) continue
       if (sample.at !== undefined) {
         peer.spanReadings += 1
-        peer.spanFirstAt ??= sample.at
+        // the first median window opens from the previous reading on the same
+        // link, so the span starts there, not one reading late
+        peer.spanFirstAt ??= before && before.link === sample.link && before.at !== undefined && before.at <= sample.at ? before.at : sample.at
         peer.spanLastAt = sample.at
       }
       noteDevice(peer, sample)

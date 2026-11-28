@@ -277,6 +277,21 @@ describe("the measured span of a round's readings (archive#829)", () => {
     })
   })
 
+  it("starts the span at the reading the first median window opens from", () => {
+    startRtcGame()
+    // a reading just before the round opens: not counted, but the first window's `prev`
+    feed({ alice: sample(0) })
+    openRtcRound(0)
+    for (let n = 1; n <= 3; n++) feed({ alice: sample(n) })
+    closeRtcRound()
+    // the medians cover 0 s to 9 s; the span says so (3 counted readings)
+    expect(metric("rtc.in_fps", { stat: "p50" })[0].attrs).toMatchObject({
+      "rtc.span_first_ms": "0",
+      "rtc.span_last_ms": "9000",
+      "rtc.span_readings": "3",
+    })
+  })
+
   it("sends no span for a link the round never measured, and records nothing outside a round", () => {
     startRtcGame()
     openRtcRound(0)
