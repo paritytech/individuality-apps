@@ -32,9 +32,21 @@ afterEach(() => {
 })
 
 describe("the hand-off at the end of the game", () => {
-  it("names the Humanity card the hosts pin, on the network the build is served from", () => {
-    expect(humanityCardLink("dim2.paseo")).toBe("polkadotapp://pocket/open?product=peopl.paseo&card=humanity")
-    expect(humanityCardLink("dim2.test")).toBe("polkadotapp://pocket/open?product=peopl.test&card=humanity")
+  it("names the Humanity card the hosts pin, on the network the build targets", () => {
+    // vitest.lib.config.ts pins NEXT_PUBLIC_NETWORK_NAME=paseo, so the build's
+    // network — not the served hostname — gives the target. The dot.li gateway
+    // serves the game from dim2.app.paseo.li, whose last label is "li"; the
+    // hostname must not reach the target (#56).
+    expect(humanityCardLink()).toBe("polkadotapp://pocket/open?product=peopl.paseo&card=humanity")
+  })
+
+  it("follows the build's network, whatever host the page is served from", () => {
+    vi.stubEnv("NEXT_PUBLIC_NETWORK_NAME", "previewnet")
+    try {
+      expect(humanityCardLink()).toBe("polkadotapp://pocket/open?product=peopl.testnet&card=humanity")
+    } finally {
+      vi.unstubAllEnvs()
+    }
   })
 
   const ANDROID = "Mozilla/5.0 (Linux; Android 16; Pixel 7 Build/BP2A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/141.0.0.0 Mobile Safari/537.36"
@@ -43,11 +55,11 @@ describe("the hand-off at the end of the game", () => {
 
   it("sends Android and iOS to the card, and a host with no Pocket to the Humanity product", () => {
     const card = "polkadotapp://pocket/open?product=peopl.paseo&card=humanity"
-    expect(humanityHandOff(ANDROID, 5, "dim2.paseo")).toBe(card)
-    expect(humanityHandOff(IPHONE, 5, "dim2.paseo")).toBe(card)
-    expect(humanityHandOff(MAC, 5, "dim2.paseo")).toBe(card) // an iPad asking for the desktop site
-    expect(humanityHandOff(MAC, 0, "dim2.paseo")).toBe("https://peopl.paseo") // a Mac
-    expect(humanityHandOff("", 0, "dim2.paseo")).toBe("https://peopl.paseo")
+    expect(humanityHandOff(ANDROID, 5)).toBe(card)
+    expect(humanityHandOff(IPHONE, 5)).toBe(card)
+    expect(humanityHandOff(MAC, 5)).toBe(card) // an iPad asking for the desktop site
+    expect(humanityHandOff(MAC, 0)).toBe("https://peopl.paseo") // a Mac
+    expect(humanityHandOff("", 0)).toBe("https://peopl.paseo")
   })
 
   it("asks the Android host to open that card in Pocket", async () => {
