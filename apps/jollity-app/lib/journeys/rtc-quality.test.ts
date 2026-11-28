@@ -10,6 +10,17 @@ import type { RtcSample } from "../webrtc/rtc-stats"
 import { pairAttrs } from "./rtc-pair"
 import { closeRtcRound, flushRtcCoverageSlice, noteLinkSeen, noteLinkStage, observeRtc, openRtcRound, recordResume, rtcCoverageVisibilityChanged, setRtcStandby, startRtcGame } from "./rtc-quality"
 
+/** a sessionStorage stand-in, so a "reload" (startRtcGame + openRtcRound again)
+ *  keeps what the page session before it left in storage */
+const sessionStorageStub = () => {
+  const store = new Map<string, string>()
+  return {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => void store.set(key, value),
+    removeItem: (key: string) => void store.delete(key),
+  }
+}
+
 /** one 3 s reading of a link: cumulative counters advance by `step` */
 function sample(n: number, over: { rtt?: number; lostPerStep?: number; cpu?: number; link?: number; freezeStep?: number } = {}): RtcSample {
   const t = n * 3000
@@ -879,5 +890,74 @@ describe("link time on each path (#944)", () => {
     }
     closeRtcRound()
     expect(metric("rtc.link").map((row) => row.attrs["rtc.relay_protocol"])).toEqual(["tcp"])
+  })
+})
+
+describe("in-app video coverage per peer (#39, phase 1)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-11-28T12:00:00Z"))
+    vi.stubGlobal("sessionStorage", sessionStorageStub())
+  })
+
+  const reading = (n: number): RtcSample => ({ link: 1, at: n * 3000, inbound: { id: "IV", framesDecoded: n * 72, packetsReceived: n * 300 } })
+  const pair = (peer: string, round: number) => pairAttrs(5, "zed", peer, round)
+  const inApp = () => metric("rtc.in_app_s")
+
+  it("sends this client's own in-app seconds per peer for a fully visible round", () => {
+    openRtcRound(0, pair)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(9000)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(3) }])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    expect(inApp()).toEqual([
+      expect.objectContaining({ value: 12, unit: "second", attrs: expect.objectContaining({ round: "1", "rtc.peer": "0", "rtc.pair": "g5:r1:99e59b2b1d8e" }) }),
+    ])
+  })
+
+  it("excludes hidden time from the in-app seconds", () => {
+    openRtcRound(0, pair)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(3000)
+    rtcCoverageVisibilityChanged(true)
+    vi.advanceTimersByTime(30_000)
+    rtcCoverageVisibilityChanged(false)
+    vi.advanceTimersByTime(3000)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(11) }])
+    closeRtcRound()
+    expect(inApp()[0]?.value).toBe(6) // 3 s visible before the hide + 3 s after, never the 30 s hidden
+  })
+
+  it("sends nothing for a round this page session did not see open (a reload counts as unknown)", () => {
+    // a first page session opened and closed round 0: the marker survives
+    openRtcRound(0, pair)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    expect(inApp()).toHaveLength(1)
+    // the reloaded page session opens the same round again: unknown, not guessed
+    resetRecorded()
+    startRtcGame()
+    openRtcRound(0, pair)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    expect(inApp()).toEqual([])
+  })
+
+  it("credits a peer first seen mid-round only from its first reading on", () => {
+    openRtcRound(0, pair)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(9000)
+    // bob joins the round 9 s in: before his first reading his in-app time is unknown
+    observeRtc([
+      { id: "alice", conn: "connected", quality: reading(3) },
+      { id: "bob", conn: "connected", quality: reading(3) },
+    ])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    const byPeer = Object.fromEntries(inApp().map((point) => [point.attrs["rtc.peer"], point.value]))
+    expect(byPeer).toEqual({ "0": 12, "1": 3 })
   })
 })

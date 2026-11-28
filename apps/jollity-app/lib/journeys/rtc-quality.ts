@@ -34,6 +34,7 @@
  *   rtc.frames_dropped, rtc.nack, rtc.pli          counts when > 0 (nack and pli by rtc.direction in|out)
  *   rtc.coverage_s, rtc.coverage_pct               always (0 included), see COVERAGE
  *   rtc.video_ms, rtc.present_ms                    first stats poll after 10 s + round/page tail (#421)
+ *   rtc.in_app_s                                   once per peer per round at its close (#39): this client's own visible seconds with the peer known, none for a reload or late join
  *   rtc.path_changes (count)                       when > 0: times the selected path changed
  *   rtc.link (count 1), rtc.link.ttff_ms,
  *   rtc.link.freeze_ms                             THE LINK ROW, one per peer per round (rtc-link.ts): the round's
@@ -129,6 +130,8 @@ interface PeerRound {
   coveredS: number
   /** reload-safe coverage accumulated for the open metric slice */
   slice: { videoMs: number; presentMs: number }
+  /** this page session's visible ms with the peer known, all round: rtc.in_app_s (#39) */
+  inAppMs: number
   /** last decoder observation, and whether its preceding interval was live */
   lastVideoAt?: number
   videoActive: boolean
@@ -222,6 +225,9 @@ const noPair: PairOf = () => ({})
 let round: number | null = null
 /** wall ms the open round began, the denominator of coverage */
 let roundOpenedAt = 0
+/** this page session saw the open round open for the first time: a reload or
+ *  late join has no whole-round in-app time, so rtc.in_app_s stays unknown (#39) */
+let roundSeenOpening = false
 let peers = new Map<string, PeerRound>()
 /** each peer's last reading, kept across rounds: the first window of a round
  *  runs from the last reading of the one before */
@@ -267,6 +273,7 @@ function makePeer(id: string): PeerRound {
     rates: [],
     coveredS: 0,
     slice: { videoMs: 0, presentMs: 0 },
+    inAppMs: 0,
     videoActive: false,
     pathChanges: 0,
     pathMs: new Map(),
@@ -286,7 +293,10 @@ function accruePresence(now = monotonicNow()): void {
   const elapsed = Math.max(0, now - sliceAccountedAt)
   sliceAccountedAt = now
   if (round === null || !coverageVisible) return
-  for (const peer of peers.values()) peer.slice.presentMs += elapsed
+  for (const peer of peers.values()) {
+    peer.slice.presentMs += elapsed
+    peer.inAppMs += elapsed
+  }
 }
 
 /** Close the small unobserved tail after a healthy decoder reading. One stats
@@ -525,12 +535,28 @@ export function rtcPeerIndex(id: string): number {
   return index
 }
 
+/** Remember in sessionStorage that a page session opened this game round, and
+ *  say whether it was the first. The key is the pair id's game and round
+ *  (`g5:r1`). Without a pair id or storage it is unknown, so false. */
+function markRoundOpened(pairId: string | undefined): boolean {
+  if (!pairId) return false
+  const key = `rtc.in_app.opened:${pairId.split(":").slice(0, 2).join(":")}`
+  try {
+    if (sessionStorage.getItem(key) !== null) return false
+    sessionStorage.setItem(key, "1")
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** the round step `round.<next + 1>` opened */
 export function openRtcRound(next: number, pair: PairOf = noPair, role: RoleOf = () => ({})): void {
   if (round === next) return
   if (round !== null) closeRtcRound()
   round = next
   roundOpenedAt = Date.now()
+  roundSeenOpening = markRoundOpened(pair("", next + 1)["rtc.pair"])
   loads = []
   pairOf = pair
   roleOf = role
@@ -672,6 +698,7 @@ export function closeRtcRound(): { summary: string; unsupported?: string } | nul
   const unmeasured = closing === null ? [] : unmeasuredLinks(closing, measured)
   const ticks = loads
   loads = []
+  if (closing !== null) emitInApp(closing)
   round = null
   peers = new Map()
   videoObservedAt = new Map()
@@ -687,6 +714,21 @@ export function closeRtcRound(): { summary: string; unsupported?: string } | nul
     return { summary: summaryLine(measured, limitedBy), ...(unsupported ? { unsupported } : {}) }
   } catch {
     return null
+  }
+}
+
+/** rtc.in_app_s (#39): each peer's seconds in this page session's own
+ *  visible time, on its monotonic clock; nothing for a round this page session
+ *  did not see open, and nothing before a peer's first reading */
+function emitInApp(closing: number): void {
+  if (!roundSeenOpening) return
+  for (const peer of peers.values()) {
+    if (!(peer.inAppMs > 0)) continue
+    attempt(() => {
+      const pair = pairOf(peer.id, closing + 1)
+      if (!pair["rtc.pair"]) return
+      recordDistribution("rtc.in_app_s", peer.inAppMs / 1000, "second", { round: String(closing + 1), "rtc.peer": String(peer.index), ...pair })
+    })
   }
 }
 
