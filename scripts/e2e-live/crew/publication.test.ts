@@ -510,7 +510,8 @@ describe("public crew record conversion", () => {
     const profile = loadProfiles().find(({ name }) => name === scenario.profile)
     // Harness-only profiles have no fixed crew identity: this synthetic identity exercises
     // their prose contract, not the runtime policy for attributing harness evidence.
-    const identity = (profile && identityFor(profile, "previewnet")) ?? planned.identity
+    const fixed = profile && identityFor(profile, "previewnet")
+    const identity = fixed && catalogue.identities.some(({ username }) => username === fixed) ? fixed : planned.identity
     const expectedPlan = { bot: 1, profile: scenario.profile, identity }
     const result = played(1, { profile: scenario.profile, username: identity })
     result.stages.c.status = "fail"

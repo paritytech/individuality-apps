@@ -3,6 +3,7 @@
 
 import type { Profile } from "../profile"
 import { identityFor, loadProfiles } from "../profile"
+import { profileIsolationGap } from "../network"
 import { allRoles } from "../profiles"
 
 export type NightlyWaveKind = "game-ready" | "specialist" | "check"
@@ -68,7 +69,7 @@ export function buildNightlyPlan(options: BuildNightlyPlanOptions): NightlyPlan 
   for (const profile of profiles) {
     if (names.has(profile.name)) throw new Error(`duplicate catalogue profile ${profile.name}`)
     names.add(profile.name)
-    if (profile.manualOnly || profile.telemetryTorture) continue
+    if (profile.manualOnly || profile.telemetryTorture || profileIsolationGap(profile, "previewnet")) continue
     if (profile.pending) throw new Error(`profile ${profile.name} is pending: ${profile.pending}`)
     if (profile.name === "check-seat-preparing") {
       if (!profile.freshIdentity || profile.role.kind !== "seat-preparing") throw new Error("check-seat-preparing requires the fresh-person allocator")
@@ -138,10 +139,10 @@ export function buildNightlyPlan(options: BuildNightlyPlanOptions): NightlyPlan 
     }
     return waves.map((entries, index) => makeWave(`${prefix}-${String(index + 1).padStart(2, "0")}`, "specialist", entries, supportPool))
   }
-  const ordinary = profiles.filter((profile) => profile.acceptanceOnly && !profile.manualOnly && !profile.telemetryTorture)
+  const ordinary = profiles.filter((profile) => profile.acceptanceOnly && !profile.manualOnly && !profile.telemetryTorture && !profileIsolationGap(profile, "previewnet"))
   const covered = [...gameReady, ...ordinary].map(({ name }) => name)
   if (new Set(covered).size !== covered.length) throw new Error("nightly catalogue schedules a profile more than once")
-  for (const profile of profiles) if (!profile.manualOnly && !profile.telemetryTorture && !covered.includes(profile.name) && !profile.name.startsWith("check-")) throw new Error(`profile ${profile.name} is unrunnable in the nightly catalogue`)
+  for (const profile of profiles) if (!profile.manualOnly && !profile.telemetryTorture && !profileIsolationGap(profile, "previewnet") && !covered.includes(profile.name) && !profile.name.startsWith("check-")) throw new Error(`profile ${profile.name} is unrunnable in the nightly catalogue`)
 
   const seat: NightlyWave = {
     key: "check-seat-preparing", kind: "check", coverageProfiles: ["check-seat-preparing"], supportProfiles: [], profiles: ["check-seat-preparing"], identities: [],

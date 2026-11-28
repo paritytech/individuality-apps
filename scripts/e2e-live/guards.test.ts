@@ -410,6 +410,27 @@ describe("devlog guard (the app's own log lines)", () => {
     expect(evaluateGuard({ kind: "devlog", tag: "rtc", match: "peer away", max: 0 }, { devlog }).status).toBe("pass")
     expect(evaluateGuard({ kind: "devlog", tag: "rtc", match: "rebuild" }, { devlog }).status).toBe("fail")
   })
+  it("matchAny counts a line that has any of the matches, min and max applying to the total (game 126: the frozen-frames detector healed the stall)", () => {
+    const frozen = [
+      { tag: "rtc", message: "[jollity-rtc] media frozen: packets rising (40 received), frames flat at 12 → keyframe ask" },
+      { tag: "rtc", message: "[jollity-rtc] media frozen: still no frame after the keyframe ask → rebuild" },
+    ]
+    const onlyFrozen = { lines: frozen, note: "2 entries" }
+    const guard: Guard = { kind: "devlog", tag: "rtc", match: "media-stall:", matchAny: ["media frozen:"] }
+    expect(evaluateGuard({ kind: "devlog", tag: "rtc", match: "media-stall:" }, { devlog: onlyFrozen }).status).toBe("fail")
+    expect(evaluateGuard(guard, { devlog: onlyFrozen })).toMatchObject({ status: "pass", evidence: expect.stringMatching(/^2 matching of 2/) })
+    expect(evaluateGuard(guard, { devlog })).toMatchObject({ status: "pass", evidence: expect.stringMatching(/^1 matching of 4/) })
+    expect(evaluateGuard({ ...guard, max: 2 }, { devlog: { lines: [...frozen, ...lines], note: "" } }).status).toBe("fail")
+    expect(evaluateGuard({ ...guard, max: 3 }, { devlog: { lines: [...frozen, ...lines], note: "" } }).status).toBe("pass")
+    expect(evaluateGuard({ ...guard, min: 3 }, { devlog: { lines: [...frozen, ...lines], note: "" } }).status).toBe("pass")
+    expect(evaluateGuard({ ...guard, min: 4 }, { devlog: { lines: [...frozen, ...lines], note: "" } }).status).toBe("fail")
+  })
+  it("video-stall-30s accepts either stall detector in both of its guards", () => {
+    const stall = loadProfiles().find((p) => p.name === "video-stall-30s")!.expect.filter((g) => g.kind === "devlog" && g.match === "media-stall:")
+    expect(stall).toHaveLength(2)
+    const frozenOnly = { lines: Array.from({ length: 7 }, () => ({ tag: "rtc", message: "[jollity-rtc] media frozen: packets rising (9 received), frames flat at 3 → keyframe ask" })), note: "" }
+    for (const g of stall) expect(evaluateGuard(g, { devlog: frozenOnly }).status).toBe("pass")
+  })
   it("matches exact key/value fields and required dynamic fields", () => {
     expect(evaluateGuard({ kind: "devlog", tag: "rtc", match: "[jollity-rtc] round-link", fields: { stage: "first-video", round: "1", fault: "offer-1" }, has: ["peer"] }, { devlog }).status).toBe("pass")
     expect(evaluateGuard({ kind: "devlog", match: "[jollity-rtc] round-link", fields: { round: "2" } }, { devlog }).status).toBe("fail")

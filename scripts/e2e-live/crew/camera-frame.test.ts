@@ -120,7 +120,7 @@ describe("crew gestures", () => {
 
   it("assigns a distinct gesture to every playing identity", () => {
     const gestures = loadCrewCatalogue().identities.map(identityGesture)
-    expect(gestures).toHaveLength(31)
+    expect(gestures).toHaveLength(30)
     expect(new Set(gestures.map(({ label }) => label)).size).toBe(gestures.length)
   })
 
@@ -130,7 +130,7 @@ describe("crew gestures", () => {
       identityGesturePosePath(identity, "b"),
     ] as const)
     const paths = pairs.flat()
-    expect(paths).toHaveLength(62)
+    expect(paths).toHaveLength(60)
     const hashes = await Promise.all(paths.map(async (path) => {
       await access(path)
       expect(await sharp(path).metadata()).toMatchObject({ format: "webp", width: 640, height: 360 })

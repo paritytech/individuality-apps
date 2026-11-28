@@ -17,6 +17,7 @@
 // by dispatched live-E2E run, so PR boot checks do not flip the half and
 // on-demand runs do not starve one half merely
 // because they happen to select games with the same index parity (#402).
+import { profileIsolationGap } from "./network"
 import { identityFor, loadProfiles, type Profile } from "./profile"
 
 export const DEFAULT_PROFILE = "baseline"
@@ -60,12 +61,12 @@ export function sixRoles(profiles: Profile[] = loadProfiles()): { bot: number; p
     .sort((a, b) => a.bot - b.bot)
 }
 
-/** "all": every profile that can play a game bot: it has an identity on `network`, is not pending and is not a single-bot check
+/** "all": every profile that can play a game bot: it has an identity on `network`, is not pending, can isolate every outage it cuts there (ISOLATION_GAPS) and is not a single-bot check
  *  (`check-*`, which has no bot number). The core six come first, in bot order, then the rest in file order. */
 export function allRoles(profiles: Profile[] = loadProfiles(), network = "previewnet"): { profile: string }[] {
   const core = sixRoles(profiles).map((e) => e.profile)
   const rest = profiles.filter((p) => p.bot === null && !p.name.startsWith("check-") && !p.acceptanceOnly).map((p) => p.name)
-  const runnable = new Set(profiles.filter((p) => identityFor(p, network) && !p.pending).map((p) => p.name))
+  const runnable = new Set(profiles.filter((p) => identityFor(p, network) && !p.pending && !profileIsolationGap(p, network)).map((p) => p.name))
   return [...core, ...rest].filter((n) => runnable.has(n)).map((profile) => ({ profile }))
 }
 

@@ -6,7 +6,7 @@
 - Scenario presentation: derived from scripts/e2e-live/profiles.json and the validated live-E2E plans
 - Regenerate: npm run e2e-live:crew-doc
 - Catalogue version: 1
-- Coverage: 31 active identities and 64 scenarios
+- Coverage: 30 active identities and 64 scenarios
 
 Identity prose is presentation-only. Scenario parameters, narration, and evidence wording are derived from the executable live-E2E profiles and plans on every render.
 
@@ -34,7 +34,6 @@ The harness owns boot-only infrastructure checks and never impersonates a playin
 | Narrowband Ned | jollyuplink.08 | narrowband-ned.webp | Squeezes a signal through the narrowest pipe. | constrained and recovering uplinks | uplink-limited-pixel6a, uplink-lift-pixel6a |
 | Packet Jack | jollystorm.90 | packet-jack.webp | Forecasts trouble one packet at a time. | multi-stage packet storms | storm-pixel6a-timeline |
 | Chainless Charlie | jollitypv.32 | chainless-charlie.webp | Finds out what survives when the chain goes quiet. | People-chain outages | chain-outage |
-| Token Tina | jollitypv.33 | token-tina.webp | Checks the ticket booth when credentials stop flowing. | TURN credential issuer outages | turn-issuer-outage |
 | Relay Rita | jollitypv.34 | relay-rita.webp | Knows exactly when the relay lights go dark. | TURN relay outages | relay-outage, glare-forcer |
 | Tap Tony | jollitypv.38 | tap-tony.webp | Has never met a button he would tap only once. | rapid repeated interaction | tap-storm-pixel7 |
 | Timewarp Tess | jollitypv.39 | timewarp-tess.webp | Keeps one boot in every timezone. | device-clock jumps | clock-jumps |
@@ -659,7 +658,7 @@ No disruptive actions.
 
 ### turn-issuer-outage — Turn Issuer Outage
 
-**Purpose:** Token Tina: when the app opens take turn-issuer offline for 20 seconds. Test setup: iPhone 14 on wifi.
+**Purpose:** The PreviewNet harness: when the app opens take turn-issuer offline for 20 seconds. Test setup: iPhone 14 on wifi.
 
 **Expected behavior:** Evidence for Turn Issuer Outage must show event network.turn-receipt with {"turn.received":"false"} seen at least once, metric rtc.turn\_ttl\_left\_s is recorded, \[pending, not evaluated\] event turn-retry seen at least once, \[pending, not evaluated\] event turn-unavailable seen at least once, page never shows "Voting has closed", page never shows "Restart the Polkadot app", page never shows "Your Polkadot app is stuck, restart it", and page never shows "We couldn't connect you to anyone."; absent evidence remains a failure and pending guards stay visibly pending.
 
@@ -682,8 +681,8 @@ No disruptive actions.
 
 | Phase | Overlay narration |
 | --- | --- |
-| preparing | Token Tina is preparing Turn Issuer Outage on iPhone 14 on wifi. |
-| verifying | Token Tina finished the actions; the run is checking 8 evidence requirements. |
+| preparing | The PreviewNet harness is preparing Turn Issuer Outage on iPhone 14 on wifi. |
+| verifying | The PreviewNet harness finished the actions; the run is checking 8 evidence requirements. |
 | passed | Turn Issuer Outage recorded every required observation. |
 | failed | Turn Issuer Outage is missing or contradicted by required evidence. |
 
@@ -1166,7 +1165,7 @@ No disruptive actions.
 
 **Purpose:** Stutter Stu: at turn 4 stall RTP video for 30 seconds while ICE consent stays live. Test setup: Pixel 7 on wifi.
 
-**Expected behavior:** Evidence for Video Stall 30s must show devLog \[rtc\] line containing "media-stall:" at least once, devLog \[rtc\] line containing "media-stall:" &lt;= 15 times, devLog \[rtc\] line containing "view from" at least once, page never shows "Voting has closed", page never shows "Restart the Polkadot app", page never shows "Your Polkadot app is stuck, restart it", and page never shows "We couldn't connect you to anyone."; absent evidence remains a failure and pending guards stay visibly pending.
+**Expected behavior:** Evidence for Video Stall 30s must show devLog \[rtc\] line containing "media-stall:" or "media frozen:" at least once, devLog \[rtc\] line containing "media-stall:" or "media frozen:" &lt;= 15 times, devLog \[rtc\] line containing "view from" at least once, page never shows "Voting has closed", page never shows "Restart the Polkadot app", page never shows "Your Polkadot app is stuck, restart it", and page never shows "We couldn't connect you to anyone."; absent evidence remains a failure and pending guards stay visibly pending.
 
 #### Safe parameters
 

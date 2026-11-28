@@ -30,7 +30,7 @@ describe("PreviewNet crew document", () => {
     const catalogue = loadCrewCatalogue()
     const markdown = renderCrewDocument(catalogue, loadProfiles())
 
-    expect(markdown).toContain("31 active identities")
+    expect(markdown).toContain("30 active identities")
     expect(markdown.match(/^### /gm)).toHaveLength(catalogue.scenarios.length)
     for (const identity of catalogue.identities) {
       expect(markdown).toContain(identity.username)
