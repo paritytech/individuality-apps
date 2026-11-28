@@ -149,6 +149,19 @@ describe("the name screen", () => {
     expect(screen.queryByLabelText("Your name")).toBeNull();
   });
 
+  it("promises the card only once the card read carries the name", () => {
+    const view = render(
+      <UsernameClaimScreen card={card} name="humanity" claimedName="humanity" justClaimed onBack={vi.fn()} />,
+    );
+    expect(screen.getByText("It's yours. Your card will show it shortly.")).toBeTruthy();
+    expect(screen.queryByText("It's on your card now.")).toBeNull();
+
+    view.rerender(
+      <UsernameClaimScreen card={card} name="humanity" claimedName="humanity" justClaimed nameOnCard onBack={vi.fn()} />,
+    );
+    expect(screen.getByText("It's on your card now.")).toBeTruthy();
+  });
+
   it("celebrates a fresh claim with motion enabled without crashing", () => {
     vi.stubGlobal(
       "matchMedia",

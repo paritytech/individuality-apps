@@ -4,9 +4,11 @@
 /** Choosing a name: the card at the top wearing the name as it is typed,
  *  one line saying what happens, the form, and a way back. Claiming is a
  *  deliberate second tap because it cannot be undone. When the claim
- *  lands, the card carries the new name and the screen says so, with a
- *  burst; the page keeps saying so once the card read catches up, and on
- *  any later visit. A claim that never landed is named above the form and
+ *  lands, the screen names it, with a burst, and says the card will show
+ *  it: the card is drawn from a later read, and in the Pocket by the
+ *  worker, so it can still carry the old name at that moment. Once the
+ *  card read carries the name, and on any later visit, the screen says it
+ *  is on the card. A claim that never landed is named above the form and
  *  offered again. Reached from the home row, the promotion, a notification,
  *  or a direct URL. The card is drawn only when the debug panel's card
  *  toggle shows it, as on the home and the promotion.
@@ -48,6 +50,8 @@ export interface UsernameClaimScreenProps {
   claimedName?: string | null;
   /** The claim landed on this visit, so the moment gets its burst. */
   justClaimed?: boolean;
+  /** The card read carries the claimed name; false while it is catching up. */
+  nameOnCard?: boolean;
   /** What the chain says about the name being typed. */
   availability?: UsernameAvailability;
   /** The form reports its value so the page can check the name. */
@@ -62,6 +66,7 @@ export function UsernameClaimScreen({
   name = "",
   claimedName = null,
   justClaimed = false,
+  nameOnCard = false,
   action,
   availability,
   onNameChange,
@@ -118,7 +123,9 @@ export function UsernameClaimScreen({
   // Permanence is said once, on the form; the line up here says what the
   // name does. With no claim on offer, the message below says why.
   const sub = confirmed
-    ? "It's on your card now."
+    ? nameOnCard
+      ? "It's on your card now."
+      : "It's yours. Your card will show it shortly."
     : waiting
       ? "We sent your claim and are waiting for it to be confirmed. You can leave this screen, and your card will update."
       : pending

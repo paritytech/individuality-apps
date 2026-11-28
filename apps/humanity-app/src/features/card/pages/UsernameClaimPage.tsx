@@ -78,8 +78,9 @@ function LiveClaimPage() {
   );
   // The card has its bare name: claimed just now (the card read may still be
   // catching up) or on an earlier visit.
+  const nameOnCard = target.kind === "already-claimed" && card?.kind === "card";
   const claimedName =
-    target.kind === "already-claimed" && card?.kind === "card"
+    nameOnCard
       ? (parseHumanityUserId(card.primaryUsername)?.username ?? card.primaryUsername)
       : action?.confirmed === true
         ? (submitted ?? name)
@@ -101,6 +102,7 @@ function LiveClaimPage() {
       name={name}
       claimedName={claimedName}
       justClaimed={submitted != null}
+      nameOnCard={nameOnCard}
       action={
         pending || failed || action == null
           ? undefined
@@ -161,6 +163,7 @@ function DemoClaimPage({ demo }: { demo: string }) {
       name={typed}
       claimedName={submitted ? typed : null}
       justClaimed={submitted}
+      nameOnCard={submitted}
       action={{
         identityKey: "demo",
         currentUsername: fixture.displayName,
