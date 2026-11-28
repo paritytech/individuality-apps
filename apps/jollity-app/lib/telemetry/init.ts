@@ -778,6 +778,9 @@ export function setHostKind(kind: HostKind): void {
 }
 
 /** The build's config, or null: no DSN for this page, or no browser.
+ *  `allowHarnessOnly` (lib/telemetry/harness.ts) also returns it, DSN or
+ *  not, when the test tag is set: the hook reads the tag without turning
+ *  telemetry on.
  *
  *  TWO DSNs CAN BE BAKED: production's (NEXT_PUBLIC_SENTRY_DSN) and a test
  *  project's (NEXT_PUBLIC_SENTRY_DSN_TEST). pickDsn chooses per page from the
@@ -785,7 +788,7 @@ export function setHostKind(kind: HostKind): void {
  *  `local`) writes to the test project, every hosted origin to production.
  *  The test tag is deliberately not an input: a stale tag in a deploy must
  *  never divert real players. */
-export function configFromEnvironment(): TelemetryConfig | null {
+export function configFromEnvironment(options: { allowHarnessOnly?: boolean } = {}): TelemetryConfig | null {
   const prod = process.env.NEXT_PUBLIC_SENTRY_DSN ?? ""
   const test = process.env.NEXT_PUBLIC_SENTRY_DSN_TEST ?? ""
   if (typeof window === "undefined") return null
@@ -803,6 +806,7 @@ export function configFromEnvironment(): TelemetryConfig | null {
     language: navigator.language,
     sessionId: SESSION_ID,
   }
+  if (options.allowHarnessOnly && config.testTag) return config
   if (!prod && !test) return null
   config.dsn = pickDsn({ prod, test, environment: environmentFor(config).environment })
   return ingestHost(config.dsn) === null ? null : config

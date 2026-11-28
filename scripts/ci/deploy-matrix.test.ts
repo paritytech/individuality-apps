@@ -320,4 +320,8 @@ describe("deploy.yml wiring", () => {
     expect(wf).toContain(`TELEMETRY_LOGS: ${decision}`)
     expect(wf).toContain('"$TELEMETRY_LOGS"')
   })
+  it("compiles the bots' hook into the previewnet bundle only, and keeps the test tag empty", () => {
+    expect(wf).toContain("NEXT_PUBLIC_E2E_HARNESS: ${{ matrix.env == 'preview' && '1' || '' }}")
+    expect(wf).toContain('NEXT_PUBLIC_SENTRY_TAG: ""')
+  })
 })

@@ -35,7 +35,7 @@ import {
   uploadGameLog,
   uploadLateGameLog,
 } from "./game-log"
-import { sendGameLog, setPlayer } from "./index"
+import { flushGameLog, sendGameLog, setPlayer } from "./index"
 import { resetTelemetryForTests, startTelemetryWith } from "./init"
 import { recordingTransport, testConfig } from "./test-transport"
 import { flushDeliveryHealthWritesForTests, pendingDeliveryHealth, setDeliveryHealthGame } from "./delivery-health"
@@ -488,6 +488,35 @@ describe("the late log", () => {
   })
 })
 
+describe("flushing the last game's log (a page about to close)", () => {
+  async function markHandover(game: number, at: number): Promise<void> {
+    const stop = installHandoverSink()
+    devLog("telemetry", `game ${game} handover`, { game, at })
+    stop()
+    await vi.waitFor(async () => expect((await readHandovers()).some((h) => h.gameIndex === game)).toBe(true))
+  }
+
+  it("says so when no game was handed over on this device", async () => {
+    await expect(flushGameLog()).resolves.toEqual({ gameIndex: null, sent: false, note: "no game handed over on this device" })
+    expect(sink.envelopes).toHaveLength(0)
+  })
+
+  it("sends the last handed-over game's log at once, not late, however young, and only once", async () => {
+    await markHandover(7, Date.now() - 60_000)
+    await expect(flushGameLog()).resolves.toEqual({ gameIndex: 7, sent: true, note: "sent" })
+    expect(sink.items("event")[0].payload.tags).toMatchObject({ "game.index": "7", "game_log.late": "false" })
+    await expect(flushGameLog()).resolves.toEqual({ gameIndex: 7, sent: true, note: "already sent" })
+    expect(sink.items("event")).toHaveLength(1)
+  })
+
+  it("does not send a second copy of a log the payoff already sent", async () => {
+    await markHandover(8, Date.now() - 60_000)
+    await sendGameLog({ gameIndex: 8, since: Date.now() - 60_000, stage: "payoff", trace: TRACE })
+    await expect(flushGameLog()).resolves.toMatchObject({ gameIndex: 8, note: "already sent" })
+    expect(sink.items("event")).toHaveLength(1)
+  })
+})
+
 describe("the persisted log after a delivery", () => {
   it("serializes concurrent sent markers so neither game is lost", async () => {
     await Promise.all([markGameLogSent(3), markGameLogSent(4)])
@@ -562,6 +591,7 @@ describe("the persisted ring is kept until the next game", () => {
     await vi.waitFor(async () => expect(await readSentGames()).toEqual([25]))
     const sent = sink.items("event").length
     await expect(uploadLateGameLog(now)).resolves.toBe(false)
+    await expect(flushGameLog()).resolves.toMatchObject({ gameIndex: 25, sent: true, note: "already sent" })
     expect(sink.items("event")).toHaveLength(sent)
   })
 })
@@ -580,6 +610,13 @@ describe("the report copy is a bonus that settles nothing", () => {
     await expect(uploadGameLog({ gameIndex: 12, since: 0, stage: "report", trace: TRACE })).resolves.toBe(true)
     expect(await readSentGames()).toEqual([])
     expect(stopPersistingLog).not.toHaveBeenCalled()
+  })
+
+  it("lets a flush still send the full log", async () => {
+    await markHandover(12, Date.now() - 60_000)
+    await uploadGameLog({ gameIndex: 12, since: 0, stage: "report", trace: TRACE })
+    await expect(flushGameLog()).resolves.toEqual({ gameIndex: 12, sent: true, note: "sent" })
+    expect(sink.items("event").map((event) => event.payload.tags["game_log.stage"])).toEqual(["report", "flush"])
   })
 
   it("lets the late upload still send an ended game", async () => {
@@ -624,6 +661,22 @@ describe("the report copy is a bonus that settles nothing", () => {
       }),
     }))
     const flush = uploadGameLog({ gameIndex: 15, since: 0, stage: "late", trace: null })
+    await vi.waitFor(() => expect(finish).toBeTypeOf("function"))
+    await expect(uploadGameLog({ gameIndex: 15, since: 0, stage: "report", trace: TRACE })).resolves.toBe(false)
+    await expect(uploadGameLog({ gameIndex: 15, since: 0, stage: "payoff", trace: TRACE })).resolves.toBe(false)
+    finish?.({ statusCode: 200 })
+    await expect(flush).resolves.toBe(true)
+  })
+  it("makes report and payoff yield to an in-flight flush of the same game", async () => {
+    await resetTelemetryForTests()
+    let finish: ((answer: { statusCode: number }) => void) | undefined
+    startTelemetryWith(testConfig({
+      makeTransport: () => ({
+        send: () => new Promise((resolve) => (finish = resolve)),
+        flush: async () => true,
+      }),
+    }))
+    const flush = uploadGameLog({ gameIndex: 15, since: 0, stage: "flush", trace: null })
     await vi.waitFor(() => expect(finish).toBeTypeOf("function"))
     await expect(uploadGameLog({ gameIndex: 15, since: 0, stage: "report", trace: TRACE })).resolves.toBe(false)
     await expect(uploadGameLog({ gameIndex: 15, since: 0, stage: "payoff", trace: TRACE })).resolves.toBe(false)

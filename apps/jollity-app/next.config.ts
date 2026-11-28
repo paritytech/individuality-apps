@@ -53,7 +53,13 @@ const nextConfig: NextConfig = {
   generateBuildId: async () => process.env.NEXT_PUBLIC_APP_VERSION || null,
   // NEXT_PUBLIC_APP_VERSION defaults to the package version; an env override
   // still wins (set it in CI to stamp a git sha, say).
-  env: { NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION ?? version },
+  // NEXT_PUBLIC_E2E_HARNESS is baked even when unset: Next leaves an unset
+  // NEXT_PUBLIC_* as a runtime lookup, which would keep the live E2E hook's
+  // dynamic import (components/debug/debug-boot.tsx) in every bundle.
+  env: {
+    NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION ?? version,
+    NEXT_PUBLIC_E2E_HARNESS: process.env.NEXT_PUBLIC_E2E_HARNESS ?? "",
+  },
   ...(basePath ? { basePath, assetPrefix: basePath } : {}),
   // isolate build intermediates when asked, so a one-off bundle build does
   // not clobber a running dev server's .next

@@ -66,6 +66,7 @@ import {
   drainGameLogOutbox,
   enqueueFullGameLog,
   gameLogTailDurable,
+  gameLogTailState,
   gameLogManifest,
   installGameLogOutbox,
   resetGameLogOutboxForTests,
@@ -188,6 +189,23 @@ describe("the durable game-log outbox", () => {
     const stop = installGameLogOutbox()
     beginGameLogOutbox(741)
     expect(gameLogTailDurable()).toBe(true)
+    stop()
+  })
+
+  it("reports the page-clock age and count of an unsaved active tail", () => {
+    const stop = installGameLogOutbox()
+    beginGameLogOutbox(742)
+    devLog("role", "required before kill")
+    const state = gameLogTailState(Date.now() + 350)
+    expect(state).toMatchObject({ durable: false, pendingLines: 1 })
+    expect(state.newestLineAgeMs).toBeGreaterThanOrEqual(350)
+    stop()
+  })
+
+  it("reports an empty tail as durable, with nothing pending and no age", () => {
+    const stop = installGameLogOutbox()
+    beginGameLogOutbox(743)
+    expect(gameLogTailState()).toEqual({ durable: true, pendingLines: 0, newestLineAgeMs: null })
     stop()
   })
 

@@ -1164,6 +1164,31 @@ describe("the config from the build", () => {
     expect(configFromEnvironment()).toBeNull()
   })
 
+  it("hands the test tag to the harness without a DSN, and leaves telemetry off", () => {
+    browser()
+    vi.stubEnv("NEXT_PUBLIC_SENTRY_DSN", "")
+    vi.stubEnv("NEXT_PUBLIC_SENTRY_DSN_TEST", "")
+    vi.stubEnv("NEXT_PUBLIC_SENTRY_TAG", "e2e-run")
+    expect(configFromEnvironment()).toBeNull()
+    expect(configFromEnvironment({ allowHarnessOnly: true })).toMatchObject({ dsn: "", testTag: "e2e-run" })
+  })
+
+  it("hands the harness a set test tag before it checks the baked DSNs", () => {
+    browser()
+    vi.stubEnv("NEXT_PUBLIC_SENTRY_DSN", "https://prod@o1.ingest.de.sentry.io/42")
+    vi.stubEnv("NEXT_PUBLIC_SENTRY_DSN_TEST", "https://test@o1.ingest.de.sentry.io/43")
+    vi.stubEnv("NEXT_PUBLIC_SENTRY_TAG", "e2e-run")
+    expect(configFromEnvironment({ allowHarnessOnly: true })).toMatchObject({ testTag: "e2e-run" })
+  })
+
+  it("gives the harness nothing without a test tag and a DSN", () => {
+    browser()
+    vi.stubEnv("NEXT_PUBLIC_SENTRY_DSN", "")
+    vi.stubEnv("NEXT_PUBLIC_SENTRY_DSN_TEST", "")
+    vi.stubEnv("NEXT_PUBLIC_SENTRY_TAG", "")
+    expect(configFromEnvironment({ allowHarnessOnly: true })).toBeNull()
+  })
+
   it("a localhost page writes to the test project when the build has one", () => {
     browser()
     vi.stubGlobal("location", { hostname: "localhost", protocol: "http:" })

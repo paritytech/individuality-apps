@@ -26,7 +26,7 @@ import {
   type JourneyOptions,
   type OpenJourneyRecord,
 } from "./journeys"
-import { uploadGameLog, type GameLogRequest } from "./game-log"
+import { flushCurrentGameLog, uploadGameLog, type GameLogFlush, type GameLogRequest } from "./game-log"
 import { telemetryLive } from "./boot"
 import { beginGameLogOutbox, setGameLogOutboxAccount, setGameLogOutboxStorageFallbackDelivery } from "./game-log-outbox"
 import { describeError } from "../host/error-detail"
@@ -720,7 +720,7 @@ export function recoverInterruptedJourneys(records: readonly OpenJourneyRecord[]
 
 export type { Attrs, EndOptions, Journey, JourneyName, JourneyOptions, OpenJourneyRecord, OpenJourneyStepRecord, OutcomeOf, Step, StepOf, StepOptions } from "./journeys"
 export { renderCrashDetails } from "./failures"
-export type { GameLogRequest } from "./game-log"
+export type { GameLogFlush, GameLogRequest } from "./game-log"
 export { connectionAttrs } from "./device"
 export type { SceneName } from "./smoothness"
 export { flushMetrics, recordCount, recordDistribution, recordGauge, type MetricAttrs, type MetricUnit } from "./metrics"
@@ -733,5 +733,17 @@ export async function sendGameLog(request: GameLogRequest): Promise<boolean> {
     return await uploadGameLog(request)
   } catch {
     return false
+  }
+}
+
+/** The last handed-over game's log, now, unless it already went out
+ *  (game-log.ts flushCurrentGameLog). */
+export async function flushGameLog(): Promise<GameLogFlush> {
+  try {
+    if (!telemetryLive()) return { gameIndex: null, sent: false, note: "telemetry off (no DSN)" }
+    applyScope()
+    return await flushCurrentGameLog()
+  } catch (error) {
+    return { gameIndex: null, sent: false, note: `flush failed: ${describeError(error)}` }
   }
 }
