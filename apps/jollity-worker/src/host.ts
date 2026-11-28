@@ -147,9 +147,11 @@ export interface WorkerHostInfo {
   truapiVersion?: string
 }
 
-interface WorkerHostInfoRead {
+export interface WorkerHostInfoRead {
   info: WorkerHostInfo | null
   failed: boolean
+  /** The same read still under way after the deadline, which settles to its answer once the host gives one. */
+  late?: Promise<WorkerHostInfoRead>
 }
 
 /** One handler for every card. `onAction` only ever sees the presses of its own card. */
@@ -687,34 +689,38 @@ async function turnPass(request: TurnPassRequest): Promise<TurnPassOutcome> {
   }
 }
 
+/** The identity of the host, read with no deadline. Never throws. */
+async function readHostInfo(): Promise<WorkerHostInfoRead> {
+  try {
+    const truApi = await getTruApi()
+    if (!truApi) return { info: null, failed: false }
+    const result = await truApi.system.info()
+    if (!result.isOk()) return { info: null, failed: true }
+    const { name, version, platform, truapiVersion } = result.value
+    return {
+      info: {
+        name: String(name),
+        version: version == null ? "" : String(version),
+        ...(platform == null ? {} : { platform: String(platform) }),
+        ...(truapiVersion ? { truapiVersion: String(truapiVersion) } : {}),
+      },
+      failed: false,
+    }
+  } catch (error) {
+    // A host older than truapi 0.27 sends no truapiVersion, so the 0.27 decoder throws a RangeError on its answer.
+    if (error instanceof RangeError) return { info: { name: "", version: "older than truapi 0.27" }, failed: false }
+    return { info: null, failed: true }
+  }
+}
+
 export function createWorkerHost(): WorkerHost {
   return {
     async hostInfo() {
-      try {
-        const read = await hostInfoWithinDeadline(async () => {
-          const truApi = await getTruApi()
-          if (!truApi) return null
-          return truApi.system.info()
-        })
-        if (read === HOST_INFO_TIMED_OUT) return { info: null, failed: true }
-        if (read === null) return { info: null, failed: false }
-        const result = read
-        if (!result.isOk()) return { info: null, failed: true }
-        const { name, version, platform, truapiVersion } = result.value
-        return {
-          info: {
-            name: String(name),
-            version: version == null ? "" : String(version),
-            ...(platform == null ? {} : { platform: String(platform) }),
-            ...(truapiVersion ? { truapiVersion: String(truapiVersion) } : {}),
-          },
-          failed: false,
-        }
-      } catch (error) {
-        // A host older than truapi 0.27 sends no truapiVersion, so the 0.27 decoder throws a RangeError on its answer.
-        if (error instanceof RangeError) return { info: { name: "", version: "older than truapi 0.27" }, failed: false }
-        return { info: null, failed: true }
-      }
+      // A host busy at start can answer after the deadline, so the read goes on
+      // and a timed-out answer hands it back for the worker to take late.
+      const answer = readHostInfo()
+      const read = await hostInfoWithinDeadline(() => answer)
+      return read === HOST_INFO_TIMED_OUT ? { info: null, failed: true, late: answer } : read
     },
     chat: {
       async registerBot(botId, name, icon) {

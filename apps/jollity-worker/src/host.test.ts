@@ -917,8 +917,43 @@ describe("host identity works", () => {
       await vi.advanceTimersByTimeAsync(1_000)
 
       // Then
-      await expect(result).resolves.toEqual({ info: null, failed: true })
+      await expect(result).resolves.toMatchObject({ info: null, failed: true, late: expect.any(Promise) })
       expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("hands back the answer of a host that replies after the deadline", async () => {
+    // Given
+    vi.useFakeTimers()
+    try {
+      const sdk = await import("@parity/product-sdk-host")
+      vi.mocked(sdk.getTruApi).mockResolvedValueOnce({
+        system: {
+          info: () =>
+            new Promise((resolve) => setTimeout(resolve, 1_500)).then(() =>
+              answered(undefined).then((result) => ({
+                ...result,
+                value: { platform: "Android", name: "Polkadot", version: "2.0.1", truapiVersion: "0.32.0" },
+              })),
+            ),
+        },
+      } as never)
+      const { createWorkerHost } = await import("./host")
+
+      // When
+      const result = createWorkerHost().hostInfo!()
+      await vi.advanceTimersByTimeAsync(1_000)
+      const read = await result
+      await vi.advanceTimersByTimeAsync(500)
+
+      // Then
+      expect(read).toMatchObject({ info: null, failed: true })
+      await expect(read.late).resolves.toEqual({
+        info: { name: "Polkadot", version: "2.0.1", platform: "Android", truapiVersion: "0.32.0" },
+        failed: false,
+      })
     } finally {
       vi.useRealTimers()
     }
