@@ -1,0 +1,4331 @@
+{
+ "_note": "A live game (flag-on PreviewNet, a live run), bot 4's tile rows 256-305, trimmed to its own tile and bot 12's, ids invented. Bot 12 is Unseen through the waiting room, the intro, gameplay and the first four ending rows, then reads Co-player votable at the fifth ending row; every tap was skipped (page showed ending).",
+ "self": "5SELF-bot4",
+ "turn": 1,
+ "id": "5CO-bot12",
+ "rows": [
+  {
+   "t": "2026-10-28T10:39:58.923Z",
+   "ms": 293012,
+   "readStartedAt": "2026-10-28T10:39:58.923Z",
+   "snapshotAt": "2026-10-28T10:39:58.928Z",
+   "readCompletedAt": "2026-10-28T10:39:58.933Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "waiting",
+   "round": 0,
+   "turn": null,
+   "turnsPerRound": null,
+   "sessionStage": "none",
+   "sessionTurn": null,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": null,
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 212,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:39:59.173Z",
+   "ms": 293262,
+   "readStartedAt": "2026-10-28T10:39:59.173Z",
+   "snapshotAt": "2026-10-28T10:39:59.178Z",
+   "readCompletedAt": "2026-10-28T10:39:59.181Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "waiting",
+   "round": 0,
+   "turn": null,
+   "turnsPerRound": null,
+   "sessionStage": "none",
+   "sessionTurn": null,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": null,
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:39:59.423Z",
+   "ms": 293512,
+   "readStartedAt": "2026-10-28T10:39:59.423Z",
+   "snapshotAt": "2026-10-28T10:39:59.429Z",
+   "readCompletedAt": "2026-10-28T10:39:59.433Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "waiting",
+   "round": 0,
+   "turn": null,
+   "turnsPerRound": null,
+   "sessionStage": "none",
+   "sessionTurn": null,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": null,
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:39:59.677Z",
+   "ms": 293766,
+   "readStartedAt": "2026-10-28T10:39:59.677Z",
+   "snapshotAt": "2026-10-28T10:39:59.681Z",
+   "readCompletedAt": "2026-10-28T10:39:59.690Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "waiting",
+   "round": 0,
+   "turn": null,
+   "turnsPerRound": null,
+   "sessionStage": "none",
+   "sessionTurn": null,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": null,
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:39:59.928Z",
+   "ms": 294017,
+   "readStartedAt": "2026-10-28T10:39:59.928Z",
+   "snapshotAt": "2026-10-28T10:39:59.934Z",
+   "readCompletedAt": "2026-10-28T10:39:59.940Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "waiting",
+   "round": 0,
+   "turn": null,
+   "turnsPerRound": null,
+   "sessionStage": "none",
+   "sessionTurn": null,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": null,
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:00.177Z",
+   "ms": 294266,
+   "readStartedAt": "2026-10-28T10:40:00.177Z",
+   "snapshotAt": "2026-10-28T10:40:00.181Z",
+   "readCompletedAt": "2026-10-28T10:40:00.188Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "waiting",
+   "round": 0,
+   "turn": null,
+   "turnsPerRound": null,
+   "sessionStage": "none",
+   "sessionTurn": null,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": null,
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:00.427Z",
+   "ms": 294516,
+   "readStartedAt": "2026-10-28T10:40:00.427Z",
+   "snapshotAt": "2026-10-28T10:40:00.547Z",
+   "readCompletedAt": "2026-10-28T10:40:00.556Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "intro",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "introduction",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": true,
+   "intro": true,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:01.566Z",
+   "ms": 295655,
+   "readStartedAt": "2026-10-28T10:40:01.566Z",
+   "snapshotAt": "2026-10-28T10:40:01.701Z",
+   "readCompletedAt": "2026-10-28T10:40:01.715Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "intro",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "introduction",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": true,
+   "intro": true,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:01.815Z",
+   "ms": 295904,
+   "readStartedAt": "2026-10-28T10:40:01.815Z",
+   "snapshotAt": "2026-10-28T10:40:01.827Z",
+   "readCompletedAt": "2026-10-28T10:40:01.832Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "intro",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "introduction",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": true,
+   "intro": true,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:02.068Z",
+   "ms": 296157,
+   "readStartedAt": "2026-10-28T10:40:02.068Z",
+   "snapshotAt": "2026-10-28T10:40:02.073Z",
+   "readCompletedAt": "2026-10-28T10:40:02.078Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "intro",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "introduction",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": true,
+   "intro": true,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:02.318Z",
+   "ms": 296407,
+   "readStartedAt": "2026-10-28T10:40:02.318Z",
+   "snapshotAt": "2026-10-28T10:40:02.334Z",
+   "readCompletedAt": "2026-10-28T10:40:02.353Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:02.569Z",
+   "ms": 296658,
+   "readStartedAt": "2026-10-28T10:40:02.569Z",
+   "snapshotAt": "2026-10-28T10:40:02.575Z",
+   "readCompletedAt": "2026-10-28T10:40:02.582Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:02.819Z",
+   "ms": 296908,
+   "readStartedAt": "2026-10-28T10:40:02.819Z",
+   "snapshotAt": "2026-10-28T10:40:02.825Z",
+   "readCompletedAt": "2026-10-28T10:40:02.830Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:03.069Z",
+   "ms": 297158,
+   "readStartedAt": "2026-10-28T10:40:03.069Z",
+   "snapshotAt": "2026-10-28T10:40:03.074Z",
+   "readCompletedAt": "2026-10-28T10:40:03.089Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:03.318Z",
+   "ms": 297407,
+   "readStartedAt": "2026-10-28T10:40:03.318Z",
+   "snapshotAt": "2026-10-28T10:40:03.324Z",
+   "readCompletedAt": "2026-10-28T10:40:03.329Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:03.569Z",
+   "ms": 297658,
+   "readStartedAt": "2026-10-28T10:40:03.569Z",
+   "snapshotAt": "2026-10-28T10:40:03.575Z",
+   "readCompletedAt": "2026-10-28T10:40:03.580Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:03.820Z",
+   "ms": 297909,
+   "readStartedAt": "2026-10-28T10:40:03.820Z",
+   "snapshotAt": "2026-10-28T10:40:03.824Z",
+   "readCompletedAt": "2026-10-28T10:40:03.828Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:04.072Z",
+   "ms": 298161,
+   "readStartedAt": "2026-10-28T10:40:04.072Z",
+   "snapshotAt": "2026-10-28T10:40:04.076Z",
+   "readCompletedAt": "2026-10-28T10:40:04.087Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:04.321Z",
+   "ms": 298410,
+   "readStartedAt": "2026-10-28T10:40:04.321Z",
+   "snapshotAt": "2026-10-28T10:40:04.330Z",
+   "readCompletedAt": "2026-10-28T10:40:04.337Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:04.572Z",
+   "ms": 298661,
+   "readStartedAt": "2026-10-28T10:40:04.572Z",
+   "snapshotAt": "2026-10-28T10:40:04.580Z",
+   "readCompletedAt": "2026-10-28T10:40:04.587Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:04.821Z",
+   "ms": 298910,
+   "readStartedAt": "2026-10-28T10:40:04.821Z",
+   "snapshotAt": "2026-10-28T10:40:04.826Z",
+   "readCompletedAt": "2026-10-28T10:40:04.831Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:05.075Z",
+   "ms": 299164,
+   "readStartedAt": "2026-10-28T10:40:05.075Z",
+   "snapshotAt": "2026-10-28T10:40:05.084Z",
+   "readCompletedAt": "2026-10-28T10:40:05.088Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:05.325Z",
+   "ms": 299414,
+   "readStartedAt": "2026-10-28T10:40:05.325Z",
+   "snapshotAt": "2026-10-28T10:40:05.331Z",
+   "readCompletedAt": "2026-10-28T10:40:05.338Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:05.575Z",
+   "ms": 299664,
+   "readStartedAt": "2026-10-28T10:40:05.575Z",
+   "snapshotAt": "2026-10-28T10:40:05.582Z",
+   "readCompletedAt": "2026-10-28T10:40:05.587Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:05.825Z",
+   "ms": 299914,
+   "readStartedAt": "2026-10-28T10:40:05.825Z",
+   "snapshotAt": "2026-10-28T10:40:05.831Z",
+   "readCompletedAt": "2026-10-28T10:40:05.835Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:06.074Z",
+   "ms": 300163,
+   "readStartedAt": "2026-10-28T10:40:06.074Z",
+   "snapshotAt": "2026-10-28T10:40:06.082Z",
+   "readCompletedAt": "2026-10-28T10:40:06.090Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:06.324Z",
+   "ms": 300413,
+   "readStartedAt": "2026-10-28T10:40:06.324Z",
+   "snapshotAt": "2026-10-28T10:40:06.330Z",
+   "readCompletedAt": "2026-10-28T10:40:06.333Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:06.575Z",
+   "ms": 300664,
+   "readStartedAt": "2026-10-28T10:40:06.575Z",
+   "snapshotAt": "2026-10-28T10:40:06.584Z",
+   "readCompletedAt": "2026-10-28T10:40:06.589Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:06.828Z",
+   "ms": 300917,
+   "readStartedAt": "2026-10-28T10:40:06.828Z",
+   "snapshotAt": "2026-10-28T10:40:06.833Z",
+   "readCompletedAt": "2026-10-28T10:40:06.842Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:07.078Z",
+   "ms": 301167,
+   "readStartedAt": "2026-10-28T10:40:07.078Z",
+   "snapshotAt": "2026-10-28T10:40:07.088Z",
+   "readCompletedAt": "2026-10-28T10:40:07.095Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:07.329Z",
+   "ms": 301418,
+   "readStartedAt": "2026-10-28T10:40:07.329Z",
+   "snapshotAt": "2026-10-28T10:40:07.335Z",
+   "readCompletedAt": "2026-10-28T10:40:07.340Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:07.580Z",
+   "ms": 301669,
+   "readStartedAt": "2026-10-28T10:40:07.580Z",
+   "snapshotAt": "2026-10-28T10:40:07.585Z",
+   "readCompletedAt": "2026-10-28T10:40:07.587Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:07.830Z",
+   "ms": 301919,
+   "readStartedAt": "2026-10-28T10:40:07.830Z",
+   "snapshotAt": "2026-10-28T10:40:07.834Z",
+   "readCompletedAt": "2026-10-28T10:40:07.838Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:08.079Z",
+   "ms": 302168,
+   "readStartedAt": "2026-10-28T10:40:08.079Z",
+   "snapshotAt": "2026-10-28T10:40:08.084Z",
+   "readCompletedAt": "2026-10-28T10:40:08.087Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:08.329Z",
+   "ms": 302418,
+   "readStartedAt": "2026-10-28T10:40:08.329Z",
+   "snapshotAt": "2026-10-28T10:40:08.334Z",
+   "readCompletedAt": "2026-10-28T10:40:08.339Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:08.584Z",
+   "ms": 302673,
+   "readStartedAt": "2026-10-28T10:40:08.584Z",
+   "snapshotAt": "2026-10-28T10:40:08.589Z",
+   "readCompletedAt": "2026-10-28T10:40:08.593Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:08.833Z",
+   "ms": 302922,
+   "readStartedAt": "2026-10-28T10:40:08.833Z",
+   "snapshotAt": "2026-10-28T10:40:08.841Z",
+   "readCompletedAt": "2026-10-28T10:40:08.848Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:09.083Z",
+   "ms": 303172,
+   "readStartedAt": "2026-10-28T10:40:09.083Z",
+   "snapshotAt": "2026-10-28T10:40:09.087Z",
+   "readCompletedAt": "2026-10-28T10:40:09.091Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:09.334Z",
+   "ms": 303423,
+   "readStartedAt": "2026-10-28T10:40:09.335Z",
+   "snapshotAt": "2026-10-28T10:40:09.344Z",
+   "readCompletedAt": "2026-10-28T10:40:09.348Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:09.583Z",
+   "ms": 303672,
+   "readStartedAt": "2026-10-28T10:40:09.583Z",
+   "snapshotAt": "2026-10-28T10:40:09.586Z",
+   "readCompletedAt": "2026-10-28T10:40:09.589Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:09.832Z",
+   "ms": 303921,
+   "readStartedAt": "2026-10-28T10:40:09.832Z",
+   "snapshotAt": "2026-10-28T10:40:09.839Z",
+   "readCompletedAt": "2026-10-28T10:40:09.843Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:10.084Z",
+   "ms": 304173,
+   "readStartedAt": "2026-10-28T10:40:10.084Z",
+   "snapshotAt": "2026-10-28T10:40:10.088Z",
+   "readCompletedAt": "2026-10-28T10:40:10.092Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "gameplay",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:10.334Z",
+   "ms": 304423,
+   "readStartedAt": "2026-10-28T10:40:10.334Z",
+   "snapshotAt": "2026-10-28T10:40:10.388Z",
+   "readCompletedAt": "2026-10-28T10:40:10.399Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "ending",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:10.586Z",
+   "ms": 304675,
+   "readStartedAt": "2026-10-28T10:40:10.586Z",
+   "snapshotAt": "2026-10-28T10:40:10.596Z",
+   "readCompletedAt": "2026-10-28T10:40:10.604Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "ending",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:10.840Z",
+   "ms": 304929,
+   "readStartedAt": "2026-10-28T10:40:10.840Z",
+   "snapshotAt": "2026-10-28T10:40:10.845Z",
+   "readCompletedAt": "2026-10-28T10:40:10.849Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "ending",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:11.090Z",
+   "ms": 305179,
+   "readStartedAt": "2026-10-28T10:40:11.090Z",
+   "snapshotAt": "2026-10-28T10:40:11.095Z",
+   "readCompletedAt": "2026-10-28T10:40:11.098Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "ending",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "unseen",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "unseen",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:11.341Z",
+   "ms": 305430,
+   "readStartedAt": "2026-10-28T10:40:11.341Z",
+   "snapshotAt": "2026-10-28T10:40:11.345Z",
+   "readCompletedAt": "2026-10-28T10:40:11.348Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "ending",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "coplayer",
+     "cursorPointer": true,
+     "votable": true,
+     "tapReady": true,
+     "verdict": "reject",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "coplayer",
+      "data-tile-votable": "true",
+      "data-tile-tap-ready": "true",
+      "data-tile-verdict": "reject",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:11.591Z",
+   "ms": 305680,
+   "readStartedAt": "2026-10-28T10:40:11.591Z",
+   "snapshotAt": "2026-10-28T10:40:11.598Z",
+   "readCompletedAt": "2026-10-28T10:40:11.603Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "ending",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "coplayer",
+     "cursorPointer": true,
+     "votable": true,
+     "tapReady": true,
+     "verdict": "reject",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "coplayer",
+      "data-tile-votable": "true",
+      "data-tile-tap-ready": "true",
+      "data-tile-verdict": "reject",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:11.841Z",
+   "ms": 305930,
+   "readStartedAt": "2026-10-28T10:40:11.841Z",
+   "snapshotAt": "2026-10-28T10:40:11.847Z",
+   "readCompletedAt": "2026-10-28T10:40:11.851Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "ending",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "coplayer",
+     "cursorPointer": true,
+     "votable": true,
+     "tapReady": true,
+     "verdict": "reject",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "coplayer",
+      "data-tile-votable": "true",
+      "data-tile-tap-ready": "true",
+      "data-tile-verdict": "reject",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  },
+  {
+   "t": "2026-10-28T10:40:12.090Z",
+   "ms": 306179,
+   "readStartedAt": "2026-10-28T10:40:12.090Z",
+   "snapshotAt": "2026-10-28T10:40:12.097Z",
+   "readCompletedAt": "2026-10-28T10:40:12.106Z",
+   "pageGeneration": 0,
+   "documentIdentity": "http://localhost:3000/game|1793183663415.8",
+   "url": "http://localhost:3000/game",
+   "stage": "play",
+   "round": 0,
+   "turn": 1,
+   "turnsPerRound": 12,
+   "sessionStage": "ending",
+   "sessionTurn": 1,
+   "viewport": {
+    "width": 412,
+    "height": 915
+   },
+   "pill": "Turn 1 of 12",
+   "ducked": false,
+   "intro": false,
+   "confirm": false,
+   "tiles": [
+    {
+     "id": "5SELF-bot4",
+     "role": "you",
+     "cursorPointer": false,
+     "votable": false,
+     "tapReady": false,
+     "verdict": "pending",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "you",
+      "data-tile-votable": "false",
+      "data-tile-tap-ready": "false",
+      "data-tile-verdict": "pending",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 121,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    },
+    {
+     "id": "5CO-bot12",
+     "role": "coplayer",
+     "cursorPointer": true,
+     "votable": true,
+     "tapReady": true,
+     "verdict": "reject",
+     "attrs": {
+      "data-tile-slot": "true",
+      "data-tile-role": "coplayer",
+      "data-tile-votable": "true",
+      "data-tile-tap-ready": "true",
+      "data-tile-verdict": "reject",
+      "data-cue": "cue"
+     },
+     "text": "",
+     "aria": [],
+     "box": {
+      "x": 210,
+      "y": 312,
+      "w": 183,
+      "h": 183
+     },
+     "visible": true,
+     "hit": "self",
+     "rotateY": null,
+     "rotY": null,
+     "tapped": false,
+     "click": null
+    }
+   ]
+  }
+ ],
+ "taps": [
+  {
+   "at": "2026-10-28T10:40:11.421Z",
+   "turn": 1,
+   "id": "5CO-bot12",
+   "result": "skipped: page showed ending, turn 1",
+   "stage": "ending"
+  },
+  {
+   "at": "2026-10-28T10:40:11.731Z",
+   "turn": 1,
+   "id": "5CO-bot12",
+   "result": "skipped: page showed ending, turn 1",
+   "stage": "ending"
+  },
+  {
+   "at": "2026-10-28T10:40:12.034Z",
+   "turn": 1,
+   "id": "5CO-bot12",
+   "result": "skipped: page showed ending, turn 1",
+   "stage": "ending"
+  }
+ ]
+}

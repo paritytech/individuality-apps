@@ -1,0 +1,1067 @@
+[
+  {
+    "version": 1,
+    "slot": 1,
+    "profile": "baseline-iphone14-wifi",
+    "account": "5GeMcLaWYVGjCfmShPqgA8axoAd6AJ5LAPzrP2cwJ7ujUYQv",
+    "username": "fixturebotaa.69",
+    "game": {
+      "index": 190,
+      "gameAt": 1791129540,
+      "registrationEnds": 1791129390,
+      "reportEnds": 1791129720
+    },
+    "stages": {
+      "a": {
+        "status": "pass",
+        "notes": [],
+        "seconds": 6.9
+      },
+      "b": {
+        "status": "pass",
+        "notes": [
+          "tapped Register at 15:51:19",
+          "UI: data-registered=true"
+        ],
+        "seconds": 39.1
+      },
+      "c": {
+        "status": "pass",
+        "notes": [
+          "53 taps, 0 click errors, confirmed=true"
+        ],
+        "seconds": 607.5
+      },
+      "d": {
+        "status": "pass",
+        "notes": [
+          "report seen=true, settled=true, 5 other account(s) reported (informational)"
+        ],
+        "seconds": 37
+      }
+    },
+    "signedUp": true,
+    "taps": 53,
+    "clickErrors": 0,
+    "confirmed": true,
+    "confirmedBy": "tap",
+    "role": {
+      "kind": "baseline",
+      "notes": [
+        "tapped the CTA at \"Confirming in 7\""
+      ],
+      "actions": [
+        {
+          "id": "confirm-tap",
+          "at": "2026-10-04T16:01:38.777Z",
+          "detail": "tapped Confirm during the countdown at \"Confirming in 7\""
+        }
+      ]
+    },
+    "provenance": {
+      "commit": "84bbad9870628a0553c011819d75b72ca25cc11f",
+      "runStartedAt": "2026-10-04T15:50:46.029Z"
+    },
+    "reachedPrizeDraw": true,
+    "guards": [
+      {
+        "kind": "metric",
+        "description": "[pending, not evaluated] metric signup.taps every point >= 1 and <= 1",
+        "note": "no counterpart: the app counts signup.retries (game-source.ts), not taps; needs a bot-side tap count",
+        "status": "pending",
+        "evidence": "no counterpart: the app counts signup.retries (game-source.ts), not taps; needs a bot-side tap count"
+      },
+      {
+        "kind": "metric",
+        "description": "metric signup.landed_ms every point <= 30000",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "chain-report",
+        "description": "chain report matches the bot's vote trail",
+        "status": "not-evaluated",
+        "evidence": "no vote trail (the devLog was empty: a relaunch loses the earlier session's)"
+      },
+      {
+        "kind": "text",
+        "description": "page never shows \"Voting has closed\"",
+        "note": "no bot may default its votes by missing the report window",
+        "status": "pass",
+        "evidence": "never appeared (observer on every mutation)"
+      }
+    ],
+    "reportSeen": true,
+    "settled": true,
+    "othersReported": 5,
+    "timings": {
+      "bootS": 14,
+      "oracleS": 11.527,
+      "hostReadyS": 14,
+      "appUpS": 14
+    },
+    "startedAt": "2026-10-04T15:51:05.400Z",
+    "finishedAt": "2026-10-04T16:02:36.281Z",
+    "groups": [
+      {
+        "round": 0,
+        "ownIndex": 3,
+        "members": [
+          {
+            "index": 0,
+            "account": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1"
+          },
+          {
+            "index": 1,
+            "account": "5GhDzCmTAvBz846ER9WTu6r2Vd26EtXyuS1u5vKYhj5RuvaQ"
+          },
+          {
+            "index": 2,
+            "account": "5GSh94NSkZXsLngzcsiUmqF6h16PA9CDYxkH3wXMjpFS38WV"
+          },
+          {
+            "index": 3,
+            "account": "5GeMcLaWYVGjCfmShPqgA8axoAd6AJ5LAPzrP2cwJ7ujUYQv"
+          },
+          {
+            "index": 4,
+            "account": "5G5ADeF3MbuvvfnEg2yJEEbkThgnFHU1T8WE5rkTDEpjkbpV"
+          },
+          {
+            "index": 5,
+            "account": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR"
+          }
+        ]
+      },
+      {
+        "round": 1,
+        "ownIndex": 3,
+        "members": [
+          {
+            "index": 0,
+            "account": "5G5ADeF3MbuvvfnEg2yJEEbkThgnFHU1T8WE5rkTDEpjkbpV"
+          },
+          {
+            "index": 1,
+            "account": "5GhDzCmTAvBz846ER9WTu6r2Vd26EtXyuS1u5vKYhj5RuvaQ"
+          },
+          {
+            "index": 2,
+            "account": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1"
+          },
+          {
+            "index": 3,
+            "account": "5GeMcLaWYVGjCfmShPqgA8axoAd6AJ5LAPzrP2cwJ7ujUYQv"
+          },
+          {
+            "index": 4,
+            "account": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR"
+          },
+          {
+            "index": 5,
+            "account": "5GSh94NSkZXsLngzcsiUmqF6h16PA9CDYxkH3wXMjpFS38WV"
+          }
+        ]
+      }
+    ],
+    "app": {
+      "app": "dim2next.paseo",
+      "product": "dim2.paseo",
+      "cid": "bafybeidyoun6u6vvik3wtebx2fuyp6dukwxyae5y5s3tfd5qu3mzlg76cm",
+      "version": "a557f9a6d190633cfc01cd80cec3f642b9d553a09c92cdbb08e9c12f4805e9fe",
+      "files": 206
+    }
+  },
+  {
+    "version": 1,
+    "slot": 2,
+    "profile": "slow-pixel7-lte-poor",
+    "account": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR",
+    "username": "fixturebotab.93",
+    "game": {
+      "index": 190,
+      "gameAt": 1791129540,
+      "registrationEnds": 1791129390,
+      "reportEnds": 1791129720
+    },
+    "stages": {
+      "a": {
+        "status": "pass",
+        "notes": [],
+        "seconds": 19.1
+      },
+      "b": {
+        "status": "pass",
+        "notes": [
+          "tapped Register at 15:51:38",
+          "UI: data-registered=true"
+        ],
+        "seconds": 51.9
+      },
+      "c": {
+        "status": "pass",
+        "notes": [
+          "56 taps, 0 click errors, confirmed=true"
+        ],
+        "seconds": 608.2
+      },
+      "d": {
+        "status": "pass",
+        "notes": [
+          "report seen=true, settled=true, 5 other account(s) reported (informational)"
+        ],
+        "seconds": 18.7
+      }
+    },
+    "signedUp": true,
+    "taps": 56,
+    "clickErrors": 0,
+    "confirmed": true,
+    "confirmedBy": "tap",
+    "role": {
+      "kind": "baseline",
+      "notes": [],
+      "actions": []
+    },
+    "provenance": {
+      "commit": "84bbad9870628a0553c011819d75b72ca25cc11f",
+      "runStartedAt": "2026-10-04T15:50:53.409Z"
+    },
+    "reachedPrizeDraw": true,
+    "guards": [
+      {
+        "kind": "metric",
+        "description": "metric camera.first_open_ms is recorded",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "metric",
+        "description": "metric rtc.decode_ms is recorded",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "metric",
+        "description": "metric rtc.encode_ms is recorded",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "metric",
+        "description": "metric rtc.quality_limited is recorded",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "metric",
+        "description": "metric rtc.signal_rtt_ms every point <= 5000",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "event",
+        "description": "event camera.acquire with {\"camera.warm\":\"true\"} seen",
+        "note": "the camera was opened in the waiting room, not at the game start",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "event",
+        "description": "event rtc.peer with {\"rtc.last_stage\":\"offer\"} seen <= 1 times",
+        "note": "a pair that never got past the offer: ONE is expected in the six-bot game (the late joiner, bot 6, is not in the mesh at join); a second is a real stuck pair",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "text",
+        "description": "page never shows \"Voting has closed\"",
+        "note": "no bot may default its votes by missing the report window",
+        "status": "pass",
+        "evidence": "never appeared (observer on every mutation)"
+      }
+    ],
+    "reportSeen": true,
+    "settled": true,
+    "othersReported": 5,
+    "timings": {
+      "bootS": 9.5,
+      "oracleS": 7.85,
+      "hostReadyS": 9.5,
+      "appUpS": 9.5
+    },
+    "startedAt": "2026-10-04T15:51:08.202Z",
+    "finishedAt": "2026-10-04T16:02:46.743Z",
+    "groups": [
+      {
+        "round": 0,
+        "ownIndex": 5,
+        "members": [
+          {
+            "index": 0,
+            "account": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1"
+          },
+          {
+            "index": 1,
+            "account": "5GhDzCmTAvBz846ER9WTu6r2Vd26EtXyuS1u5vKYhj5RuvaQ"
+          },
+          {
+            "index": 2,
+            "account": "5GSh94NSkZXsLngzcsiUmqF6h16PA9CDYxkH3wXMjpFS38WV"
+          },
+          {
+            "index": 3,
+            "account": "5GeMcLaWYVGjCfmShPqgA8axoAd6AJ5LAPzrP2cwJ7ujUYQv"
+          },
+          {
+            "index": 4,
+            "account": "5G5ADeF3MbuvvfnEg2yJEEbkThgnFHU1T8WE5rkTDEpjkbpV"
+          },
+          {
+            "index": 5,
+            "account": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR"
+          }
+        ]
+      },
+      {
+        "round": 1,
+        "ownIndex": 4,
+        "members": [
+          {
+            "index": 0,
+            "account": "5G5ADeF3MbuvvfnEg2yJEEbkThgnFHU1T8WE5rkTDEpjkbpV"
+          },
+          {
+            "index": 1,
+            "account": "5GhDzCmTAvBz846ER9WTu6r2Vd26EtXyuS1u5vKYhj5RuvaQ"
+          },
+          {
+            "index": 2,
+            "account": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1"
+          },
+          {
+            "index": 3,
+            "account": "5GeMcLaWYVGjCfmShPqgA8axoAd6AJ5LAPzrP2cwJ7ujUYQv"
+          },
+          {
+            "index": 4,
+            "account": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR"
+          },
+          {
+            "index": 5,
+            "account": "5GSh94NSkZXsLngzcsiUmqF6h16PA9CDYxkH3wXMjpFS38WV"
+          }
+        ]
+      }
+    ],
+    "app": {
+      "app": "dim2next.paseo",
+      "product": "dim2.paseo",
+      "cid": "bafybeidyoun6u6vvik3wtebx2fuyp6dukwxyae5y5s3tfd5qu3mzlg76cm",
+      "version": "a557f9a6d190633cfc01cd80cec3f642b9d553a09c92cdbb08e9c12f4805e9fe",
+      "files": 206
+    }
+  },
+  {
+    "version": 1,
+    "slot": 3,
+    "profile": "relay-iphonese-fastclock",
+    "account": "5G5ADeF3MbuvvfnEg2yJEEbkThgnFHU1T8WE5rkTDEpjkbpV",
+    "username": "fixturebotac.22",
+    "game": {
+      "index": 190,
+      "gameAt": 1791129540,
+      "registrationEnds": 1791129390,
+      "reportEnds": 1791129720
+    },
+    "stages": {
+      "a": {
+        "status": "pass",
+        "notes": [],
+        "seconds": 10.7
+      },
+      "b": {
+        "status": "pass",
+        "notes": [
+          "tapped Register at 15:52:18",
+          "UI: data-registered=true"
+        ],
+        "seconds": 41.8
+      },
+      "c": {
+        "status": "pass",
+        "notes": [
+          "53 taps, 0 click errors, confirmed=false"
+        ],
+        "seconds": 563.7
+      },
+      "d": {
+        "status": "pass",
+        "notes": [
+          "report seen=true, settled=true, 5 other account(s) reported (informational)"
+        ],
+        "seconds": 21.5
+      }
+    },
+    "signedUp": true,
+    "taps": 53,
+    "clickErrors": 0,
+    "confirmed": false,
+    "confirmedBy": null,
+    "role": {
+      "kind": "baseline",
+      "notes": [],
+      "actions": []
+    },
+    "provenance": {
+      "commit": "84bbad9870628a0553c011819d75b72ca25cc11f",
+      "runStartedAt": "2026-10-04T15:51:39.068Z"
+    },
+    "reachedPrizeDraw": true,
+    "guards": [
+      {
+        "kind": "event",
+        "description": "event rtc.path with {\"rtc.path\":\"relay\"} seen",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "metric",
+        "description": "[pending, not evaluated] metric rtc.coverage_pct every point >= 90",
+        "note": "pairs with the late joiner (bot 6) read 0 % in round 1 by design (game 186), so min 90 over every pair can never hold in the six-bot game; needs a per-pair filter (rtc.pair) the guard kinds do not have",
+        "status": "pending",
+        "evidence": "pairs with the late joiner (bot 6) read 0 % in round 1 by design (game 186), so min 90 over every pair can never hold in the six-bot game; needs a per-pair filter (rtc.pair) the guard kinds do not have"
+      },
+      {
+        "kind": "event",
+        "description": "event turn.issue with {\"turn.ok\":\"true\"} seen",
+        "note": "TURN credentials were issued",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "text",
+        "description": "page never shows \"Voting has closed\"",
+        "note": "no bot may default its votes by missing the report window",
+        "status": "pass",
+        "evidence": "never appeared (observer on every mutation)"
+      }
+    ],
+    "reportSeen": true,
+    "settled": true,
+    "othersReported": 5,
+    "timings": {
+      "bootS": 14.6,
+      "oracleS": 11.983,
+      "hostReadyS": 14.6,
+      "appUpS": 14.6
+    },
+    "startedAt": "2026-10-04T15:52:00.389Z",
+    "finishedAt": "2026-10-04T16:02:38.651Z",
+    "groups": [
+      {
+        "round": 0,
+        "ownIndex": 4,
+        "members": [
+          {
+            "index": 0,
+            "account": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1"
+          },
+          {
+            "index": 1,
+            "account": "5GhDzCmTAvBz846ER9WTu6r2Vd26EtXyuS1u5vKYhj5RuvaQ"
+          },
+          {
+            "index": 2,
+            "account": "5GSh94NSkZXsLngzcsiUmqF6h16PA9CDYxkH3wXMjpFS38WV"
+          },
+          {
+            "index": 3,
+            "account": "5GeMcLaWYVGjCfmShPqgA8axoAd6AJ5LAPzrP2cwJ7ujUYQv"
+          },
+          {
+            "index": 4,
+            "account": "5G5ADeF3MbuvvfnEg2yJEEbkThgnFHU1T8WE5rkTDEpjkbpV"
+          },
+          {
+            "index": 5,
+            "account": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR"
+          }
+        ]
+      },
+      {
+        "round": 1,
+        "ownIndex": 0,
+        "members": [
+          {
+            "index": 0,
+            "account": "5G5ADeF3MbuvvfnEg2yJEEbkThgnFHU1T8WE5rkTDEpjkbpV"
+          },
+          {
+            "index": 1,
+            "account": "5GhDzCmTAvBz846ER9WTu6r2Vd26EtXyuS1u5vKYhj5RuvaQ"
+          },
+          {
+            "index": 2,
+            "account": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1"
+          },
+          {
+            "index": 3,
+            "account": "5GeMcLaWYVGjCfmShPqgA8axoAd6AJ5LAPzrP2cwJ7ujUYQv"
+          },
+          {
+            "index": 4,
+            "account": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR"
+          },
+          {
+            "index": 5,
+            "account": "5GSh94NSkZXsLngzcsiUmqF6h16PA9CDYxkH3wXMjpFS38WV"
+          }
+        ]
+      }
+    ],
+    "app": {
+      "app": "dim2next.paseo",
+      "product": "dim2.paseo",
+      "cid": "bafybeidyoun6u6vvik3wtebx2fuyp6dukwxyae5y5s3tfd5qu3mzlg76cm",
+      "version": "a557f9a6d190633cfc01cd80cec3f642b9d553a09c92cdbb08e9c12f4805e9fe",
+      "files": 206
+    }
+  },
+  {
+    "version": 1,
+    "slot": 4,
+    "profile": "switcher-pixel6a-wifi-to-cell",
+    "account": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1",
+    "username": "fixturebotad.88",
+    "game": {
+      "index": 190,
+      "gameAt": 1791129540,
+      "registrationEnds": 1791129390,
+      "reportEnds": 1791129720
+    },
+    "stages": {
+      "a": {
+        "status": "pass",
+        "notes": [],
+        "seconds": 25
+      },
+      "b": {
+        "status": "pass",
+        "notes": [
+          "tapped Register at 15:51:36",
+          "UI: data-registered=true"
+        ],
+        "seconds": 36.3
+      },
+      "c": {
+        "status": "pass",
+        "notes": [
+          "53 taps, 0 click errors, confirmed=false"
+        ],
+        "seconds": 600.9
+      },
+      "d": {
+        "status": "pass",
+        "notes": [
+          "report seen=true, settled=true, 5 other account(s) reported (informational)"
+        ],
+        "seconds": 26.9
+      }
+    },
+    "signedUp": true,
+    "taps": 53,
+    "clickErrors": 0,
+    "confirmed": false,
+    "confirmedBy": null,
+    "role": {
+      "kind": "baseline",
+      "notes": [],
+      "actions": []
+    },
+    "provenance": {
+      "commit": "84bbad9870628a0553c011819d75b72ca25cc11f",
+      "runStartedAt": "2026-10-04T15:50:48.987Z"
+    },
+    "reachedPrizeDraw": true,
+    "guards": [
+      {
+        "kind": "event",
+        "description": "[pending, not evaluated] event net.change seen",
+        "note": "the app's net.change comes from the BROWSER's network events (online/offline, connection change); shaping or cutting the runner's link never raises them, so netem cannot trigger it",
+        "status": "pending",
+        "evidence": "the app's net.change comes from the BROWSER's network events (online/offline, connection change); shaping or cutting the runner's link never raises them, so netem cannot trigger it"
+      },
+      {
+        "kind": "event",
+        "description": "event rtc.reconnect seen",
+        "note": "the game journey's rtc.reconnect step: a link that dropped and came back (the 15 s blackout must disconnect it)",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "event",
+        "description": "event rtc.heal with {\"rtc.healed\":\"true\"} seen",
+        "note": "the heal ladder acts after DISCONNECT_GRACE_MS (4 s) of a link down: an 15 s blackout that really cuts must trigger it; ICE self-recovery inside 4 s is NOT a heal",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "metric",
+        "description": "metric rtc.heal_ms is recorded",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "metric",
+        "description": "metric rtc.coverage_pct every point >= 60",
+        "note": "video coverage stays up across the round despite an 15 s blackout in a ~72 s round",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "text",
+        "description": "page never shows \"Voting has closed\"",
+        "note": "no bot may default its votes by missing the report window",
+        "status": "pass",
+        "evidence": "never appeared (observer on every mutation)"
+      }
+    ],
+    "reportSeen": true,
+    "settled": true,
+    "othersReported": 5,
+    "timings": {
+      "bootS": 11.5,
+      "oracleS": 9.285,
+      "hostReadyS": 11.5,
+      "appUpS": 11.5
+    },
+    "startedAt": "2026-10-04T15:51:04.884Z",
+    "finishedAt": "2026-10-04T16:02:34.313Z",
+    "groups": [
+      {
+        "round": 0,
+        "ownIndex": 0,
+        "members": [
+          {
+            "index": 0,
+            "account": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1"
+          },
+          {
+            "index": 1,
+            "account": "5GhDzCmTAvBz846ER9WTu6r2Vd26EtXyuS1u5vKYhj5RuvaQ"
+          },
+          {
+            "index": 2,
+            "account": "5GSh94NSkZXsLngzcsiUmqF6h16PA9CDYxkH3wXMjpFS38WV"
+          },
+          {
+            "index": 3,
+            "account": "5GeMcLaWYVGjCfmShPqgA8axoAd6AJ5LAPzrP2cwJ7ujUYQv"
+          },
+          {
+            "index": 4,
+            "account": "5G5ADeF3MbuvvfnEg2yJEEbkThgnFHU1T8WE5rkTDEpjkbpV"
+          },
+          {
+            "index": 5,
+            "account": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR"
+          }
+        ]
+      },
+      {
+        "round": 1,
+        "ownIndex": 2,
+        "members": [
+          {
+            "index": 0,
+            "account": "5G5ADeF3MbuvvfnEg2yJEEbkThgnFHU1T8WE5rkTDEpjkbpV"
+          },
+          {
+            "index": 1,
+            "account": "5GhDzCmTAvBz846ER9WTu6r2Vd26EtXyuS1u5vKYhj5RuvaQ"
+          },
+          {
+            "index": 2,
+            "account": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1"
+          },
+          {
+            "index": 3,
+            "account": "5GeMcLaWYVGjCfmShPqgA8axoAd6AJ5LAPzrP2cwJ7ujUYQv"
+          },
+          {
+            "index": 4,
+            "account": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR"
+          },
+          {
+            "index": 5,
+            "account": "5GSh94NSkZXsLngzcsiUmqF6h16PA9CDYxkH3wXMjpFS38WV"
+          }
+        ]
+      }
+    ],
+    "app": {
+      "app": "dim2next.paseo",
+      "product": "dim2.paseo",
+      "cid": "bafybeidyoun6u6vvik3wtebx2fuyp6dukwxyae5y5s3tfd5qu3mzlg76cm",
+      "version": "a557f9a6d190633cfc01cd80cec3f642b9d553a09c92cdbb08e9c12f4805e9fe",
+      "files": 206
+    }
+  },
+  {
+    "version": 1,
+    "slot": 5,
+    "profile": "kill-background-iphone13",
+    "account": "5GhDzCmTAvBz846ER9WTu6r2Vd26EtXyuS1u5vKYhj5RuvaQ",
+    "username": "fixturebotae.55",
+    "game": {
+      "index": 190,
+      "gameAt": 1791129540,
+      "registrationEnds": 1791129390,
+      "reportEnds": 1791129720
+    },
+    "stages": {
+      "a": {
+        "status": "pass",
+        "notes": [],
+        "seconds": 20.9
+      },
+      "b": {
+        "status": "pass",
+        "notes": [
+          "tapped Register at 15:51:43",
+          "UI: data-registered=true"
+        ],
+        "seconds": 40.5
+      },
+      "c": {
+        "status": "pass",
+        "notes": [
+          "45 taps, 2 click errors, confirmed=true"
+        ],
+        "seconds": 604.3
+      },
+      "d": {
+        "status": "fail",
+        "notes": [
+          "report seen=true, settled=true, 5 other account(s) reported (informational)",
+          "Error: player 5 role kill-relaunch: hidden: the role was due to act (hidden) and never did: its trigger did not fire before the game ended"
+        ],
+        "seconds": 13.8
+      }
+    },
+    "signedUp": true,
+    "taps": 45,
+    "clickErrors": 2,
+    "confirmed": true,
+    "confirmedBy": "tap",
+    "role": {
+      "kind": "kill-relaunch",
+      "notes": [
+        "16:00:38 killing the page at turn 8 of 12",
+        "pre-kill devLog: 0 lines",
+        "relaunched: new context, home ? (?)",
+        "killed and relaunched at turn 8 of 12"
+      ],
+      "actions": [
+        {
+          "id": "killed",
+          "at": "2026-10-04T16:00:38.547Z",
+          "detail": "at turn 8 of 12 (round 2, turn 2 of it)"
+        },
+        {
+          "id": "relaunched",
+          "at": "2026-10-04T16:01:24.272Z",
+          "detail": "page reopened on the same host slot"
+        }
+      ]
+    },
+    "provenance": {
+      "commit": "84bbad9870628a0553c011819d75b72ca25cc11f",
+      "runStartedAt": "2026-10-04T15:50:55.343Z"
+    },
+    "reachedPrizeDraw": true,
+    "guards": [
+      {
+        "kind": "event",
+        "description": "event app-open with {\"previous.exit\":\"crash-or-kill-foreground\"} seen",
+        "note": "the relaunch saw the kill (attribute of the app-open journey)",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "event",
+        "description": "[pending, not evaluated] event game-log seen",
+        "note": "the app sends a Sentry info event 'game-log' (lib/telemetry/game-log.ts), not a span step; the evaluator has no source for it yet",
+        "status": "pending",
+        "evidence": "the app sends a Sentry info event 'game-log' (lib/telemetry/game-log.ts), not a span step; the evaluator has no source for it yet"
+      },
+      {
+        "kind": "chain-report",
+        "description": "chain report matches the bot's vote trail",
+        "status": "not-evaluated",
+        "evidence": "no vote trail (the devLog was empty: a relaunch loses the earlier session's)"
+      },
+      {
+        "kind": "text",
+        "description": "page never shows \"Voting has closed\"",
+        "note": "no bot may default its votes by missing the report window",
+        "status": "pass",
+        "evidence": "never appeared (observer on every mutation)"
+      }
+    ],
+    "reportSeen": true,
+    "settled": true,
+    "othersReported": 5,
+    "timings": {
+      "bootS": 13.2,
+      "oracleS": 10.903,
+      "hostReadyS": 13.2,
+      "appUpS": 13.2
+    },
+    "startedAt": "2026-10-04T15:51:14.467Z",
+    "finishedAt": "2026-10-04T16:02:34.748Z",
+    "groups": [
+      {
+        "round": 0,
+        "ownIndex": 1,
+        "members": [
+          {
+            "index": 0,
+            "account": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1"
+          },
+          {
+            "index": 1,
+            "account": "5GhDzCmTAvBz846ER9WTu6r2Vd26EtXyuS1u5vKYhj5RuvaQ"
+          },
+          {
+            "index": 2,
+            "account": "5GSh94NSkZXsLngzcsiUmqF6h16PA9CDYxkH3wXMjpFS38WV"
+          },
+          {
+            "index": 3,
+            "account": "5GeMcLaWYVGjCfmShPqgA8axoAd6AJ5LAPzrP2cwJ7ujUYQv"
+          },
+          {
+            "index": 4,
+            "account": "5G5ADeF3MbuvvfnEg2yJEEbkThgnFHU1T8WE5rkTDEpjkbpV"
+          },
+          {
+            "index": 5,
+            "account": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR"
+          }
+        ]
+      },
+      {
+        "round": 1,
+        "ownIndex": 1,
+        "members": [
+          {
+            "index": 0,
+            "account": "5G5ADeF3MbuvvfnEg2yJEEbkThgnFHU1T8WE5rkTDEpjkbpV"
+          },
+          {
+            "index": 1,
+            "account": "5GhDzCmTAvBz846ER9WTu6r2Vd26EtXyuS1u5vKYhj5RuvaQ"
+          },
+          {
+            "index": 2,
+            "account": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1"
+          },
+          {
+            "index": 3,
+            "account": "5GeMcLaWYVGjCfmShPqgA8axoAd6AJ5LAPzrP2cwJ7ujUYQv"
+          },
+          {
+            "index": 4,
+            "account": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR"
+          },
+          {
+            "index": 5,
+            "account": "5GSh94NSkZXsLngzcsiUmqF6h16PA9CDYxkH3wXMjpFS38WV"
+          }
+        ]
+      }
+    ],
+    "app": {
+      "app": "dim2next.paseo",
+      "product": "dim2.paseo",
+      "cid": "bafybeidyoun6u6vvik3wtebx2fuyp6dukwxyae5y5s3tfd5qu3mzlg76cm",
+      "version": "a557f9a6d190633cfc01cd80cec3f642b9d553a09c92cdbb08e9c12f4805e9fe",
+      "files": 206
+    }
+  },
+  {
+    "version": 1,
+    "slot": 6,
+    "profile": "late-join-galaxya55-lte-good",
+    "account": "5GSh94NSkZXsLngzcsiUmqF6h16PA9CDYxkH3wXMjpFS38WV",
+    "username": "fixturebotaf.48",
+    "game": {
+      "index": 190,
+      "gameAt": 1791129540,
+      "registrationEnds": 1791129390,
+      "reportEnds": 1791129720
+    },
+    "stages": {
+      "a": {
+        "status": "pass",
+        "notes": [],
+        "seconds": 7.1
+      },
+      "b": {
+        "status": "pass",
+        "notes": [
+          "tapped Register at 15:51:16",
+          "UI: data-registered=true"
+        ],
+        "seconds": 38.1
+      },
+      "c": {
+        "status": "pass",
+        "notes": [
+          "39 taps, 0 click errors, confirmed=true"
+        ],
+        "seconds": 630.8
+      },
+      "d": {
+        "status": "pass",
+        "notes": [
+          "report seen=true, settled=true, 5 other account(s) reported (informational)"
+        ],
+        "seconds": 20.7
+      }
+    },
+    "signedUp": true,
+    "taps": 39,
+    "clickErrors": 0,
+    "confirmed": true,
+    "confirmedBy": "tap",
+    "role": {
+      "kind": "late-join",
+      "notes": [
+        "left the app after sign-up at 15:51:48, before the handover",
+        "returning 492 s from now, after game turn 2"
+      ],
+      "actions": [
+        {
+          "id": "left-app",
+          "at": "2026-10-04T15:51:48.179Z",
+          "detail": "skipped the waiting room: left after sign-up, before the handover"
+        },
+        {
+          "id": "rejoined",
+          "at": "2026-10-04T16:00:03.495Z",
+          "detail": "returned for game turn 2 (chain 1791129564)"
+        }
+      ]
+    },
+    "provenance": {
+      "commit": "84bbad9870628a0553c011819d75b72ca25cc11f",
+      "runStartedAt": "2026-10-04T15:50:46.814Z"
+    },
+    "reachedPrizeDraw": true,
+    "guards": [
+      {
+        "kind": "event",
+        "description": "event camera.acquire with {\"camera.warm\":\"false\"} seen",
+        "note": "a late joiner opens the camera cold, never in the waiting room",
+        "status": "not-evaluated",
+        "evidence": "Sentry is evaluated after settlement (guards-cli)"
+      },
+      {
+        "kind": "chain-report",
+        "description": "chain report matches the bot's vote trail",
+        "status": "not-evaluated",
+        "evidence": "no vote trail (the devLog was empty: a relaunch loses the earlier session's)"
+      },
+      {
+        "kind": "text",
+        "description": "page never shows \"Voting has closed\"",
+        "note": "no bot may default its votes by missing the report window",
+        "status": "pass",
+        "evidence": "never appeared (observer on every mutation)"
+      }
+    ],
+    "reportSeen": true,
+    "settled": true,
+    "othersReported": 5,
+    "timings": {
+      "bootS": 11.2,
+      "oracleS": 9.253,
+      "hostReadyS": 11.2,
+      "appUpS": 11.2
+    },
+    "startedAt": "2026-10-04T15:51:02.534Z",
+    "finishedAt": "2026-10-04T16:02:39.795Z",
+    "groups": [
+      {
+        "round": 0,
+        "ownIndex": 2,
+        "members": [
+          {
+            "index": 0,
+            "account": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1"
+          },
+          {
+            "index": 1,
+            "account": "5GhDzCmTAvBz846ER9WTu6r2Vd26EtXyuS1u5vKYhj5RuvaQ"
+          },
+          {
+            "index": 2,
+            "account": "5GSh94NSkZXsLngzcsiUmqF6h16PA9CDYxkH3wXMjpFS38WV"
+          },
+          {
+            "index": 3,
+            "account": "5GeMcLaWYVGjCfmShPqgA8axoAd6AJ5LAPzrP2cwJ7ujUYQv"
+          },
+          {
+            "index": 4,
+            "account": "5G5ADeF3MbuvvfnEg2yJEEbkThgnFHU1T8WE5rkTDEpjkbpV"
+          },
+          {
+            "index": 5,
+            "account": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR"
+          }
+        ]
+      },
+      {
+        "round": 1,
+        "ownIndex": 5,
+        "members": [
+          {
+            "index": 0,
+            "account": "5G5ADeF3MbuvvfnEg2yJEEbkThgnFHU1T8WE5rkTDEpjkbpV"
+          },
+          {
+            "index": 1,
+            "account": "5GhDzCmTAvBz846ER9WTu6r2Vd26EtXyuS1u5vKYhj5RuvaQ"
+          },
+          {
+            "index": 2,
+            "account": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1"
+          },
+          {
+            "index": 3,
+            "account": "5GeMcLaWYVGjCfmShPqgA8axoAd6AJ5LAPzrP2cwJ7ujUYQv"
+          },
+          {
+            "index": 4,
+            "account": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR"
+          },
+          {
+            "index": 5,
+            "account": "5GSh94NSkZXsLngzcsiUmqF6h16PA9CDYxkH3wXMjpFS38WV"
+          }
+        ]
+      }
+    ],
+    "app": {
+      "app": "dim2next.paseo",
+      "product": "dim2.paseo",
+      "cid": "bafybeidyoun6u6vvik3wtebx2fuyp6dukwxyae5y5s3tfd5qu3mzlg76cm",
+      "version": "a557f9a6d190633cfc01cd80cec3f642b9d553a09c92cdbb08e9c12f4805e9fe",
+      "files": 206
+    }
+  }
+]

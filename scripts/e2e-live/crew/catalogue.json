@@ -1,0 +1,444 @@
+{
+  "version": 1,
+  "harness": {
+    "key": "previewnet-boot-harness",
+    "displayName": "PreviewNet Boot Harness",
+    "description": "Boot-only infrastructure checks without a playing identity."
+  },
+  "identities": [
+    {
+      "key": "captain-baseline",
+      "username": "jollitypv.12",
+      "displayName": "Captain Baseline",
+      "portrait": "captain-baseline.webp",
+      "tagline": "Keeps the happy path honest.",
+      "backstory": "The captain treats an ordinary run as the standard every stranger test must beat. Calm logs and a tidy checklist are always close at hand.",
+      "speciality": "ordinary healthy play and telemetry controls",
+      "palette": {
+        "primary": "#531313",
+        "secondary": "#E7D355",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "lady-latency",
+      "username": "jollitypv.15",
+      "displayName": "Lady Latency",
+      "portrait": "lady-latency.webp",
+      "tagline": "Turns every millisecond into a plot twist.",
+      "backstory": "She pilots through syrupy mobile links with theatrical patience. Her stopwatch never applauds early.",
+      "speciality": "slow and lossy mobile links",
+      "palette": {
+        "primary": "#135326",
+        "secondary": "#55D0E7",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "relay-ray",
+      "username": "jollitypv.20",
+      "displayName": "Relay Ray",
+      "portrait": "relay-ray.webp",
+      "tagline": "When the direct route vanishes, Ray knows a side door.",
+      "backstory": "Ray maps relay paths like constellations and remembers every warm return. A blinking radio compass is his favorite instrument.",
+      "speciality": "relay-only paths and returning warm sessions",
+      "palette": {
+        "primary": "#381353",
+        "secondary": "#E755A5",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "handoff-hank",
+      "username": "jollitypv.25",
+      "displayName": "Handoff Hank",
+      "portrait": "handoff-hank.webp",
+      "tagline": "Changes lanes without dropping the cargo.",
+      "backstory": "Hank grew up swapping networks mid-sentence. He watches every handoff for the moment continuity might wobble.",
+      "speciality": "Wi-Fi-to-cell handoffs and blocked-network recovery",
+      "palette": {
+        "primary": "#534B13",
+        "secondary": "#7BE755",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "the-rejoiner",
+      "username": "jollitypv.29",
+      "displayName": "The Rejoiner",
+      "portrait": "the-rejoiner.webp",
+      "tagline": "Always comes back with the same story.",
+      "backstory": "The Rejoiner has survived more abrupt exits than anyone will admit. He returns to find out what state remembered him.",
+      "speciality": "background kills and relaunch recovery",
+      "palette": {
+        "primary": "#134853",
+        "secondary": "#5A55E7",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "late-larry",
+      "username": "jollitypv.30",
+      "displayName": "Late Larry",
+      "portrait": "late-larry.webp",
+      "tagline": "Arrives after the briefing and still checks the map.",
+      "backstory": "Larry is never first through the airlock. His specialty is proving that a late arrival still receives a truthful route.",
+      "speciality": "joining late and delayed reporting",
+      "palette": {
+        "primary": "#531336",
+        "secondary": "#E78555",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "locale-lola",
+      "username": "jollylaenus.48",
+      "displayName": "Locale Lola",
+      "portrait": "locale-lola.webp",
+      "tagline": "Reads every clock in Los Angeles time.",
+      "backstory": "Lola brings West Coast phrasing and time conventions to the crew. She notices when local details drift from the experience.",
+      "speciality": "Los Angeles English locale behavior",
+      "palette": {
+        "primary": "#235313",
+        "secondary": "#55E7AF",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "tokyo-taro",
+      "username": "jollytokyojp.41",
+      "displayName": "Tokyo Taro",
+      "portrait": "tokyo-taro.webp",
+      "tagline": "Keeps the Tokyo console precise.",
+      "backstory": "Taro checks the experience through a Japanese locale and Tokyo clock. Tiny formatting surprises rarely escape his visor.",
+      "speciality": "Tokyo Japanese locale behavior",
+      "palette": {
+        "primary": "#161353",
+        "secondary": "#DA55E7",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "berlin-bruno",
+      "username": "jollyberlinde.65",
+      "displayName": "Berlin Bruno",
+      "portrait": "berlin-bruno.webp",
+      "tagline": "Brings Berlin order to every timestamp.",
+      "backstory": "Bruno inspects the run with a German locale and Berlin time. He has strong opinions about orderly dates.",
+      "speciality": "Berlin German locale behavior",
+      "palette": {
+        "primary": "#532913",
+        "secondary": "#CAE755",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "shutter-sheila",
+      "username": "jollycamdeny.25",
+      "displayName": "Shutter Sheila",
+      "portrait": "shutter-sheila.webp",
+      "tagline": "Keeps the shutter closed on purpose.",
+      "backstory": "Sheila politely refuses camera permission and watches what happens next. A closed lens should produce a clear explanation, not a mystery.",
+      "speciality": "denied-camera recovery",
+      "palette": {
+        "primary": "#13533B",
+        "secondary": "#559FE7",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "phantom-phil",
+      "username": "jollycammiss.50",
+      "displayName": "Phantom Phil",
+      "portrait": "phantom-phil.webp",
+      "tagline": "Tests the camera that was never there.",
+      "backstory": "Phil boards with no camera device at all. His empty mount exposes assumptions that permission tests cannot.",
+      "speciality": "missing-camera handling",
+      "palette": {
+        "primary": "#4D1353",
+        "secondary": "#E75575",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "narrowband-ned",
+      "username": "jollyuplink.08",
+      "displayName": "Narrowband Ned",
+      "portrait": "narrowband-ned.webp",
+      "tagline": "Squeezes a signal through the narrowest pipe.",
+      "backstory": "Ned specializes in tight uplinks and the relief that follows them. He measures both the squeeze and the recovery.",
+      "speciality": "constrained and recovering uplinks",
+      "palette": {
+        "primary": "#455313",
+        "secondary": "#55E761",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "packet-jack",
+      "username": "jollystorm.90",
+      "displayName": "Packet Jack",
+      "portrait": "packet-jack.webp",
+      "tagline": "Forecasts trouble one packet at a time.",
+      "backstory": "Jack drives the link through a sequence of packet squalls. His lightning board records when each front arrives and clears.",
+      "speciality": "multi-stage packet storms",
+      "palette": {
+        "primary": "#133353",
+        "secondary": "#8B55E7",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "chainless-charlie",
+      "username": "jollitypv.32",
+      "displayName": "Chainless Charlie",
+      "portrait": "chainless-charlie.webp",
+      "tagline": "Finds out what survives when the chain goes quiet.",
+      "backstory": "Charlie cuts the People-chain route for a bounded interval. He watches the app explain, wait, and recover without embellishment.",
+      "speciality": "People-chain outages",
+      "palette": {
+        "primary": "#531320",
+        "secondary": "#E7B555",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "token-tina",
+      "username": "jollitypv.33",
+      "displayName": "Token Tina",
+      "portrait": "token-tina.webp",
+      "tagline": "Checks the ticket booth when credentials stop flowing.",
+      "backstory": "Tina monitors the TURN credential issuer during an outage. She distinguishes a missing ticket from a broken journey.",
+      "speciality": "TURN credential issuer outages",
+      "palette": {
+        "primary": "#135319",
+        "secondary": "#55E7E0",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "relay-rita",
+      "username": "jollitypv.34",
+      "displayName": "Relay Rita",
+      "portrait": "relay-rita.webp",
+      "tagline": "Knows exactly when the relay lights go dark.",
+      "backstory": "Rita interrupts the relay path and waits for evidence of the consequence. Her beacon records both the outage and the return.",
+      "speciality": "TURN relay outages",
+      "palette": {
+        "primary": "#2B1353",
+        "secondary": "#E755C3",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "tap-tony",
+      "username": "jollitypv.38",
+      "displayName": "Tap Tony",
+      "portrait": "tap-tony.webp",
+      "tagline": "Has never met a button he would tap only once.",
+      "backstory": "Tony applies a rapid series of opposing taps before settling. The final trail must describe what the interface actually accepted.",
+      "speciality": "rapid repeated interaction",
+      "palette": {
+        "primary": "#533E13",
+        "secondary": "#99E755",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "timewarp-tess",
+      "username": "jollitypv.39",
+      "displayName": "Timewarp Tess",
+      "portrait": "timewarp-tess.webp",
+      "tagline": "Keeps one boot in every timezone.",
+      "backstory": "Tess moves the device clock while the game is alive. Her broken halo marks each jump without claiming the app handled it.",
+      "speciality": "device-clock jumps",
+      "palette": {
+        "primary": "#135350",
+        "secondary": "#556FE7",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "crash-carter",
+      "username": "jollitypv.40",
+      "displayName": "Crash Carter",
+      "portrait": "crash-carter.webp",
+      "tagline": "Pulls the host plug and labels every spark.",
+      "backstory": "Carter stops and restarts the local host during play. He cares most about the reconnect evidence after the noise.",
+      "speciality": "host crashes and restarts",
+      "palette": {
+        "primary": "#531343",
+        "secondary": "#E76755",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "longhaul-lou",
+      "username": "jollitypv.47",
+      "displayName": "Longhaul Lou",
+      "portrait": "longhaul-lou.webp",
+      "tagline": "Waits out the long outage with a fresh notebook.",
+      "backstory": "Lou extends host downtime beyond the comfortable case.",
+      "speciality": "prolonged host downtime",
+      "palette": {
+        "primary": "#305313",
+        "secondary": "#55E791",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "clockwork-clyde",
+      "username": "jollitypv.56",
+      "displayName": "Clockwork Clyde",
+      "portrait": "clockwork-clyde.webp",
+      "tagline": "Winds a slow clock toward the truth.",
+      "backstory": "Clyde begins behind the chain clock and corrects forward. His brass dial records whether the app trusts the adjustment.",
+      "speciality": "correcting a clock that starts behind",
+      "palette": {
+        "primary": "#131E53",
+        "secondary": "#BC55E7",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "future-fran",
+      "username": "jollitypv.58",
+      "displayName": "Future Fran",
+      "portrait": "future-fran.webp",
+      "tagline": "Visits tomorrow and brings the clock back.",
+      "backstory": "Fran starts ahead of chain time before correcting home. She looks for countdowns that remain believable through the trip.",
+      "speciality": "correcting a clock that starts ahead",
+      "palette": {
+        "primary": "#531B13",
+        "secondary": "#E7E655",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "background-betty",
+      "username": "jollitypv.62",
+      "displayName": "Background Betty",
+      "portrait": "background-betty.webp",
+      "tagline": "Does her strangest work offscreen.",
+      "backstory": "Betty hides the page, changes its clock, and returns. The dark visor is a reminder that invisible lifecycle time still matters.",
+      "speciality": "hidden-page clock steps",
+      "palette": {
+        "primary": "#13532E",
+        "secondary": "#55BDE7",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "reload-rex",
+      "username": "jollitypv.66",
+      "displayName": "Reload Rex",
+      "portrait": "reload-rex.webp",
+      "tagline": "Reloads the deck without losing the mission.",
+      "backstory": "Rex refreshes the page during play and inspects the restored session. A circular arrow badge follows every warm return.",
+      "speciality": "mid-game reload and session restoration",
+      "palette": {
+        "primary": "#401353",
+        "secondary": "#E75593",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "freeze-frame-fred",
+      "username": "jollitypv.67",
+      "displayName": "Freeze-Frame Fred",
+      "portrait": "freeze-frame-fred.webp",
+      "tagline": "Stops the picture while the world keeps moving.",
+      "backstory": "Fred pauses visible JavaScript without hiding the page. His frosted visor makes a stall easy to recognize in a thumbnail.",
+      "speciality": "visible JavaScript freezes",
+      "palette": {
+        "primary": "#525313",
+        "secondary": "#68E755",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "datagram-dana",
+      "username": "jollitypv.73",
+      "displayName": "Datagram Dana",
+      "portrait": "datagram-dana.webp",
+      "tagline": "Cuts the datagrams and counts what reconnects.",
+      "backstory": "Dana interrupts UDP while signaling stays reachable. Her split antenna separates transport damage from a total outage.",
+      "speciality": "bounded UDP path cuts",
+      "palette": {
+        "primary": "#134053",
+        "secondary": "#6D55E7",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "flip-fiona",
+      "username": "jollyvideoflip.90",
+      "displayName": "Flip Fiona",
+      "portrait": "flip-fiona.webp",
+      "tagline": "Makes video vanish on cue and checks its encore.",
+      "backstory": "Fiona joins late, reveals video, removes it, and watches the peers react. Her reversible mask marks each transition.",
+      "speciality": "video that appears, disappears, and returns",
+      "palette": {
+        "primary": "#53132E",
+        "secondary": "#E79755",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "null-nancy",
+      "username": "jollyvideonever.97",
+      "displayName": "NULL Nancy",
+      "portrait": "null-nancy.webp",
+      "tagline": "Broadcasts exactly nothing and makes that useful.",
+      "backstory": "Nancy joins while outbound video remains absent. The blank monitor reflection lets viewers identify the intentional void.",
+      "speciality": "peers that never provide video",
+      "palette": {
+        "primary": "#1B5313",
+        "secondary": "#55E7C2",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "stutter-stu",
+      "username": "jollitypv.77",
+      "displayName": "Stutter Stu",
+      "portrait": "stutter-stu.webp",
+      "tagline": "Freezes the pictures without cutting the handshake.",
+      "backstory": "Stu stalls RTP video while ICE consent remains alive. His staggered frames distinguish media trouble from signaling loss.",
+      "speciality": "RTP video stalls with live ICE consent",
+      "palette": {
+        "primary": "#1E1353",
+        "secondary": "#E755E1",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "chaincut-chip",
+      "username": "jollitypv.78",
+      "displayName": "Chaincut Chip",
+      "portrait": "chaincut-chip.webp",
+      "tagline": "Separates the host from the chain with surgical care.",
+      "backstory": "Chip isolates the host's chain path while preserving the app-side route. His severed cable motif keeps the boundary visible.",
+      "speciality": "app and host chain isolation",
+      "palette": {
+        "primary": "#533113",
+        "secondary": "#B7E755",
+        "ink": "#FFFFFF"
+      }
+    },
+    {
+      "key": "fifth-turn-felix",
+      "username": "jollitypv.83",
+      "displayName": "Fifth-Turn Felix",
+      "portrait": "fifth-turn-felix.webp",
+      "tagline": "Times his entrance for the fifth turn.",
+      "backstory": "Felix waits until turn five before returning to the game. His five-point badge makes the delayed entrance unmistakable.",
+      "speciality": "joining on game turn five",
+      "palette": {
+        "primary": "#135343",
+        "secondary": "#558DE7",
+        "ink": "#FFFFFF"
+      }
+    }
+  ]
+}

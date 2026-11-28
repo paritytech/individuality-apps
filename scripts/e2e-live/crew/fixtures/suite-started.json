@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "key": "suite-nightly-2026-10-18-r39147986065",
+  "suiteId": "nightly-2026-10-18",
+  "runId": 39147986065,
+  "attempts": [1],
+  "latestAttempt": 1,
+  "state": "started",
+  "classification": "nightly",
+  "repository": "paritytech/individuality-apps",
+  "ref": "refs/heads/main",
+  "commit": "9159e61d4baf4f6f5bac1a1764f25930f65f2aea",
+  "actor": "github-actions[bot]",
+  "source": {
+    "workflowPath": ".github/workflows/e2e-live-nightly.yml",
+    "event": "schedule",
+    "defaultBranch": "main",
+    "artifactId": null,
+    "jobId": null
+  },
+  "timezone": "Europe/Zurich",
+  "startedAt": "2026-10-18T01:17:00.000Z",
+  "finishedAt": null,
+  "planStatus": "provisional",
+  "evidenceStatus": "provisional",
+  "plannedWaves": [],
+  "observedRunKeys": [],
+  "totals": {
+    "passed": 0,
+    "failed": 0,
+    "inconclusive": 0,
+    "missing": 0,
+    "skipped": 0
+  },
+  "infrastructureTotals": {
+    "complete": 0,
+    "partial": 0,
+    "missing": 0,
+    "superseded": 0
+  },
+  "coverage": {
+    "planned": 0,
+    "observed": 0,
+    "complete": false,
+    "missing": []
+  },
+  "result": "inconclusive",
+  "productResult": "inconclusive",
+  "infrastructure": "partial",
+  "failures": [],
+  "links": [
+    {
+      "label": "Nightly workflow",
+      "url": "https://github.com/paritytech/individuality-apps/actions/runs/39147986065",
+      "visibility": "organization"
+    }
+  ]
+}

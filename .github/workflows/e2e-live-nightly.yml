@@ -1,0 +1,203 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: PreviewNet Crew Nightly
+run-name: "PreviewNet complete crew suite"
+on:
+  schedule:
+    - cron: "17 3 * * *"
+      timezone: Europe/Zurich
+  workflow_dispatch:
+    inputs:
+      reserved_window_confirmed:
+        description: "I stopped the ordinary dispatcher and verified every ordinary PreviewNet run is idle"
+        type: boolean
+        required: true
+        default: false
+      app_cid:
+        description: "Pin this exact deployed app CID for the whole suite. Empty = the current dim2.testnet CID, resolved once at the start."
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  actions: read
+  checks: read
+  contents: read
+
+# Ordinary PreviewNet runs wait only while a complete suite is queued or in progress.
+# Manual suites still require the explicit reservation above. The reusable
+# execution workflow shares one non-replacing gameplay lane with ordinary runs
+# and rechecks manual admission only after acquiring it.
+concurrency:
+  group: previewnet-crew-nightly
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  plan:
+    if: github.event_name == 'schedule' || inputs.reserved_window_confirmed == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      suite_id: ${{ steps.plan.outputs.suite_id }}
+      classification: ${{ steps.plan.outputs.classification }}
+      game_ready: ${{ steps.plan.outputs.game_ready }}
+      has_specialists: ${{ steps.plan.outputs.has_specialists }}
+      has_checks: ${{ steps.plan.outputs.has_checks }}
+      has_stale_check: ${{ steps.plan.outputs.has_stale_check }}
+      game_ready_matrix: ${{ steps.plan.outputs.game_ready_matrix }}
+      specialist_matrix: ${{ steps.plan.outputs.specialist_matrix }}
+      check_matrix: ${{ steps.plan.outputs.check_matrix }}
+      stale_check_matrix: ${{ steps.plan.outputs.stale_check_matrix }}
+    env:
+      E2E_IDENTITIES_PREVIEWNET: ${{ vars.E2E_IDENTITIES_PREVIEWNET }}
+      E2E_FRESH_IDENTITIES_PREVIEWNET: ${{ vars.E2E_FRESH_IDENTITIES_PREVIEWNET }}
+      E2E_FRESH_RESERVE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: npm
+      - run: npm ci
+      - name: Read current fresh-person availability
+        run: npx tsx scripts/e2e-live/crew/nightly-inputs.mts
+      - name: Plan the 45 non-telemetry catalogue profiles
+        id: plan
+        run: npx tsx scripts/e2e-live/crew/nightly-plan-cli.mts --out nightly-plan.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nightly-plan-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: nightly-plan.json
+          if-no-files-found: error
+          retention-days: 3
+
+  # One app build for the whole suite: resolved once here, so a merge to main
+  # (which redeploys dim2.testnet) during the run cannot change the app under it.
+  pin:
+    if: github.event_name == 'schedule' || inputs.reserved_window_confirmed == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      app_cid: ${{ steps.pin.outputs.app_cid }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: npm
+      - run: npm ci
+      - name: Pin the app build
+        id: pin
+        env:
+          E2E_NETWORK: previewnet
+          E2E_APP_CID_INPUT: ${{ inputs.app_cid }}
+        run: |
+          npx tsx scripts/e2e-live/pin-app.mts
+      - name: Print the pinned build
+        env:
+          APP_CID: ${{ steps.pin.outputs.app_cid }}
+          PIN_SOURCE: ${{ steps.pin.outputs.app_pin_source }}
+        run: |
+          test -n "$APP_CID" || { echo "no app CID resolved" >&2; exit 1; }
+          if [ "$PIN_SOURCE" = "input" ]; then HOW="input"; else HOW="resolved at start"; fi
+          echo "**app pinned:** $APP_CID ($HOW)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  game-ready:
+    needs: [plan, pin]
+    if: always() && needs.plan.result == 'success' && needs.pin.result == 'success' && needs.plan.outputs.game_ready == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.plan.outputs.game_ready_matrix || '{"include":[]}') }}
+    uses: ./.github/workflows/e2e-live.yml
+    with:
+      network: previewnet
+      bots: ${{ matrix.bots }}
+      roles: true
+      share: "on"
+      telemetry: ${{ matrix.telemetry }}
+      boot_only: ${{ matrix.boot_only }}
+      boot_profile: ${{ matrix.boot_profile }}
+      app: ${{ matrix.app }}
+      app_cid: ${{ matrix.app != 'local' && needs.pin.outputs.app_cid || '' }}
+      suite_id: ${{ needs.plan.outputs.suite_id }}
+      classification: ${{ needs.plan.outputs.classification }}
+      execution_key: ${{ matrix.key }}
+      suite_wave: ${{ matrix.key }}
+    secrets: inherit
+
+  specialists:
+    needs: [plan, pin, game-ready]
+    if: always() && needs.plan.result == 'success' && needs.pin.result == 'success' && needs.plan.outputs.has_specialists == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.plan.outputs.specialist_matrix || '{"include":[]}') }}
+    uses: ./.github/workflows/e2e-live.yml
+    with:
+      network: previewnet
+      bots: ${{ matrix.bots }}
+      roles: true
+      share: "on"
+      telemetry: ${{ matrix.telemetry }}
+      boot_only: ${{ matrix.boot_only }}
+      boot_profile: ${{ matrix.boot_profile }}
+      app: ${{ matrix.app }}
+      app_cid: ${{ matrix.app != 'local' && needs.pin.outputs.app_cid || '' }}
+      suite_id: ${{ needs.plan.outputs.suite_id }}
+      classification: ${{ needs.plan.outputs.classification }}
+      execution_key: ${{ matrix.key }}
+      suite_wave: ${{ matrix.key }}
+    secrets: inherit
+
+  checks:
+    needs: [plan, pin, specialists]
+    if: always() && needs.plan.result == 'success' && needs.pin.result == 'success' && needs.plan.outputs.has_checks == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.plan.outputs.check_matrix || '{"include":[]}') }}
+    uses: ./.github/workflows/e2e-live.yml
+    with:
+      network: previewnet
+      bots: ${{ matrix.bots }}
+      roles: ${{ matrix.roles }}
+      share: ${{ matrix.share }}
+      telemetry: ${{ matrix.telemetry }}
+      boot_only: ${{ matrix.boot_only }}
+      boot_profile: ${{ matrix.boot_profile }}
+      app: ${{ matrix.app }}
+      app_cid: ${{ matrix.app != 'local' && needs.pin.outputs.app_cid || '' }}
+      suite_id: ${{ needs.plan.outputs.suite_id }}
+      classification: harness-check
+      execution_key: ${{ matrix.key }}
+      suite_wave: ${{ matrix.key }}
+    secrets: inherit
+
+  stale-build:
+    needs: [plan, pin, checks]
+    if: always() && needs.plan.result == 'success' && needs.pin.result == 'success' && needs.plan.outputs.has_stale_check == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.plan.outputs.stale_check_matrix || '{"include":[]}') }}
+    uses: ./.github/workflows/e2e-live.yml
+    with:
+      network: previewnet
+      bots: ${{ matrix.bots }}
+      roles: ${{ matrix.roles }}
+      share: ${{ matrix.share }}
+      telemetry: ${{ matrix.telemetry }}
+      boot_only: ${{ matrix.boot_only }}
+      boot_profile: ${{ matrix.boot_profile }}
+      app: ${{ matrix.app }}
+      app_cid: ${{ matrix.app != 'local' && needs.pin.outputs.app_cid || '' }}
+      suite_id: ${{ needs.plan.outputs.suite_id }}
+      classification: harness-check
+      execution_key: ${{ matrix.key }}
+      suite_wave: ${{ matrix.key }}
+    secrets: inherit

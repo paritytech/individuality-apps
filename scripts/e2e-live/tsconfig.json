@@ -1,0 +1,6 @@
+{
+  "extends": "../../apps/jollity-app/tsconfig.json",
+  "compilerOptions": { "incremental": false, "plugins": [], "types": ["node"], "allowImportingTsExtensions": true },
+  "include": ["*.ts", "*.mts", "crew/**/*.ts", "crew/**/*.mts"],
+  "exclude": ["*.pw.ts", "playwright.config.ts"]
+}

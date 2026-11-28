@@ -1,0 +1,4094 @@
+{
+"_note": "27 Oct bot 1 tiles-1.jsonl, the rows from the waiting room through turn 1's ending, trimmed to the bot's own tile and the co-player: the same shape as the bot 31 case on turn 1.",
+"self": "5SELF-bot1",
+"turn": 1,
+"id": "5CoC5rt6-fake",
+"rows": [
+{
+"t": "2026-10-27T02:59:59.673Z",
+"ms": 296385,
+"readStartedAt": "2026-10-27T02:59:59.673Z",
+"snapshotAt": "2026-10-27T02:59:59.688Z",
+"readCompletedAt": "2026-10-27T02:59:59.694Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "waiting",
+"round": 0,
+"turn": null,
+"turnsPerRound": null,
+"sessionStage": "none",
+"sessionTurn": null,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": null,
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T02:59:59.924Z",
+"ms": 296636,
+"readStartedAt": "2026-10-27T02:59:59.924Z",
+"snapshotAt": "2026-10-27T02:59:59.930Z",
+"readCompletedAt": "2026-10-27T02:59:59.933Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "waiting",
+"round": 0,
+"turn": null,
+"turnsPerRound": null,
+"sessionStage": "none",
+"sessionTurn": null,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": null,
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:00.176Z",
+"ms": 296888,
+"readStartedAt": "2026-10-27T03:00:00.176Z",
+"snapshotAt": "2026-10-27T03:00:00.199Z",
+"readCompletedAt": "2026-10-27T03:00:00.215Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "waiting",
+"round": 0,
+"turn": null,
+"turnsPerRound": null,
+"sessionStage": "none",
+"sessionTurn": null,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": null,
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:00.426Z",
+"ms": 297138,
+"readStartedAt": "2026-10-27T03:00:00.426Z",
+"snapshotAt": "2026-10-27T03:00:00.845Z",
+"readCompletedAt": "2026-10-27T03:00:00.874Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "intro",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "introduction",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": true,
+"intro": true,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:01.903Z",
+"ms": 298615,
+"readStartedAt": "2026-10-27T03:00:01.903Z",
+"snapshotAt": "2026-10-27T03:00:02.377Z",
+"readCompletedAt": "2026-10-27T03:00:02.402Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:02.404Z",
+"ms": 299116,
+"readStartedAt": "2026-10-27T03:00:02.404Z",
+"snapshotAt": "2026-10-27T03:00:02.417Z",
+"readCompletedAt": "2026-10-27T03:00:02.425Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:02.656Z",
+"ms": 299368,
+"readStartedAt": "2026-10-27T03:00:02.656Z",
+"snapshotAt": "2026-10-27T03:00:02.667Z",
+"readCompletedAt": "2026-10-27T03:00:02.680Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:02.906Z",
+"ms": 299618,
+"readStartedAt": "2026-10-27T03:00:02.906Z",
+"snapshotAt": "2026-10-27T03:00:02.914Z",
+"readCompletedAt": "2026-10-27T03:00:02.920Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:03.156Z",
+"ms": 299868,
+"readStartedAt": "2026-10-27T03:00:03.156Z",
+"snapshotAt": "2026-10-27T03:00:03.167Z",
+"readCompletedAt": "2026-10-27T03:00:03.175Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:03.406Z",
+"ms": 300118,
+"readStartedAt": "2026-10-27T03:00:03.407Z",
+"snapshotAt": "2026-10-27T03:00:03.415Z",
+"readCompletedAt": "2026-10-27T03:00:03.422Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:03.659Z",
+"ms": 300371,
+"readStartedAt": "2026-10-27T03:00:03.659Z",
+"snapshotAt": "2026-10-27T03:00:03.669Z",
+"readCompletedAt": "2026-10-27T03:00:03.677Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:03.909Z",
+"ms": 300621,
+"readStartedAt": "2026-10-27T03:00:03.909Z",
+"snapshotAt": "2026-10-27T03:00:03.914Z",
+"readCompletedAt": "2026-10-27T03:00:03.917Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:04.165Z",
+"ms": 300877,
+"readStartedAt": "2026-10-27T03:00:04.165Z",
+"snapshotAt": "2026-10-27T03:00:04.180Z",
+"readCompletedAt": "2026-10-27T03:00:04.198Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:04.415Z",
+"ms": 301127,
+"readStartedAt": "2026-10-27T03:00:04.415Z",
+"snapshotAt": "2026-10-27T03:00:04.424Z",
+"readCompletedAt": "2026-10-27T03:00:04.430Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:04.668Z",
+"ms": 301380,
+"readStartedAt": "2026-10-27T03:00:04.668Z",
+"snapshotAt": "2026-10-27T03:00:04.689Z",
+"readCompletedAt": "2026-10-27T03:00:04.698Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:04.918Z",
+"ms": 301630,
+"readStartedAt": "2026-10-27T03:00:04.918Z",
+"snapshotAt": "2026-10-27T03:00:04.935Z",
+"readCompletedAt": "2026-10-27T03:00:04.941Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:05.168Z",
+"ms": 301880,
+"readStartedAt": "2026-10-27T03:00:05.169Z",
+"snapshotAt": "2026-10-27T03:00:05.176Z",
+"readCompletedAt": "2026-10-27T03:00:05.187Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:05.418Z",
+"ms": 302130,
+"readStartedAt": "2026-10-27T03:00:05.418Z",
+"snapshotAt": "2026-10-27T03:00:05.429Z",
+"readCompletedAt": "2026-10-27T03:00:05.433Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:05.668Z",
+"ms": 302380,
+"readStartedAt": "2026-10-27T03:00:05.668Z",
+"snapshotAt": "2026-10-27T03:00:05.675Z",
+"readCompletedAt": "2026-10-27T03:00:05.679Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:05.917Z",
+"ms": 302629,
+"readStartedAt": "2026-10-27T03:00:05.917Z",
+"snapshotAt": "2026-10-27T03:00:05.928Z",
+"readCompletedAt": "2026-10-27T03:00:05.936Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:06.167Z",
+"ms": 302879,
+"readStartedAt": "2026-10-27T03:00:06.167Z",
+"snapshotAt": "2026-10-27T03:00:06.175Z",
+"readCompletedAt": "2026-10-27T03:00:06.184Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:06.420Z",
+"ms": 303132,
+"readStartedAt": "2026-10-27T03:00:06.420Z",
+"snapshotAt": "2026-10-27T03:00:06.439Z",
+"readCompletedAt": "2026-10-27T03:00:06.443Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:06.670Z",
+"ms": 303382,
+"readStartedAt": "2026-10-27T03:00:06.670Z",
+"snapshotAt": "2026-10-27T03:00:06.676Z",
+"readCompletedAt": "2026-10-27T03:00:06.683Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:06.921Z",
+"ms": 303633,
+"readStartedAt": "2026-10-27T03:00:06.921Z",
+"snapshotAt": "2026-10-27T03:00:06.930Z",
+"readCompletedAt": "2026-10-27T03:00:06.937Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:07.171Z",
+"ms": 303883,
+"readStartedAt": "2026-10-27T03:00:07.171Z",
+"snapshotAt": "2026-10-27T03:00:07.181Z",
+"readCompletedAt": "2026-10-27T03:00:07.189Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:07.421Z",
+"ms": 304133,
+"readStartedAt": "2026-10-27T03:00:07.421Z",
+"snapshotAt": "2026-10-27T03:00:07.427Z",
+"readCompletedAt": "2026-10-27T03:00:07.436Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:07.674Z",
+"ms": 304386,
+"readStartedAt": "2026-10-27T03:00:07.674Z",
+"snapshotAt": "2026-10-27T03:00:07.689Z",
+"readCompletedAt": "2026-10-27T03:00:07.697Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:07.925Z",
+"ms": 304637,
+"readStartedAt": "2026-10-27T03:00:07.925Z",
+"snapshotAt": "2026-10-27T03:00:07.931Z",
+"readCompletedAt": "2026-10-27T03:00:07.938Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:08.176Z",
+"ms": 304888,
+"readStartedAt": "2026-10-27T03:00:08.176Z",
+"snapshotAt": "2026-10-27T03:00:08.193Z",
+"readCompletedAt": "2026-10-27T03:00:08.200Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:08.426Z",
+"ms": 305138,
+"readStartedAt": "2026-10-27T03:00:08.426Z",
+"snapshotAt": "2026-10-27T03:00:08.438Z",
+"readCompletedAt": "2026-10-27T03:00:08.449Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:08.676Z",
+"ms": 305388,
+"readStartedAt": "2026-10-27T03:00:08.676Z",
+"snapshotAt": "2026-10-27T03:00:08.688Z",
+"readCompletedAt": "2026-10-27T03:00:08.699Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:08.926Z",
+"ms": 305638,
+"readStartedAt": "2026-10-27T03:00:08.926Z",
+"snapshotAt": "2026-10-27T03:00:08.941Z",
+"readCompletedAt": "2026-10-27T03:00:08.950Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:09.176Z",
+"ms": 305888,
+"readStartedAt": "2026-10-27T03:00:09.176Z",
+"snapshotAt": "2026-10-27T03:00:09.182Z",
+"readCompletedAt": "2026-10-27T03:00:09.195Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:09.426Z",
+"ms": 306138,
+"readStartedAt": "2026-10-27T03:00:09.426Z",
+"snapshotAt": "2026-10-27T03:00:09.432Z",
+"readCompletedAt": "2026-10-27T03:00:09.441Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:09.676Z",
+"ms": 306388,
+"readStartedAt": "2026-10-27T03:00:09.676Z",
+"snapshotAt": "2026-10-27T03:00:09.687Z",
+"readCompletedAt": "2026-10-27T03:00:09.691Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:09.927Z",
+"ms": 306639,
+"readStartedAt": "2026-10-27T03:00:09.927Z",
+"snapshotAt": "2026-10-27T03:00:09.988Z",
+"readCompletedAt": "2026-10-27T03:00:10.008Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:10.177Z",
+"ms": 306889,
+"readStartedAt": "2026-10-27T03:00:10.177Z",
+"snapshotAt": "2026-10-27T03:00:10.184Z",
+"readCompletedAt": "2026-10-27T03:00:10.187Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "coplayer",
+"cursorPointer": true,
+"votable": true,
+"tapReady": true,
+"verdict": "reject",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "true",
+"data-tile-tap-ready": "true",
+"data-tile-verdict": "reject",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:10.427Z",
+"ms": 307139,
+"readStartedAt": "2026-10-27T03:00:10.427Z",
+"snapshotAt": "2026-10-27T03:00:10.442Z",
+"readCompletedAt": "2026-10-27T03:00:10.453Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "coplayer",
+"cursorPointer": true,
+"votable": true,
+"tapReady": true,
+"verdict": "reject",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "true",
+"data-tile-tap-ready": "true",
+"data-tile-verdict": "reject",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:10.677Z",
+"ms": 307389,
+"readStartedAt": "2026-10-27T03:00:10.677Z",
+"snapshotAt": "2026-10-27T03:00:10.871Z",
+"readCompletedAt": "2026-10-27T03:00:10.876Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "coplayer",
+"cursorPointer": true,
+"votable": true,
+"tapReady": true,
+"verdict": "reject",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "true",
+"data-tile-tap-ready": "true",
+"data-tile-verdict": "reject",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:10.928Z",
+"ms": 307640,
+"readStartedAt": "2026-10-27T03:00:10.928Z",
+"snapshotAt": "2026-10-27T03:00:11.160Z",
+"readCompletedAt": "2026-10-27T03:00:11.176Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "coplayer",
+"cursorPointer": true,
+"votable": true,
+"tapReady": true,
+"verdict": "reject",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "true",
+"data-tile-tap-ready": "true",
+"data-tile-verdict": "reject",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:11.178Z",
+"ms": 307890,
+"readStartedAt": "2026-10-27T03:00:11.178Z",
+"snapshotAt": "2026-10-27T03:00:11.215Z",
+"readCompletedAt": "2026-10-27T03:00:11.220Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "coplayer",
+"cursorPointer": true,
+"votable": true,
+"tapReady": true,
+"verdict": "reject",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "true",
+"data-tile-tap-ready": "true",
+"data-tile-verdict": "reject",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:11.428Z",
+"ms": 308140,
+"readStartedAt": "2026-10-27T03:00:11.428Z",
+"snapshotAt": "2026-10-27T03:00:11.435Z",
+"readCompletedAt": "2026-10-27T03:00:11.441Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "coplayer",
+"cursorPointer": true,
+"votable": true,
+"tapReady": true,
+"verdict": "reject",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "true",
+"data-tile-tap-ready": "true",
+"data-tile-verdict": "reject",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:11.679Z",
+"ms": 308391,
+"readStartedAt": "2026-10-27T03:00:11.679Z",
+"snapshotAt": "2026-10-27T03:00:11.687Z",
+"readCompletedAt": "2026-10-27T03:00:11.692Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "coplayer",
+"cursorPointer": true,
+"votable": true,
+"tapReady": true,
+"verdict": "reject",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "true",
+"data-tile-tap-ready": "true",
+"data-tile-verdict": "reject",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:11.929Z",
+"ms": 308641,
+"readStartedAt": "2026-10-27T03:00:11.929Z",
+"snapshotAt": "2026-10-27T03:00:11.937Z",
+"readCompletedAt": "2026-10-27T03:00:11.941Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "coplayer",
+"cursorPointer": true,
+"votable": true,
+"tapReady": true,
+"verdict": "reject",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "true",
+"data-tile-tap-ready": "true",
+"data-tile-verdict": "reject",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:12.179Z",
+"ms": 308891,
+"readStartedAt": "2026-10-27T03:00:12.179Z",
+"snapshotAt": "2026-10-27T03:00:12.184Z",
+"readCompletedAt": "2026-10-27T03:00:12.194Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5CoC5rt6-fake",
+"role": "coplayer",
+"cursorPointer": true,
+"votable": true,
+"tapReady": true,
+"verdict": "reject",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "true",
+"data-tile-tap-ready": "true",
+"data-tile-verdict": "reject",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:12.432Z",
+"ms": 309144,
+"readStartedAt": "2026-10-27T03:00:12.432Z",
+"snapshotAt": "2026-10-27T03:00:12.445Z",
+"readCompletedAt": "2026-10-27T03:00:12.453Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "intro",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "introduction",
+"sessionTurn": 2,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 2 of 12",
+"ducked": true,
+"intro": true,
+"confirm": false,
+"tiles": [
+{
+"id": "5CoC5rt6-fake",
+"role": "host",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "host",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-27T03:00:13.472Z",
+"ms": 310184,
+"readStartedAt": "2026-10-27T03:00:13.472Z",
+"snapshotAt": "2026-10-27T03:00:14.039Z",
+"readCompletedAt": "2026-10-27T03:00:14.060Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1793069658442.3",
+"url": "http://localhost:3000/game",
+"stage": "intro",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "introduction",
+"sessionTurn": 2,
+"viewport": {
+"width": 390,
+"height": 844
+},
+"pill": "Turn 2 of 12",
+"ducked": true,
+"intro": true,
+"confirm": false,
+"tiles": [
+{
+"id": "5CoC5rt6-fake",
+"role": "host",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "host",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 104,
+"y": 277,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5SELF-bot1",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 199,
+"y": 86,
+"w": 183,
+"h": 183
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+}
+],
+"taps": [
+{
+"at": "2026-10-27T03:00:10.083Z",
+"turn": 1,
+"id": "5CoC5rt6-fake",
+"result": "skipped: page showed ending, turn 1",
+"stage": "ending"
+},
+{
+"at": "2026-10-27T03:00:10.622Z",
+"turn": 1,
+"id": "5CoC5rt6-fake",
+"result": "skipped: page showed ending, turn 1",
+"stage": "ending"
+},
+{
+"at": "2026-10-27T03:00:11.250Z",
+"turn": 1,
+"id": "5CoC5rt6-fake",
+"result": "skipped: page showed ending, turn 1",
+"stage": "ending"
+},
+{
+"at": "2026-10-27T03:00:11.564Z",
+"turn": 1,
+"id": "5CoC5rt6-fake",
+"result": "skipped: page showed ending, turn 1",
+"stage": "ending"
+},
+{
+"at": "2026-10-27T03:00:11.865Z",
+"turn": 1,
+"id": "5CoC5rt6-fake",
+"result": "skipped: page showed ending, turn 1",
+"stage": "ending"
+},
+{
+"at": "2026-10-27T03:00:12.169Z",
+"turn": 1,
+"id": "5CoC5rt6-fake",
+"result": "skipped: page showed ending, turn 1",
+"stage": "ending"
+}
+]
+}

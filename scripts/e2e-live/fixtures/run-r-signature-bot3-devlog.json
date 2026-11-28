@@ -1,0 +1,583 @@
+{
+ "lines": [
+  {
+   "ts": 1792990753548,
+   "tag": "rtc",
+   "message": "mesh opening",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info",
+   "data": {
+    "room": "g1431",
+    "round": 0,
+    "generation": 1,
+    "self": "5HjBMBesAzNXXGxLDFyu8zA4ybHuPnakRN5etiES4vxzWRSW",
+    "peers": [
+     "5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1",
+     "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+     "5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+     "5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R",
+     "5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG"
+    ]
+   }
+  },
+  {
+   "ts": 1792990753548,
+   "tag": "rtc",
+   "message": "mesh opening",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info",
+   "data": {
+    "room": "g1431",
+    "round": 0,
+    "generation": 1,
+    "self": "5HjBMBesAzNXXGxLDFyu8zA4ybHuPnakRN5etiES4vxzWRSW",
+    "peers": [
+     "5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1",
+     "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+     "5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+     "5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R",
+     "5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG"
+    ]
+   }
+  },
+  {
+   "ts": 1792990753628,
+   "tag": "rtc",
+   "message": "mesh open",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info",
+   "data": {
+    "room": "g1431",
+    "self": "5HjBMBesAzNXXGxLDFyu8zA4ybHuPnakRN5etiES4vxzWRSW",
+    "peers": [
+     "5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1",
+     "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+     "5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+     "5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R",
+     "5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG"
+    ],
+    "iceServers": 9
+   }
+  },
+  {
+   "ts": 1792990754109,
+   "tag": "rtc",
+   "message": "[jollity-rtc] pc 5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R connected",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990754112,
+   "tag": "rtc",
+   "message": "[jollity-rtc] pc 5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7 connected",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990754114,
+   "tag": "rtc",
+   "message": "[jollity-rtc] channel open 5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990754114,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=channel-open round=1 peer=5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990754118,
+   "tag": "rtc",
+   "message": "[jollity-rtc] channel open 5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990754119,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=channel-open round=1 peer=5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990754428,
+   "tag": "rtc",
+   "message": "[jollity-rtc] pc 5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH connected",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990754430,
+   "tag": "rtc",
+   "message": "[jollity-rtc] pc 5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1 connected",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990754472,
+   "tag": "rtc",
+   "message": "[jollity-rtc] channel open 5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990754472,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=channel-open round=1 peer=5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990754476,
+   "tag": "rtc",
+   "message": "[jollity-rtc] channel open 5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990754476,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=channel-open round=1 peer=5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990754555,
+   "tag": "rtc",
+   "message": "[jollity-rtc] pc 5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG connected",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990754596,
+   "tag": "rtc",
+   "message": "[jollity-rtc] channel open 5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990754596,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=channel-open round=1 peer=5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990755611,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=first-video round=1 peer=5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990755930,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=first-video round=1 peer=5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990755931,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=first-video round=1 peer=5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990756057,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=first-video round=1 peer=5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990756552,
+   "tag": "rtc",
+   "message": "[jollity-rtc] first video after 2923ms 5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990756555,
+   "tag": "rtc",
+   "message": "[jollity-rtc] first video after 2926ms 5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990756557,
+   "tag": "rtc",
+   "message": "[jollity-rtc] first video after 2928ms 5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990756558,
+   "tag": "rtc",
+   "message": "[jollity-rtc] first video after 2929ms 5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990756561,
+   "tag": "rtc",
+   "message": "[jollity-rtc] path 5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1 host/host udp",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990756561,
+   "tag": "rtc",
+   "message": "[jollity-rtc] path 5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7 host/host udp",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990756562,
+   "tag": "rtc",
+   "message": "[jollity-rtc] path 5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH host/host udp",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990756562,
+   "tag": "rtc",
+   "message": "[jollity-rtc] path 5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R host/host udp",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990756562,
+   "tag": "rtc",
+   "message": "[jollity-rtc] path 5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG host/host udp",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990773631,
+   "tag": "rtc",
+   "message": "[jollity-rtc] media-stall: no-video-rebuild peer=5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7 fault=none signalingState=stable round=1 connected channel open but no inbound video \u2192 rebuild",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990773631,
+   "tag": "rtc",
+   "message": "[jollity-rtc] self-heal: rebuild 5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7 (attempt 1)",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990774092,
+   "tag": "rtc",
+   "message": "[jollity-rtc] pc 5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7 connected",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990774093,
+   "tag": "rtc",
+   "message": "[jollity-rtc] channel open 5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990774556,
+   "tag": "rtc",
+   "message": "[jollity-rtc] first video after 20927ms 5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990774556,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=first-video round=1 peer=5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990800157,
+   "tag": "replay",
+   "message": "game.snapshot",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info",
+   "data": {
+    "schemaVersion": 1,
+    "numericFractionDigits": 3,
+    "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+    "sequence": 34,
+    "buildCommit": "jollity-build-commit:cached",
+    "timing": {
+     "wallMs": 1792990800157,
+     "monotonicMs": 336840.5,
+     "offsetMs": 0,
+     "offsetDomain": "published-wall-relative",
+     "lastBlock": 552071,
+     "alignment": "unmeasured"
+    },
+    "observation": {
+     "gameIndex": 1431,
+     "gameDate": 1792990800,
+     "observation": "transition",
+     "observedOnly": true,
+     "previous": null,
+     "current": {
+      "kind": "round",
+      "round": 0,
+      "globalTurn": 0,
+      "hostPosition": 0,
+      "hostId": "5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1",
+      "stage": "introduction",
+      "nextRound": null,
+      "preconnectRound": null,
+      "roomKey": "g1431",
+      "meshRound": 0,
+      "clockReady": true,
+      "sourceClockReady": true
+     },
+     "snapshot": {
+      "kind": "round",
+      "round": 0,
+      "hostPosition": 0,
+      "stage": "introduction",
+      "stageRemaining": 2,
+      "stageDuration": 2,
+      "turnsThisRound": 6,
+      "turnDuration": 12,
+      "turnElapsed": 0,
+      "preconnectRound": null
+     },
+     "sourceNowSeconds": 1792990800,
+     "sourceNowSample": "existing-render-clock-read",
+     "monotonicGapMs": 155.3,
+     "resumed": false,
+     "gapObserved": false,
+     "skippedTurnCount": 0,
+     "stageSequenceSkipped": false,
+     "unobservedCompletedTurnRanges": [],
+     "intermediateStagesObserved": false,
+     "planned": {
+      "clock": "game-unix-seconds",
+      "provenance": "game-timing-and-client-state-machine",
+      "roundStartSeconds": 1792990800,
+      "roundEndSeconds": 1792990872,
+      "turnStartSeconds": 1792990800,
+      "turnEndSeconds": 1792990812,
+      "stageStartSeconds": 1792990800,
+      "stageEndSeconds": 1792990802
+     },
+     "configuration": {
+      "gameDate": 1792990800,
+      "reportEnds": 1792991400,
+      "rounds": 2,
+      "maxGroupSize": 6,
+      "timingProvenance": "live-game-view",
+      "turnIndexBase": 0,
+      "turnIndexStride": 6,
+      "hostFullCycleSeconds": 12,
+      "hostIntroductionSeconds": 2,
+      "hostEndingSeconds": 2,
+      "roundGapSeconds": 7,
+      "constantsProvenance": "@jollity/game-chain/game"
+     }
+    }
+   }
+  },
+  {
+   "ts": 1792990872167,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=channel-open round=2 peer=5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990872168,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=channel-open round=2 peer=5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990872169,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=channel-open round=2 peer=5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990872170,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=channel-open round=2 peer=5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990872170,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=channel-open round=2 peer=5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990873551,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=first-video round=2 peer=5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990873552,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=first-video round=2 peer=5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990873553,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=first-video round=2 peer=5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990873553,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=first-video round=2 peer=5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990873554,
+   "tag": "rtc",
+   "message": "[jollity-rtc] round-link stage=first-video round=2 peer=5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info"
+  },
+  {
+   "ts": 1792990951213,
+   "tag": "replay",
+   "message": "game.snapshot",
+   "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+   "level": "info",
+   "data": {
+    "schemaVersion": 1,
+    "numericFractionDigits": 3,
+    "sessionId": "86e2629f-24b5-477f-8b48-cb972da4e329",
+    "sequence": 144,
+    "buildCommit": "jollity-build-commit:cached",
+    "timing": {
+     "wallMs": 1792990951213,
+     "monotonicMs": 487896,
+     "offsetMs": 0,
+     "offsetDomain": "published-wall-relative",
+     "lastBlock": 552097,
+     "alignment": "unmeasured"
+    },
+    "observation": {
+     "gameIndex": 1431,
+     "gameDate": 1792990800,
+     "observation": "transition",
+     "observedOnly": true,
+     "previous": null,
+     "current": {
+      "kind": "reporting",
+      "round": null,
+      "globalTurn": null,
+      "hostPosition": null,
+      "hostId": null,
+      "stage": null,
+      "nextRound": null,
+      "preconnectRound": null,
+      "roomKey": "",
+      "meshRound": null,
+      "clockReady": true,
+      "sourceClockReady": true
+     },
+     "snapshot": {
+      "kind": "reporting",
+      "secondsToReportEnd": 449
+     },
+     "sourceNowSeconds": 1792990951,
+     "sourceNowSample": "existing-render-clock-read",
+     "monotonicGapMs": 552.8,
+     "resumed": false,
+     "gapObserved": false,
+     "skippedTurnCount": 0,
+     "stageSequenceSkipped": false,
+     "unobservedCompletedTurnRanges": [],
+     "intermediateStagesObserved": false,
+     "planned": null,
+     "configuration": {
+      "gameDate": 1792990800,
+      "reportEnds": 1792991400,
+      "rounds": 2,
+      "maxGroupSize": 6,
+      "timingProvenance": "live-game-view",
+      "turnIndexBase": 0,
+      "turnIndexStride": 6,
+      "hostFullCycleSeconds": 12,
+      "hostIntroductionSeconds": 2,
+      "hostEndingSeconds": 2,
+      "roundGapSeconds": 7,
+      "constantsProvenance": "@jollity/game-chain/game"
+     }
+    }
+   }
+  }
+ ],
+ "trail": {
+  "reports": [
+   {
+    "ts": 1792990958221,
+    "filedBy": "auto-confirm",
+    "players": {
+     "5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1": {
+      "verdict": "person",
+      "predicted": "person",
+      "personTurns": 10,
+      "notPersonTurns": 0,
+      "autoTurns": 0,
+      "source": "majority"
+     },
+     "5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R": {
+      "verdict": "person",
+      "predicted": "person",
+      "personTurns": 10,
+      "notPersonTurns": 0,
+      "autoTurns": 0,
+      "source": "majority"
+     },
+     "5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG": {
+      "verdict": "person",
+      "predicted": "person",
+      "personTurns": 10,
+      "notPersonTurns": 0,
+      "autoTurns": 0,
+      "source": "majority"
+     },
+     "5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH": {
+      "verdict": "person",
+      "predicted": "person",
+      "personTurns": 10,
+      "notPersonTurns": 0,
+      "autoTurns": 0,
+      "source": "majority"
+     },
+     "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7": {
+      "verdict": "person",
+      "predicted": "person",
+      "personTurns": 10,
+      "notPersonTurns": 0,
+      "autoTurns": 0,
+      "source": "majority"
+     }
+    }
+   }
+  ],
+  "taps": 50,
+  "sealed": 12,
+  "overrides": 0
+ }
+}

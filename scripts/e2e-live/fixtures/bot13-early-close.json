@@ -1,0 +1,161 @@
+{
+ "_note": "a live run, previewnet a live game, bot 13 (uplink-limited-pixel6a, account 5CoC5rt6...). lines: devlog-13.json's vote, status, signtx and clock lines (taps dropped). chain: the watch's GameEnded (#331602, Timestamp.Now 1791662568 = 20:02:48 UTC; Game.report_ends in its parent 1791663000) and the game's report_ends; 27 ReportSubmitted in #331600-#331601, none from this account. Co-players tallied it 3P/2N in round 1 and 1P/4N in round 2, so determine_attendance was NotAttended and pending_attendance reached 0. playEndsS: game_date + 12 turns x 12 s. The clock lines are written as clock correction lines with the offsets of the old offset lines.",
+ "account": "5CoC5rt61hqfwBEPEDGDknk7C4iXeF9rjaEzxEkyQKyb2oGs",
+ "ended": {
+  "block": 331602,
+  "atS": 1791662568,
+  "reportEnds": 1791663000
+ },
+ "reportEnds": 1791663000,
+ "lines": [
+  {
+   "ts": 1791661898523,
+   "tag": "status",
+   "message": "registration shown after finalized (+74 ms)"
+  },
+  {
+   "ts": 1791661898525,
+   "tag": "status",
+   "message": "loading to registration"
+  },
+  {
+   "ts": 1791661900648,
+   "tag": "signtx",
+   "message": "host built extrinsic (124B)"
+  },
+  {
+   "ts": 1791661903401,
+   "tag": "clock",
+   "message": "clock correction",
+   "data": {
+    "via": "chain",
+    "fromMs": -14000,
+    "toMs": -7000,
+    "speed": 4
+   }
+  },
+  {
+   "ts": 1791661915597,
+   "tag": "signtx",
+   "message": "host built extrinsic (287B)"
+  },
+  {
+   "ts": 1791661936659,
+   "tag": "signtx",
+   "message": "host built extrinsic (124B)"
+  },
+  {
+   "ts": 1791662317545,
+   "tag": "status",
+   "message": "registration to waiting"
+  },
+  {
+   "ts": 1791662319281,
+   "tag": "signtx",
+   "message": "host built extrinsic (124B)"
+  },
+  {
+   "ts": 1791662338375,
+   "tag": "signtx",
+   "message": "host built extrinsic (124B)"
+  },
+  {
+   "ts": 1791662360539,
+   "tag": "signtx",
+   "message": "host built extrinsic (124B)"
+  },
+  {
+   "ts": 1791662405142,
+   "tag": "clock",
+   "message": "clock correction",
+   "data": {
+    "via": "peer",
+    "fromMs": -7000,
+    "toMs": -10000,
+    "speed": 0.67
+   }
+  },
+  {
+   "ts": 1791662422426,
+   "tag": "vote",
+   "message": "turn sealed"
+  },
+  {
+   "ts": 1791662434427,
+   "tag": "vote",
+   "message": "turn sealed"
+  },
+  {
+   "ts": 1791662446431,
+   "tag": "vote",
+   "message": "turn sealed"
+  },
+  {
+   "ts": 1791662458426,
+   "tag": "vote",
+   "message": "turn sealed"
+  },
+  {
+   "ts": 1791662470426,
+   "tag": "vote",
+   "message": "turn sealed"
+  },
+  {
+   "ts": 1791662482469,
+   "tag": "vote",
+   "message": "turn sealed"
+  },
+  {
+   "ts": 1791662501426,
+   "tag": "vote",
+   "message": "turn sealed"
+  },
+  {
+   "ts": 1791662513427,
+   "tag": "vote",
+   "message": "turn sealed"
+  },
+  {
+   "ts": 1791662525426,
+   "tag": "vote",
+   "message": "turn sealed"
+  },
+  {
+   "ts": 1791662537426,
+   "tag": "vote",
+   "message": "turn sealed"
+  },
+  {
+   "ts": 1791662549426,
+   "tag": "vote",
+   "message": "turn sealed"
+  },
+  {
+   "ts": 1791662561427,
+   "tag": "vote",
+   "message": "turn sealed"
+  },
+  {
+   "ts": 1791662568494,
+   "tag": "vote",
+   "message": "report built"
+  },
+  {
+   "ts": 1791662576247,
+   "tag": "vote",
+   "message": "report unknown after the game"
+  },
+  {
+   "ts": 1791662611241,
+   "tag": "clock",
+   "message": "clock correction",
+   "data": {
+    "via": "peer",
+    "fromMs": -10000,
+    "toMs": -7000,
+    "speed": 1.5
+   }
+  }
+ ],
+ "playEndsS": 1791662544
+}

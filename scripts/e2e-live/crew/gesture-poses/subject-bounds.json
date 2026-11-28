@@ -1,0 +1,436 @@
+{
+  "background-betty": {
+    "a": {
+      "x": 140,
+      "y": 0,
+      "width": 355,
+      "height": 359
+    },
+    "b": {
+      "x": 140,
+      "y": 0,
+      "width": 351,
+      "height": 357
+    }
+  },
+  "berlin-bruno": {
+    "a": {
+      "x": 144,
+      "y": 7,
+      "width": 349,
+      "height": 351
+    },
+    "b": {
+      "x": 143,
+      "y": 7,
+      "width": 353,
+      "height": 351
+    }
+  },
+  "captain-baseline": {
+    "a": {
+      "x": 150,
+      "y": 15,
+      "width": 350,
+      "height": 345
+    },
+    "b": {
+      "x": 140,
+      "y": 4,
+      "width": 360,
+      "height": 356
+    }
+  },
+  "chaincut-chip": {
+    "a": {
+      "x": 147,
+      "y": 0,
+      "width": 353,
+      "height": 360
+    },
+    "b": {
+      "x": 140,
+      "y": 0,
+      "width": 360,
+      "height": 360
+    }
+  },
+  "chainless-charlie": {
+    "a": {
+      "x": 146,
+      "y": 17,
+      "width": 350,
+      "height": 342
+    },
+    "b": {
+      "x": 153,
+      "y": 10,
+      "width": 338,
+      "height": 348
+    }
+  },
+  "clockwork-clyde": {
+    "a": {
+      "x": 140,
+      "y": 7,
+      "width": 360,
+      "height": 353
+    },
+    "b": {
+      "x": 140,
+      "y": 7,
+      "width": 355,
+      "height": 353
+    }
+  },
+  "crash-carter": {
+    "a": {
+      "x": 140,
+      "y": 0,
+      "width": 360,
+      "height": 360
+    },
+    "b": {
+      "x": 140,
+      "y": 0,
+      "width": 350,
+      "height": 358
+    }
+  },
+  "datagram-dana": {
+    "a": {
+      "x": 146,
+      "y": 2,
+      "width": 354,
+      "height": 358
+    },
+    "b": {
+      "x": 140,
+      "y": 0,
+      "width": 360,
+      "height": 360
+    }
+  },
+  "fifth-turn-felix": {
+    "a": {
+      "x": 140,
+      "y": 0,
+      "width": 360,
+      "height": 360
+    },
+    "b": {
+      "x": 140,
+      "y": 0,
+      "width": 353,
+      "height": 360
+    }
+  },
+  "flip-fiona": {
+    "a": {
+      "x": 140,
+      "y": 0,
+      "width": 360,
+      "height": 360
+    },
+    "b": {
+      "x": 140,
+      "y": 0,
+      "width": 354,
+      "height": 360
+    }
+  },
+  "freeze-frame-fred": {
+    "a": {
+      "x": 140,
+      "y": 12,
+      "width": 360,
+      "height": 348
+    },
+    "b": {
+      "x": 140,
+      "y": 11,
+      "width": 354,
+      "height": 349
+    }
+  },
+  "future-fran": {
+    "a": {
+      "x": 143,
+      "y": 8,
+      "width": 352,
+      "height": 351
+    },
+    "b": {
+      "x": 144,
+      "y": 8,
+      "width": 352,
+      "height": 351
+    }
+  },
+  "handoff-hank": {
+    "a": {
+      "x": 140,
+      "y": 2,
+      "width": 360,
+      "height": 358
+    },
+    "b": {
+      "x": 140,
+      "y": 2,
+      "width": 359,
+      "height": 358
+    }
+  },
+  "lady-latency": {
+    "a": {
+      "x": 151,
+      "y": 8,
+      "width": 349,
+      "height": 352
+    },
+    "b": {
+      "x": 140,
+      "y": 8,
+      "width": 360,
+      "height": 352
+    }
+  },
+  "late-larry": {
+    "a": {
+      "x": 140,
+      "y": 0,
+      "width": 360,
+      "height": 360
+    },
+    "b": {
+      "x": 140,
+      "y": 0,
+      "width": 352,
+      "height": 360
+    }
+  },
+  "locale-lola": {
+    "a": {
+      "x": 143,
+      "y": 8,
+      "width": 356,
+      "height": 350
+    },
+    "b": {
+      "x": 142,
+      "y": 8,
+      "width": 354,
+      "height": 350
+    }
+  },
+  "longhaul-lou": {
+    "a": {
+      "x": 145,
+      "y": 12,
+      "width": 355,
+      "height": 348
+    },
+    "b": {
+      "x": 143,
+      "y": 13,
+      "width": 357,
+      "height": 347
+    }
+  },
+  "narrowband-ned": {
+    "a": {
+      "x": 142,
+      "y": 19,
+      "width": 353,
+      "height": 341
+    },
+    "b": {
+      "x": 146,
+      "y": 18,
+      "width": 346,
+      "height": 342
+    }
+  },
+  "null-nancy": {
+    "a": {
+      "x": 152,
+      "y": 3,
+      "width": 347,
+      "height": 357
+    },
+    "b": {
+      "x": 140,
+      "y": 3,
+      "width": 359,
+      "height": 357
+    }
+  },
+  "packet-jack": {
+    "a": {
+      "x": 143,
+      "y": 15,
+      "width": 357,
+      "height": 345
+    },
+    "b": {
+      "x": 140,
+      "y": 12,
+      "width": 360,
+      "height": 348
+    }
+  },
+  "phantom-phil": {
+    "a": {
+      "x": 146,
+      "y": 10,
+      "width": 351,
+      "height": 350
+    },
+    "b": {
+      "x": 146,
+      "y": 8,
+      "width": 348,
+      "height": 352
+    }
+  },
+  "relay-ray": {
+    "a": {
+      "x": 142,
+      "y": 1,
+      "width": 358,
+      "height": 359
+    },
+    "b": {
+      "x": 140,
+      "y": 3,
+      "width": 356,
+      "height": 357
+    }
+  },
+  "relay-rita": {
+    "a": {
+      "x": 151,
+      "y": 8,
+      "width": 349,
+      "height": 352
+    },
+    "b": {
+      "x": 140,
+      "y": 7,
+      "width": 360,
+      "height": 353
+    }
+  },
+  "reload-rex": {
+    "a": {
+      "x": 152,
+      "y": 16,
+      "width": 348,
+      "height": 344
+    },
+    "b": {
+      "x": 140,
+      "y": 13,
+      "width": 360,
+      "height": 347
+    }
+  },
+  "shutter-sheila": {
+    "a": {
+      "x": 145,
+      "y": 6,
+      "width": 348,
+      "height": 354
+    },
+    "b": {
+      "x": 148,
+      "y": 7,
+      "width": 346,
+      "height": 353
+    }
+  },
+  "stutter-stu": {
+    "a": {
+      "x": 140,
+      "y": 18,
+      "width": 360,
+      "height": 342
+    },
+    "b": {
+      "x": 140,
+      "y": 9,
+      "width": 343,
+      "height": 351
+    }
+  },
+  "tap-tony": {
+    "a": {
+      "x": 140,
+      "y": 9,
+      "width": 360,
+      "height": 351
+    },
+    "b": {
+      "x": 140,
+      "y": 8,
+      "width": 354,
+      "height": 352
+    }
+  },
+  "the-rejoiner": {
+    "a": {
+      "x": 144,
+      "y": 0,
+      "width": 351,
+      "height": 360
+    },
+    "b": {
+      "x": 140,
+      "y": 0,
+      "width": 358,
+      "height": 360
+    }
+  },
+  "timewarp-tess": {
+    "a": {
+      "x": 149,
+      "y": 0,
+      "width": 351,
+      "height": 360
+    },
+    "b": {
+      "x": 140,
+      "y": 0,
+      "width": 360,
+      "height": 360
+    }
+  },
+  "token-tina": {
+    "a": {
+      "x": 148,
+      "y": 9,
+      "width": 345,
+      "height": 351
+    },
+    "b": {
+      "x": 147,
+      "y": 10,
+      "width": 344,
+      "height": 350
+    }
+  },
+  "tokyo-taro": {
+    "a": {
+      "x": 143,
+      "y": 11,
+      "width": 355,
+      "height": 348
+    },
+    "b": {
+      "x": 145,
+      "y": 11,
+      "width": 353,
+      "height": 348
+    }
+  }
+}

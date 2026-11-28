@@ -4,7 +4,8 @@
 // One `truapi-host` SLOT on this machine: which network it signs against, where
 // its state lives, which persistent session it restores, and which loopback
 // ports are free for it, for `npm run dev:host` (scripts/dev-host.mjs, the app
-// inside a host).
+// inside a host) and the live E2E bots (scripts/e2e-live), so they agree on
+// what "the bob slot on previewnet" means without re-deriving it.
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import { createServer } from "node:net"
 import { join, resolve } from "node:path"
@@ -21,6 +22,8 @@ export const NETWORKS = {
     productId: "dim2.testnet",
     // dotNS, for loading a deployed app the way a host does
     tld: "testnet",
+    // the app the live E2E tests when none is named (scripts/e2e-live)
+    defaultApp: "dim2.testnet",
     ethRpc: "https://previewnet.substrate.dev/eth-rpc",
     contentResolver: "0x7F74D7CD50f5a834270E2ad395a01b01891AB37d",
     ipfsGateway: "https://previewnet.substrate.dev",
@@ -30,6 +33,8 @@ export const NETWORKS = {
     assetHubWs: "wss://paseo-asset-hub-next-rpc.polkadot.io",
     productId: "dim2.paseo",
     tld: "paseo",
+    // paseo's main deploys stage at dim2next (built for dim2.paseo); dim2.paseo is the release
+    defaultApp: "dim2next.paseo",
     ethRpc: "https://eth-rpc-paseo-next.polkadot.io",
     contentResolver: "0x7F74D7CD50f5a834270E2ad395a01b01891AB37d",
     ipfsGateway: "https://paseo-bulletin-next-ipfs.polkadot.io",
@@ -56,6 +61,18 @@ export function networkFromArgs(args) {
   }
   return network
 }
+
+/** A network name or short form -> the canonical NETWORKS key; empty / unset = undefined; unknown throws. */
+export function parseNetwork(raw) {
+  const v = (raw ?? "").trim().toLowerCase()
+  if (!v) return undefined
+  const network = NETWORK_ALIASES[v]
+  if (!network) throw new Error(`network "${raw}" is not one of ${Object.keys(NETWORK_ALIASES).join(", ")}`)
+  return network
+}
+
+/** The live E2E's network: `E2E_NETWORK` (any alias), default previewnet. */
+export const networkFromEnv = (env = process.env) => parseNetwork(env.E2E_NETWORK) ?? "previewnet"
 
 /** The game's product id on `network`: env override, else the network's
  *  `dim2.<tld>`. The host derives the player account from it and signs for no

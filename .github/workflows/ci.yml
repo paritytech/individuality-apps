@@ -42,6 +42,40 @@ jobs:
           # the worker refuses to build without the name it is published under
           PRODUCT_DOTNS: example.paseo
 
+  # The live E2E bots' own checks (scripts/e2e-live). Their unit tests run in
+  # the Jollity job's `npm test`; this job typechecks them (the Playwright
+  # specs too) and smokes the recording renderer and the crew site client,
+  # the checks the secret-holding e2e-live workflows no longer run on pull
+  # requests.
+  e2e-live:
+    name: E2E live bots
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck:e2e-live
+      - run: npm run typecheck:e2e-live:pw
+      - name: Check the copied crew client's syntax
+        run: node --check scripts/e2e-live/crew/status.js
+      - name: Install the recording renderer's dependencies
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          ffmpeg -version | head -n 1
+      - name: Smoke the real recording annotation renderer
+        run: npx tsx scripts/e2e-live/recording-smoke.mts scripts/out/recording-smoke
+      - name: Scan the bots for private names and paths
+        run: npx tsx scripts/e2e-live/public-sweep.mts
+
   humanity:
     name: Humanity
     runs-on: ubuntu-latest
