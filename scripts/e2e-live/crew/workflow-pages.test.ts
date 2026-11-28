@@ -79,7 +79,7 @@ describe("reusable live execution and Pages workflow", () => {
     for (const step of steps.filter((step) => step.uses === "actions/upload-artifact@v4")) expect(step.with?.["retention-days"]).toBe(3)
   })
 
-  it("uses default-branch code, exact source artifacts, separate history/deploy writers and v4 Pages", () => {
+  it("uses default-branch code, exact source artifacts, separate history/deploy writers and a cross-repo Pages branch", () => {
     expect(pages.on?.workflow_run).toBeDefined()
     expect(pages.on?.workflow_dispatch?.inputs?.source_run_id).toBeDefined()
     expect(pages.on?.workflow_dispatch?.inputs?.source_run_attempt).toBeDefined()
@@ -94,15 +94,18 @@ describe("reusable live execution and Pages workflow", () => {
     expect(pages.jobs?.history?.env?.SOURCE_ATTEMPT).toBe("${{ needs.admission.outputs.attempt }}")
     expect(pages.jobs?.history?.env?.SOURCE_KIND).toBe("${{ needs.admission.outputs.kind }}")
     expect(pages.jobs.admission.steps.find((step) => step.id === "source")?.run).toContain("actions/runs/$source_id/attempts/$source_attempt")
-    expect(pages.jobs?.deploy?.permissions).toEqual({ contents: "read", pages: "write", "id-token": "write" })
-    expect(pages.jobs?.deploy?.environment?.name).toBe("github-pages")
+    expect(pages.jobs?.deploy?.permissions).toEqual({ contents: "read" })
+    expect(pages.jobs?.deploy?.environment).toBeUndefined()
+    expect(pages.jobs?.deploy?.env?.SITE_BRANCH).toBe("gh-pages")
     expect(pagesText).toContain("ref: ${{ github.event.repository.default_branch }}")
     expect(pagesText).toContain("previewnet-crew-pages")
     expect(pagesText).toContain("publish-cli.mts")
     expect(pagesText).toContain("site-cli.mts")
-    expect(pagesText).toContain("actions/upload-pages-artifact@v4")
-    expect(pagesText).toContain("actions/deploy-pages@v4")
-    expect(pagesText).not.toMatch(/--force|secrets\.|E2E_POOL|SENTRY_|TURN_/)
+    expect(pagesText).not.toContain("actions/deploy-pages")
+    // The one secret is the results-repository token, held only by the deploy job.
+    expect(pagesText.match(/secrets\.[A-Z_]+/g)).toEqual(["secrets.JOLLITY_TESTS_RELEASE_TOKEN"])
+    expect(JSON.stringify(pages.jobs?.deploy?.steps)).toContain("secrets.JOLLITY_TESTS_RELEASE_TOKEN")
+    expect(pagesText).not.toMatch(/--force|E2E_POOL|SENTRY_|TURN_/)
   })
 
   it("downloads only unexpired bundles from the requested run and current attempt", () => {

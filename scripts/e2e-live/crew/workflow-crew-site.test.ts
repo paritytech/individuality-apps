@@ -108,6 +108,6 @@ describe("crew renderer-only workflow isolation", () => {
     expect(commands).toContain("site-cli.mts --state crew-history")
     expect(commands).not.toMatch(/tools\/replay|@jollity\/replay/)
     expect(commands).not.toMatch(/npm run build(?:\n|$)|needs\.(?:ci|app|game)|workflow run/)
-    expect(pages.jobs.deploy.permissions).toEqual({ contents: "read", pages: "write", "id-token": "write" })
+    expect(pages.jobs.deploy.permissions).toEqual({ contents: "read" })
   })
 })
