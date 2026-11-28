@@ -1,6 +1,6 @@
 {
   "name": "@humanity/app",
-  "version": "0.24.0",
+  "version": "0.24.1",
   "private": true,
   "license": "GPL-3.0-or-later",
   "author": "Parity Technologies <admin@parity.io>",
