@@ -57,6 +57,20 @@ const HOST_OPEN_SOURCES = {
 /** An open older than this is a stale value, not the open this page load answers. */
 const MAX_OPEN_AGE_MS = 5 * 60 * 1000
 
+/** Every literal this module can send as an attribute value, for the masking
+ *  lane test: the source words, the known host open sources, the fallback
+ *  details and the notification moments. */
+export const LAUNCH_SOURCE_LITERALS = [
+  "notification",
+  "deeplink",
+  "unknown",
+  ...Object.keys(HOST_OPEN_SOURCES),
+  "host-other",
+  "other",
+  "reload",
+  ...NOTIFICATION_MOMENTS,
+] as const
+
 /** Read the host's open claim from its bootstrap. The session id is not needed
  *  here, so a bootstrap without a valid one still counts as a host open when
  *  its open fields are fresh. */
@@ -68,7 +82,9 @@ function hostOpen(root: typeof globalThis, now: number): LaunchSourceReading | n
     const openSource = bootstrap.openSource
     if (typeof openSource !== "string" || openSource === "") return null
     const openedAt = bootstrap.openedAtEpochMs
-    if (typeof openedAt === "number" && Number.isFinite(openedAt) && (openedAt > now || now - openedAt >= MAX_OPEN_AGE_MS)) return null
+    // no timestamp means no proof of freshness: a bootstrap that never reported
+    // one is stale, so a later reload does not count as the same open again
+    if (typeof openedAt !== "number" || !Number.isFinite(openedAt) || openedAt > now || now - openedAt >= MAX_OPEN_AGE_MS) return null
     const mapped = (HOST_OPEN_SOURCES as Record<string, LaunchSource>)[openSource]
     if (mapped === "notification") return { source: "notification", detail: openSource }
     if (mapped) return { source: mapped, detail: null }
