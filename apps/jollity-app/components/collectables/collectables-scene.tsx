@@ -380,10 +380,11 @@ export function CollectablesScene({
           // given back (or never taken): its spot is a piece again, to press
           lastSeen.current.delete(p.index)
 
-          // opened elsewhere (the Pocket's book): open here at once, no shatter; it floats up with the opened ones
+          // opened elsewhere (the Pocket's book): open here at once, no shatter; it floats up with the opened ones,
+          // with no rising light behind it: under a piece that flew home, that light reads as a stray box
           if (openNowRef.current.has(p.index) && !openedRef.current.has(p.index)) {
             openedRef.current.add(p.index)
-            scene.openPiece(p.index)
+            scene.openPiece(p.index, true)
             setOpened((prev) => (prev.includes(p.index) ? prev : [...prev, p.index]))
           }
 

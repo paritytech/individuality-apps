@@ -109,8 +109,9 @@ export interface CollectablesScene {
   /** pop the bubble: now if it is blown, else the moment it is */
   open(): void
   /** the piece's shell has broken: it stays as its plain art and floats up
-   *  to the opened ones */
-  openPiece(index: number): void
+   *  to the opened ones. `quiet`: it was opened elsewhere (the Pocket's book
+   *  gave it back), and floats up with no light trailing it */
+  openPiece(index: number, quiet?: boolean): void
   /** the pieces float above this, CSS px from the canvas's top (the Pocket's book); null: the canvas's foot */
   setFloor(px: number | null): void
   /** the pieces float below this, CSS px from the canvas's top (the words at the top); null: the canvas's top */

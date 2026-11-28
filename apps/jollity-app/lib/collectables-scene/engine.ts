@@ -259,6 +259,8 @@ function makeDisc(i) {
     fu: 0, fv: 0,
     // its rarity's colour (the orb it came in as), and the light it trails as it rises
     tint: '#ffffff', trail: [],
+    // opened elsewhere (the Pocket's book gave it back): it floats home with no light behind it
+    quiet: false,
   };
 }
 for (let i = 0; i < BALL_COUNT; i++) discs.push(makeDisc(i));
@@ -279,10 +281,11 @@ function arrivalPoint(b, index) {
    it stays where it is as its plain art, and turns light — its new spot is
    with the opened ones at the top, and it floats up past the unopened ones
    to it. The camera eases back out if it was the focus, so the rise is seen. */
-function openPiece(index) {
+function openPiece(index, quiet = false) {
   const b = discs[index];
   if (!b || b.opened) return;
   b.opened = true;
+  b.quiet = !!quiet;
   if (focusDisc === b) setFocus(false);
   relayout();
 }
@@ -381,7 +384,7 @@ function burst() {
   const rnd = mulberry32(hashSeed(SEED + ':burst'));
   // a replay starts every piece unopened and still
   for (const b of discs) {
-    b.opened = false; b.vu = 0; b.vv = 0; b.trail.length = 0;
+    b.opened = false; b.quiet = false; b.vu = 0; b.vv = 0; b.trail.length = 0;
   }
   const from = { x: 0, y: 0, z: 0 };
   for (const b of discs) {
@@ -1206,7 +1209,9 @@ function floatDiscs(dt, t) {
     b.x = RIGHT.x * b.u + UP.x * b.v + EYE.x * b.dep;
     b.y = FLOAT_Y + RIGHT.y * b.u + UP.y * b.v + EYE.y * b.dep;
     b.z = RIGHT.z * b.u + UP.z * b.v + EYE.z * b.dep;
-    if (b.opened && b !== held && Math.hypot(b.vu, b.vv) > 0.5) b.trail.push({ x: b.x, y: b.y, z: b.z, t });
+    // a quiet one (given back by the Pocket) trails nothing until it has settled at its spot
+    if (b.quiet && Math.hypot(b.vu, b.vv) < 0.05 && Math.hypot(b.tu - b.u, b.tv - b.v) < RISING) b.quiet = false;
+    if (b.opened && !b.quiet && b !== held && Math.hypot(b.vu, b.vv) > 0.5) b.trail.push({ x: b.x, y: b.y, z: b.z, t });
     while (b.trail.length && t - b.trail[0].t > TRAIL_TIME) b.trail.shift();
   }
 }
