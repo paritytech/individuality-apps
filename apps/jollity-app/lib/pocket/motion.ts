@@ -63,6 +63,12 @@ export const thud = (k: number) => ({
 /** the invitation comes round every this many seconds, and lasts this long */
 const INVITE_EVERY = 3.4
 const INVITE_FOR = 1.5
+/** with nothing opened, the invitation starts this long after the float began, s: until then the collectables
+ *  screen's own finger shows how to look at a piece (lib/collectables-scene/hints) */
+export const INVITE_LATE = 11
+/** once a piece is opened, the invitation starts this long after, s: the collectables screen's finger first shows
+ *  that a tap on it swaps its collection */
+export const INVITE_AFTER_OPEN = 6
 
 /**
  * The invitation, `since` seconds after the pieces began to float: the cover lifts a little off the table and

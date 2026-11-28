@@ -116,6 +116,14 @@ export interface CollectablesScene {
   setFloor(px: number | null): void
   /** the pieces float below this, CSS px from the canvas's top (the words at the top); null: the canvas's top */
   setCeiling(px: number | null): void
+  /** the bubble's centre while it is blown and has not popped, canvas px; null otherwise */
+  bubbleAt(): { x: number; y: number } | null
+  /** a breath of the bubble, as if tapped (the hints, ./hints) */
+  pulseBubble(): void
+  /** a piece rocks and hops a little, as if tapped (the hints, ./hints) */
+  nudge(index: number): void
+  /** the piece the view is zoomed in on, or -1 */
+  focused(): number
   /** another layer draws this piece now: stop painting its flat art */
   setSpriteHidden(index: number, hidden: boolean): void
   /** the host element changed size, in CSS px */

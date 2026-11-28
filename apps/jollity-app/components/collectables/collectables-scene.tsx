@@ -42,6 +42,8 @@
 import { useEffect, useRef, useState, type RefObject } from "react"
 import { createCollectablesScene, type CollectablesPlacement, type CollectablesScene as CollectablesSceneEngine } from "@/lib/collectables-scene"
 import { carryShown, takeCarried } from "@/lib/collectables-scene/carry"
+import { createFinger } from "@/lib/collectables-scene/finger"
+import { armHints, hintWords, type Hints } from "@/lib/collectables-scene/hints"
 import { loadImage } from "@/lib/dom/image"
 import { BASE, materialFor, wrappingPhase } from "@/lib/wrapping/materials"
 import { ensureFields, releaseFields } from "@/lib/wrapping/fieldCache"
@@ -249,12 +251,29 @@ export function CollectablesScene({
   // until the Pocket's book closes, every piece opened or not ─────────────
   /** piece indices in the order they were opened */
   const [opened, setOpened] = useState<number[]>([])
+  // the words at the top: the hints' fallback (lib/collectables-scene/hints)
+  const { line: hint, sub: subHint } = hintWords({ zoomed, opened: opened.length, late })
+  // a second line, or one that wraps on a narrow phone, moves the ceiling under it
+  useEffect(() => {
+    applyEdges()
+  }, [hint, subHint])
   // a tap pops the bubble only once the screen says something is in
   const canOpenRef = useRef(canOpen)
   useEffect(() => {
     canOpenRef.current = canOpen
   }, [canOpen])
   const openedRef = useRef(new Set<number>())
+  // THE HINTS (lib/collectables-scene/hints, ./finger): armed for the showing; the ghost finger's elements, and
+  // where the pieces were last drawn (canvas px) for it to read
+  const hintsRef = useRef<Hints | null>(null)
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const fingerRef = useRef<HTMLDivElement>(null)
+  const rippleRef = useRef<HTMLDivElement>(null)
+  const placementsRef = useRef<readonly DiscPlacement[]>([])
+  const inspectedRef = useRef(inspected)
+  useEffect(() => {
+    inspectedRef.current = inspected
+  }, [inspected])
   // `open` as the engine's start reads it
   const openRef_ = useRef(open)
   useEffect(() => {
@@ -309,8 +328,12 @@ export function CollectablesScene({
       onEvent: (name: string, data?: { on?: boolean; index?: number; x?: number; y?: number; side?: number }) => {
         if (name === "focus") {
           setZoomed(!!data?.on)
+          if (data?.on) hintsRef.current?.learned("look")
           hostCallbacks.current.onFocus?.(!!data?.on)
+        } else if (name === "pop") {
+          hintsRef.current?.learned("unwrap")
         } else if (name === "open") {
+          hintsRef.current?.learned("bubble")
           if (floatAt.current < 0) floatAt.current = performance.now()
           hostCallbacks.current.onOpened?.()
         } else if (name === "burst") floatAt.current = performance.now()
@@ -320,6 +343,7 @@ export function CollectablesScene({
           if (carriedBubble) setLit(collectedRef.current)
           hostCallbacks.current.onCollected?.(collectedRef.current)
         } else if (name === "inspect" && data?.index !== undefined) {
+          hintsRef.current?.learned("swap")
           // an opened piece tapped: the picker opens out of its image's box
           const img = openedEls.current[data.index]?.querySelector("img")
           const box = canvas.getBoundingClientRect()
@@ -338,6 +362,7 @@ export function CollectablesScene({
       // every frame: where the pieces are — the wrapping layer draws its
       // shells there and hides the flat art it replaces
       onDiscs(placements: DiscPlacement[], blend: number) {
+        placementsRef.current = placements
         const renderer = rendererRef.current
         // where the canvas is on the page: read when it changes size, and now and then besides (the page above it may move it), not every frame
         if (!canvasBox || ++canvasBoxAge >= CANVAS_BOX_EVERY) {
@@ -349,11 +374,16 @@ export function CollectablesScene({
         const spots: PieceSpot[] = []
         const closed = coverRef.current?.current ?? 0
         const now = performance.now()
-        // the words: in after the pop, out as the cover moves
+        // the words: the hints' fallback, in only after a long stillness (and not before the pop), out as the cover moves
         const words = wordsRef.current
         if (words) {
           const since = floatAt.current < 0 ? -1 : now - floatAt.current
-          const shown = since < 0 ? 0 : clamp01((since - WORDS_FROM_MS) / (WORDS_TO_MS - WORDS_FROM_MS)) * (1 - smooth(closed / WORDS_GONE_AT))
+          const shown =
+            since < 0
+              ? 0
+              : clamp01((since - WORDS_FROM_MS) / (WORDS_TO_MS - WORDS_FROM_MS)) *
+                (1 - smooth(closed / WORDS_GONE_AT)) *
+                (hintsRef.current?.fallback(now) ?? 0)
           words.style.opacity = shown.toFixed(3)
           if (since > WORDS_LATE_MS && !saidLate) {
             saidLate = true
@@ -606,6 +636,43 @@ export function CollectablesScene({
   // them, and a later showing rebuilds them while its bubble collects
   useEffect(() => releaseFields, [])
 
+  // THE HINTS: armed for the showing (lib/collectables-scene/hints); this only says what the screen shows
+  useEffect(() => {
+    const anchor = anchorRef.current
+    const finger = fingerRef.current
+    const ripple = rippleRef.current
+    if (!anchor || !finger || !ripple) return
+    const hints = armHints({
+      finger: createFinger({ anchor, finger, ripple }),
+      engine: () => sceneRef.current,
+      piece: (index) => {
+        const p = placementsRef.current.find((q) => q.index === index)
+        return p ? { x: p.cx, y: p.cy } : null
+      },
+      look: () => {
+        const scene = sceneRef.current
+        const host = hostRef.current
+        // not over the picker, and not while the book's cover is moving
+        if (!scene || !host || inspectedRef.current !== null || (coverRef.current?.current ?? 0) > 0.02) return null
+        return {
+          // a bubble the screen is opening anyway needs no tap; a tap opens it once something has come in
+          bubble: scene.bubbleAt() && !openRef_.current ? { canOpen: canOpenRef.current && collectedRef.current > 0 } : null,
+          floatingSince: floatAt.current < 0 ? null : floatAt.current,
+          focused: scene.focused(),
+          pieces: placementsRef.current.filter((p) => !takenRef.current.has(p.index)).map((p) => ({ index: p.index, x: p.cx, y: p.cy })),
+          opened: [...openedRef.current],
+          middle: { x: host.clientWidth / 2, y: host.clientHeight / 2 },
+        }
+      },
+      log: (message, data) => devLog("chest", message, data),
+    })
+    hintsRef.current = hints
+    return () => {
+      hints.stop()
+      hintsRef.current = null
+    }
+  }, [])
+
   return (
     <div ref={hostRef} className={"relative overflow-hidden " + (className ?? "")}>
         {/* the scene: every piece floats here, opened or not, until the Pocket's book closes */}
@@ -682,15 +749,16 @@ export function CollectablesScene({
               </button>
             ))}
           </div>
-          {/* a carried bubble (the draw's hold): what's happening, in one line under it */}
+          {/* a carried bubble (the draw's hold): what's happening, in one line under it, until something is in.
+              No count: the bubble's own lights show how many; once one is in, the finger shows a tap opens it */}
           <p
             aria-live="polite"
             className={
               "pointer-events-none absolute inset-x-0 top-[62%] text-center font-[family-name:var(--font-manrope)] text-[15px] font-medium tracking-[0.2px] text-[rgba(236,238,245,0.78)] transition-opacity duration-500 " +
-              (carried && !open ? "opacity-100" : "opacity-0")
+              (carried && !open && lit === 0 ? "opacity-100" : "opacity-0")
             }
           >
-            {lit === 0 ? "Finding your collectables" : `Found ${lit}`}
+            Finding your collectables
           </p>
           {/* the words at the top: what to do next, gone once the cover moves */}
           <p
@@ -698,8 +766,29 @@ export function CollectablesScene({
             aria-live="polite"
             className="pointer-events-none absolute inset-x-0 top-[62px] text-center font-[family-name:var(--font-manrope)] text-[15px] leading-5 font-medium text-[rgba(232,236,255,0.72)] opacity-0"
           >
-            {zoomed ? "Tap again to open it" : opened.length > 0 || late ? "Close the book to keep them" : "Tap one to look closer"}
+            {hint}
+            {subHint ? <span className="block text-[13px] text-[rgba(232,236,255,0.5)]">{subHint}</span> : null}
           </p>
+          {/* THE GHOST FINGER (the hints above): the Pocket's own, a soft dot in a halo, and the ripple of its press,
+              on an anchor that follows what it taps */}
+          <div ref={anchorRef} aria-hidden className="pointer-events-none absolute top-0 left-0 size-0">
+            <div className="absolute -top-[22px] -left-[22px] size-11">
+              <div
+                ref={rippleRef}
+                className="absolute inset-0 rounded-full border-2 border-white/75 opacity-0 shadow-[0_0_0_1.5px_rgba(10,12,18,0.4)]"
+              />
+              <div
+                ref={fingerRef}
+                className="absolute inset-0 rounded-full opacity-0"
+                // on bright art too (a wrapped piece's foil): a bright core in a thin dark ring, the halo, a dark edge
+                style={{
+                  background:
+                    "radial-gradient(circle, rgba(255,255,255,0.95) 0 7.5px, rgba(14,16,24,0.55) 8px 10px, rgba(255,255,255,0.3) 10.5px 21px, transparent 21.5px)",
+                  boxShadow: "0 0 0 1.5px rgba(10,12,18,0.42), 0 3px 14px rgba(0,0,0,0.45)",
+                }}
+              />
+            </div>
+          </div>
         </div>
     </div>
   )

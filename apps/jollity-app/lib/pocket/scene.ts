@@ -35,7 +35,7 @@ import {
   type Point,
   type Size,
 } from "./book"
-import { FLIGHT, LANDING, confettiFor, coverFall, flightAt, follow, invitation, squash, thud, type Bit } from "./motion"
+import { FLIGHT, INVITE_AFTER_OPEN, INVITE_LATE, LANDING, confettiFor, coverFall, flightAt, follow, invitation, squash, thud, type Bit } from "./motion"
 import { paintPocketFx } from "./fx"
 import { wrappingExpected } from "../wrapping/availability"
 import { ensureFields } from "../wrapping/fieldCache"
@@ -51,8 +51,6 @@ const PEEK_AT = 0.45
 const HELD_RATE = 11
 const OPEN_RATE = 6
 const LIFT_RATE = 8
-/** with nothing opened yet, the invitation starts this long after the float began, s */
-const LATE = 5
 /** the finish's pieces leave this far apart, s */
 const FINISH_STAGGER = 0.06
 /** let go short of the point: the pieces the cover took fly home this far apart, the last taken first, s */
@@ -242,8 +240,9 @@ export interface PoseState {
   grab: number | null
   finishing: boolean
   still: boolean
-  /** a piece has been opened in the scene: the invitation need not wait */
-  opened: boolean
+  /** when a piece was first opened in the scene (s); -1 before: the invitation need not wait INVITE_LATE then,
+   *  only INVITE_AFTER_OPEN after it */
+  openedAt: number
   /** when the cover landed, and when the book shut (s); -1 before */
   thudAt: number
   shutAt: number
@@ -262,7 +261,8 @@ export interface Pose {
 /**
  * The book at `t`: it comes up from below, peeks, lifts while its cover is in play, and once shut grows into the
  * middle. Every few seconds while nobody holds it, the cover lifts a little and a finger shows where to take it (not
- * before LATE unless a piece has been opened). After the landing the cover bounces and the book dips (./motion thud).
+ * before INVITE_LATE, or INVITE_AFTER_OPEN after a piece is first opened: until then the collectables screen's own
+ * finger has the stage). After the landing the cover bounces and the book dips (./motion thud).
  */
 export function poseAt(s: PoseState, t: number): Pose {
   const floating = s.shutAt < 0
@@ -272,7 +272,7 @@ export function poseAt(s: PoseState, t: number): Pose {
   let closed = floating ? s.cov : 1
   let dip = 0
   let ghost: { a: number; u: number } | null = null
-  if (floating && !s.still && s.grab === null && !s.finishing && s.cov < 0.02 && bookIn > 0.95 && (s.opened || t > LATE)) {
+  if (floating && !s.still && s.grab === null && !s.finishing && s.cov < 0.02 && bookIn > 0.95 && ((s.openedAt >= 0 && t - s.openedAt >= INVITE_AFTER_OPEN) || t > INVITE_LATE)) {
     const invite = invitation(t)
     closed += invite.lift
     ghost = invite.ghost
@@ -403,7 +403,7 @@ export function createPocketScene(els: PocketElements, opts: PocketSceneOptions)
     grab: null as number | null,
     finishing: false,
     lift: 0,
-    opened: false,
+    openedAt: -1,
     thudAt: -1,
     thudBook: null as Book | null,
     shutAt: -1,
@@ -579,7 +579,7 @@ export function createPocketScene(els: PocketElements, opts: PocketSceneOptions)
     const stage = { width: box.width, height: box.height }
     const floating = s.shutAt < 0
     const spots = opts.ring()
-    if (spots.some((spot) => spot.opened)) s.opened = true
+    if (s.openedAt < 0 && spots.some((spot) => spot.opened)) s.openedAt = t
     const takes = [...s.takes.entries()]
 
     // the cover: held, it trails the finger; let go short, it swings back open; past the point it falls shut by

@@ -36,7 +36,8 @@
  *
  * API: createCollectablesScene(canvas, { count, onEvent, onDiscs, canOpen, carried, onCarriedShown }) ->
  *   { replay, tap, press, move, release, setSprites, openPiece, addPiece, open,
- *     setSpriteHidden, setFloor, setCeiling, resize, destroy }
+ *     setSpriteHidden, setFloor, setCeiling, bubbleAt, pulseBubble, nudge, focused,
+ *     resize, destroy }
  */
 import { floatLayout } from './float';
 
@@ -261,6 +262,8 @@ function makeDisc(i) {
     tint: '#ffffff', trail: [],
     // opened elsewhere (the Pocket's book gave it back): it floats home with no light behind it
     quiet: false,
+    // a nudge (the hints' tap, lib/collectables-scene/hints): a quick rock that dies away
+    jiggle: 0, jiggleAt: 0,
   };
 }
 for (let i = 0; i < BALL_COUNT; i++) discs.push(makeDisc(i));
@@ -288,6 +291,37 @@ function openPiece(index, quiet = false) {
   b.quiet = !!quiet;
   if (focusDisc === b) setFocus(false);
   relayout();
+}
+
+/* THE HINTS' HOOKS (lib/collectables-scene/hints): where the bubble is, a
+   breath of it, a piece's rock and hop, and which piece the view is on */
+
+/** the bubble's centre while it is blown and has not popped, canvas px; null otherwise */
+function bubbleAt() {
+  if (bub.born < 0 || bub.popAt >= 0 || seq.burstAt >= 0 || bub.r <= 0) return null;
+  const c = project(0, BUBBLE_Y + seq.bob, 0, { x: 0, y: 0, d: 0 });
+  return { x: c.x, y: c.y };
+}
+
+/** half a catch: it swells and rings back, as if tapped */
+function pulseBubble() {
+  if (bub.born < 0 || bub.popAt >= 0) return;
+  bub.vel += 0.35;
+  bub.triVel += 0.12;
+}
+
+/** a piece rocks and hops a little, as if tapped */
+function nudge(index) {
+  const b = discs[index];
+  if (!b || !b.live) return;
+  b.jiggle = 1;
+  b.jiggleAt = clock;
+  b.vv += 0.55;
+}
+
+/** the piece the view is zoomed in on, or -1 */
+function focused() {
+  return focusOn && focusDisc ? discs.indexOf(focusDisc) : -1;
 }
 
 /* ── THE FLOAT: a spot for every piece, then a spring to it ───────────────
@@ -384,7 +418,7 @@ function burst() {
   const rnd = mulberry32(hashSeed(SEED + ':burst'));
   // a replay starts every piece unopened and still
   for (const b of discs) {
-    b.opened = false; b.quiet = false; b.vu = 0; b.vv = 0; b.trail.length = 0;
+    b.opened = false; b.quiet = false; b.jiggle = 0; b.vu = 0; b.vv = 0; b.trail.length = 0;
   }
   const from = { x: 0, y: 0, z: 0 };
   for (const b of discs) {
@@ -1150,6 +1184,11 @@ function stepDiscs(dt, t) {
     // no rotation — just a slight wiggle: a rock around upright plus the
     // usual breathing tilt
     b.roll = Math.sin(t * b.wob[2] * 1.2 + b.wob[5]) * 0.07;
+    // nudged: a quick rock on top, dying away
+    if (b.jiggle > 0.002) {
+      b.roll += Math.sin((t - b.jiggleAt) * 26) * 0.2 * b.jiggle;
+      b.jiggle *= Math.exp(-dt * 4.5);
+    } else b.jiggle = 0;
     b.tiltX = Math.sin(t * b.wob[0] * 1.3 + b.wob[3]) * b.tilt * 0.6;
     b.tiltY = Math.cos(t * b.wob[1] * 1.1 + b.wob[4]) * b.tilt * 0.6;
   }
@@ -1914,6 +1953,14 @@ return {
   setFloor,
   /** the pieces float below this, px from the canvas's top (the words at the top); null: the canvas's top */
   setCeiling,
+  /** the bubble's centre while blown, canvas px ({ x, y }), or null */
+  bubbleAt,
+  /** a breath of the bubble, as if tapped */
+  pulseBubble,
+  /** a piece rocks and hops, as if tapped */
+  nudge,
+  /** the piece the view is zoomed in on, or -1 */
+  focused,
   /** the wrapping layer draws this piece now — stop painting its flat art */
   setSpriteHidden(index, hidden) {
     if (hidden) spriteHidden.add(index);

@@ -48,7 +48,7 @@ const pose = (over: Partial<PoseState> = {}): PoseState => ({
   grab: null,
   finishing: false,
   still: false,
-  opened: false,
+  openedAt: -1,
   thudAt: -1,
   shutAt: -1,
   ...over,
@@ -101,16 +101,21 @@ describe("the book's pose", () => {
     expect(poseAt(pose({ lift: 1 }), 2).peek).toBe(1)
   })
 
-  it("invites a drag only while nobody holds the cover, and not before LATE unless a piece was opened", () => {
-    // Given: 3.5 s and 7.2 s in are inside an invitation (every 3.4 s, for 1.5 s); LATE is 5 s
+  it("invites a drag only while nobody holds the cover: not before INVITE_LATE, or INVITE_AFTER_OPEN after a piece was opened", () => {
+    // Given: 3.5 s, 7.2 s and 13.8 s in are inside an invitation (every 3.4 s, for 1.5 s); INVITE_LATE is 11 s,
+    // INVITE_AFTER_OPEN 6 s
     const early = 3.5
-    const at = 7.2
+    const mid = 7.2
+    const at = 13.8
+    const openedAt = 1
 
-    // Then
-    expect(poseAt(pose(), early).ghost).toBeNull()
-    expect(poseAt(pose({ opened: true }), early).ghost).not.toBeNull()
+    // Then: nothing opened, it waits for INVITE_LATE
+    expect(poseAt(pose(), mid).ghost).toBeNull()
     expect(poseAt(pose(), at).ghost).not.toBeNull()
     expect(poseAt(pose(), at).closed).toBeGreaterThan(0)
+    // a piece opened at 1 s: not 2.5 s after, but 6.2 s after
+    expect(poseAt(pose({ openedAt }), early).ghost).toBeNull()
+    expect(poseAt(pose({ openedAt }), mid).ghost).not.toBeNull()
     expect(poseAt(pose({ grab: 1 }), at).ghost).toBeNull()
     expect(poseAt(pose({ cov: 0.1 }), at).ghost).toBeNull()
     expect(poseAt(pose({ finishing: true }), at).ghost).toBeNull()
