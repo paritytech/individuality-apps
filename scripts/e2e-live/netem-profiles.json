@@ -1,0 +1,38 @@
+{
+  "wifi": {
+    "delayMs": 10,
+    "jitterMs": 0,
+    "lossPct": 0,
+    "rateMbit": 0
+  },
+  "lte-good": {
+    "delayMs": 50,
+    "jitterMs": 10,
+    "lossPct": 0.1,
+    "rateMbit": 20
+  },
+  "lte-poor": {
+    "delayMs": 150,
+    "jitterMs": 40,
+    "lossPct": 2,
+    "rateMbit": 2
+  },
+  "lte-upload-limited": {
+    "delayMs": 60,
+    "jitterMs": 15,
+    "lossPct": 0.5,
+    "rateMbit": 0.3
+  },
+  "game259-lossy": {
+    "delayMs": 100,
+    "jitterMs": 40,
+    "lossPct": 17,
+    "rateMbit": 2
+  },
+  "game259-negotiation-burst": {
+    "delayMs": 100,
+    "jitterMs": 40,
+    "lossPct": 65,
+    "rateMbit": 2
+  }
+}

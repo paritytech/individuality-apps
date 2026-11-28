@@ -1,0 +1,4784 @@
+{
+"_note": "a live run, a live game, bot 3 (relay-iphonese-fastclock, page clock +75 s): turn 2 from turn 1's ending to turn 3's introduction, tiles trimmed to the bot and 5EE2TJKa (bot 25), as recorded: snapshotAt is the PAGE's clock, 75 s ahead of the read bracket. 5EE2TJKa reads Unseen through gameplay (Connecting, then Can't connect), Unseen in the ending at 16:40:29.4, Co-player at 16:40:30.18; the bot's taps were refused (page showed ending).",
+"self": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"turn": 2,
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"clockOffsetMs": 75000,
+"rows": [
+{
+"t": "2026-10-10T16:40:17.241Z",
+"ms": 481566,
+"readStartedAt": "2026-10-10T16:40:17.241Z",
+"snapshotAt": "2026-10-10T16:41:32.246Z",
+"readCompletedAt": "2026-10-10T16:40:17.251Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 1,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:17.496Z",
+"ms": 481821,
+"readStartedAt": "2026-10-10T16:40:17.496Z",
+"snapshotAt": "2026-10-10T16:41:32.504Z",
+"readCompletedAt": "2026-10-10T16:40:17.507Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:17.750Z",
+"ms": 482075,
+"readStartedAt": "2026-10-10T16:40:17.750Z",
+"snapshotAt": "2026-10-10T16:41:32.754Z",
+"readCompletedAt": "2026-10-10T16:40:17.757Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:18.001Z",
+"ms": 482326,
+"readStartedAt": "2026-10-10T16:40:18.001Z",
+"snapshotAt": "2026-10-10T16:41:33.008Z",
+"readCompletedAt": "2026-10-10T16:40:18.011Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:18.255Z",
+"ms": 482580,
+"readStartedAt": "2026-10-10T16:40:18.255Z",
+"snapshotAt": "2026-10-10T16:41:33.259Z",
+"readCompletedAt": "2026-10-10T16:40:18.262Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:18.509Z",
+"ms": 482834,
+"readStartedAt": "2026-10-10T16:40:18.509Z",
+"snapshotAt": "2026-10-10T16:41:33.517Z",
+"readCompletedAt": "2026-10-10T16:40:18.520Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:18.762Z",
+"ms": 483087,
+"readStartedAt": "2026-10-10T16:40:18.762Z",
+"snapshotAt": "2026-10-10T16:41:33.768Z",
+"readCompletedAt": "2026-10-10T16:40:18.771Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:19.017Z",
+"ms": 483342,
+"readStartedAt": "2026-10-10T16:40:19.017Z",
+"snapshotAt": "2026-10-10T16:41:34.021Z",
+"readCompletedAt": "2026-10-10T16:40:19.023Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:19.271Z",
+"ms": 483596,
+"readStartedAt": "2026-10-10T16:40:19.271Z",
+"snapshotAt": "2026-10-10T16:41:34.277Z",
+"readCompletedAt": "2026-10-10T16:40:19.281Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 1,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 1,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 1 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 8,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:19.523Z",
+"ms": 483848,
+"readStartedAt": "2026-10-10T16:40:19.523Z",
+"snapshotAt": "2026-10-10T16:41:34.527Z",
+"readCompletedAt": "2026-10-10T16:40:19.529Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "intro",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "introduction",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": true,
+"intro": true,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 143,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "div.absolute inset-0",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:20.252Z",
+"ms": 484577,
+"readStartedAt": "2026-10-10T16:40:20.252Z",
+"snapshotAt": "2026-10-10T16:41:35.263Z",
+"readCompletedAt": "2026-10-10T16:40:20.278Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "intro",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "introduction",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": true,
+"intro": true,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:20.510Z",
+"ms": 484835,
+"readStartedAt": "2026-10-10T16:40:20.510Z",
+"snapshotAt": "2026-10-10T16:41:35.519Z",
+"readCompletedAt": "2026-10-10T16:40:20.538Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "intro",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "introduction",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": true,
+"intro": true,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:20.766Z",
+"ms": 485091,
+"readStartedAt": "2026-10-10T16:40:20.766Z",
+"snapshotAt": "2026-10-10T16:41:35.775Z",
+"readCompletedAt": "2026-10-10T16:40:20.778Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "intro",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "introduction",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": true,
+"intro": true,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:21.019Z",
+"ms": 485344,
+"readStartedAt": "2026-10-10T16:40:21.019Z",
+"snapshotAt": "2026-10-10T16:41:36.023Z",
+"readCompletedAt": "2026-10-10T16:40:21.025Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "intro",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "introduction",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": true,
+"intro": true,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:21.271Z",
+"ms": 485596,
+"readStartedAt": "2026-10-10T16:40:21.271Z",
+"snapshotAt": "2026-10-10T16:41:36.277Z",
+"readCompletedAt": "2026-10-10T16:40:21.281Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "intro",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "introduction",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": true,
+"intro": true,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:21.531Z",
+"ms": 485856,
+"readStartedAt": "2026-10-10T16:40:21.531Z",
+"snapshotAt": "2026-10-10T16:41:36.539Z",
+"readCompletedAt": "2026-10-10T16:40:21.545Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:21.784Z",
+"ms": 486109,
+"readStartedAt": "2026-10-10T16:40:21.784Z",
+"snapshotAt": "2026-10-10T16:41:36.790Z",
+"readCompletedAt": "2026-10-10T16:40:21.796Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:22.041Z",
+"ms": 486366,
+"readStartedAt": "2026-10-10T16:40:22.041Z",
+"snapshotAt": "2026-10-10T16:41:37.045Z",
+"readCompletedAt": "2026-10-10T16:40:22.051Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:22.298Z",
+"ms": 486623,
+"readStartedAt": "2026-10-10T16:40:22.298Z",
+"snapshotAt": "2026-10-10T16:41:37.312Z",
+"readCompletedAt": "2026-10-10T16:40:22.320Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:22.560Z",
+"ms": 486885,
+"readStartedAt": "2026-10-10T16:40:22.560Z",
+"snapshotAt": "2026-10-10T16:41:37.576Z",
+"readCompletedAt": "2026-10-10T16:40:22.613Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:22.815Z",
+"ms": 487140,
+"readStartedAt": "2026-10-10T16:40:22.815Z",
+"snapshotAt": "2026-10-10T16:41:37.820Z",
+"readCompletedAt": "2026-10-10T16:40:22.824Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:23.069Z",
+"ms": 487394,
+"readStartedAt": "2026-10-10T16:40:23.069Z",
+"snapshotAt": "2026-10-10T16:41:38.075Z",
+"readCompletedAt": "2026-10-10T16:40:23.078Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:23.322Z",
+"ms": 487647,
+"readStartedAt": "2026-10-10T16:40:23.322Z",
+"snapshotAt": "2026-10-10T16:41:38.326Z",
+"readCompletedAt": "2026-10-10T16:40:23.328Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:23.575Z",
+"ms": 487900,
+"readStartedAt": "2026-10-10T16:40:23.575Z",
+"snapshotAt": "2026-10-10T16:41:38.585Z",
+"readCompletedAt": "2026-10-10T16:40:23.589Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:23.827Z",
+"ms": 488152,
+"readStartedAt": "2026-10-10T16:40:23.827Z",
+"snapshotAt": "2026-10-10T16:41:38.833Z",
+"readCompletedAt": "2026-10-10T16:40:23.836Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:24.080Z",
+"ms": 488405,
+"readStartedAt": "2026-10-10T16:40:24.080Z",
+"snapshotAt": "2026-10-10T16:41:39.084Z",
+"readCompletedAt": "2026-10-10T16:40:24.087Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:24.332Z",
+"ms": 488657,
+"readStartedAt": "2026-10-10T16:40:24.332Z",
+"snapshotAt": "2026-10-10T16:41:39.338Z",
+"readCompletedAt": "2026-10-10T16:40:24.341Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:24.587Z",
+"ms": 488912,
+"readStartedAt": "2026-10-10T16:40:24.587Z",
+"snapshotAt": "2026-10-10T16:41:39.591Z",
+"readCompletedAt": "2026-10-10T16:40:24.594Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:24.840Z",
+"ms": 489165,
+"readStartedAt": "2026-10-10T16:40:24.840Z",
+"snapshotAt": "2026-10-10T16:41:39.846Z",
+"readCompletedAt": "2026-10-10T16:40:24.853Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:25.093Z",
+"ms": 489418,
+"readStartedAt": "2026-10-10T16:40:25.093Z",
+"snapshotAt": "2026-10-10T16:41:40.097Z",
+"readCompletedAt": "2026-10-10T16:40:25.103Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:25.351Z",
+"ms": 489676,
+"readStartedAt": "2026-10-10T16:40:25.351Z",
+"snapshotAt": "2026-10-10T16:41:40.356Z",
+"readCompletedAt": "2026-10-10T16:40:25.358Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:25.605Z",
+"ms": 489930,
+"readStartedAt": "2026-10-10T16:40:25.605Z",
+"snapshotAt": "2026-10-10T16:41:40.612Z",
+"readCompletedAt": "2026-10-10T16:40:25.623Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:25.858Z",
+"ms": 490183,
+"readStartedAt": "2026-10-10T16:40:25.858Z",
+"snapshotAt": "2026-10-10T16:41:40.862Z",
+"readCompletedAt": "2026-10-10T16:40:25.864Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:26.112Z",
+"ms": 490437,
+"readStartedAt": "2026-10-10T16:40:26.112Z",
+"snapshotAt": "2026-10-10T16:41:41.117Z",
+"readCompletedAt": "2026-10-10T16:40:26.119Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:26.366Z",
+"ms": 490691,
+"readStartedAt": "2026-10-10T16:40:26.366Z",
+"snapshotAt": "2026-10-10T16:41:41.371Z",
+"readCompletedAt": "2026-10-10T16:40:26.375Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:26.623Z",
+"ms": 490948,
+"readStartedAt": "2026-10-10T16:40:26.623Z",
+"snapshotAt": "2026-10-10T16:41:41.626Z",
+"readCompletedAt": "2026-10-10T16:40:26.631Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:26.882Z",
+"ms": 491207,
+"readStartedAt": "2026-10-10T16:40:26.882Z",
+"snapshotAt": "2026-10-10T16:41:41.886Z",
+"readCompletedAt": "2026-10-10T16:40:26.888Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:27.134Z",
+"ms": 491459,
+"readStartedAt": "2026-10-10T16:40:27.134Z",
+"snapshotAt": "2026-10-10T16:41:42.143Z",
+"readCompletedAt": "2026-10-10T16:40:27.153Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Connecting\u2026",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:27.388Z",
+"ms": 491713,
+"readStartedAt": "2026-10-10T16:40:27.388Z",
+"snapshotAt": "2026-10-10T16:41:42.392Z",
+"readCompletedAt": "2026-10-10T16:40:27.396Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Can't connect",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:27.642Z",
+"ms": 491967,
+"readStartedAt": "2026-10-10T16:40:27.642Z",
+"snapshotAt": "2026-10-10T16:41:42.651Z",
+"readCompletedAt": "2026-10-10T16:40:27.654Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Can't connect",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:27.894Z",
+"ms": 492219,
+"readStartedAt": "2026-10-10T16:40:27.894Z",
+"snapshotAt": "2026-10-10T16:41:42.901Z",
+"readCompletedAt": "2026-10-10T16:40:27.906Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Can't connect",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:28.148Z",
+"ms": 492473,
+"readStartedAt": "2026-10-10T16:40:28.148Z",
+"snapshotAt": "2026-10-10T16:41:43.153Z",
+"readCompletedAt": "2026-10-10T16:40:28.155Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Can't connect",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:28.401Z",
+"ms": 492726,
+"readStartedAt": "2026-10-10T16:40:28.401Z",
+"snapshotAt": "2026-10-10T16:41:43.407Z",
+"readCompletedAt": "2026-10-10T16:40:28.410Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Can't connect",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:28.654Z",
+"ms": 492979,
+"readStartedAt": "2026-10-10T16:40:28.654Z",
+"snapshotAt": "2026-10-10T16:41:43.658Z",
+"readCompletedAt": "2026-10-10T16:40:28.660Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Can't connect",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:28.906Z",
+"ms": 493231,
+"readStartedAt": "2026-10-10T16:40:28.906Z",
+"snapshotAt": "2026-10-10T16:41:43.912Z",
+"readCompletedAt": "2026-10-10T16:40:28.919Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Can't connect",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:29.161Z",
+"ms": 493486,
+"readStartedAt": "2026-10-10T16:40:29.161Z",
+"snapshotAt": "2026-10-10T16:41:44.168Z",
+"readCompletedAt": "2026-10-10T16:40:29.171Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "gameplay",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Can't connect",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:29.415Z",
+"ms": 493740,
+"readStartedAt": "2026-10-10T16:40:29.415Z",
+"snapshotAt": "2026-10-10T16:41:44.421Z",
+"readCompletedAt": "2026-10-10T16:40:29.423Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Can't connect",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:29.668Z",
+"ms": 493993,
+"readStartedAt": "2026-10-10T16:40:29.668Z",
+"snapshotAt": "2026-10-10T16:41:44.675Z",
+"readCompletedAt": "2026-10-10T16:40:29.678Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Can't connect",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:29.921Z",
+"ms": 494246,
+"readStartedAt": "2026-10-10T16:40:29.921Z",
+"snapshotAt": "2026-10-10T16:41:44.928Z",
+"readCompletedAt": "2026-10-10T16:40:29.936Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "unseen",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "unseen",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "Can't connect",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:30.184Z",
+"ms": 494509,
+"readStartedAt": "2026-10-10T16:40:30.184Z",
+"snapshotAt": "2026-10-10T16:41:45.191Z",
+"readCompletedAt": "2026-10-10T16:40:30.195Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "coplayer",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "reject",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "reject",
+"data-cue": "cue"
+},
+"text": "Can't connect",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:30.437Z",
+"ms": 494762,
+"readStartedAt": "2026-10-10T16:40:30.437Z",
+"snapshotAt": "2026-10-10T16:41:45.445Z",
+"readCompletedAt": "2026-10-10T16:40:30.451Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "coplayer",
+"cursorPointer": true,
+"votable": true,
+"tapReady": true,
+"verdict": "reject",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "true",
+"data-tile-tap-ready": "true",
+"data-tile-verdict": "reject",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:30.690Z",
+"ms": 495015,
+"readStartedAt": "2026-10-10T16:40:30.690Z",
+"snapshotAt": "2026-10-10T16:41:45.700Z",
+"readCompletedAt": "2026-10-10T16:40:30.705Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "coplayer",
+"cursorPointer": true,
+"votable": true,
+"tapReady": true,
+"verdict": "reject",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "true",
+"data-tile-tap-ready": "true",
+"data-tile-verdict": "reject",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:30.946Z",
+"ms": 495271,
+"readStartedAt": "2026-10-10T16:40:30.946Z",
+"snapshotAt": "2026-10-10T16:41:45.954Z",
+"readCompletedAt": "2026-10-10T16:40:30.957Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "coplayer",
+"cursorPointer": true,
+"votable": true,
+"tapReady": true,
+"verdict": "reject",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "true",
+"data-tile-tap-ready": "true",
+"data-tile-verdict": "reject",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:31.200Z",
+"ms": 495525,
+"readStartedAt": "2026-10-10T16:40:31.200Z",
+"snapshotAt": "2026-10-10T16:41:46.207Z",
+"readCompletedAt": "2026-10-10T16:40:31.210Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "play",
+"round": 0,
+"turn": 2,
+"turnsPerRound": 12,
+"sessionStage": "ending",
+"sessionTurn": 2,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 2 of 12",
+"ducked": false,
+"intro": false,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "coplayer",
+"cursorPointer": true,
+"votable": true,
+"tapReady": true,
+"verdict": "reject",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "true",
+"data-tile-tap-ready": "true",
+"data-tile-verdict": "reject",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+},
+{
+"t": "2026-10-10T16:40:31.452Z",
+"ms": 495777,
+"readStartedAt": "2026-10-10T16:40:31.452Z",
+"snapshotAt": "2026-10-10T16:41:46.457Z",
+"readCompletedAt": "2026-10-10T16:40:31.459Z",
+"pageGeneration": 0,
+"documentIdentity": "http://localhost:3000/game|1791649890737.4",
+"url": "http://localhost:3000/game",
+"stage": "intro",
+"round": 0,
+"turn": 3,
+"turnsPerRound": 12,
+"sessionStage": "introduction",
+"sessionTurn": 3,
+"viewport": {
+"width": 320,
+"height": 568
+},
+"pill": "Turn 3 of 12",
+"ducked": true,
+"intro": true,
+"confirm": false,
+"tiles": [
+{
+"id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+"role": "you",
+"cursorPointer": false,
+"votable": false,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "you",
+"data-tile-votable": "false",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 24,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+},
+{
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"role": "coplayer",
+"cursorPointer": false,
+"votable": true,
+"tapReady": false,
+"verdict": "pending",
+"attrs": {
+"data-tile-slot": "true",
+"data-tile-role": "coplayer",
+"data-tile-votable": "true",
+"data-tile-tap-ready": "false",
+"data-tile-verdict": "pending",
+"data-tile-active": "true",
+"data-cue": "cue"
+},
+"text": "",
+"aria": [],
+"box": {
+"x": 164,
+"y": 180,
+"w": 148,
+"h": 148
+},
+"visible": true,
+"hit": "self",
+"rotateY": null,
+"rotY": null,
+"tapped": false,
+"click": null
+}
+]
+}
+],
+"taps": [
+{
+"at": "2026-10-10T16:40:21.464Z",
+"turn": 2,
+"id": "5FcrfviyJ8UDkkyw6Xn1U5C9MJygyLesje4WaSMKTqJ2zZ86",
+"result": "ok",
+"stage": "gameplay"
+},
+{
+"at": "2026-10-10T16:40:21.488Z",
+"turn": 2,
+"id": "5FzyLQdBCuWwV3dzxCSx4oDxPNbKCGLGLVpJVLrEsoE9qbiN",
+"result": "ok",
+"stage": "gameplay"
+},
+{
+"at": "2026-10-10T16:40:30.363Z",
+"turn": 2,
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"result": "skipped: page showed ending, turn 2",
+"stage": "ending"
+},
+{
+"at": "2026-10-10T16:40:30.683Z",
+"turn": 2,
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"result": "skipped: page showed ending, turn 2",
+"stage": "ending"
+},
+{
+"at": "2026-10-10T16:40:30.973Z",
+"turn": 2,
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"result": "skipped: page showed ending, turn 2",
+"stage": "ending"
+},
+{
+"at": "2026-10-10T16:40:31.265Z",
+"turn": 2,
+"id": "5EE2TJKas8eMUdt8DGSibrTxFoVtrqghuxbks3bMf5boDb5C",
+"result": "skipped: page showed ending, turn 2",
+"stage": "ending"
+}
+]
+}

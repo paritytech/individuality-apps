@@ -1,0 +1,299 @@
+{
+"source": "a live game, bot 10",
+"maxGroupSize": 6,
+"rows": [
+{
+"t": "2026-10-04T17:55:06.906Z",
+"stage": "waiting",
+"turn": null,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:55:07.174Z",
+"stage": "intro",
+"turn": 1,
+"ducked": true
+},
+{
+"t": "2026-10-04T17:55:15.006Z",
+"stage": "play",
+"turn": 1,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:55:22.089Z",
+"stage": "play",
+"turn": 2,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:55:26.666Z",
+"stage": "play",
+"turn": 2,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:55:31.840Z",
+"stage": "intro",
+"turn": 3,
+"ducked": true
+},
+{
+"t": "2026-10-04T17:55:36.530Z",
+"stage": "play",
+"turn": 3,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:55:41.399Z",
+"stage": "play",
+"turn": 3,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:55:44.613Z",
+"stage": "intro",
+"turn": 4,
+"ducked": true
+},
+{
+"t": "2026-10-04T17:55:49.486Z",
+"stage": "play",
+"turn": 4,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:55:53.513Z",
+"stage": "play",
+"turn": 4,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:55:57.414Z",
+"stage": "play",
+"turn": 5,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:56:06.303Z",
+"stage": "play",
+"turn": 5,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:56:09.987Z",
+"stage": "play",
+"turn": 6,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:56:15.542Z",
+"stage": "play",
+"turn": 6,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:56:19.619Z",
+"stage": "play",
+"turn": 6,
+"ducked": true
+},
+{
+"t": "2026-10-04T17:56:22.656Z",
+"stage": "play",
+"turn": 6,
+"ducked": true
+},
+{
+"t": "2026-10-04T17:56:29.969Z",
+"stage": "play",
+"turn": 7,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:56:36.226Z",
+"stage": "play",
+"turn": 7,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:56:38.280Z",
+"stage": "intro",
+"turn": 8,
+"ducked": true
+},
+{
+"t": "2026-10-04T17:56:38.776Z",
+"stage": null,
+"turn": null,
+"ducked": null
+},
+{
+"t": "2026-10-04T17:56:41.286Z",
+"stage": null,
+"turn": null,
+"ducked": null
+},
+{
+"t": "2026-10-04T17:56:42.912Z",
+"stage": "play",
+"turn": 8,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:56:48.405Z",
+"stage": "play",
+"turn": 8,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:56:51.697Z",
+"stage": "intro",
+"turn": 9,
+"ducked": true
+},
+{
+"t": "2026-10-04T17:56:57.629Z",
+"stage": "play",
+"turn": 9,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:57:01.885Z",
+"stage": "play",
+"turn": 9,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:57:06.210Z",
+"stage": "play",
+"turn": 10,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:57:12.987Z",
+"stage": "play",
+"turn": 10,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:57:16.506Z",
+"stage": "play",
+"turn": 11,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:57:22.745Z",
+"stage": "play",
+"turn": 11,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:57:26.891Z",
+"stage": "play",
+"turn": 12,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:57:36.890Z",
+"stage": "play",
+"turn": 12,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:57:40.485Z",
+"stage": "confirm",
+"turn": null,
+"ducked": false
+},
+{
+"t": "2026-10-04T17:57:44.800Z",
+"stage": "confirm",
+"turn": null,
+"ducked": false
+}
+],
+"acts": [
+{
+"id": "host-killed",
+"at": "2026-10-04T17:56:38.776Z",
+"detail": "game turn 8 of 12: truapi-host 3008 killed with SIGKILL, kept down 1 s"
+},
+{
+"id": "host-restarted",
+"at": "2026-10-04T17:56:41.286Z",
+"detail": "game turn 8 of 12: the host listens again 2.5 s after the kill (same ports, same session)"
+}
+],
+"report": {
+"who": "5Dx3i9TAy3ebb4B7d7mP3MJKRa3JSVEACohrv3yASamr2pq5",
+"block": 1364356,
+"extrinsic": 6,
+"rounds": [
+{
+"ownIndex": 6,
+"members": [
+{
+"index": 0,
+"player": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1"
+},
+{
+"index": 2,
+"player": "5GSh94NSkZXsLngzcsiUmqF6h16PA9CDYxkH3wXMjpFS38WV"
+},
+{
+"index": 4,
+"player": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR"
+},
+{
+"index": 6,
+"player": "5Dx3i9TAy3ebb4B7d7mP3MJKRa3JSVEACohrv3yASamr2pq5"
+},
+{
+"index": 8,
+"player": "5GCgw9brnyP8aFWSvDgMzwEfhEF4HK2d9g3y8SeQFK8U1A6a"
+}
+]
+},
+{
+"ownIndex": 2,
+"members": [
+{
+"index": 0,
+"player": "5HMzq4MRE22yS8J4TBgMxVibjseZ8MobUAXysc1F4pbg7yYd"
+},
+{
+"index": 2,
+"player": "5Dx3i9TAy3ebb4B7d7mP3MJKRa3JSVEACohrv3yASamr2pq5"
+},
+{
+"index": 4,
+"player": "5GhDzCmTAvBz846ER9WTu6r2Vd26EtXyuS1u5vKYhj5RuvaQ"
+},
+{
+"index": 6,
+"player": "5GRWWWXUzLEDoUKWX5xBgkHXG78XTGqLJwj2Fj2jcbgvHKeR"
+},
+{
+"index": 8,
+"player": "5GM6acWtRvK94BYHt5nf7jMjDuAu36FjDnot71z1aa97Fuo1"
+}
+]
+}
+],
+"fullReport": [
+[
+"Person",
+"Person",
+"Person",
+"Person"
+],
+[
+"Person",
+"Person",
+"Person",
+"Person"
+]
+]
+}
+}

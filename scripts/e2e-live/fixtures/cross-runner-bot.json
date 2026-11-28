@@ -1,0 +1,49 @@
+{
+  "run": 40207000408,
+  "game": 1391,
+  "reporter": "5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1",
+  "crossRunnerBot": "5D13u8h6souHYUw8ui8ZsRg3813Mx5rpteU5mt9gig9J3ibM",
+  "localBots": [
+    "5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1"
+  ],
+  "runBots": [
+    "5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1",
+    "5FcrfviyJ8UDkkyw6Xn1U5C9MJygyLesje4WaSMKTqJ2zZ86",
+    "5FzyLQdBCuWwV3dzxCSx4oDxPNbKCGLGLVpJVLrEsoE9qbiN",
+    "5FFrmp872KNCpThoaqJc2Az3TLnzR3voGQYQ2j651a3Te4KX",
+    "5D13u8h6souHYUw8ui8ZsRg3813Mx5rpteU5mt9gig9J3ibM"
+  ],
+  "report": {
+    "who": "5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1",
+    "block": 544125,
+    "extrinsic": 16,
+    "maxGroupSize": 6,
+    "rounds": [
+      {
+        "ownIndex": 24,
+        "members": [
+          { "index": 4, "player": "5D13u8h6souHYUw8ui8ZsRg3813Mx5rpteU5mt9gig9J3ibM" },
+          { "index": 9, "player": "5FcrfviyJ8UDkkyw6Xn1U5C9MJygyLesje4WaSMKTqJ2zZ86" },
+          { "index": 14, "player": "5FFrmp872KNCpThoaqJc2Az3TLnzR3voGQYQ2j651a3Te4KX" },
+          { "index": 19, "player": "5FzyLQdBCuWwV3dzxCSx4oDxPNbKCGLGLVpJVLrEsoE9qbiN" },
+          { "index": 24, "player": "5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1" }
+        ]
+      },
+      {
+        "ownIndex": 17,
+        "members": [
+          { "index": 2, "player": "5CD9VZrAoAY44pGsSw7VVN8UqkMmJjcyg7aWFxAnBHMS4wZW" },
+          { "index": 7, "player": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7" },
+          { "index": 12, "player": "5FFrmp872KNCpThoaqJc2Az3TLnzR3voGQYQ2j651a3Te4KX" },
+          { "index": 17, "player": "5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1" },
+          { "index": 22, "player": "5D13u8h6souHYUw8ui8ZsRg3813Mx5rpteU5mt9gig9J3ibM" },
+          { "index": 27, "player": "5FiwzwSd4s2fbXH8sjwJz5BikBrm6wsBs7KDCeZNb8w5X8UH" }
+        ]
+      }
+    ],
+    "fullReport": [
+      ["NotPerson", "Person", "Person", "Person"],
+      ["Person", "Person", "Person", "NotPerson", "Person"]
+    ]
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "runId": 37430161167,
+  "game": 57,
+  "jobs": [
+    {
+      "id": 112164954222,
+      "run_attempt": 1,
+      "name": "play (bot 3, relay-iphonese-fastclock)",
+      "status": "completed",
+      "conclusion": "failure",
+      "runner_name": "hosted-runner-1",
+      "runner_group_name": "internal",
+      "labels": ["parity-int-ubuntu"],
+      "steps": [
+        { "name": "Set up job", "status": "completed", "conclusion": "success" },
+        { "name": "Boot and run the journey (bot 3, stage all)", "status": "in_progress", "conclusion": null },
+        { "name": "Summarise", "status": "pending", "conclusion": null }
+      ]
+    },
+    {
+      "id": 112164954199,
+      "run_attempt": 1,
+      "name": "play (bot 12, host-crash-long)",
+      "status": "completed",
+      "conclusion": "failure",
+      "runner_name": "hosted-runner-2",
+      "runner_group_name": "internal",
+      "labels": ["parity-int-ubuntu"],
+      "steps": [
+        { "name": "Set up job", "status": "completed", "conclusion": "success" },
+        { "name": "Boot and run the journey (bot 12, stage all)", "status": "in_progress", "conclusion": null },
+        { "name": "Summarise", "status": "pending", "conclusion": null }
+      ]
+    },
+    {
+      "id": 112164954472,
+      "run_attempt": 1,
+      "name": "play (bot 15, clock-step-while-hidden)",
+      "status": "completed",
+      "conclusion": "failure",
+      "runner_name": "hosted-runner-3",
+      "runner_group_name": "internal",
+      "labels": ["parity-int-ubuntu"],
+      "steps": [
+        { "name": "Set up job", "status": "completed", "conclusion": "success" },
+        { "name": "Boot and run the journey (bot 15, stage all)", "status": "in_progress", "conclusion": null },
+        { "name": "Summarise", "status": "pending", "conclusion": null }
+      ]
+    },
+    {
+      "id": 112173684944,
+      "run_attempt": 2,
+      "name": "play (bot 3, relay-iphonese-fastclock)",
+      "status": "completed",
+      "conclusion": "failure",
+      "runner_name": "hosted-runner-4",
+      "runner_group_name": "internal",
+      "labels": ["parity-int-ubuntu"],
+      "steps": [{ "name": "Boot and run the journey (bot 3, stage all)", "status": "completed", "conclusion": "failure" }]
+    },
+    {
+      "id": 112173684876,
+      "run_attempt": 2,
+      "name": "play (bot 12, host-crash-long)",
+      "status": "completed",
+      "conclusion": "failure",
+      "runner_name": "hosted-runner-5",
+      "runner_group_name": "internal",
+      "labels": ["parity-int-ubuntu"],
+      "steps": [{ "name": "Boot and run the journey (bot 12, stage all)", "status": "completed", "conclusion": "failure" }]
+    },
+    {
+      "id": 112173685013,
+      "run_attempt": 2,
+      "name": "play (bot 15, clock-step-while-hidden)",
+      "status": "completed",
+      "conclusion": "failure",
+      "runner_name": "hosted-runner-6",
+      "runner_group_name": "internal",
+      "labels": ["parity-int-ubuntu"],
+      "steps": [{ "name": "Boot and run the journey (bot 15, stage all)", "status": "completed", "conclusion": "failure" }]
+    }
+  ],
+  "annotations": {
+    "112164954222": { "available": true, "messages": ["The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection."] },
+    "112164954199": { "available": true, "messages": ["The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection."] },
+    "112164954472": { "available": true, "messages": ["The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection."] },
+    "112173684944": { "available": true, "messages": ["Process completed with exit code 1."] },
+    "112173684876": { "available": true, "messages": ["Process completed with exit code 1."] },
+    "112173685013": { "available": true, "messages": ["Process completed with exit code 1."] }
+  }
+}

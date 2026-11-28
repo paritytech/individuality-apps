@@ -1,0 +1,13 @@
+{
+  "personas": [
+    { "profile": "locale-la-enus", "base": "jollylaenus" },
+    { "profile": "locale-tokyo-jajp", "base": "jollytokyojp" },
+    { "profile": "locale-berlin-dede", "base": "jollyberlinde" },
+    { "profile": "uplink-limited-pixel6a", "base": "jollyuplink" },
+    { "profile": "camera-denied", "base": "jollycamdeny" },
+    { "profile": "camera-missing", "base": "jollycammiss" },
+    { "profile": "storm-pixel6a-timeline", "base": "jollystorm" },
+    { "profile": "video-role-late-flip", "base": "jollyvideoflip" },
+    { "profile": "video-role-late-never", "base": "jollyvideonever" }
+  ]
+}

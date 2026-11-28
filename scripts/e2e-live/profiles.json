@@ -1,0 +1,2099 @@
+{
+  "profiles": [
+    {
+      "name": "baseline-iphone14-wifi",
+      "bot": 1,
+      "identity": {
+        "paseo-next-v2": "jollityeea.09",
+        "previewnet": "jollitypv.12"
+      },
+      "device": "iPhone 14",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {
+          "changeVerdictThenConfirm": true
+        }
+      },
+      "expect": [
+        {
+          "kind": "metric",
+          "name": "signup.taps",
+          "min": 1,
+          "max": 1,
+          "pending": true,
+          "note": "no counterpart: the app counts signup.retries (game-source.ts), not taps; needs a bot-side tap count"
+        },
+        {
+          "kind": "metric",
+          "name": "signup.landed_ms",
+          "max": 30000
+        },
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true
+        }
+      ]
+    },
+    {
+      "name": "slow-pixel7-lte-poor",
+      "bot": 2,
+      "identity": {
+        "paseo-next-v2": "jollityeeb.29",
+        "previewnet": "jollitypv.15"
+      },
+      "device": "Pixel 7",
+      "cpuThrottle": 4,
+      "camera": {
+        "delayMs": 9000,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "lte-poor",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {
+          "note": "waiting room, then plays normally"
+        }
+      },
+      "expect": [
+        {
+          "kind": "metric",
+          "name": "camera.first_open_ms"
+        },
+        {
+          "kind": "metric",
+          "name": "rtc.decode_ms"
+        },
+        {
+          "kind": "metric",
+          "name": "rtc.encode_ms"
+        },
+        {
+          "kind": "metric",
+          "name": "rtc.quality_limited"
+        },
+        {
+          "kind": "metric",
+          "name": "rtc.signal_rtt_ms",
+          "max": 5000
+        },
+        {
+          "kind": "event",
+          "name": "camera.acquire",
+          "attrs": {
+            "camera.warm": "true"
+          },
+          "note": "the camera was opened in the waiting room, not at the game start"
+        },
+        {
+          "kind": "event",
+          "name": "rtc.peer",
+          "attrs": {
+            "rtc.last_stage": "offer"
+          },
+          "max": 1,
+          "note": "a pair that never got past the offer: ONE is expected in the six-bot game (the late joiner, bot 6, is not in the mesh at join); a second is a real stuck pair"
+        }
+      ]
+    },
+    {
+      "name": "relay-iphonese-fastclock",
+      "bot": 3,
+      "identity": {
+        "paseo-next-v2": "jollityeec.81",
+        "previewnet": "jollitypv.20"
+      },
+      "device": "iPhone SE",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 75,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": true
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {
+          "note": "TURN fetched at app open, chain clock not yet known"
+        }
+      },
+      "expect": [
+        {
+          "kind": "event",
+          "name": "rtc.path",
+          "attrs": {
+            "rtc.path": "relay"
+          }
+        },
+        {
+          "kind": "metric",
+          "name": "rtc.coverage_pct",
+          "min": 90,
+          "pending": true,
+          "note": "pairs with the late joiner (bot 6) read 0 % in round 1 by design (game 186), so min 90 over every pair can never hold in the six-bot game; needs a per-pair filter (rtc.pair) the guard kinds do not have"
+        },
+        {
+          "kind": "event",
+          "name": "turn.issue",
+          "attrs": {
+            "turn.ok": "true"
+          },
+          "note": "TURN credentials were issued"
+        },
+        {
+          "kind": "synchronized-pc-failure",
+          "withinMs": 5000,
+          "minPeers": 2,
+          "note": "relay-only links must not collapse together on the local TURN transport"
+        }
+      ]
+    },
+    {
+      "name": "switcher-pixel6a-wifi-to-cell",
+      "bot": 4,
+      "identity": {
+        "paseo-next-v2": "jollityeed.41",
+        "previewnet": "jollitypv.25"
+      },
+      "device": "Pixel 6a",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false,
+        "switchAtTurn": 2,
+        "switchTo": "lte-good",
+        "blackoutS": 15
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {}
+      },
+      "expect": [
+        {
+          "kind": "event",
+          "name": "net.change",
+          "pending": true,
+          "note": "the app's net.change comes from the BROWSER's network events (online/offline, connection change); shaping or cutting the runner's link never raises them, so netem cannot trigger it"
+        },
+        {
+          "kind": "event",
+          "name": "rtc.reconnect",
+          "note": "the game journey's rtc.reconnect step: a link that dropped and came back (the 15 s blackout must disconnect it)"
+        },
+        {
+          "kind": "event",
+          "name": "rtc.heal",
+          "attrs": {
+            "rtc.healed": "true"
+          },
+          "note": "the heal ladder acts after DISCONNECT_GRACE_MS (4 s) of a link down: an 15 s blackout that really cuts must trigger it; ICE self-recovery inside 4 s is NOT a heal"
+        },
+        {
+          "kind": "metric",
+          "name": "rtc.heal_ms"
+        },
+        {
+          "kind": "metric",
+          "name": "rtc.coverage_pct",
+          "min": 60,
+          "note": "video coverage stays up across the round despite an 15 s blackout in a ~72 s round"
+        }
+      ]
+    },
+    {
+      "name": "kill-background-iphone13",
+      "bot": 5,
+      "identity": {
+        "paseo-next-v2": "jollityeee.05",
+        "previewnet": "jollitypv.29"
+      },
+      "device": "iPhone 13",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "kill-relaunch",
+        "params": {
+          "killInRound": 2,
+          "backgroundFromGameEndS": 3,
+          "backgroundUntilGameEndS": 12
+        }
+      },
+      "expect": [
+        {
+          "kind": "event",
+          "name": "app-open",
+          "attrs": {
+            "previous.exit": "crash-or-kill-foreground"
+          },
+          "note": "the relaunch saw the kill (attribute of the app-open journey)",
+          "rolesOnly": true
+        },
+        {
+          "kind": "event",
+          "name": "game-log",
+          "pending": true,
+          "note": "the app sends a Sentry info event 'game-log' (lib/telemetry/game-log.ts), not a span step; the evaluator has no source for it yet"
+        },
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true
+        }
+      ]
+    },
+    {
+      "name": "late-join-galaxya55-lte-good",
+      "bot": 6,
+      "identity": {
+        "paseo-next-v2": "jollityeef.81",
+        "previewnet": "jollitypv.30"
+      },
+      "device": "Galaxy A55",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "lte-good",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "late-join",
+        "params": {
+          "joinAfterTurn": 1
+        }
+      },
+      "expect": [
+        {
+          "kind": "event",
+          "name": "camera.acquire",
+          "attrs": {
+            "camera.warm": "false"
+          },
+          "note": "a late joiner opens the camera cold, never in the waiting room",
+          "rolesOnly": true
+        },
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true
+        }
+      ]
+    },
+    {
+      "name": "check-seat-preparing",
+      "bot": null,
+      "freshIdentity": true,
+      "device": "iPhone 14",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "seat-preparing",
+        "params": {
+          "freshLitePerson": true
+        }
+      },
+      "expect": [
+        {
+          "kind": "event",
+          "name": "game-signup",
+          "attrs": {
+            "signup.retry_reason": "bind-pending"
+          },
+          "min": 1,
+          "pending": true,
+          "note": "UNPROVEN TIMING: the app prepares a lite seat as soon as a game is scheduled (game-source.ts readSeatPath), minutes before Register enables, so a bot that opens the app at boot usually finds the seat READY and never waits on the bind. Flip this to a hard guard once the journey holds the app unopened until registration opens (or a live run shows the wait); then it proves the preparing path"
+        },
+        {
+          "kind": "metric",
+          "name": "signup.taps",
+          "min": 1,
+          "max": 1,
+          "pending": true,
+          "note": "no counterpart: signup.taps is a bot-side count; nearest real signal is the game-signup step tx.broadcast"
+        }
+      ]
+    },
+    {
+      "name": "check-stale-build",
+      "bot": null,
+      "device": "iPhone 14",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "env": {
+        "NEXT_PUBLIC_VERSION_URL": "{{fixture.url}}",
+        "NEXT_PUBLIC_BUILD_TIME": "0"
+      },
+      "fixture": {
+        "path": "/dim2-version.json",
+        "body": {
+          "dim2.testnet": {
+            "version": "e2e-future-build",
+            "time": 4102444800
+          },
+          "dim2.paseo": {
+            "version": "e2e-future-build",
+            "time": 4102444800
+          },
+          "updated": "2100-01-01T00:00:00.000Z"
+        }
+      },
+      "role": {
+        "kind": "baseline",
+        "label": "stale-build",
+        "params": {}
+      },
+      "expect": [
+        {
+          "kind": "text",
+          "text": "Update available"
+        },
+        {
+          "kind": "event",
+          "name": "tx.broadcast",
+          "max": 0,
+          "note": "a stale build must not submit a sign-up (game-signup journey)"
+        }
+      ]
+    },
+    {
+      "name": "locale-la-enus",
+      "bot": null,
+      "device": "iPhone 14",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {}
+      },
+      "expect": [
+        {
+          "kind": "event",
+          "name": "app-open",
+          "pending": true,
+          "note": "the home's and waiting room's local times (a UTC or locale bug shows as a wrong hour) have no telemetry counterpart; stage (a) asserts the page's zone and locale, a human compares the shown hour to the chain's game time"
+        }
+      ],
+      "locale": "en-US",
+      "timezoneId": "America/Los_Angeles",
+      "identity": {
+        "previewnet": "jollylaenus.48",
+        "paseo-next-v2": "jollylaenus.27"
+      }
+    },
+    {
+      "name": "locale-tokyo-jajp",
+      "bot": null,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {}
+      },
+      "expect": [],
+      "locale": "ja-JP",
+      "timezoneId": "Asia/Tokyo",
+      "identity": {
+        "previewnet": "jollytokyojp.41",
+        "paseo-next-v2": "jollytokyojp.07"
+      }
+    },
+    {
+      "name": "locale-berlin-dede",
+      "bot": null,
+      "device": "iPhone 13",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {}
+      },
+      "expect": [],
+      "locale": "de-DE",
+      "timezoneId": "Europe/Berlin",
+      "identity": {
+        "previewnet": "jollyberlinde.65",
+        "paseo-next-v2": "jollyberlinde.15"
+      }
+    },
+    {
+      "name": "camera-denied",
+      "bot": null,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p",
+        "mode": "denied"
+      },
+      "expectedOutcome": {
+        "kind": "camera-unavailable",
+        "reason": "denied"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {}
+      },
+      "expect": [
+        {
+          "kind": "event",
+          "name": "camera.acquire",
+          "pending": true,
+          "note": "the denied and no-camera help screens of #276 emit camera.state / camera.reason on the join journey; assert the real attribute once a desk run shows what the app sends"
+        }
+      ],
+      "identity": {
+        "previewnet": "jollycamdeny.25",
+        "paseo-next-v2": "jollycamdeny.26"
+      }
+    },
+    {
+      "name": "camera-missing",
+      "bot": null,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p",
+        "mode": "missing"
+      },
+      "expectedOutcome": {
+        "kind": "camera-unavailable",
+        "reason": "no-camera"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {}
+      },
+      "expect": [
+        {
+          "kind": "event",
+          "name": "camera.acquire",
+          "pending": true,
+          "note": "as camera-denied: camera.reason for a missing device"
+        }
+      ],
+      "identity": {
+        "previewnet": "jollycammiss.50",
+        "paseo-next-v2": "jollycammiss.87"
+      }
+    },
+    {
+      "name": "uplink-limited-pixel6a",
+      "bot": null,
+      "device": "Pixel 6a",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "lte-upload-limited",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {}
+      },
+      "expect": [
+        {
+          "kind": "metric",
+          "name": "rtc.quality_limited"
+        },
+        {
+          "kind": "metric",
+          "name": "rtc.encode_ms"
+        }
+      ],
+      "identity": {
+        "previewnet": "jollyuplink.08",
+        "paseo-next-v2": "jollyuplink.30"
+      }
+    },
+    {
+      "name": "uplink-lift-pixel6a",
+      "bot": null,
+      "acceptanceOnly": true,
+      "device": "Pixel 6a",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "lte-upload-limited",
+        "relayOnly": true,
+        "timeline": [
+          {
+            "atTurn": 4,
+            "profile": "lte-good"
+          }
+        ]
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {
+          "note": "Dedicated acceptance target: TURN over TCP/TLS at 0.3 Mbit/s, lifted to LTE-good during turn 4. Explicit dispatch only."
+        }
+      },
+      "expect": [],
+      "identity": {
+        "previewnet": "jollyuplink.08",
+        "paseo-next-v2": "jollyuplink.30"
+      }
+    },
+    {
+      "name": "storm-pixel6a-timeline",
+      "bot": null,
+      "device": "Pixel 6a",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "lte-good",
+        "relayOnly": false,
+        "timeline": [
+          {
+            "atTurn": 3,
+            "lossPct": 30,
+            "forS": 10
+          },
+          {
+            "atTurn": 6,
+            "profile": "lte-poor"
+          },
+          {
+            "atTurn": 9,
+            "profile": "wifi"
+          }
+        ]
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {}
+      },
+      "expect": [
+        {
+          "kind": "event",
+          "name": "net.change"
+        },
+        {
+          "kind": "event",
+          "name": "rtc.heal",
+          "attrs": {
+            "rtc.healed": "true"
+          }
+        },
+        {
+          "kind": "metric",
+          "name": "rtc.heal_ms"
+        }
+      ],
+      "identity": {
+        "previewnet": "jollystorm.90",
+        "paseo-next-v2": "jollystorm.61"
+      }
+    },
+    {
+      "name": "chain-outage",
+      "bot": null,
+      "identity": {
+        "paseo-next-v2": "jollitymfdv.71",
+        "previewnet": "jollitypv.32"
+      },
+      "device": "Pixel 6a",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false,
+        "timeline": [
+          {
+            "atTurn": 4,
+            "outage": "people-rpc",
+            "forS": 10
+          }
+        ]
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {
+          "note": "CUTS THE WHOLE polkadot.io ZONE for 10 s at turn 4, not just the statement store: the People RPC (which carries the statement store and signalling) resolves to shared Cloudflare addresses that Asset Hub and the other polkadot.io hosts also use, so the cut also takes the app's chain reads and the journey's own chain reader (chain-read.mts watch, which tolerates it by retrying). The resilience goal is the heal guards below."
+        }
+      },
+      "expect": [
+        {
+          "kind": "event",
+          "name": "rtc.heal",
+          "attrs": {
+            "rtc.healed": "false"
+          },
+          "max": 0,
+          "note": "the link recovers: no heal may end unhealed after the statement store was unreachable for 10 s mid-round"
+        },
+        {
+          "kind": "event",
+          "name": "rtc.peer",
+          "attrs": {
+            "rtc.last_stage": "offer"
+          },
+          "max": 0,
+          "note": "signalling went down mid-game; no pair may stay stuck at the offer"
+        },
+        {
+          "kind": "metric",
+          "name": "rtc.signal_problems",
+          "note": "signalling retries counted: the transport's onSubmit retry/failed events (lib/journeys/rtc-signal.ts). A metric guard cannot filter on rtc.signal_event, so this proves some submit backed off during the window; it fails if no submit landed inside the 10 s"
+        },
+        {
+          "kind": "metric",
+          "name": "rtc.signal_rtt_ms",
+          "max": 30000,
+          "note": "bounded: an offer that straddled the outage may be slow, none may wait half a minute. Compared on the app's monotonic clock only after #325 merges"
+        }
+      ]
+    },
+    {
+      "name": "turn-issuer-outage",
+      "bot": null,
+      "device": "iPhone 14",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false,
+        "timeline": [
+          {
+            "atOpen": true,
+            "outage": "turn-issuer",
+            "forS": 20
+          }
+        ]
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {
+          "note": "identity.parity-prod.parity.io (paseo only: previewnet serves the issuer at previewnet.substrate.dev/dub on the host of its chains, so a host cut would take the chains too and the run refuses there) serves the TURN credentials this profile cuts. The host reaches the same server only while pairing and attesting a lite account (host-rust-core truapi-host-cli attestation.rs, accounts.rs), which is over before atOpen fires; game sign-up (the app extrinsic through the host signer) does not call it. Boot-only a live run (10 Oct) proves the cut drops the issuer, not the app under it: a boot-only run awaits atOpen steps before the journey. In a game run atOpen fires unawaited at app open, so the first game run is the proof that sign-up and the game survive the outage."
+        }
+      },
+      "expect": [
+        {
+          "kind": "event",
+          "name": "network.turn-receipt",
+          "attrs": {
+            "turn.received": "false"
+          },
+          "note": "the first TURN fetch at app open fails: the issuer (identity.parity-prod.parity.io, paseo only) is unreachable for 20 s, longer than ice.ts's 15 s retry budget. Needs the permission pass to run (a production build, fresh host state)"
+        },
+        {
+          "kind": "metric",
+          "name": "rtc.turn_ttl_left_s",
+          "note": "then it recovers: a later mesh open fetches credentials again (nothing cached after a failure) and records their time to live"
+        },
+        {
+          "kind": "event",
+          "name": "turn-retry",
+          "pending": true,
+          "note": "the retried-then-ok outcome has no telemetry: ice.ts's 3 tries are an iceLog line only. Nearest real signals: network.turn-receipt turn.received=false then rtc.turn_ttl_left_s"
+        },
+        {
+          "kind": "event",
+          "name": "turn-unavailable",
+          "pending": true,
+          "note": "turn-unavailable is an error event (lib/journeys/turn-outcome.ts reportFailure), which guard-evidence.py does not pull (it reads spans and tracemetrics)"
+        }
+      ],
+      "identity": {
+        "previewnet": "jollitypv.33"
+      }
+    },
+    {
+      "name": "relay-outage",
+      "bot": null,
+      "device": "iPhone SE",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": true,
+        "timeline": [
+          {
+            "atTurn": 4,
+            "outage": "turn-relay",
+            "forS": 10
+          }
+        ]
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {}
+      },
+      "expect": [
+        {
+          "kind": "event",
+          "name": "rtc.path",
+          "attrs": {
+            "rtc.path": "relay"
+          },
+          "note": "a relay-only bot connects over the relay"
+        },
+        {
+          "kind": "event",
+          "name": "rtc.heal",
+          "attrs": {
+            "rtc.healed": "true"
+          },
+          "note": "the relay (turn.cloudflare.com) is unreachable for 10 s: the link breaks and heals. Unproven live: if the issuer hands out another relay host the outage hits nothing and this guard says so"
+        },
+        {
+          "kind": "event",
+          "name": "rtc.heal",
+          "attrs": {
+            "rtc.healed": "false"
+          },
+          "max": 0,
+          "note": "no heal may end unhealed"
+        },
+        {
+          "kind": "metric",
+          "name": "rtc.coverage_pct",
+          "min": 50
+        }
+      ],
+      "identity": {
+        "paseo-next-v2": "jollityonjj.69",
+        "previewnet": "jollitypv.34"
+      }
+    },
+    {
+      "name": "tap-storm-pixel7",
+      "bot": null,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "tap-storm",
+        "params": {
+          "flips": 3
+        }
+      },
+      "expect": [
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true,
+          "rolesOnly": true,
+          "note": "flip-flopping must not change what is filed"
+        }
+      ],
+      "identity": {
+        "paseo-next-v2": "jollitysuky.15",
+        "previewnet": "jollitypv.38"
+      }
+    },
+    {
+      "name": "clock-jumps",
+      "bot": null,
+      "identity": {
+        "paseo-next-v2": "jollityulqg.06",
+        "previewnet": "jollitypv.39"
+      },
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {}
+      },
+      "expect": [
+        {
+          "kind": "metric",
+          "name": "rtc.signal_rtt_ms",
+          "max": 10000,
+          "note": "a clock jump must not leak into a signalling round trip: wall-clock timing reads +30 s and -75 s here until #325 puts it on a monotonic clock"
+        },
+        {
+          "kind": "metric",
+          "name": "rtc.turn_ttl_left_s",
+          "note": "TURN still refreshes: credentials were fetched and their time to live recorded after the jumps"
+        },
+        {
+          "kind": "event",
+          "name": "clock-stage",
+          "pending": true,
+          "note": "countdowns follow the chain clock (no early or late stage) has no span: the nearest signals are the clock-drift failure event (not pulled by guard-evidence.py) and the default guard, which fails the bot if 'Voting has closed' shows"
+        }
+      ],
+      "clockJumps": [
+        {
+          "atTurn": 4,
+          "offsetS": 30
+        },
+        {
+          "atTurn": 8,
+          "offsetS": -75
+        }
+      ]
+    },
+    {
+      "name": "host-crash",
+      "bot": null,
+      "identity": {
+        "paseo-next-v2": "jollityyhze.85",
+        "previewnet": "jollitypv.40"
+      },
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "host-crash",
+        "params": {
+          "crashInRound": 2,
+          "downS": 1,
+          "note": "1 s down (host listening again about 1.3 s after the kill): inside the app's reconnect window, measured on the desk; 2.3 s was already too slow"
+        }
+      },
+      "expect": [
+        {
+          "kind": "text",
+          "text": "Open Jollity in the Polkadot app",
+          "never": true,
+          "note": "a host that was back within ~1.3 s must never leave the page on the host gate"
+        },
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true,
+          "rolesOnly": true,
+          "note": "the report files after the host was killed and restarted mid-round"
+        },
+        {
+          "kind": "event",
+          "name": "host-lost",
+          "pending": true,
+          "note": "the app emits no host-lost signal: lib/host has no disconnect event, host.connect fires at app open only, host-call-failed is an error event, and unclean-exit belongs to a page relaunch, not a host loss"
+        }
+      ]
+    },
+    {
+      "name": "host-crash-long",
+      "bot": null,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "host-crash",
+        "params": {
+          "crashInRound": 2,
+          "downS": 8,
+          "note": "8 s down: past the reconnect window the desk measured under next dev (2.3 s made the page reload into the read-only view). On the DEPLOYED app (boot_only 37228769138, Linux) the host was back 9.8 s after the kill and the page re-adopted it: no reload, data-source=host. Still unproven mid-game, where signing must come back for the report"
+        }
+      },
+      "expect": [
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true,
+          "rolesOnly": true,
+          "note": "the report files after the host was killed and restarted mid-round"
+        },
+        {
+          "kind": "event",
+          "name": "host-lost",
+          "pending": true,
+          "note": "the app emits no host-lost signal: lib/host has no disconnect event, host.connect fires at app open only, host-call-failed is an error event, and unclean-exit belongs to a page relaunch, not a host loss"
+        }
+      ],
+      "identity": {
+        "paseo-next-v2": "jollitygzyx.95",
+        "previewnet": "jollitypv.47"
+      }
+    },
+    {
+      "name": "clock-wrong-then-corrected",
+      "bot": null,
+      "identity": {
+        "paseo-next-v2": "jollitywlam.02",
+        "previewnet": "jollitypv.56"
+      },
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": -5,
+      "clockJumps": [
+        {
+          "atTurn": 6,
+          "offsetS": 0
+        }
+      ],
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {
+          "note": "the phone's clock is 5 s slow from boot, through the sign-up and the waiting room (read back at both: clock-held), and is set right while VISIBLE at game turn 6. The game must stay on its peers' time throughout (Rule 1 of docs/time-and-clocks.md: the peer check before the game puts a clock 5 s behind on its peers' time, and lib/device-clock.ts takes the correction at turn 6 out as a step), the store clock must be calibrated on the game clock, not the phone's (#336), and no statement may be refused as expired after the correction"
+        }
+      },
+      "expect": [
+        {
+          "kind": "metric",
+          "name": "rtc.store_calibration_margin_ms",
+          "max": 60000,
+          "note": "the waiting-room calibration ran and learned at most one 60 s push: a store clock stamped from a phone 5 s slow stays inside this bound, so the expiry guard below covers it"
+        },
+        {
+          "kind": "store-rejection",
+          "reason": "alreadyExpired",
+          "max": 0,
+          "note": "no statement is refused as expired, before or after the correction: every expiry is stamped from the game clock (lib/store-clock.ts), which the phone's clock never moves"
+        },
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true,
+          "note": "the report files, and says what the bot voted"
+        }
+      ]
+    },
+    {
+      "name": "clock-ahead-then-corrected",
+      "bot": null,
+      "identity": {
+        "paseo-next-v2": "jollitynlno.28",
+        "previewnet": "jollitypv.58"
+      },
+      "device": "iPhone 14",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 5,
+      "clockJumps": [
+        {
+          "atTurn": 6,
+          "offsetS": 0
+        }
+      ],
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {
+          "note": "the phone's clock is 5 s ahead from boot, through the sign-up and the waiting room (read back at both: clock-held), and is set right while VISIBLE at game turn 6. The game must stay on its peers' time throughout (Rule 1 of docs/time-and-clocks.md: the peer check before the game puts a clock 5 s ahead on its peers' time, and lib/device-clock.ts takes the correction at turn 6 out as a step), the store clock must be calibrated on the game clock, not the phone's (#336), and no statement may be refused as expired after the correction"
+        }
+      },
+      "expect": [
+        {
+          "kind": "metric",
+          "name": "rtc.store_calibration_margin_ms",
+          "max": 60000,
+          "note": "the waiting-room calibration ran and learned at most one 60 s push: a store clock stamped from a phone 5 s ahead stays inside this bound, so the expiry guard below covers it"
+        },
+        {
+          "kind": "store-rejection",
+          "reason": "alreadyExpired",
+          "max": 0,
+          "note": "no statement is refused as expired, before or after the correction: every expiry is stamped from the game clock (lib/store-clock.ts), which the phone's clock never moves"
+        },
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true,
+          "note": "the report files, and says what the bot voted"
+        }
+      ]
+    },
+    {
+      "name": "clock-step-while-hidden",
+      "bot": null,
+      "identity": {
+        "paseo-next-v2": "jollitynkgc.37",
+        "previewnet": "jollitypv.62"
+      },
+      "device": "Pixel 6a",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "hidden-step",
+        "params": {
+          "hideAtTurn": 5,
+          "showAtTurn": 7,
+          "stepS": -60,
+          "note": "backgrounded at turn 5, the clock stepped -60 s while hidden, shown again at turn 7: lib/device-clock.ts never keeps a backward move across a hidden page, and the game clock never moves back: on the resume only a peer check may correct it (lib/game-source.ts), so the game must neither replay a turn nor lose one beyond the two it sat out hidden"
+        }
+      },
+      "expect": [
+        {
+          "kind": "store-rejection",
+          "reason": "alreadyExpired",
+          "max": 0,
+          "rolesOnly": true,
+          "note": "the store clock is chain time: a phone clock stepped back 60 s mints no expired statement (#331 minted only expired ones)"
+        },
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true,
+          "rolesOnly": true,
+          "note": "the report files after the hidden step, and says what the bot voted"
+        }
+      ]
+    },
+    {
+      "name": "reload-mid-game",
+      "bot": null,
+      "identity": {
+        "paseo-next-v2": "jollityfluj.58",
+        "previewnet": "jollitypv.66"
+      },
+      "device": "iPhone 13",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "reload",
+        "params": {
+          "reloadAtTurn": 11,
+          "note": "a plain reload at turn 11, after the delayed-flip sender is disabled (same page, same context: sessionStorage survives; not a kill, not a new browser). The store clock's saved floor (lib/store-clock.ts) must get the first desc out without a channelPriorityTooLow, and the session must rejoin and file the report"
+        }
+      },
+      "expect": [
+        {
+          "kind": "store-rejection",
+          "reason": "channelPriorityTooLow",
+          "max": 0,
+          "rolesOnly": true,
+          "note": "the saved expiry floor outlives the reload: the new page's first statements sit above the old page's on every channel, so the store refuses none for priority over a statement from before the reload (read off the host's replies, with the holder each refusal names; one naming the page's own newer frame, two in flight on one channel, is superseded and counted apart)"
+        },
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true,
+          "rolesOnly": true,
+          "note": "the session rejoined after the reload and filed the report; the votes of the turns before it were restored (lib/game-votes)"
+        }
+      ]
+    },
+    {
+      "name": "visible-freeze",
+      "bot": null,
+      "identity": {
+        "paseo-next-v2": "jollitydstq.74",
+        "previewnet": "jollitypv.67"
+      },
+      "device": "iPhone 14",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "freeze",
+        "params": {
+          "freezeAtTurn": 9,
+          "freezeS": 20,
+          "monotonicStops": true,
+          "note": "mid-round (round 2, turn 3) the page's JS stops for 20 s while VISIBLE, with no visibility event, and its performance.now() stops too: the iOS WebView case of #333's review. lib/device-clock.ts takes the wall's move as a step on a visible page, so the game clock reads 20 s behind until the peer check that the step opens (lib/game-source.ts) moves it forward: in the game, a gap over 5 s jumps (lib/clock-sync.ts SPEEDS)"
+        }
+      },
+      "expect": [
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true,
+          "rolesOnly": true,
+          "note": "the report files after the freeze (the role's own checks: no turn replayed, no more turns missed than the freeze and the peer check explain)"
+        }
+      ]
+    },
+    {
+      "name": "udp-cut-40s",
+      "bot": null,
+      "minPlayers": 6,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false,
+        "timeline": [
+          {
+            "atTurn": 4,
+            "udpCutS": 40
+          }
+        ]
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {}
+      },
+      "expect": [
+        {
+          "kind": "devlog",
+          "tag": "rtc",
+          "match": "self-heal",
+          "note": "every link of this bot is down for 40 s while its hellos keep arriving: the mesh keeps healing with one restart and a rebuild (#245's deadlock stopped it after 8 s)"
+        },
+        {
+          "kind": "event",
+          "name": "rtc.heal",
+          "attrs": {
+            "rtc.healed": "true"
+          },
+          "note": "once the path is back, the links heal"
+        },
+        {
+          "kind": "event",
+          "name": "rtc.heal",
+          "attrs": {
+            "rtc.healed": "false",
+            "rtc.heal_end": "peer_left"
+          },
+          "max": 0,
+          "note": "no link is given up on as a player who left: the player never left"
+        },
+        {
+          "kind": "devlog",
+          "tag": "rtc",
+          "match": "view from",
+          "note": "the co-players' views of the room arrive (who sees whom, lib/webrtc/link-view.ts), over the channel or on the hello while the link is down"
+        }
+      ],
+      "identity": {
+        "previewnet": "jollitypv.73"
+      }
+    },
+    {
+      "name": "video-role-late-flip",
+      "bot": null,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "video-return",
+        "params": {
+          "joinAfterTurn": 1,
+          "enableAtTurn": 4,
+          "disableAtTurn": 10
+        }
+      },
+      "expect": [
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true,
+          "note": "unseen turns are excluded, decoded video turns are eligible, and the filed report matches the per-turn role evidence"
+        }
+      ],
+      "identity": {
+        "previewnet": "jollyvideoflip.90",
+        "paseo-next-v2": "jollyvideoflip.03"
+      }
+    },
+    {
+      "name": "video-role-late-never",
+      "bot": null,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "video-return",
+        "params": {
+          "joinAfterTurn": 1
+        }
+      },
+      "expect": [
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true,
+          "note": "a player that never produces a decoded frame stays unseen and is excluded from the eligible turns"
+        }
+      ],
+      "identity": {
+        "previewnet": "jollyvideonever.97",
+        "paseo-next-v2": "jollyvideonever.68"
+      }
+    },
+    {
+      "name": "video-stall-30s",
+      "bot": null,
+      "minPlayers": 6,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false,
+        "timeline": [
+          {
+            "atTurn": 4,
+            "videoStallS": 30
+          }
+        ]
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {}
+      },
+      "expect": [
+        {
+          "kind": "devlog",
+          "tag": "rtc",
+          "match": "media-stall:",
+          "note": "video stops on links that stay connected: the stall is seen and healed"
+        },
+        {
+          "kind": "devlog",
+          "tag": "rtc",
+          "match": "media-stall:",
+          "max": 15,
+          "note": "one side heals, at most 2 restarts and a rebuild a link (3 x 5 co-players): both ends restarting each other was rank 9's ping-pong"
+        },
+        {
+          "kind": "devlog",
+          "tag": "rtc",
+          "match": "view from",
+          "note": "the co-players' views of the room arrive (who sees whom, lib/webrtc/link-view.ts), over the channel or on the hello while the link is down"
+        }
+      ],
+      "identity": {
+        "previewnet": "jollitypv.77"
+      }
+    },
+    {
+      "name": "host-chain-lost",
+      "bot": null,
+      "identity": {
+        "previewnet": "jollitypv.78"
+      },
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false,
+        "timeline": [
+          {
+            "atSignUp": true,
+            "hostChainCutS": 60,
+            "hostChainHoldS": 45
+          },
+          {
+            "atConfirm": true,
+            "hostChainCutS": 60,
+            "hostChainHoldS": 45
+          }
+        ]
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {
+          "note": "platform-bugs #76: the SIGNING HOST alone loses its chain (host-chain-cut.ts). Twice per game, from the game's chain times: just before the Register tap (registration open, at least 60 s left after the window) and two turns before the confirm stage (the report filed inside the window). Each time truapi-host's established sockets to the People RPC are killed (ss -K) and its new connects refused for 45 s (cgroup v2 + iptables -m cgroup), then the probes watch the rest of the 60 s window for whether it reconnects; its follow subscription coming back on its own is what the persona finds out. On app=local the browser reads the chain over its own socket (NEXT_PUBLIC_PEOPLE_WS) and netem.sh proves that socket survives: the #76 split. On the DEPLOYED app (dim2.testnet) the app reads THROUGH the host (getHostProvider), so a cut would take its reads too: there the journey drops both cuts and the persona is INCONCLUSIVE, never proven. The confirm cut fires when the page shows the second-to-last turn, two turns (24 s) before the confirm stage; votes are local, so no turn needs the host's chain. In force a few seconds later, its 45 s refusal reaches about confirm + 21 s, past the app's auto-confirm report build at about confirm + 9 s, and the bot's Confirm tap waits until it is in force. Two checks are live from the devLog: the first report attempt (\"report built\") came after the cut was in force, and no \"restart card shown\" fell inside the round (unchecked on a build without #491/#492's chain check). The sign-up must show the restart card or HOST_CHAIN_NOTICE under a dead host (#507); see signUpRestartCardCheck in host-chain-cut.ts."
+        }
+      },
+      "expect": [
+        {
+          "kind": "text",
+          "text": "You missed this one",
+          "never": true,
+          "note": "criterion 1: the sign-up lands after the cut, while registration is open, so the missed-it screen never shows"
+        },
+        {
+          "kind": "metric",
+          "name": "signup.landed_ms",
+          "note": "criterion 1: the sign-up landed (the chain check in (b) is the authority; this is the app's own record of it)"
+        },
+        {
+          "kind": "metric",
+          "name": "signup.window_check_timeout",
+          "max": 0,
+          "pending": true,
+          "note": "criterion 1 (#488, not on main yet): no sign-up stalled on a window read. Nearest real signal today: signup.landed_ms and the (b) chain check"
+        },
+        {
+          "kind": "metric",
+          "name": "chain.restart_card_shown",
+          "pending": true,
+          "note": "criterion 2 (#491, not on main yet): the pre-game check recorded the host's chain lost and showed the restart card (lib/chain-restart.ts recordCount). \"Never during a round\" is a live journey check instead (host-chain-cut.ts cardNeverInRoundCheck: no \"restart card shown\" devLog line between the first and the last turn the page showed). chain.health itself is a Sentry captureEvent, which guard-evidence.py does not read"
+        },
+        {
+          "kind": "devlog",
+          "tag": "chain",
+          "match": "restart card shown",
+          "pending": true,
+          "note": "criterion 2 (#491/#492, not on main yet): the same, from the app's own devLog, no Sentry needed"
+        },
+        {
+          "kind": "event",
+          "name": "report.landed",
+          "note": "criterion 3: the report lands inside its window. Authorities: the (d) ReportSubmitted check, and the live journey check that the first report attempt came after the confirm cut was in force (host-chain-cut.ts reportAfterCutCheck)"
+        },
+        {
+          "kind": "metric",
+          "name": "report.retries",
+          "pending": true,
+          "note": "criterion 3 (#491, not on main yet): a report refused under the cut retried by itself (lib/game-session.ts recordCount report.retries)"
+        },
+        {
+          "kind": "event",
+          "name": "join",
+          "attrs": {
+            "turn.stage": "proof-chain"
+          },
+          "pending": true,
+          "note": "criterion 4 (#492, not on main yet): a relay proof refused because the host lost its chain carries turn.stage=proof-chain, and a later turn.received=true shows the relay came back. NOT EXERCISED by these two windows: TURN proofs are built at app open and at each round's mesh open, and neither window spans one. #487's reason travels in the turn-unavailable error event, which guard-evidence.py does not pull"
+        }
+      ]
+    },
+    {
+      "name": "host-stuck-waiting",
+      "bot": null,
+      "acceptanceOnly": true,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false,
+        "timeline": [
+          {
+            "atBeforeGameS": 300,
+            "hostChainHangS": 120
+          }
+        ]
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {
+          "note": "#726 P1: after registration, silently hang the deployed host's People-RPC traffic at T-5m. Once the 120s hang lifts, relaunch the host and reopen the page before playing normally."
+        }
+      },
+      "expect": [
+        {
+          "kind": "text",
+          "text": "Restart the Polkadot app",
+          "note": "the waiting-room hang becomes restart advice"
+        },
+        {
+          "kind": "metric",
+          "name": "chain.restart_card_shown",
+          "note": "the stuck verdict displayed the restart card"
+        },
+        {
+          "kind": "metric",
+          "name": "chain.restart_card_next_probe",
+          "note": "the first probe after the host relaunch was attributed"
+        },
+        {
+          "kind": "devlog",
+          "tag": "chain",
+          "match": "restart card's next probe succeeded",
+          "note": "the restart cleared the stuck verdict"
+        },
+        {
+          "kind": "event",
+          "name": "report.landed",
+          "note": "the recovered bot still played and filed its report"
+        },
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true,
+          "note": "the recovered bot's report matches what it played"
+        },
+        {
+          "kind": "metric",
+          "name": "failure",
+          "attrs": { "failure.kind": "unclean-exit" },
+          "max": 0,
+          "note": "a host restart completed before kickoff is diagnostic, not an in-game failure"
+        },
+        {
+          "kind": "metric",
+          "name": "app.previous_end",
+          "attrs": { "previous.end": "host-reload", "previous.in_game": "false" },
+          "note": "the pre-kickoff restart is positively classified as a host reload outside the game"
+        }
+      ],
+      "identity": { "previewnet": "jollitypv.20" }
+    },
+    {
+      "name": "host-stuck-in-game",
+      "bot": null,
+      "acceptanceOnly": true,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "720p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false,
+        "timeline": [
+          {
+            "atTurn": 4,
+            "hostChainHangS": 110
+          }
+        ]
+      },
+      "role": {
+        "kind": "baseline",
+        "params": {
+          "note": "#726 P2: silently hang the deployed host's existing People-RPC socket at turn 4, then let it resume without interrupting play."
+        }
+      },
+      "expect": [
+        {
+          "kind": "text",
+          "text": "Your Polkadot app is stuck, restart it",
+          "note": "the round keeps playing under the small non-blocking stuck-host bar"
+        },
+        {
+          "kind": "devlog",
+          "tag": "chain",
+          "match": "host stuck during game",
+          "note": "two timeouts produced the stuck-host state"
+        },
+        {
+          "kind": "devlog",
+          "tag": "chain",
+          "match": "host answering during game after stuck transition",
+          "note": "the bar cleared only after the hang-produced stuck state lifted"
+        },
+        {
+          "kind": "event",
+          "name": "report.landed",
+          "note": "the in-game fault did not prevent the report"
+        },
+        {
+          "kind": "chain-report",
+          "matchesVoteTrail": true,
+          "note": "the filed report matches the bot's vote trail"
+        }
+      ],
+      "identity": { "previewnet": "jollitypv.25" }
+    },
+    {
+      "name": "reload-clean-close",
+      "bot": null,
+      "acceptanceOnly": true,
+      "device": "iPhone 13",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "720p" },
+      "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "reload", "params": { "reloadAtTurn": 2, "note": "reload in round 1; the reloaded page labels the previous page a clean close" } },
+      "expect": [
+        { "kind": "metric", "name": "app.previous_end", "attrs": { "previous.end": "clean-close" }, "rolesOnly": true, "note": "a plain page.reload is reported explicitly; it must not be mislabeled as a host reload" },
+        { "kind": "metric", "name": "failure", "attrs": { "failure.kind": "unclean-exit" }, "max": 0, "rolesOnly": true },
+        { "kind": "chain-report", "matchesVoteTrail": true, "rolesOnly": true }
+      ],
+      "identity": { "previewnet": "jollitypv.66" }
+    },
+    {
+      "name": "reload-video-back",
+      "bot": null,
+      "acceptanceOnly": true,
+      "device": "iPhone 14",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "720p" },
+      "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "reload", "params": { "reloadAtTurn": 2, "note": "#1020 / game 270: reload at turn 2, mid-round 1, with about a minute of the round left, after video from the co-players is up. The page comes back into a new signalling session, the case that deadlocked a pair in game 270" } },
+      "expect": [
+        { "kind": "reload-video-back", "maxVideoBackMs": 45000, "rolesOnly": true, "note": "every co-player whose video the page had before the reload, and who did not leave, sends video again within 45 s of the new page booting: the answer wait (30 s) plus a rebuild and an answer. Without the answer-wait fix the pair can stay dark for the whole round. Not evaluated when the run made no video before the reload" },
+        { "kind": "chain-report", "matchesVoteTrail": true, "rolesOnly": true }
+      ],
+      "identity": { "previewnet": "jollitypv.66" }
+    },
+    {
+      "name": "turn-cache-relaunch",
+      "bot": null,
+      "acceptanceOnly": true,
+      "device": "iPhone 13",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "360p" },
+      "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": true },
+      "role": { "kind": "kill-relaunch", "params": { "killInRound": 1, "note": "#919: kill and reopen in round 1 with the valid host-stored TURN credentials" } },
+      "expect": [
+        { "kind": "event", "name": "network.turn-receipt", "attrs": { "turn.received": "cached", "turn.source": "cache-hit" }, "rolesOnly": true },
+        { "kind": "event", "name": "network.turn-receipt", "attrs": { "turn.received": "true" }, "max": 0, "rolesOnly": true, "note": "the valid durable credential is reused without a fresh issuer proof after reopen" },
+        { "kind": "event", "name": "rtc.path", "attrs": { "rtc.path": "relay" }, "rolesOnly": true },
+        { "kind": "chain-report", "matchesVoteTrail": true, "rolesOnly": true }
+      ],
+      "identity": { "previewnet": "jollitypv.29" }
+    },
+    {
+      "name": "host-restart-classified",
+      "bot": null,
+      "acceptanceOnly": true,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "360p" },
+      "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "host-crash", "params": { "crashInRound": 1, "downS": 1, "note": "#922: host process restart in round 1 must classify the replacement session and failure" } },
+      "expect": [
+        { "kind": "metric", "name": "app.previous_end", "attrs": { "previous.end": "host-reload", "previous.in_game": "true" }, "rolesOnly": true },
+        { "kind": "metric", "name": "failure", "attrs": { "failure.kind": "unclean-exit", "failure.reason": "host-reload" }, "rolesOnly": true },
+        { "kind": "chain-report", "matchesVoteTrail": true, "rolesOnly": true }
+      ],
+      "identity": { "previewnet": "jollitypv.40" }
+    },
+    {
+      "name": "turn-warm-returning",
+      "bot": null,
+      "acceptanceOnly": true,
+      "manualOnly": true,
+      "device": "iPhone SE",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "360p" },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": true,
+        "timeline": [
+          { "atBeforeGameS": 90, "outage": "turn-issuer", "forS": 120 }
+        ]
+      },
+      "role": {
+        "kind": "baseline",
+        "params": { "note": "#724 P3: warm TURN while registered, relaunch as a returning player, then cut the issuer across handover; cached relay credentials must carry the returning player. SKIPPED ON PREVIEWNET (manual dispatch only): the issuer shares previewnet.substrate.dev with the chains, so a host cut would take the chains too; app-level fault pending, #2004." }
+      },
+      "expect": [
+        { "kind": "event", "name": "network.turn-receipt", "attrs": { "turn.received": "true", "turn.source": "warmup" }, "note": "the returning app relaunch preserves host permissions but clears TURN, so the registered-home warm-up must issue fresh credentials" },
+        { "kind": "event", "name": "network.turn-receipt", "attrs": { "turn.received": "cached", "turn.source": "cache-hit" }, "min": 2, "note": "one cache hit after the waiting-room reload and one when the mesh opens under the issuer outage" },
+        { "kind": "event", "name": "rtc.path", "attrs": { "rtc.path": "relay" } },
+        { "kind": "event", "name": "report.landed" }
+      ],
+      "identity": { "previewnet": "jollitypv.20" }
+    },
+    {
+      "name": "network-blocked",
+      "bot": null,
+      "acceptanceOnly": true,
+      "device": "Pixel 6a",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "360p" },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": true,
+        "timeline": [
+          { "atBeforeGameS": 300, "outage": "turn-relay", "forS": 298, "concurrent": true },
+          { "atBeforeGameS": 2, "profile": "lte-good", "allowUdp": true }
+        ]
+      },
+      "role": {
+        "kind": "baseline",
+        "params": { "note": "#724/#757 P4: keep warmed TURN under a waiting-room relay outage while UDP is blocked; the host still answers, the preflight warning appears before handover, then an online transition at T-2 clears it and reconnects." }
+      },
+      "expect": [
+        { "kind": "text-cleared-any", "texts": ["You can’t reach the other players", "Switch to mobile data to join"], "note": "the waiting-room footer (testid waiting-network-blocked) appears under the fault and is gone after the mobile-data switch; #1225 and #1430 replaced the older copy.ts sentences" },
+        { "kind": "text", "text": "Restart the Polkadot app", "never": true },
+        { "kind": "event", "name": "network.waiting-check", "attrs": { "waiting_check.result": "blocked", "waiting_check.trigger": "network-change" }, "note": "only the explicit online edge after the relay cut may label this network-change; visibility deferral remains initial" },
+        { "kind": "event", "name": "network.turn-receipt", "attrs": { "turn.received": "cached", "turn.source": "cache-hit" }, "min": 2, "note": "the blocked preflight and the recovery/mesh retry reuse the warmed credentials rather than depending on the issuer" },
+        { "kind": "event", "name": "rtc.path", "attrs": { "rtc.path": "relay" } },
+        { "kind": "event", "name": "report.landed" }
+      ],
+      "identity": { "previewnet": "jollitypv.25" }
+    },
+    {
+      "name": "late-join-turn-5",
+      "bot": null,
+      "device": "Galaxy A55",
+      "cpuThrottle": 1,
+      "camera": {
+        "delayMs": 0,
+        "resolution": "360p"
+      },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "lte-good",
+        "relayOnly": false
+      },
+      "role": {
+        "kind": "late-join",
+        "params": {
+          "joinAfterTurn": 5,
+          "note": "returns in round 1's turn 5: the home lets a registered latecomer in at any turn (#699)"
+        }
+      },
+      "expect": [],
+      "identity": {
+        "previewnet": "jollitypv.83"
+      }
+    },
+    {
+      "name": "issue874-fast-late-join",
+      "bot": null,
+      "acceptanceOnly": true,
+      "manualOnly": true,
+      "device": "Galaxy A55",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "360p" },
+      "clockOffsetS": 0,
+      "network": { "profile": "lte-good", "relayOnly": false },
+      "role": {
+        "kind": "late-join",
+        "params": {
+          "joinAfterTurn": 6,
+          "note": "#874 proof: in a >=7-player/two-room game, return for round 1's first turn and prove video opens promptly without provisional voting"
+        }
+      },
+      "expect": [
+        { "kind": "late-join-proof", "round": 1, "maxFirstVideoMs": 8000, "note": "the cold join opens only its actual round, gets a co-player frame promptly, and cannot tap or seal until ready" },
+        { "kind": "event", "name": "report.landed" }
+      ],
+      "identity": { "previewnet": "jollitypv.83" }
+    },
+    {
+      "name": "game259-lossy-video",
+      "bot": null,
+      "acceptanceOnly": true,
+      "minPlayers": 6,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "360p" },
+      "clockOffsetS": 0,
+      "network": {
+        "profile": "wifi",
+        "relayOnly": false,
+        "timeline": [
+          {
+            "atRoundChannelsOpen": { "round": 2, "count": 5, "byGameS": 105 },
+            "profile": "game259-negotiation-burst",
+            "forS": 15,
+            "restoreProfile": "game259-lossy"
+          }
+        ]
+      },
+      "role": { "kind": "baseline", "params": { "note": "#870: wait for the finalized last-round group, after earlier-only standby links are removed, then apply game 259's observed 65% loss, force exactly one canonical-offerer lane renegotiation per active group link through the test-tagged hook, hold for 15 seconds, and restore 17% loss in finally. Acceptance requires request, offer, answer, and fresh post-answer video per link." } },
+      "expect": [
+        { "kind": "devlog", "tag": "rtc", "match": "[jollity-rtc] media-stall: no-video-rebuild", "fields": { "peer": "5Fnj4wBcoiBfHCcjtKZXcVC2fyiK4SGqDs3YSip3pZzKCbMJ" }, "max": 0, "note": "reliable delivery prevents a rebuild on the clean-control link" },
+        { "kind": "devlog", "tag": "rtc", "match": "[jollity-rtc] media-stall: no-video-rebuild", "fields": { "peer": "5EWNTaqLH4f2qHWWxe5eGwrzX1p9HVn18x31NQB918zYJzEc" }, "max": 0, "note": "reliable delivery prevents a rebuild on the Los Angeles link" },
+        { "kind": "devlog", "tag": "rtc", "match": "[jollity-rtc] media-stall: no-video-rebuild", "fields": { "peer": "5Fn17Vt9fjBjWMqqnUMymk3GXbZm4AyhnGKSvosJQXjCEaBZ" }, "max": 0, "note": "reliable delivery prevents a rebuild on the Tokyo link" },
+        { "kind": "devlog", "tag": "rtc", "match": "[jollity-rtc] media-stall: no-video-rebuild", "fields": { "peer": "5H5qqwSiaWcoEtPnkr76JZ87hgg4qMwZn2FLfsC6Rg3GzJKn" }, "max": 0, "note": "reliable delivery prevents a rebuild on the Berlin link" }
+      ],
+      "identity": { "previewnet": "jollitypv.15" }
+    },
+    {
+      "name": "game259-dropped-lane-rebuild",
+      "bot": null,
+      "acceptanceOnly": true,
+      "minPlayers": 6,
+      "device": "iPhone SE",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "360p" },
+      "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "dataChannelFault": { "dropRenegotiationOffers": 1 },
+      "role": { "kind": "baseline", "params": { "note": "#870: drop exactly one initial renegotiation offer, then let the rebuilt SDP generation negotiate normally." } },
+      "expect": [
+        { "kind": "devlog", "tag": "rtc", "match": "[e2e-data-channel-fault] dropped renegotiation offer", "fields": { "fault": "offer-1" }, "min": 1, "max": 1, "note": "the page-owned devLog proves the fault was injected exactly once" },
+        { "kind": "devlog", "tag": "rtc", "match": "[jollity-rtc] round-link", "fields": { "stage": "channel-open", "round": "1" }, "has": ["peer"], "min": 5, "max": 5, "note": "all five distinct round-1 links opened" },
+        { "kind": "devlog", "tag": "rtc", "match": "[jollity-rtc] round-link", "fields": { "stage": "first-video", "round": "1" }, "has": ["peer"], "min": 5, "max": 5, "note": "all five distinct round-1 links reached video" },
+        { "kind": "devlog", "tag": "rtc", "match": "[jollity-rtc] round-link", "fields": { "stage": "first-video", "round": "1", "fault": "offer-1" }, "has": ["peer"], "min": 1, "max": 1, "note": "the exact faulted link reached video whether this endpoint or its far end won the bounded rebuild race" }
+      ],
+      "identity": { "previewnet": "jollitypv.20" }
+    },
+    {
+      "name": "game259-clean-video-control",
+      "bot": null,
+      "acceptanceOnly": true,
+      "minPlayers": 6,
+      "device": "iPhone 14",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "720p" },
+      "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "baseline", "params": { "note": "#870 clean-link negative control for the connected-without-video watchdog." } },
+      "expect": [
+        { "kind": "devlog", "tag": "rtc", "match": "[jollity-rtc] round-link", "fields": { "stage": "first-video", "round": "1", "peer": "5EWNTaqLH4f2qHWWxe5eGwrzX1p9HVn18x31NQB918zYJzEc" }, "min": 1, "max": 1, "note": "the clean Los Angeles link reaches video in round 1" },
+        { "kind": "devlog", "tag": "rtc", "match": "[jollity-rtc] round-link", "fields": { "stage": "first-video", "round": "1", "peer": "5Fn17Vt9fjBjWMqqnUMymk3GXbZm4AyhnGKSvosJQXjCEaBZ" }, "min": 1, "max": 1, "note": "the clean Tokyo link reaches video in round 1" },
+        { "kind": "devlog", "tag": "rtc", "match": "[jollity-rtc] round-link", "fields": { "stage": "first-video", "round": "1", "peer": "5H5qqwSiaWcoEtPnkr76JZ87hgg4qMwZn2FLfsC6Rg3GzJKn" }, "min": 1, "max": 1, "note": "the clean Berlin link reaches video in round 1" },
+        { "kind": "devlog", "tag": "rtc", "match": "[jollity-rtc] media-stall: no-video-rebuild", "fields": { "peer": "5EWNTaqLH4f2qHWWxe5eGwrzX1p9HVn18x31NQB918zYJzEc" }, "max": 0, "note": "the clean Los Angeles link never falsely rebuilds" },
+        { "kind": "devlog", "tag": "rtc", "match": "[jollity-rtc] media-stall: no-video-rebuild", "fields": { "peer": "5Fn17Vt9fjBjWMqqnUMymk3GXbZm4AyhnGKSvosJQXjCEaBZ" }, "max": 0, "note": "the clean Tokyo link never falsely rebuilds" },
+        { "kind": "devlog", "tag": "rtc", "match": "[jollity-rtc] media-stall: no-video-rebuild", "fields": { "peer": "5H5qqwSiaWcoEtPnkr76JZ87hgg4qMwZn2FLfsC6Rg3GzJKn" }, "max": 0, "note": "the clean Berlin link never falsely rebuilds" }
+      ],
+      "identity": { "previewnet": "jollitypv.12" }
+    },
+    {
+      "name": "glare-forcer",
+      "bot": null,
+      "acceptanceOnly": true,
+      "minPlayers": 6,
+      "device": "iPhone SE",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "360p" },
+      "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false, "timeline": [{ "atTurn": 4, "videoStallS": 30 }] },
+      "peerFault": { "kind": "glare-forcer" },
+      "role": { "kind": "baseline", "params": { "note": "Step 4 peer actor: the turn-4 RTP stall makes the polite side renegotiate; once sendrecv video is negotiated, make a local offer before delivering the peer's simultaneous lane offer, forcing the rebuild-instead-of-rollback path." } },
+      "expect": [
+        { "kind": "devlog", "tag": "rtc", "match": "[e2e-peer-fault] glare-forcer fired", "min": 1, "max": 1, "note": "fail-or-fire: the browser hook observed or created have-local-offer before the remote offer reached the app" },
+        { "kind": "devlog", "tag": "rtc", "match": "glare on lane with video negotiated: rebuild instead of rolling back", "min": 1, "note": "the intended recovery path, not browser rollback, handled the glare" },
+        { "kind": "devlog", "tag": "rtc", "match": "[e2e-peer-fault] glare-forcer recovered", "has": ["peer", "frames"], "min": 1, "max": 1, "note": "after the glare, a newer app mesh snapshot shows the exact affected peer connected and decoding video on a replacement link" }
+      ],
+      "identity": { "previewnet": "jollitypv.34" }
+    },
+    {
+      "name": "late-signal",
+      "bot": null,
+      "acceptanceOnly": true,
+      "manualOnly": true,
+      "minPlayers": 6,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "360p" },
+      "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "peerFault": { "kind": "late-signal" },
+      "role": { "kind": "baseline", "params": { "note": "Step 4 peer actor: after one inbound baseline from a connected mesh peer, the bot-only seam rebuilds that exact peer twice and waits for each replacement; retain g2 without blocking it, then replay it after same-link g3." } },
+      "expect": [
+        { "kind": "devlog", "tag": "rtc", "match": "[jollity-rtc] e2e-late-signal stage=complete", "fields": { "replacements": "2" }, "has": ["peer"], "min": 1, "max": 1, "pending": true, "note": "pending: this app has no e2e-late-signal rebuild seam (apps/jollity-app logs no such line); the nearest real signal is the bot-injected [e2e-peer-fault] late-signal fired line below. the persona itself completed two sequential full rebuilds on one connected peer; media-stall timing is not its generation source" },
+        { "kind": "devlog", "tag": "rtc", "match": "[e2e-peer-fault] late-signal fired", "has": ["peer", "link"], "min": 1, "max": 1, "note": "fail-or-fire: the exact connected peer rebuilt by the seam received its older SDP after its own newer generation; incidental room peers cannot satisfy this marker" },
+        { "kind": "devlog", "tag": "rtc", "match": "[e2e-peer-fault] late-signal recovered", "has": ["peer", "frames"], "min": 1, "max": 1, "note": "after the stale replay, a newer app mesh snapshot shows that same directed peer connected and decoding video" }
+      ],
+      "identity": { "previewnet": "jollitypv.73" }
+    },
+    {
+      "name": "one-way-video",
+      "bot": null,
+      "acceptanceOnly": true,
+      "minPlayers": 6,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "360p" },
+      "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "peerFault": { "kind": "one-way-video" },
+      "role": { "kind": "baseline", "params": { "note": "Step 4 peer actor: replace only this bot's outbound video addTrack with an empty sendrecv transceiver and keep later replaceTrack calls empty while leaving incoming video and audio untouched." } },
+      "expect": [
+        { "kind": "devlog", "tag": "rtc", "match": "[e2e-peer-fault] one-way-video fired", "has": ["initiator-peer"], "min": 1, "note": "fail-or-fire: an observed peer proves this fixed identity is the canonical initiator before its real outbound video sender is suppressed" },
+        { "kind": "devlog", "tag": "rtc", "match": "unseen: signalingState=", "min": 1, "note": "a peer's link-view reported that it could not see this bot and drove the one-way recovery path" },
+        { "kind": "devlog", "tag": "rtc", "match": "[e2e-peer-fault] one-way-video recovered", "has": ["peer", "frames"], "min": 1, "note": "after suppressing outbound video, a newer app mesh snapshot proves inbound video from the exact initiator peer remains healthy" }
+      ],
+      "identity": { "previewnet": "jollyvideonever.97" }
+    },
+    {
+      "name": "dropped-answer",
+      "bot": null,
+      "acceptanceOnly": true,
+      "minPlayers": 6,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "360p" },
+      "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "peerFault": { "kind": "dropped-answer" },
+      "role": { "kind": "baseline", "params": { "note": "Step 4 peer actor / #1163: the test-tag seam rebuilds one exact connected peer; discard its first replacement's same-stream lane Answer, immediately rebuild that exact peer again, then require the later msid and connection on the second replacement." } },
+      "expect": [
+        { "kind": "devlog", "tag": "rtc", "match": "[e2e-peer-fault] dropped-answer fired", "min": 1, "max": 1, "note": "fail-or-fire: exactly one Answer on a rebuilt PC was discarded" },
+        { "kind": "devlog", "tag": "rtc", "match": "[e2e-peer-fault] dropped-answer recovered", "min": 1, "max": 1, "note": "the dropped answer's same peer link later reached connected on a replacement PC" }
+      ],
+      "identity": { "previewnet": "jollitypv.77" }
+    },
+    {
+      "name": "telemetry-t1-baseline", "bot": null, "acceptanceOnly": true,
+      "device": "Pixel 6a", "cpuThrottle": 1, "camera": { "delayMs": 0, "resolution": "360p" }, "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "baseline", "params": { "note": "#723 T1: healthy telemetry baseline" } },
+      "telemetryTorture": { "id": "T1", "fault": "none" }, "expect": [],
+      "identity": { "previewnet": "jollitypv.12" }
+    },
+    {
+      "name": "telemetry-t2-host-storage-hang", "bot": null, "acceptanceOnly": true,
+      "device": "Pixel 6a", "cpuThrottle": 1, "camera": { "delayMs": 0, "resolution": "360p" }, "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "baseline", "params": { "note": "#723 T2: host local-storage RPC never answers; local outbox remains independent" } },
+      "telemetryTorture": { "id": "T2", "fault": "host-storage-hang", "pageLoads": [0], "durationS": 120 }, "expect": [],
+      "identity": { "previewnet": "jollitypv.15" }
+    },
+    {
+      "name": "telemetry-t3-ios-fetch-gate", "bot": null, "acceptanceOnly": true,
+      "device": "iPhone 14", "cpuThrottle": 1, "camera": { "delayMs": 0, "resolution": "360p" }, "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "baseline", "params": { "note": "#723 T3: emulated iOS Sentry fetch remains pending, then releases" } },
+      "telemetryTorture": { "id": "T3", "fault": "ios-fetch-gate", "pageLoads": [0], "durationS": 180, "activateAtTurn": 1 }, "expect": [],
+      "identity": { "previewnet": "jollitypv.20" }
+    },
+    {
+      "name": "telemetry-t4-kill-while-stuck", "bot": null, "acceptanceOnly": true,
+      "device": "iPhone 13", "cpuThrottle": 1, "camera": { "delayMs": 0, "resolution": "360p" }, "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "kill-relaunch", "params": { "killInRound": 1, "note": "#723 T4: kill while fetch is stuck; first reopen is healthy" } },
+      "telemetryTorture": { "id": "T4", "fault": "host-storage-hang", "pageLoads": [0], "fetchGatePageLoads": [0], "fetchGateS": 3600, "activateAtTurn": 1 }, "expect": [],
+      "identity": { "previewnet": "jollitypv.25" }
+    },
+    {
+      "name": "telemetry-t5-stuck-first-reopen", "bot": null, "acceptanceOnly": true,
+      "device": "iPhone 13", "cpuThrottle": 1, "camera": { "delayMs": 0, "resolution": "360p" }, "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "kill-relaunch", "params": { "killInRound": 1, "note": "#723 T5: initial and first reopened documents are stuck; second reopen is healthy" } },
+      "telemetryTorture": { "id": "T5", "fault": "host-storage-hang", "pageLoads": [0, 1], "fetchGatePageLoads": [0, 1], "fetchGateS": 3600, "activateAtTurn": 1 }, "expect": [],
+      "identity": { "previewnet": "jollitypv.29" }
+    },
+    {
+      "name": "telemetry-t6-freeze-after-report", "bot": null, "acceptanceOnly": true,
+      "device": "Pixel 6a", "cpuThrottle": 1, "camera": { "delayMs": 0, "resolution": "360p" }, "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "baseline", "params": { "note": "#723 T6: visible freeze after report, kill, then drain on next open" } },
+      "telemetryTorture": { "id": "T6", "fault": "none", "freezeAfterReportS": 30 }, "expect": [],
+      "identity": { "previewnet": "jollitypv.30" }
+    },
+    {
+      "name": "telemetry-t7-sentry-block", "bot": null, "acceptanceOnly": true,
+      "device": "Pixel 6a", "cpuThrottle": 1, "camera": { "delayMs": 0, "resolution": "360p" }, "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "baseline", "params": { "note": "#723 T7: Sentry ingest blocked for five minutes" } },
+      "telemetryTorture": { "id": "T7", "fault": "sentry-block", "durationS": 300, "activateAtTurn": 1 }, "expect": [],
+      "identity": { "previewnet": "jollitypv.12" }
+    },
+    {
+      "name": "telemetry-t8-sentry-429", "bot": null, "acceptanceOnly": true,
+      "device": "Pixel 6a", "cpuThrottle": 1, "camera": { "delayMs": 0, "resolution": "360p" }, "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "baseline", "params": { "note": "#723 T8: Sentry returns 429 with Retry-After two minutes" } },
+      "telemetryTorture": { "id": "T8", "fault": "sentry-429", "durationS": 120, "retryAfterS": 120, "activateAtTurn": 1 }, "expect": [],
+      "identity": { "previewnet": "jollitypv.15" }
+    },
+    {
+      "name": "telemetry-t9-blackout", "bot": null, "acceptanceOnly": true,
+      "device": "Pixel 6a", "cpuThrottle": 1, "camera": { "delayMs": 0, "resolution": "360p" }, "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false, "timeline": [{ "atTurn": 2, "blackoutS": 120 }] },
+      "role": { "kind": "baseline", "params": { "note": "#723 T9: two-minute whole-link blackout mid-round" } },
+      "telemetryTorture": { "id": "T9", "fault": "none" }, "expect": [],
+      "identity": { "previewnet": "jollitypv.20" }
+    },
+    {
+      "name": "telemetry-t10-big-log", "bot": null, "acceptanceOnly": true,
+      "device": "Pixel 7", "cpuThrottle": 1, "camera": { "delayMs": 0, "resolution": "720p" }, "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "tap-storm", "params": { "flips": 20, "note": "#723 T10: 20 flip pairs per game turn produce a conservative 400 short vote-tap lines across 10 turns, enough to exceed 48 KiB across live rolling chunks without starving ordinary voting" } },
+      "telemetryTorture": { "id": "T10", "fault": "none" }, "expect": [],
+      "identity": { "previewnet": "jollitypv.25" }
+    },
+    {
+      "name": "telemetry-t11-no-localstorage", "bot": null, "acceptanceOnly": true,
+      "device": "iPhone 14", "cpuThrottle": 1, "camera": { "delayMs": 0, "resolution": "360p" }, "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "baseline", "params": { "note": "#723 T11: localStorage getter throws SecurityError" } },
+      "telemetryTorture": { "id": "T11", "fault": "no-localstorage" }, "expect": [],
+      "identity": { "previewnet": "jollitypv.29" }
+    },
+    {
+      "name": "telemetry-t12-reload-dedupe", "bot": null, "acceptanceOnly": true,
+      "device": "Pixel 6a", "cpuThrottle": 1, "camera": { "delayMs": 0, "resolution": "360p" }, "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": { "kind": "reload", "params": { "reloadAtTurn": 2, "note": "#723 T12: reload preserves the outbox and Sentry retries dedupe by stable chunk identity" } },
+      "telemetryTorture": { "id": "T12", "fault": "none" }, "expect": [],
+      "identity": { "previewnet": "jollitypv.30" }
+    },
+    {
+      "name": "camera-mute-loop",
+      "bot": null,
+      "acceptanceOnly": true,
+      "manualOnly": true,
+      "device": "Pixel 7",
+      "cpuThrottle": 1,
+      "camera": { "delayMs": 0, "resolution": "720p", "muteLoop": true },
+      "clockOffsetS": 0,
+      "network": { "profile": "wifi", "relayOnly": false },
+      "role": {
+        "kind": "baseline",
+        "params": { "note": "platform-bugs#174: mute every automatic camera open, then prove activated and activation-ignored tap outcomes" }
+      },
+      "expect": [
+        {
+          "kind": "text",
+          "text": "Restart the Polkadot app",
+          "note": "the activation-ignored tap must finish still_muted and expose the existing restart advice"
+        }
+      ],
+      "identity": { "previewnet": "jollycamdeny.25" }
+    }
+  ]
+}

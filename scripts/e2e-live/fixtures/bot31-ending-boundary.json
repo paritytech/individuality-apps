@@ -1,0 +1,120 @@
+{
+  "self": "5CD9VZrAoAY44pGsSw7VVN8UqkMmJjcyg7aWFxAnBHMS4wZW",
+  "turn": 2,
+  "id": "5CoC5rt61hqfwBEPEDGDknk7C4iXeF9rjaEzxEkyQKyb2oGs",
+  "rows": [
+    {
+      "t": "2026-10-25T08:00:21.955Z",
+      "readStartedAt": "2026-10-25T08:00:21.955Z",
+      "snapshotAt": "2026-10-25T08:00:21.959Z",
+      "readCompletedAt": "2026-10-25T08:00:21.962Z",
+      "pageGeneration": 0,
+      "documentIdentity": "http://localhost:3000/game|1792914704513.5",
+      "viewport": { "width": 480, "height": 1040 },
+      "stage": "play",
+      "turn": 2,
+      "sessionStage": "gameplay",
+      "sessionTurn": 2,
+      "ducked": false,
+      "tiles": [
+        {
+          "id": "5CoC5rt61hqfwBEPEDGDknk7C4iXeF9rjaEzxEkyQKyb2oGs",
+          "role": "unseen",
+          "cursorPointer": false,
+          "votable": false,
+          "tapReady": false,
+          "verdict": "pending",
+          "attrs": { "data-tile-role": "unseen" },
+          "text": "Connecting…",
+          "aria": [],
+          "box": { "x": 244, "y": 184, "w": 183, "h": 183 },
+          "visible": true,
+          "hit": "self",
+          "rotateY": null,
+          "rotY": null,
+          "tapped": false,
+          "click": null
+        },
+        {
+          "id": "5EFZjF9irYHN977NaK1dZ41xZQSPqW9fX2q2d8RBj2Krh1NT",
+          "role": "unseen",
+          "cursorPointer": false,
+          "votable": false,
+          "tapReady": false,
+          "verdict": "pending",
+          "attrs": { "data-tile-role": "unseen" },
+          "text": "Can't connect",
+          "aria": [],
+          "box": { "x": 244, "y": 566, "w": 183, "h": 183 },
+          "visible": true,
+          "hit": "self",
+          "rotateY": null,
+          "rotY": null,
+          "tapped": false,
+          "click": null
+        }
+      ]
+    },
+    {
+      "t": "2026-10-25T08:00:22.206Z",
+      "readStartedAt": "2026-10-25T08:00:22.206Z",
+      "snapshotAt": "2026-10-25T08:00:22.209Z",
+      "readCompletedAt": "2026-10-25T08:00:22.213Z",
+      "pageGeneration": 0,
+      "documentIdentity": "http://localhost:3000/game|1792914704513.5",
+      "viewport": { "width": 480, "height": 1040 },
+      "stage": "play",
+      "turn": 2,
+      "sessionStage": "ending",
+      "sessionTurn": 2,
+      "ducked": false,
+      "tiles": [
+        {
+          "id": "5CoC5rt61hqfwBEPEDGDknk7C4iXeF9rjaEzxEkyQKyb2oGs",
+          "role": "coplayer",
+          "cursorPointer": true,
+          "votable": true,
+          "tapReady": true,
+          "verdict": "reject",
+          "attrs": { "data-tile-role": "coplayer" },
+          "text": "Connecting…",
+          "aria": [],
+          "box": { "x": 244, "y": 184, "w": 183, "h": 183 },
+          "visible": true,
+          "hit": "self",
+          "rotateY": null,
+          "rotY": null,
+          "tapped": false,
+          "click": null
+        },
+        {
+          "id": "5EFZjF9irYHN977NaK1dZ41xZQSPqW9fX2q2d8RBj2Krh1NT",
+          "role": "unseen",
+          "cursorPointer": false,
+          "votable": false,
+          "tapReady": false,
+          "verdict": "pending",
+          "attrs": { "data-tile-role": "unseen" },
+          "text": "Can't connect",
+          "aria": [],
+          "box": { "x": 244, "y": 566, "w": 183, "h": 183 },
+          "visible": true,
+          "hit": "self",
+          "rotateY": null,
+          "rotY": null,
+          "tapped": false,
+          "click": null
+        }
+      ]
+    }
+  ],
+  "taps": [
+    {
+      "at": "2026-10-25T08:00:22.080Z",
+      "turn": 2,
+      "id": "5CoC5rt61hqfwBEPEDGDknk7C4iXeF9rjaEzxEkyQKyb2oGs",
+      "result": "skipped: page showed ending, turn 2",
+      "stage": "ending"
+    }
+  ]
+}

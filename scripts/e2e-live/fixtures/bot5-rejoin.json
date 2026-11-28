@@ -1,0 +1,533 @@
+{
+ "source": "previewnet a live game, bot 5 kill-background: timeline reduced to the first and last frame of each (stage, turn) run, the whole tap log (see stampsDerived), the chain report as decoded",
+ "maxGroupSize": 6,
+ "rows": [
+  {
+   "t": "2026-10-06T07:59:05.023Z",
+   "stage": "waiting",
+   "turn": null
+  },
+  {
+   "t": "2026-10-06T08:00:06.983Z",
+   "stage": "waiting",
+   "turn": null
+  },
+  {
+   "t": "2026-10-06T08:00:07.235Z",
+   "stage": "play",
+   "turn": 1
+  },
+  {
+   "t": "2026-10-06T08:00:18.924Z",
+   "stage": "play",
+   "turn": 1
+  },
+  {
+   "t": "2026-10-06T08:00:19.179Z",
+   "stage": "intro",
+   "turn": 2
+  },
+  {
+   "t": "2026-10-06T08:00:21.600Z",
+   "stage": "play",
+   "turn": 2
+  },
+  {
+   "t": "2026-10-06T08:00:30.343Z",
+   "stage": "play",
+   "turn": 2
+  },
+  {
+   "t": "2026-10-06T08:00:32.323Z",
+   "stage": "intro",
+   "turn": 3
+  },
+  {
+   "t": "2026-10-06T08:00:35.796Z",
+   "stage": "play",
+   "turn": 3
+  },
+  {
+   "t": "2026-10-06T08:00:42.701Z",
+   "stage": "play",
+   "turn": 3
+  },
+  {
+   "t": "2026-10-06T08:00:44.472Z",
+   "stage": "intro",
+   "turn": 4
+  },
+  {
+   "t": "2026-10-06T08:00:48.224Z",
+   "stage": "play",
+   "turn": 4
+  },
+  {
+   "t": "2026-10-06T08:00:53.051Z",
+   "stage": "play",
+   "turn": 4
+  },
+  {
+   "t": "2026-10-06T08:00:55.287Z",
+   "stage": "intro",
+   "turn": 5
+  },
+  {
+   "t": "2026-10-06T08:00:58.107Z",
+   "stage": "play",
+   "turn": 5
+  },
+  {
+   "t": "2026-10-06T08:01:05.176Z",
+   "stage": "play",
+   "turn": 5
+  },
+  {
+   "t": "2026-10-06T08:01:07.156Z",
+   "stage": "intro",
+   "turn": 6
+  },
+  {
+   "t": "2026-10-06T08:01:10.372Z",
+   "stage": "play",
+   "turn": 6
+  },
+  {
+   "t": "2026-10-06T08:01:25.848Z",
+   "stage": "play",
+   "turn": 6
+  },
+  {
+   "t": "2026-10-06T08:01:26.105Z",
+   "stage": "intro",
+   "turn": 7
+  },
+  {
+   "t": "2026-10-06T08:01:28.465Z",
+   "stage": "play",
+   "turn": 7
+  },
+  {
+   "t": "2026-10-06T08:01:37.890Z",
+   "stage": "play",
+   "turn": 7
+  },
+  {
+   "t": "2026-10-06T08:01:38.154Z",
+   "stage": "intro",
+   "turn": 8
+  },
+  {
+   "t": "2026-10-06T08:02:23.882Z",
+   "stage": "play",
+   "turn": 11
+  },
+  {
+   "t": "2026-10-06T08:02:27.908Z",
+   "stage": "intro",
+   "turn": 12
+  },
+  {
+   "t": "2026-10-06T08:02:34.127Z",
+   "stage": "play",
+   "turn": 12
+  },
+  {
+   "t": "2026-10-06T08:02:39.100Z",
+   "stage": "play",
+   "turn": 12
+  },
+  {
+   "t": "2026-10-06T08:02:40.896Z",
+   "stage": "confirm",
+   "turn": null
+  },
+  {
+   "t": "2026-10-06T08:02:44.265Z",
+   "stage": "confirm",
+   "turn": null
+  },
+  {
+   "t": "2026-10-06T08:02:48.184Z",
+   "stage": "waiting",
+   "turn": null
+  },
+  {
+   "t": "2026-10-06T08:02:48.982Z",
+   "stage": "waiting",
+   "turn": null
+  }
+ ],
+ "acts": [
+  {
+   "id": "killed",
+   "at": "2026-10-06T08:01:38.210Z",
+   "detail": "at turn 8 of 12 (round 2, turn 2 of it)"
+  },
+  {
+   "id": "relaunched",
+   "at": "2026-10-06T08:02:23.873Z",
+   "detail": "page reopened on the same host slot"
+  },
+  {
+   "id": "hidden",
+   "at": "2026-10-06T08:02:42.941Z",
+   "detail": "at /game, CTA \"Confirming in 3\""
+  },
+  {
+   "id": "visible",
+   "at": "2026-10-06T08:02:52.010Z",
+   "detail": "page shown again"
+  }
+ ],
+ "taps": [
+  {
+   "at": "2026-10-06T08:00:07.706Z",
+   "turn": 1,
+   "id": "5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:07.755Z",
+   "turn": 1,
+   "id": "5CBFfcyp5NigSDRvqj5c6G2E9BM4cBTg3RKPUCYpVvY85Liv",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:07.783Z",
+   "turn": 1,
+   "id": "5CinLJ3tUC7C1bwKVgvsMmjccD8e1mpfo6THLqtR67JQqsD7",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:07.803Z",
+   "turn": 1,
+   "id": "5CBLSmZyQaF3J9fckgFxRnRHQ5iyhzskk1rj7LxBahqqkdv5",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:21.622Z",
+   "turn": 2,
+   "id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:21.642Z",
+   "turn": 2,
+   "id": "5CBFfcyp5NigSDRvqj5c6G2E9BM4cBTg3RKPUCYpVvY85Liv",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:21.656Z",
+   "turn": 2,
+   "id": "5CinLJ3tUC7C1bwKVgvsMmjccD8e1mpfo6THLqtR67JQqsD7",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:21.674Z",
+   "turn": 2,
+   "id": "5CBLSmZyQaF3J9fckgFxRnRHQ5iyhzskk1rj7LxBahqqkdv5",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:33.148Z",
+   "turn": 3,
+   "id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:33.169Z",
+   "turn": 3,
+   "id": "5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:33.185Z",
+   "turn": 3,
+   "id": "5CBFfcyp5NigSDRvqj5c6G2E9BM4cBTg3RKPUCYpVvY85Liv",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:33.200Z",
+   "turn": 3,
+   "id": "5CinLJ3tUC7C1bwKVgvsMmjccD8e1mpfo6THLqtR67JQqsD7",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:33.217Z",
+   "turn": 3,
+   "id": "5CBLSmZyQaF3J9fckgFxRnRHQ5iyhzskk1rj7LxBahqqkdv5",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:45.310Z",
+   "turn": 4,
+   "id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:45.326Z",
+   "turn": 4,
+   "id": "5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:45.338Z",
+   "turn": 4,
+   "id": "5CinLJ3tUC7C1bwKVgvsMmjccD8e1mpfo6THLqtR67JQqsD7",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:45.358Z",
+   "turn": 4,
+   "id": "5CBLSmZyQaF3J9fckgFxRnRHQ5iyhzskk1rj7LxBahqqkdv5",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:57.220Z",
+   "turn": 5,
+   "id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:57.235Z",
+   "turn": 5,
+   "id": "5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:57.249Z",
+   "turn": 5,
+   "id": "5CBFfcyp5NigSDRvqj5c6G2E9BM4cBTg3RKPUCYpVvY85Liv",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:00:57.261Z",
+   "turn": 5,
+   "id": "5CBLSmZyQaF3J9fckgFxRnRHQ5iyhzskk1rj7LxBahqqkdv5",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:01:09.172Z",
+   "turn": 6,
+   "id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:01:09.201Z",
+   "turn": 6,
+   "id": "5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:01:09.221Z",
+   "turn": 6,
+   "id": "5CBFfcyp5NigSDRvqj5c6G2E9BM4cBTg3RKPUCYpVvY85Liv",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:01:09.234Z",
+   "turn": 6,
+   "id": "5CinLJ3tUC7C1bwKVgvsMmjccD8e1mpfo6THLqtR67JQqsD7",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:01:28.485Z",
+   "turn": 7,
+   "id": "5EfCujEZFXU8687YFLVXvzXD5d2M5XdW9TvbbFMik4LWcMXX",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:01:28.507Z",
+   "turn": 7,
+   "id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:01:28.529Z",
+   "turn": 7,
+   "id": "5HmAJrrZ4mcRE22SCgt93QmY4TMzKwbDU2tf3xoQtkcAMbyL",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:01:28.557Z",
+   "turn": 7,
+   "id": "5CigJEmwxWTHagtc5mcdaAa8s2M38xSNPDFvPyiQU4LwJQuE",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:01:28.570Z",
+   "turn": 7,
+   "id": "5CBLSmZyQaF3J9fckgFxRnRHQ5iyhzskk1rj7LxBahqqkdv5",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:02:25.532Z",
+   "turn": 11,
+   "id": "5CBLSmZyQaF3J9fckgFxRnRHQ5iyhzskk1rj7LxBahqqkdv5",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:02:25.878Z",
+   "turn": 11,
+   "id": "5EfCujEZFXU8687YFLVXvzXD5d2M5XdW9TvbbFMik4LWcMXX",
+   "result": "ok",
+   "stage": "ending"
+  },
+  {
+   "at": "2026-10-06T08:02:25.893Z",
+   "turn": 11,
+   "id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "result": "ok",
+   "stage": "ending"
+  },
+  {
+   "at": "2026-10-06T08:02:25.902Z",
+   "turn": 11,
+   "id": "5HmAJrrZ4mcRE22SCgt93QmY4TMzKwbDU2tf3xoQtkcAMbyL",
+   "result": "ok",
+   "stage": "ending"
+  },
+  {
+   "at": "2026-10-06T08:02:29.690Z",
+   "turn": 12,
+   "id": "5EfCujEZFXU8687YFLVXvzXD5d2M5XdW9TvbbFMik4LWcMXX",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:02:29.718Z",
+   "turn": 12,
+   "id": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:02:29.742Z",
+   "turn": 12,
+   "id": "5HmAJrrZ4mcRE22SCgt93QmY4TMzKwbDU2tf3xoQtkcAMbyL",
+   "result": "ok",
+   "stage": "gameplay"
+  },
+  {
+   "at": "2026-10-06T08:02:29.761Z",
+   "turn": 12,
+   "id": "5CigJEmwxWTHagtc5mcdaAa8s2M38xSNPDFvPyiQU4LwJQuE",
+   "result": "ok",
+   "stage": "gameplay"
+  }
+ ],
+ "report": {
+  "who": "5Dd74nvtTrb8Ur3vhbGuMFsWWTduSaWimKgGneYAJB6pd3nz",
+  "block": 267085,
+  "extrinsic": 11,
+  "rounds": [
+   {
+    "ownIndex": 7,
+    "members": [
+     {
+      "index": 1,
+      "player": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7"
+     },
+     {
+      "index": 4,
+      "player": "5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH"
+     },
+     {
+      "index": 7,
+      "player": "5Dd74nvtTrb8Ur3vhbGuMFsWWTduSaWimKgGneYAJB6pd3nz"
+     },
+     {
+      "index": 10,
+      "player": "5CBFfcyp5NigSDRvqj5c6G2E9BM4cBTg3RKPUCYpVvY85Liv"
+     },
+     {
+      "index": 13,
+      "player": "5CinLJ3tUC7C1bwKVgvsMmjccD8e1mpfo6THLqtR67JQqsD7"
+     },
+     {
+      "index": 16,
+      "player": "5CBLSmZyQaF3J9fckgFxRnRHQ5iyhzskk1rj7LxBahqqkdv5"
+     }
+    ]
+   },
+   {
+    "ownIndex": 1,
+    "members": [
+     {
+      "index": 1,
+      "player": "5Dd74nvtTrb8Ur3vhbGuMFsWWTduSaWimKgGneYAJB6pd3nz"
+     },
+     {
+      "index": 4,
+      "player": "5EfCujEZFXU8687YFLVXvzXD5d2M5XdW9TvbbFMik4LWcMXX"
+     },
+     {
+      "index": 7,
+      "player": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7"
+     },
+     {
+      "index": 10,
+      "player": "5HmAJrrZ4mcRE22SCgt93QmY4TMzKwbDU2tf3xoQtkcAMbyL"
+     },
+     {
+      "index": 13,
+      "player": "5CigJEmwxWTHagtc5mcdaAa8s2M38xSNPDFvPyiQU4LwJQuE"
+     },
+     {
+      "index": 16,
+      "player": "5CBLSmZyQaF3J9fckgFxRnRHQ5iyhzskk1rj7LxBahqqkdv5"
+     }
+    ]
+   }
+  ],
+  "fullReport": [
+   [
+    "Person",
+    "Person",
+    "Person",
+    "Person",
+    "Person"
+   ],
+   [
+    "NotPerson",
+    "Person",
+    "NotPerson",
+    "NotPerson",
+    "Person"
+   ]
+  ]
+ },
+ "stampsDerived": "post-hoc from the timeline and tap log, 2026-10-06 (the run predates data-stage): every tap with a turn is 'gameplay' except the 3 at 08:02:25.878-25.902 UTC (turn 11: FWKAbZ4, FLbRzf9, HmsLeob), which fell in the ending stage (play of turn 11 closed by 08:02:25.69; the app sealed it at 08:02:27.478). A regression test of the oracle on real data, not a claim about what the harness recorded."
+}

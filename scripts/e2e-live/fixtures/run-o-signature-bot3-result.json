@@ -1,0 +1,268 @@
+{
+ "slot": 3,
+ "profile": "locale-la-enus",
+ "account": "5HjBMBesAzNXXGxLDFyu8zA4ybHuPnakRN5etiES4vxzWRSW",
+ "game": {
+  "index": 1357,
+  "gameAt": 1792902000,
+  "registrationEnds": 1792901910,
+  "reportEnds": 1792902600
+ },
+ "run": {
+  "id": "40154978844",
+  "attempt": 1
+ },
+ "signedUp": true,
+ "confirmedBy": "auto",
+ "reachedPrizeDraw": true,
+ "reportSeen": true,
+ "settled": true,
+ "provenance": {
+  "commit": "fb725693a0453f06b84fd3a3432d0305d4917224",
+  "runStartedAt": "2026-10-25T04:11:20.965Z",
+  "hostVersion": "truapi-host 0.26.0"
+ },
+ "groups": [
+  {
+   "round": 0,
+   "ownIndex": 1,
+   "members": [
+    {
+     "index": 0,
+     "account": "5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R"
+    },
+    {
+     "index": 1,
+     "account": "5HjBMBesAzNXXGxLDFyu8zA4ybHuPnakRN5etiES4vxzWRSW"
+    },
+    {
+     "index": 2,
+     "account": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7"
+    },
+    {
+     "index": 3,
+     "account": "5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH"
+    },
+    {
+     "index": 4,
+     "account": "5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG"
+    },
+    {
+     "index": 5,
+     "account": "5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "ownIndex": 0,
+   "members": [
+    {
+     "index": 0,
+     "account": "5HjBMBesAzNXXGxLDFyu8zA4ybHuPnakRN5etiES4vxzWRSW"
+    },
+    {
+     "index": 1,
+     "account": "5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG"
+    },
+    {
+     "index": 2,
+     "account": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7"
+    },
+    {
+     "index": 3,
+     "account": "5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1"
+    },
+    {
+     "index": 4,
+     "account": "5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH"
+    },
+    {
+     "index": 5,
+     "account": "5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R"
+    }
+   ]
+  }
+ ],
+ "adaptiveUpload": {
+  "page": {
+   "peers": [
+    {
+     "account": "5GNCrXDAVfKkLK6hXAATYjEAsevK3fbYmuAGqRdBMdWx2Z9R",
+     "connected": true,
+     "away": false,
+     "decodedSamples": [
+      {
+       "turn": 0,
+       "firstElapsedMs": 346247.4,
+       "lastElapsedMs": 355242.1,
+       "firstFramesDecoded": 744,
+       "lastFramesDecoded": 879
+      },
+      {
+       "turn": 1,
+       "firstElapsedMs": 358242.4,
+       "lastElapsedMs": 367240.79999999993,
+       "firstFramesDecoded": 924,
+       "lastFramesDecoded": 1059
+      },
+      {
+       "turn": 2,
+       "firstElapsedMs": 370260.19999999995,
+       "lastElapsedMs": 379235.9,
+       "firstFramesDecoded": 1104,
+       "lastFramesDecoded": 1239
+      },
+      {
+       "turn": 3,
+       "firstElapsedMs": 382248.4,
+       "lastElapsedMs": 391241.69999999995,
+       "firstFramesDecoded": 1284,
+       "lastFramesDecoded": 1419
+      }
+     ]
+    },
+    {
+     "account": "5ENU9kDJncCMuK64pTy4cPTvAePChT22bf5tjhLLYUfD7Ku7",
+     "connected": true,
+     "away": false,
+     "decodedSamples": [
+      {
+       "turn": 0,
+       "firstElapsedMs": 346247.4,
+       "lastElapsedMs": 355242.1,
+       "firstFramesDecoded": 452,
+       "lastFramesDecoded": 587
+      },
+      {
+       "turn": 1,
+       "firstElapsedMs": 358242.4,
+       "lastElapsedMs": 367240.79999999993,
+       "firstFramesDecoded": 632,
+       "lastFramesDecoded": 767
+      },
+      {
+       "turn": 2,
+       "firstElapsedMs": 370260.19999999995,
+       "lastElapsedMs": 379235.9,
+       "firstFramesDecoded": 812,
+       "lastFramesDecoded": 946
+      },
+      {
+       "turn": 3,
+       "firstElapsedMs": 382248.4,
+       "lastElapsedMs": 391241.69999999995,
+       "firstFramesDecoded": 992,
+       "lastFramesDecoded": 1127
+      }
+     ]
+    },
+    {
+     "account": "5GPcSSUSXNkiyQWw4rHiVuM5SxNH81W14Rx9Xsm35nmuA4QH",
+     "connected": true,
+     "away": false,
+     "decodedSamples": [
+      {
+       "turn": 0,
+       "firstElapsedMs": 346247.4,
+       "lastElapsedMs": 355242.1,
+       "firstFramesDecoded": 733,
+       "lastFramesDecoded": 868
+      },
+      {
+       "turn": 1,
+       "firstElapsedMs": 358242.4,
+       "lastElapsedMs": 367240.79999999993,
+       "firstFramesDecoded": 913,
+       "lastFramesDecoded": 1048
+      },
+      {
+       "turn": 2,
+       "firstElapsedMs": 370260.19999999995,
+       "lastElapsedMs": 379235.9,
+       "firstFramesDecoded": 1093,
+       "lastFramesDecoded": 1228
+      },
+      {
+       "turn": 3,
+       "firstElapsedMs": 382248.4,
+       "lastElapsedMs": 391241.69999999995,
+       "firstFramesDecoded": 1273,
+       "lastFramesDecoded": 1408
+      }
+     ]
+    },
+    {
+     "account": "5CvcKEBKTUZQapRwczAozx47TQptuojsqAdrj3z3gMMihFPG",
+     "connected": true,
+     "away": false,
+     "decodedSamples": [
+      {
+       "turn": 0,
+       "firstElapsedMs": 346247.4,
+       "lastElapsedMs": 355242.1,
+       "firstFramesDecoded": 729,
+       "lastFramesDecoded": 864
+      },
+      {
+       "turn": 1,
+       "firstElapsedMs": 358242.4,
+       "lastElapsedMs": 367240.79999999993,
+       "firstFramesDecoded": 909,
+       "lastFramesDecoded": 1044
+      },
+      {
+       "turn": 2,
+       "firstElapsedMs": 370260.19999999995,
+       "lastElapsedMs": 379235.9,
+       "firstFramesDecoded": 1090,
+       "lastFramesDecoded": 1223
+      },
+      {
+       "turn": 3,
+       "firstElapsedMs": 382248.4,
+       "lastElapsedMs": 391241.69999999995,
+       "firstFramesDecoded": 1269,
+       "lastFramesDecoded": 1403
+      }
+     ]
+    },
+    {
+     "account": "5EGha2eoxqrMn4dfkLUaterS4kMLv5AEbDruArAGP6tHQNt1",
+     "connected": true,
+     "away": false,
+     "decodedSamples": [
+      {
+       "turn": 0,
+       "firstElapsedMs": 346247.4,
+       "lastElapsedMs": 355242.1,
+       "firstFramesDecoded": 740,
+       "lastFramesDecoded": 875
+      },
+      {
+       "turn": 1,
+       "firstElapsedMs": 358242.4,
+       "lastElapsedMs": 367240.79999999993,
+       "firstFramesDecoded": 920,
+       "lastFramesDecoded": 1055
+      },
+      {
+       "turn": 2,
+       "firstElapsedMs": 370260.19999999995,
+       "lastElapsedMs": 379235.9,
+       "firstFramesDecoded": 1101,
+       "lastFramesDecoded": 1235
+      },
+      {
+       "turn": 3,
+       "firstElapsedMs": 382248.4,
+       "lastElapsedMs": 391241.69999999995,
+       "firstFramesDecoded": 1280,
+       "lastFramesDecoded": 1415
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

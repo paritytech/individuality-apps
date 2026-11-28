@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "key": "run-39147986065-a1-art1-wave-all-captain-baseline-b1",
+  "runId": 39147986065,
+  "attempt": 1,
+  "artifactAttempt": 1,
+  "executionKey": "wave-all",
+  "suiteId": "nightly-2026-10-18",
+  "wave": "all",
+  "classification": "nightly",
+  "repository": "paritytech/individuality-apps",
+  "ref": "refs/heads/main",
+  "commit": "9159e61d4baf4f6f5bac1a1764f25930f65f2aea",
+  "actor": "github-actions[bot]",
+  "source": {
+    "workflowPath": ".github/workflows/e2e-live-nightly.yml",
+    "event": "schedule",
+    "defaultBranch": "main",
+    "artifactId": 424241,
+    "jobId": 117742151077
+  },
+  "network": "previewnet",
+  "app": "deployed",
+  "game": 895,
+  "appCid": "bafybeigdyrzt",
+  "bot": 1,
+  "identity": {
+    "key": "captain-baseline",
+    "username": "jollityeea.09",
+    "displayName": "Captain Baseline",
+    "portraitFile": "captain-baseline.webp",
+    "portraitSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "portraitPath": "assets/portraits/by-sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.webp",
+    "tagline": "Steady hands, clean signals.",
+    "backstory": "Captain Baseline keeps the ordinary path honest before the crew gets adventurous.",
+    "speciality": "Healthy-path control runs",
+    "palette": {
+      "primary": "#0B253A",
+      "secondary": "#54D6D0",
+      "ink": "#FFFFFF"
+    }
+  },
+  "scenario": {
+    "profile": "baseline",
+    "title": "Healthy Baseline",
+    "purpose": "Prove the normal PreviewNet game path.",
+    "expected": "The player registers, plays, reports, and settles.",
+    "parameters": {
+      "camera": "available",
+      "roles": true
+    },
+    "phases": {
+      "preparing": "Captain Baseline is preparing a normal game.",
+      "verifying": "Captain Baseline is checking the final chain evidence.",
+      "passed": "Captain Baseline recorded every required observation.",
+      "failed": "Captain Baseline did not complete the healthy path."
+    },
+    "actions": {}
+  },
+  "startedAt": "2026-10-18T17:20:00.000Z",
+  "finishedAt": "2026-10-18T17:33:00.000Z",
+  "result": "passed",
+  "productResult": "passed",
+  "infrastructure": "complete",
+  "supersededBy": null,
+  "expected": [
+    "The player registers, plays, reports, and settles."
+  ],
+  "timeline": [
+    {
+      "at": "2026-10-18T17:20:10.000Z",
+      "state": "preparing",
+      "source": "journey",
+      "action": null,
+      "text": "Captain Baseline is preparing a normal game."
+    },
+    {
+      "at": "2026-10-18T17:32:40.000Z",
+      "state": "passed",
+      "source": "outcome",
+      "action": null,
+      "text": "Captain Baseline recorded every required observation."
+    }
+  ],
+  "recovery": [],
+  "failures": [],
+  "links": [
+    {
+      "label": "Workflow run",
+      "url": "https://github.com/paritytech/individuality-apps/actions/runs/39147986065",
+      "visibility": "organization"
+    }
+  ],
+  "recording": {
+    "state": "available",
+    "artifactUrl": "https://github.com/paritytech/individuality-apps/actions/runs/39147986065/artifacts/424242",
+    "visibility": "organization",
+    "uploadedAt": "2026-10-18T17:34:00.000Z",
+    "expiresAt": "2026-11-01T17:34:00.000Z"
+  }
+}
