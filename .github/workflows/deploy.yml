@@ -254,6 +254,10 @@ jobs:
           NEXT_PUBLIC_SENTRY_DSN_TEST: ${{ secrets.SENTRY_DSN_TEST }}
           NEXT_PUBLIC_TELEMETRY_LOGS: ${{ matrix.env == 'preview' && '1' || vars.JOLLITY_NEXT_PUBLIC_TELEMETRY_LOGS || '0' }}
           NEXT_PUBLIC_SENTRY_TAG: ""
+          # The live E2E bots' read-only hook (lib/telemetry/harness.ts) is
+          # compiled into the previewnet bundle only; release.yml promotes the
+          # Paseo bundle, which never has it.
+          NEXT_PUBLIC_E2E_HARNESS: ${{ matrix.env == 'preview' && '1' || '' }}
         run: npm run build
 
       - name: Build the chat worker

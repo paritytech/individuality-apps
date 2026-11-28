@@ -73,6 +73,10 @@ const MIN_FRAMES = 3
 const FRAME_CAP = 4096
 const TASK_CAP = 256
 const MB = 1024 * 1024
+/** a long task at least this long is kept for longTaskSnapshot (well under
+ *  the freeze threshold in lib/page-lifecycle.ts, so a near miss shows) */
+const KEEP_TASK_MS = 1000
+const KEEP_TASKS = 16
 
 const HEALTH_CAP = 4096
 const healthAt = new Float64Array(HEALTH_CAP)
@@ -169,6 +173,40 @@ export function resetEffectsHealth(): void {
   healthLoafObserver = null
 }
 
+/** One long task the page ran, as longTaskSnapshot reports it. */
+export interface LongTaskRecord {
+  /** how long the main thread was held */
+  ms: number
+  /** epoch ms when it ended */
+  endedAt: number
+  scene: SceneName
+}
+const longTasks: LongTaskRecord[] = []
+
+/** The page's longest main-thread stalls so far, oldest first (the last
+ *  KEEP_TASKS of at least KEEP_TASK_MS), from the same observer entries that
+ *  feed ui.long_task_ms. Read-only: a copy. */
+export function longTaskSnapshot(): LongTaskRecord[] {
+  return longTasks.map((t) => ({ ...t }))
+}
+
+/** for tests */
+export function resetLongTasks(): void {
+  longTasks.length = 0
+}
+
+function keepTask(entry: { duration: number; startTime?: number }, scene: SceneName): void {
+  try {
+    if (!(entry.duration >= KEEP_TASK_MS)) return
+    const origin = typeof performance !== "undefined" ? performance.timeOrigin : NaN
+    const endedAt = Number.isFinite(origin) && typeof entry.startTime === "number" ? origin + entry.startTime + entry.duration : Date.now()
+    longTasks.push({ ms: entry.duration, endedAt, scene })
+    if (longTasks.length > KEEP_TASKS) longTasks.shift()
+  } catch {
+    /* never throws */
+  }
+}
+
 export interface Scene {
   stop(): void
   /** stopped by stop(), by the page turning hidden, or by an error */
@@ -222,6 +260,7 @@ function sample(scene: SceneName): Scene {
     if (typeof PerformanceObserver === "function") {
       observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
+          keepTask(entry, scene)
           if (taskCount < TASK_CAP) tasks[taskCount] = entry.duration
           if (entry.duration > taskMax) taskMax = entry.duration
           taskCount += 1

@@ -916,6 +916,25 @@ export function gameLogTailDurable(): boolean {
   }
 }
 
+export interface GameLogTailState {
+  durable: boolean
+  pendingLines: number
+  /** Measured on the page's own clock, so a reader never compares it with
+   * another machine's. */
+  newestLineAgeMs: number | null
+}
+
+/** The active tail's durability, size and age. Read-only, like
+ * gameLogTailDurable. */
+export function gameLogTailState(now = Date.now()): GameLogTailState {
+  const newest = active?.lines.at(-1)
+  return {
+    durable: gameLogTailDurable(),
+    pendingLines: active?.lines.length ?? 0,
+    newestLineAgeMs: newest ? Math.max(0, now - newest.ts) : null,
+  }
+}
+
 function removeActive(storage: Storage, key: string): void {
   const previous = storage.getItem(key)
   storage.removeItem(key)

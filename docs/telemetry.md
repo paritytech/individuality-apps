@@ -18,6 +18,7 @@ there reaches the app but not the worker, so export it in the shell for both bui
 | `NEXT_PUBLIC_SENTRY_DSN` | empty: off | Your project's DSN. Set it to send anything at all. |
 | `NEXT_PUBLIC_SENTRY_DSN_TEST` | empty | A second project's DSN. Pages and workers served from `localhost` or a loopback address report there instead, so development traffic stays out of your production project. A page served from any other origin always uses the production DSN. |
 | `NEXT_PUBLIC_SENTRY_TAG` | empty | Adds a `test.tag` to events, metrics and log records, so scripted runs can be filtered out. It does nothing else. |
+| `NEXT_PUBLIC_E2E_HARNESS` | empty: off | `1` compiles in the live E2E bots' read-only hook, `window.__jollityHarness` (`lib/telemetry/harness.ts`), which installs only on a page whose test tag is set. The deploy sets it on previewnet only. |
 | `NEXT_PUBLIC_TELEMETRY_LOGS` | on | `0` sends game logs as events with an attachment instead of Sentry log items. |
 | `NEXT_PUBLIC_APP_VERSION` | `package.json` version | The release is `jollity@<this>`, for the app and the worker alike. |
 | `NEXT_PUBLIC_DEBUG_LOGS` | on | The on-device debug log. `0` turns off the log, its hidden sheet (five taps at the top of the screen, or Cmd/Ctrl+D), and with them the log-line breadcrumbs and the game logs below. |

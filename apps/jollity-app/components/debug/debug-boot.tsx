@@ -11,6 +11,11 @@
  * SSR/prerender, so it lives in this effect. `startTelemetry` (Sentry, only
  * with a DSN) runs whatever DEBUG_LOGS says: it is idempotent, and any
  * telemetry call made earlier has already started it.
+ *
+ * The live E2E bots' hook (lib/telemetry/harness.ts) is imported only in a
+ * development build or a previewnet build (NEXT_PUBLIC_E2E_HARNESS=1), so
+ * every other build leaves it out of the bundle; it then installs itself only
+ * where its own runtime check allows.
  */
 import { useEffect } from "react"
 import { DEBUG_LOGS } from "@/lib/debug/flag"
@@ -32,7 +37,12 @@ export function DebugBoot() {
     // back from another product the game was handed over to: start over (#465)
     const stopStartOver = watchStartOver()
     const stopForeground = watchForegroundReturns()
-    if (DEBUG_LOGS) initTelemetry()
+    if (DEBUG_LOGS) {
+      initTelemetry()
+      if (process.env.NEXT_PUBLIC_E2E_HARNESS === "1" || process.env.NODE_ENV === "development") {
+        void import("@/lib/telemetry/harness").then(({ installHarnessHook }) => installHarnessHook()).catch(() => {})
+      }
+    }
     return () => {
       clearTimeout(workerHeartbeat)
       stopClock()

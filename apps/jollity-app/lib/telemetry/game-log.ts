@@ -18,7 +18,7 @@
  * THE BONUS-COPY RULE: the report copy settles nothing. It does not mark the
  * game sent, does not prune the delivery-health record and never clears the
  * persisted log, so a reload mid-game still finds its pre-reload lines and the
- * payoff or late copy is the full log. Only those two settle the game
+ * payoff, late or flush copy is the full log. Only those three settle the game
  * (mark it sent, and stop queueing the persisted log once every game has gone
  * out).
  *
@@ -33,9 +33,9 @@
  * human export, never an automatic upload.
  *
  * Every event carries `game_log.stage`: "report" and "payoff" as above, "late"
- * for the next-open upload below.
+ * for the next-open upload below, "flush" for flushCurrentGameLog.
  *
- * A late upload is skipped while ANY send of its game is in flight.
+ * A late upload or a flush is skipped while ANY send of its game is in flight.
  *
  * A game that did not end cleanly (abandoned, isolated, the app closed) is
  * sent on the next open instead, tagged `game_log.late`. The local store
@@ -76,8 +76,8 @@ export interface GameLogRequest {
   until?: number
   /** which send this is, tagged `game_log.stage` (and `game_log.late` for
    *  "late"). Set by the caller for "report" and "payoff", by this module for
-   *  "late". Each stage of a game is its own in-flight slot. */
-  stage: "report" | "payoff" | "late"
+   *  "late" and "flush". Each stage of a game is its own in-flight slot. */
+  stage: "report" | "payoff" | "late" | "flush"
   trace: { traceId: string; spanId: string } | null
 }
 
@@ -248,7 +248,7 @@ export async function readLastHandover(): Promise<Handover | null> {
 
 export async function uploadGameLog(request: GameLogRequest, deadlineMs = DELIVERY_TIMEOUT_MS): Promise<boolean> {
   const key = slot(request)
-  const taken = request.stage === "late" ? gameInFlight(request.gameIndex) : inFlight.has(key) || fullLogInFlight(request.gameIndex)
+  const taken = request.stage === "late" || request.stage === "flush" ? gameInFlight(request.gameIndex) : inFlight.has(key) || fullLogInFlight(request.gameIndex)
   if (taken) return false
   if (hasPendingFullGameLog(request.gameIndex)) {
     void drainGameLogOutbox(true)
@@ -265,6 +265,29 @@ export async function uploadGameLog(request: GameLogRequest, deadlineMs = DELIVE
     // caller's deadline, but a hung preparation can never own the slot forever.
     inFlight.delete(key)
   }
+}
+
+export interface GameLogFlush {
+  gameIndex: number | null
+  /** true once Sentry has it, now or earlier */
+  sent: boolean
+  note: string
+}
+
+/**
+ * The last handed-over game's log, now, unless it already went. For a page
+ * about to close before journey.payoff ends: a page that never reaches the
+ * payoff would otherwise wait for the next open's late upload. Not late,
+ * whatever its age; never a second copy.
+ */
+export async function flushCurrentGameLog(): Promise<GameLogFlush> {
+  const last = await readLastHandover()
+  if (!last) return { gameIndex: null, sent: false, note: "no game handed over on this device" }
+  const { gameIndex } = last
+  if ((await readSentGames()).includes(gameIndex)) return { gameIndex, sent: true, note: "already sent" }
+  if (gameInFlight(gameIndex)) return { gameIndex, sent: false, note: "a send is already in flight" }
+  const sent = await uploadGameLog({ gameIndex, since: last.at, stage: "flush", trace: null })
+  return { gameIndex, sent, note: sent ? "sent" : `not delivered within ${DELIVERY_TIMEOUT_MS / 1000} s` }
 }
 
 async function send(request: GameLogRequest): Promise<boolean> {

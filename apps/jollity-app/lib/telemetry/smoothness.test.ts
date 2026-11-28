@@ -12,8 +12,10 @@ import {
   enterScene,
   leaveAllScenes,
   leaveScene,
+  longTaskSnapshot,
   recordHeap,
   resetEffectsHealth,
+  resetLongTasks,
   setMoment,
   startScene,
 } from "./smoothness"
@@ -87,6 +89,7 @@ beforeEach(() => {
   resetRecorded()
   leaveAllScenes()
   resetEffectsHealth()
+  resetLongTasks()
   setMoment(null)
   callbacks = new Map()
   nextId = 1
@@ -268,6 +271,34 @@ describe("long tasks", () => {
     vi.stubGlobal("PerformanceObserver", Throwing)
     expect(() => startScene("chest")?.stop()).not.toThrow()
   })
+})
+
+describe("the long-task snapshot", () => {
+  it("keeps the stalls of a second or more, from the same entries as ui.long_task_ms, with when they ended and in which scene", () => {
+    vi.stubGlobal("performance", { timeOrigin: 1_000_000, now: () => now })
+    const scene = startScene("game.round")
+    FakeObserver.last?.deliverEntries([{ duration: 60, startTime: 10 }, { duration: 15_700, startTime: 2000 }, { duration: 999, startTime: 30_000 }])
+    frames([0, 16, 16, 16])
+    scene?.stop()
+    expect(longTaskSnapshot()).toEqual([{ ms: 15_700, endedAt: 1_000_000 + 2000 + 15_700, scene: "game.round" }])
+    expect(named("ui.long_task_ms").find((m) => m.attrs.stat === "max")?.value).toBe(15_700)
+  })
+
+  it("falls back to the wall clock for an entry with no start time, keeps the last 16, and hands out a copy", () => {
+    vi.stubGlobal("performance", {})
+    vi.spyOn(Date, "now").mockReturnValue(42)
+    const scene = startScene("waiting")
+    FakeObserver.last?.deliverEntries(Array.from({ length: 20 }, (_, i) => ({ duration: 1000 + i })))
+    const snap = longTaskSnapshot()
+    expect(snap).toHaveLength(16)
+    expect(snap[0]).toEqual({ ms: 1004, endedAt: 42, scene: "waiting" })
+    snap.pop()
+    expect(longTaskSnapshot()).toHaveLength(16)
+    scene?.stop()
+    vi.restoreAllMocks()
+  })
+
+  it("is empty when nothing stalled", () => expect(longTaskSnapshot()).toEqual([]))
 })
 
 describe("moments of the round", () => {
