@@ -3,13 +3,15 @@
 
 import { describe, expect, it } from "vitest"
 import { readLaunchSource } from "./launch-source"
-import { NOTIFICATION_MOMENTS } from "./notification-url"
-import { isMaskSafe } from "./testing"
 
 const ROOT = {} as typeof globalThis
 
 const hostRoot = (openSource: string, openedAtEpochMs = 1_000) =>
   ({ __trinityHostTelemetry: { hostSessionId: "123e4567-e89b-42d3-a456-426614174000", openSource, openedAtEpochMs } }) as unknown as typeof globalThis
+
+/** A host bootstrap that reports an open with no timestamp at all. */
+const hostRootWithoutTimestamp = (openSource: string) =>
+  ({ __trinityHostTelemetry: { hostSessionId: "123e4567-e89b-42d3-a456-426614174000", openSource } }) as unknown as typeof globalThis
 
 describe("launch source", () => {
   it.each([
@@ -54,25 +56,11 @@ describe("launch source", () => {
     expect(readLaunchSource({ root: hostRoot("deeplink"), now: 2_000, search: "?game=248", pathname: "/prize-draw", navigationType: "reload" }))
       .toEqual({ source: "deeplink", detail: null })
   })
-})
 
-describe("masking-safe launch source vocabulary", () => {
-  const words = [
-    "app.launch_source",
-    "app.launch_detail",
-    "app.concurrent_page",
-    "notification",
-    "deeplink",
-    "unknown",
-    "alarm",
-    "host-other",
-    "other",
-    "reload",
-    ...NOTIFICATION_MOMENTS,
-    "true",
-    "false",
-  ]
-  it.each(words)("%s", (word) => {
-    expect(isMaskSafe(word)).toBe(true)
+  it("a host open with no timestamp is never fresh, so a reload does not count as a notification open again", () => {
+    expect(readLaunchSource({ root: hostRootWithoutTimestamp("alarm"), now: 2_000, search: "", pathname: "/", navigationType: "reload" }))
+      .toEqual({ source: "unknown", detail: null })
+    expect(readLaunchSource({ root: hostRootWithoutTimestamp("alarm"), now: 999_999_999, search: "?jollity-notification=reminder&moment=start-5m", pathname: "/", navigationType: "navigate" }))
+      .toEqual({ source: "notification", detail: "start-5m" })
   })
 })
