@@ -71,6 +71,9 @@ const FRIENDS_AFTER_LANDING_MS = 400
 const FRIENDS_MAX = 6
 const FRIEND_CYCLE_MS = 1200
 const FRIENDS_TAIL_MS = 600
+/* with no friend among the entrants, their line says who could be on it
+   (stage.css #jollity-invite) */
+export const INVITE_FRIENDS = "Invite your friends to Jollity and they'll show up here"
 /* how the friends are shown before the spin: "ticker", a strip of every name
    round the wheel that rests on you and scrolls fast through everyone in
    between to each friend (./name-ticker.ts); "all", who's playing's own row
@@ -157,7 +160,8 @@ export interface WheelDraw {
    *  a colour of its own, its name on the row in it, and visited before the
    *  spin. Any number may come (all of the player's contacts): the wheel
    *  stands only for the ones it finds among its entrants. None found: no
-   *  friends shown, and the wheel stands its usual time */
+   *  friends shown, the invitation (INVITE_FRIENDS) on their line instead,
+   *  and the wheel stands its usual time */
   friends: readonly string[]
 }
 
@@ -232,6 +236,8 @@ interface ChainDraw {
   friends: { index: number; colour: string }[]
   /** every name round the wheel, before the spin (./name-ticker.ts; friendsRow "ticker") */
   ticker: NameTicker | null
+  /** the invitation is on the friends' line (#jollity-invite): the scene shows it while no friend is found */
+  invite: boolean
   /** the stage's own Continue pressed on a win (hidden under the page's
    *  hold), or the fall played out on a loss: once */
   onDone: () => void
@@ -527,6 +533,12 @@ function mountStage(host: HTMLElement, draw: WheelDraw, { held = false, onEnded,
 
   // every name round the wheel, for the friends' visit before the spin (friendsRow "ticker")
   const ticker = friendNames.size && FRIENDS_ROW === "ticker" ? createNameTicker(app) : null
+  // with no friend among the entrants, the invitation on their line instead:
+  // the scene says how much of it shows (--jollity-invite), and it goes with #app
+  const invite = document.createElement("p")
+  invite.id = "jollity-invite"
+  invite.textContent = INVITE_FRIENDS
+  app.append(invite)
   const stats = { fps: 0 }
   const loop = createLoop({ stats })
   // set before the scene first measures the stage
@@ -545,6 +557,7 @@ function mountStage(host: HTMLElement, draw: WheelDraw, { held = false, onEnded,
         nameOf: labelOf,
         friends,
         ticker,
+        invite: true,
         onDone: () => {
           if (done) return
           done = true

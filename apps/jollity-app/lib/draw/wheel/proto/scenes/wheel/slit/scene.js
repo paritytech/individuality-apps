@@ -704,6 +704,7 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
   let zKeep = 1 //           …how much of the zoom is kept, easing
   let fellFromHold = false // a loss, Continue pressed: the hold after the flip let go, straight into the fall (once)
   let friendsA = 0 // JOLLITY: how much of the friends' bar shows, easing
+  let inviteA = 0 // JOLLITY: how much of the invitation shows in its place, with no friend in the draw, easing
   let wonShown = false // JOLLITY: a win's prize has been up: a spin played again from the timeline stops on the wheel
   let settledNow = false // JOLLITY: stopped, walked through, its ending up or over: the draw is still
   let scrubAt = 0 // JOLLITY: where the page's hand last put the timeline, 0..1
@@ -1551,6 +1552,11 @@ export function createSlit({ dom, loop }, { opening = 'slit', look: lookOpt = nu
     friendsLineK = -1 // …and the ticket a friends' line comes down to
     friendsA += (friendsTo - friendsA) * (1 - Math.exp(-dt / 0.15))
     setVar('--jollity-friends', friendsA.toFixed(3))
+    // JOLLITY: no friend among the entrants: an invitation on their line over the same stretch (chainDraw.invite,
+    // #jollity-invite); a friend found later takes the line back
+    const inviteTo = chainDraw?.invite && ok && !before && s >= friendsFrom && friendsNow().length === 0 && !(pl && (opened || wk.phase !== 'off')) && !ending?.prizeUp ? 1 : 0
+    inviteA += (inviteTo - inviteA) * (1 - Math.exp(-dt / 0.15))
+    setVar('--jollity-invite', inviteA.toFixed(3))
     legend.stage(Wn(), view.scale)
     if (pl && (opened || wk.phase !== 'off')) {
       /* the row: slid — the short way round its ring — so the lit name is

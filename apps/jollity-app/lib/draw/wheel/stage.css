@@ -97,6 +97,24 @@
   opacity: var(--jollity-friends, 0);
   pointer-events: none;
 }
+/* NO FRIEND IN THE DRAW (lib/draw/wheel/mount.ts INVITE_FRIENDS): an
+   invitation on the friends' line, in who's playing's type but as a sentence,
+   over the same stretch; the scene says how much of it shows */
+.wheel-host #app #jollity-invite {
+  position: absolute;
+  left: max(24px, env(safe-area-inset-left, 0px));
+  right: max(24px, env(safe-area-inset-right, 0px));
+  top: calc(var(--slit-names-y, 80) * 1px * var(--scale, 1));
+  transform: translateY(-50%);
+  z-index: 3;
+  margin: 0;
+  color: #fff;
+  font: 400 calc(14px * var(--scale, 1)) / 1.3 Inter, var(--font);
+  text-align: center;
+  text-wrap: balance;
+  opacity: calc(var(--jollity-invite, 0) * 0.72);
+  pointer-events: none;
+}
 
 /* the scene's timeline (#phase), a line along the bottom that fills as the
    wheel turns, is drawn by the page instead (components/draw/draw-timeline):

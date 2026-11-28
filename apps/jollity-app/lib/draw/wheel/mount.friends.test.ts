@@ -12,6 +12,8 @@ const stage = vi.hoisted(() => {
   return {
     /** the friends the page hands the scene (chainDraw.friends) */
     friends: [] as { index: number; colour: string }[],
+    /** whether the page hands the scene the invitation for a draw with no friend (chainDraw.invite) */
+    invite: undefined as boolean | undefined,
     held: false,
     started: false,
     /** who's playing's names, by ticket index, and the page's ear for them */
@@ -21,8 +23,9 @@ const stage = vi.hoisted(() => {
 })
 // a stand-in for the scene: it keeps what the page hands it, and says what the test says
 vi.mock("./proto/scenes/wheel/slit/scene.js", () => ({
-  createSlit: (_ctx: unknown, opts: { chainDraw: { friends: { index: number; colour: string }[] } }) => {
+  createSlit: (_ctx: unknown, opts: { chainDraw: { friends: { index: number; colour: string }[]; invite?: boolean } }) => {
     stage.friends = opts.chainDraw.friends
+    stage.invite = opts.chainDraw.invite
     return {
       frame: () => {},
       dispose: () => {},
@@ -44,7 +47,7 @@ vi.mock("./names", () => ({
   rowName: (name: string) => name.trim().toUpperCase(),
 }))
 
-const { mountWheel } = await import("./mount")
+const { mountWheel, INVITE_FRIENDS } = await import("./mount")
 const { SLIT } = await import("./proto/scenes/wheel/slit/config.js")
 
 const slot = (n: number) => n.toString(16).padStart(64, "0")
@@ -76,6 +79,17 @@ describe("mountWheel's friends", () => {
     named(2, "erin")
     expect(stage.friends).toEqual([])
     expect(SLIT.spinStartMs).toBe(usual)
+  })
+
+  it("puts the invitation on the friends' line, for the scene to show while no friend is found", () => {
+    for (const contacts of [[], ["alice"]]) {
+      const host = document.createElement("div")
+      mounted = mountWheel(host, drawOf(3, contacts))
+      expect(host.querySelector("#jollity-invite")?.textContent).toBe(INVITE_FRIENDS)
+      expect(stage.invite).toBe(true)
+      mounted.destroy?.()
+      mounted = null
+    }
   })
 
   it("marks a contact whose name is read, and stands longer for each one found", () => {
