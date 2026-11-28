@@ -195,7 +195,7 @@ describe("signup-retry state-machine model", () => {
 })
 
 describe("signup-retry doorway differential", () => {
-  const retryReasons: RetryReason[] = ["bind-pending", "name-pending", "stale-alias", "no-alias", "tracking-lost", "timeout", "host-chain", "network", "other"]
+  const retryReasons: RetryReason[] = ["bind-pending", "name-pending", "stale-alias", "no-alias", "tracking-lost", "timeout", "host-chain", "network", "wire-pending", "other"]
   const scriptArbitrary = fc.record({
     initiallyStopped: fc.boolean(),
     windows: fc.array(
@@ -322,7 +322,7 @@ describe("signup-retry doorway differential", () => {
 
 describe("signup-retry mutation guards", () => {
   it("keeps every retry-reason predicate exact", () => {
-    const reasons: RetryReason[] = ["bind-pending", "name-pending", "name-unowned", "stale-alias", "no-alias", "tracking-lost", "timeout", "host-chain", "network", "other"]
+    const reasons: RetryReason[] = ["bind-pending", "name-pending", "name-unowned", "stale-alias", "no-alias", "tracking-lost", "timeout", "host-chain", "network", "wire-pending", "other"]
     expect(reasons.map((reason) => [reason, waitsOnBind(reason), waitsOnSeat(reason), isActionableRetry(reason)])).toEqual([
       ["bind-pending", true, true, false],
       ["name-pending", false, true, false],
@@ -333,6 +333,7 @@ describe("signup-retry mutation guards", () => {
       ["timeout", false, false, false],
       ["host-chain", false, false, true],
       ["network", false, false, true],
+      ["wire-pending", false, false, false],
       ["other", false, false, false],
     ])
   })

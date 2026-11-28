@@ -4363,9 +4363,13 @@ describe("journey.game-signup", () => {
     const { outcome, source } = await tap(chain)
     await expect(outcome).resolves.toBe("resolved") // on the wire
     await answerReads(chain, 120_000)
-    expect(chain.engine.register).toHaveBeenCalledTimes(2)
-    expect(signupJourneys().map((journey) => journey.outcome)).toEqual(["retrying", "landed"])
+    // the first tx is still pending (the watch never answered, so it is never
+    // known dropped): the loop waits on the reads and never signs a second
+    // one (#82)
+    expect(chain.engine.register).toHaveBeenCalledTimes(1)
+    expect(signupJourneys().every((journey) => journey.outcome === "retrying")).toBe(true)
     expect(signupJourneys()[0].attrs["signup.retry_reason"]).toBe("timeout")
+    expect(signupJourneys().at(-1)!.attrs["signup.retry_reason"]).toBe("wire-pending")
     source.cancelRegister!()
   })
 

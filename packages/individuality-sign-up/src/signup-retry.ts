@@ -61,6 +61,9 @@ export type RetryReason =
   | "host-chain"
   | "host-interrupted"
   | "network"
+  /** this tap's earlier sign-up is still on the wire, not yet included or
+   *  dropped: wait for it to land or be dropped, never sign a second one (#82) */
+  | "wire-pending"
   | "other"
 
 /** how long the sign-up has to take before the screen says so */

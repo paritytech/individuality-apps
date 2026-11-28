@@ -380,7 +380,7 @@ describe("a sign-up goes", () => {
     flow.cancelRegister()
   }, 30_000)
 
-  it("takes the optimistic flag down when a later read says the player is not in, after the landing re-read failed", async () => {
+  it("takes the optimistic flag down when a later read says the player is not in, after the landing re-read failed — and still never signs twice while the wire is pending (#82)", async () => {
     // Given: broadcast, the landing re-read fails, and the next attempt's read
     // answers definitively "not registered"
     let reads = 0
@@ -392,7 +392,8 @@ describe("a sign-up goes", () => {
           options?.onBroadcast?.()
           return { ok: false, error: "Tracking stopped", landingUnknown: true }
         }
-        // the second attempt never reaches the wire: the flag must already be down
+        // never reached while the first tx is pending: the flag is down, but
+        // the wire is not known free
         return new Promise<DispatchResult>(() => {})
       }),
       player: vi.fn(async (): Promise<{ registered: boolean }> => {
@@ -411,10 +412,13 @@ describe("a sign-up goes", () => {
     await vi.advanceTimersByTimeAsync(12_000) // the landing wait, its re-read fails
     await vi.advanceTimersByTimeAsync(2_000) // the first backoff
     await vi.advanceTimersByTimeAsync(0) // the window check and the next attempt's read
+    await vi.advanceTimersByTimeAsync(60_000) // the ladder runs on, reads keep answering not-in
 
-    // Then: the flag this tap put up is down, the chain said so
+    // Then: the flag this tap put up is down, the chain said so — but the
+    // pending tx is never signed over: one register call only, until the
+    // dispatch itself says the tx was dropped
     expect(reads).toBeGreaterThanOrEqual(3)
-    expect(chain.register).toHaveBeenCalledTimes(2)
+    expect(chain.register).toHaveBeenCalledTimes(1)
     expect(flow.optimistic().registered).toBe(false)
     flow.cancelRegister()
     await vi.advanceTimersByTimeAsync(60_000)
@@ -990,6 +994,63 @@ describe("a sign-up goes", () => {
     await tap
   })
 
+  it("never files a second sign-up while this tap's first one is still pending in the pool (#82)", async () => {
+    // Given: the sign-up is broadcast, the landing watch fails, and the
+    // landing re-read answers "not registered" — the Players row is at the
+    // best block and cannot see the pool, so the first tx may still land.
+    // The loop goes again on its backoff, and each attempt re-reads the row.
+    const chain = fakeChain({
+      register: vi.fn(async (_capabilities: GameRegistrationCapabilities, _id: Uint8Array, options?: RegisterOptions): Promise<DispatchResult> => {
+        options?.onDraws?.({ entered: 0, scheduled: 0, waitedMs: 0, retries: 0 })
+        options?.onBroadcast?.()
+        return { ok: false, error: "Tracking stopped", landingUnknown: true }
+      }),
+      player: vi.fn(async (): Promise<{ registered: boolean }> => ({ registered: false })), // every read answers: the tx is still in the pool
+    })
+    const { flow, attrs } = flowOver(chain)
+
+    // When: the whole retry ladder runs with answered not-in reads
+    const tap = flow.register!().catch(() => {})
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.advanceTimersByTimeAsync(5 * 60_000)
+    await Promise.race([tap, vi.advanceTimersByTimeAsync(0).then(() => "pending")])
+
+    // Then: ONE sign-up only — while the first is pending, no attempt signs
+    // again; the loop waits on the reads instead
+    expect(chain.register).toHaveBeenCalledTimes(1)
+    expect(attrs["signup.retry_reason"]).toBe("wire-pending")
+    flow.cancelRegister()
+    await vi.advanceTimersByTimeAsync(60_000)
+    await tap
+  }, 30_000)
+
+  it("signs again once the dispatch says the pending tx was dropped (#82)", async () => {
+    // Given: the sign-up is broadcast, the watch ends before any block held
+    // the tx ("Dropped": it left the pool for good), and the player row still
+    // answers "not registered" — the wire is free, the next attempt signs
+    let calls = 0
+    const chain = fakeChain({
+      register: vi.fn(async (_capabilities: GameRegistrationCapabilities, _id: Uint8Array, options?: RegisterOptions): Promise<DispatchResult> => {
+        calls += 1
+        options?.onDraws?.({ entered: 0, scheduled: 0, waitedMs: 0, retries: 0 })
+        options?.onBroadcast?.()
+        if (calls === 1) return { ok: false, error: "game registration failed at sign: Dropped (the watch ended before any block held the transaction)" }
+        return { ok: true }
+      }),
+      player: vi.fn(async () => ({ registered: false })),
+    })
+    const { flow, ends } = flowOver(chain)
+
+    // When
+    await flow.register!()
+    await vi.advanceTimersByTimeAsync(20_000)
+
+    // Then: a second sign-up went out after the drop, and the tap landed
+    expect(chain.register).toHaveBeenCalledTimes(2)
+    expect(ends).toContainEqual(["game-signup", "landed"])
+    expect(flow.optimistic().registered).toBe(true)
+  })
+
   it("takes the retry reason from the failed landing re-read, not from the dispatch error (row 3)", async () => {
     // Given: the pre-route read answers not-in, the sign-up goes on the wire,
     // the dispatch fails as a tracking loss, and the landing re-read fails with
@@ -1302,8 +1363,11 @@ describe("a sign-up holds together", () => {
     shown()
     await vi.advanceTimersByTimeAsync(20_000)
 
-    // Then: one end and one failure for the attempt
-    expect(ends.filter(([name]) => name === "game-signup")).toHaveLength(1)
+    // Then: one end and one failure for the attempt — the later attempts only
+    // wait on the pending wire (#82), they file no second sign-up and no
+    // second failure of the wired one
+    expect(ends.filter(([name]) => name === "game-signup")).toHaveLength(3)
+    expect(chain.register).toHaveBeenCalledTimes(1)
     expect(failures.filter((failure) => failure.startsWith("signup-failed"))).toHaveLength(1)
   })
 
