@@ -1,0 +1,340 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: PreviewNet Crew Pages
+
+on:
+  # Renderer-only changes republish without dispatching a live game. Pull
+  # requests never run this workflow (it holds a token that publishes); CI's
+  # e2e-live job runs the same renderer checks on them.
+  push:
+    branches: [main]
+    paths:
+      - "scripts/e2e-live/crew/site.ts"
+      - "scripts/e2e-live/crew/site.css"
+      - "scripts/e2e-live/crew/status.js"
+      - "scripts/e2e-live/crew/site-cli.mts"
+      - "scripts/e2e-live/crew/site.test.ts"
+      - "scripts/e2e-live/crew/site-fixtures.test.ts"
+      - "scripts/e2e-live/crew/workflow-crew-site.test.ts"
+      - ".github/workflows/e2e-live-pages.yml"
+  workflow_run:
+    workflows: ["E2E (live)", "PreviewNet Crew Nightly", "E2E live recording annotation"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Live or complete-suite source run to publish or reconcile"
+        type: string
+        required: true
+      source_run_attempt:
+        description: "Exact source attempt (empty selects the latest for manual reconciliation only)"
+        type: string
+        default: ""
+
+permissions: {}
+
+jobs:
+  site-check:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: npm
+      - run: npm ci
+      - name: Check copied Crew client syntax
+        run: node --check scripts/e2e-live/crew/status.js
+      - name: Typecheck live tooling (including crew renderer)
+        run: npm run typecheck:e2e-live
+      - name: Lint crew renderer and its checks
+        run: >-
+          npx eslint
+          scripts/e2e-live/crew/status.js
+          scripts/e2e-live/crew/site.ts
+          scripts/e2e-live/crew/site-cli.mts
+          scripts/e2e-live/crew/site.test.ts
+          scripts/e2e-live/crew/site-fixtures.test.ts
+          scripts/e2e-live/crew/workflow-crew-site.test.ts
+      - name: Check crew renderer and publication boundaries
+        run: >-
+          npx vitest run
+          scripts/e2e-live/crew/site.test.ts
+          scripts/e2e-live/crew/site-fixtures.test.ts
+          scripts/e2e-live/crew/workflow-pages.test.ts
+          scripts/e2e-live/crew/workflow-crew-site.test.ts
+
+  # Admission has no checkout or dependency installation and holds no history
+  # slot. Titles are cheap hints; the exact-attempt API checks below are the
+  # authority for both direct games and complete-suite observations.
+  admission:
+    if: >-
+      (github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name == github.repository && (
+        (github.event.workflow_run.name == 'E2E (live)' &&
+         github.event.workflow_run.path == '.github/workflows/e2e-live.yml' &&
+         github.event.workflow_run.event == 'workflow_dispatch' &&
+         startsWith(github.event.workflow_run.display_title, 'Crew network=previewnet boot=false ')) ||
+        (github.event.workflow_run.name == 'PreviewNet Crew Nightly' &&
+         github.event.workflow_run.path == '.github/workflows/e2e-live-nightly.yml' &&
+         (github.event.workflow_run.event == 'workflow_dispatch' || github.event.workflow_run.event == 'schedule') &&
+         github.event.workflow_run.display_title == 'PreviewNet complete crew suite') ||
+        (github.event.workflow_run.name == 'E2E live recording annotation' &&
+         github.event.workflow_run.path == '.github/workflows/e2e-live-annotate.yml' &&
+         github.event.workflow_run.event == 'workflow_run' && (
+           startsWith(github.event.workflow_run.display_title, 'Crew annotation source=E2E (live) event=workflow_dispatch Crew network=previewnet boot=false ') ||
+           startsWith(github.event.workflow_run.display_title, 'Crew annotation source=PreviewNet Crew Nightly event=workflow_dispatch PreviewNet complete crew suite') ||
+           startsWith(github.event.workflow_run.display_title, 'Crew annotation source=PreviewNet Crew Nightly event=schedule PreviewNet complete crew suite')
+         ))
+      )) || (github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    outputs:
+      ready: ${{ steps.source.outputs.ready }}
+      id: ${{ steps.source.outputs.id }}
+      attempt: ${{ steps.source.outputs.attempt }}
+      kind: ${{ steps.source.outputs.kind }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REQUESTED_RUN_ID: ${{ inputs.source_run_id || github.event.workflow_run.id }}
+      REQUESTED_ATTEMPT: ${{ inputs.source_run_attempt }}
+      EVENT_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+      SOURCE_EVENT: ${{ github.event_name }}
+      SOURCE_WORKFLOW: ${{ github.event.workflow_run.name }}
+      E2E_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - name: Resolve the exact trusted source attempt
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$REQUESTED_RUN_ID" =~ ^[1-9][0-9]*$ ]] || { echo "Invalid source run ID" >&2; exit 1; }
+          source_id="$REQUESTED_RUN_ID"
+          if [ "$SOURCE_EVENT" = "workflow_run" ] && [ "$SOURCE_WORKFLOW" = "E2E live recording annotation" ]; then
+            gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$REQUESTED_RUN_ID/artifacts?per_page=100" | jq -s '[.[].artifacts[]]' > annotation-artifacts.json
+            source_tuple=$(jq -r '[.[] | select(.expired == false) | .name | capture("^e2e-live-(?<id>[1-9][0-9]*)-public-records-attempt-(?<attempt>[1-9][0-9]*)(?:-[a-z0-9][a-z0-9-]{0,63})?$") | [.id, .attempt]] | unique | if length == 1 then .[0] | @tsv else empty end' annotation-artifacts.json)
+            if [ -z "$source_tuple" ]; then
+              echo "No released video bundle from this annotation run." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            IFS=$'\t' read -r source_id source_attempt <<< "$source_tuple"
+          elif [ "$SOURCE_EVENT" = "workflow_run" ]; then
+            # The event describes the observed attempt even if a rerun has
+            # already changed the run's latest attempt/status in the API.
+            source_attempt="$EVENT_ATTEMPT"
+          elif [ -n "$REQUESTED_ATTEMPT" ]; then
+            source_attempt="$REQUESTED_ATTEMPT"
+          else
+            source_attempt=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$source_id" --jq .run_attempt)
+          fi
+          [[ "$source_attempt" =~ ^[1-9][0-9]*$ ]] || { echo "Invalid source attempt" >&2; exit 1; }
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$source_id/attempts/$source_attempt" > source-run.json
+          source_kind=$(jq -r --argjson id "$source_id" --argjson attempt "$source_attempt" --arg branch "$E2E_DEFAULT_BRANCH" --arg repo "$GITHUB_REPOSITORY" '
+            def path: .path | split("@") | first;
+            if .head_repository.full_name != $repo then empty
+            elif .id == $id and .run_attempt == $attempt and .status == "completed" and
+               .event == "workflow_dispatch" and .head_branch == $branch and
+               path == ".github/workflows/e2e-live.yml" and
+               (.display_title | startswith("Crew network=previewnet boot=false "))
+            then "direct"
+            elif .id == $id and .run_attempt == $attempt and
+                 path == ".github/workflows/e2e-live-nightly.yml" and
+                 (.event == "workflow_dispatch" or .event == "schedule") and
+                 .head_branch == $branch and .display_title == "PreviewNet complete crew suite" and
+                 .status == "completed"
+            then "suite"
+            else empty end' source-run.json)
+          if [ -z "$source_kind" ]; then
+            echo "Source is not the requested trusted PreviewNet direct or complete-suite attempt." >&2
+            exit 1
+          fi
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$source_id/artifacts?per_page=100" | jq -s '[.[].artifacts[]]' > source-artifacts.json
+          if ! jq -e --arg run "$source_id" --arg attempt "$source_attempt" 'any(.[]; .expired == false and (.name | test("^crew-publication-" + $run + "-attempt-" + $attempt + "-[a-z0-9][a-z0-9-]{0,63}$")))' source-artifacts.json >/dev/null; then
+            echo "No publication bundle for this attempt; nothing to publish." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          printf 'id=%s\nattempt=%s\nkind=%s\nready=true\n' "$source_id" "$source_attempt" "$source_kind" >> "$GITHUB_OUTPUT"
+
+  history:
+    needs: admission
+    if: needs.admission.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: previewnet-crew-pages-history
+      cancel-in-progress: false
+      queue: max
+    outputs:
+      ready: ${{ steps.publish.outputs.ready }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: ${{ needs.admission.outputs.id }}
+      SOURCE_ATTEMPT: ${{ needs.admission.outputs.attempt }}
+      SOURCE_KIND: ${{ needs.admission.outputs.kind }}
+      RELEASE_REPOSITORY: ${{ vars.CREW_VIDEO_RELEASE_REPOSITORY || 'paritytech/jollity-tests' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: npm
+      - run: npm ci
+      - name: Download the source publication and optional released recordings
+        id: bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p source-bundles released-bundles result-bundles
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/artifacts?per_page=100" | jq -s '[.[].artifacts[]]' > source-artifacts.json
+          jq -r --arg run "$SOURCE_RUN_ID" --arg attempt "$SOURCE_ATTEMPT" '.[] | select(.expired == false) | . as $artifact | (.name | capture("^crew-publication-" + $run + "-attempt-" + $attempt + "-(?<execution>[a-z0-9][a-z0-9-]{0,63})$")) | [$artifact.id, .execution] | @tsv' source-artifacts.json > publication-ids.tsv
+          while IFS=$'\t' read -r artifact_id execution; do
+            [ -n "$artifact_id" ] || continue
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$RUNNER_TEMP/publication-$artifact_id.zip"
+            unzip -q "$RUNNER_TEMP/publication-$artifact_id.zip" -d "source-bundles/$artifact_id"
+            mkdir -p "result-bundles/$artifact_id"
+            jq -r '.runs[] | select(.diagnostics == null and .scenario != null and .bot != null and .source.artifactId != null and .artifactAttempt != null and ((.scenario | has("criteria") | not) or ((.scenario.criteria // []) | length > 0))) | [.source.artifactId, .bot, .executionKey, .artifactAttempt, .runId] | @tsv' \
+              "source-bundles/$artifact_id/publication-bundle.json" | sort -u > "$RUNNER_TEMP/results-$artifact_id.tsv"
+            while IFS=$'\t' read -r result_id bot result_execution artifact_attempt result_run; do
+              [ -n "$result_id" ] || continue
+              expected_name="e2e-live-$result_run-attempt-$artifact_attempt-$result_execution-bot$bot-result"
+              if ! jq -e --argjson id "$result_id" --arg name "$expected_name" \
+                '[.[] | select(.id == $id and .name == $name and .expired == false and (.size_in_bytes | type == "number" and . >= 0 and . <= 8388608))] | length == 1' \
+                source-artifacts.json > /dev/null; then
+                echo "Result artifact $result_id did not match the expected current small evidence artifact." >&2
+                exit 1
+              fi
+              mkdir -p "result-bundles/$artifact_id/$result_id"
+              gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$result_id/zip" > "$RUNNER_TEMP/result-$result_id.zip"
+              unzip -q "$RUNNER_TEMP/result-$result_id.zip" -d "result-bundles/$artifact_id/$result_id"
+            done < "$RUNNER_TEMP/results-$artifact_id.tsv"
+            release_name="e2e-live-$SOURCE_RUN_ID-public-records-attempt-$SOURCE_ATTEMPT"
+            [ "$SOURCE_KIND" = suite ] && release_name="$release_name-$execution"
+            gh api --paginate "repos/$GITHUB_REPOSITORY/actions/artifacts?name=$release_name&per_page=100" | jq -s '[.[].artifacts[]]' > release-artifacts.json
+            release_id=$(jq -r --arg name "$release_name" '[.[] | select(.name == $name and .expired == false)] | sort_by(.id) | last | .id // empty' release-artifacts.json)
+            if [ -n "$release_id" ]; then
+              mkdir -p "released-bundles/$execution"
+              gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$release_id/zip" > "$RUNNER_TEMP/released-publication-$release_id.zip"
+              unzip -q "$RUNNER_TEMP/released-publication-$release_id.zip" -d "released-bundles/$execution"
+            else
+              mkdir -p "released-bundles/$execution"
+              released_bundle="released-bundles/$execution/released-publication-bundle.json"
+              while IFS= read -r release_attempt; do
+                [ -n "$release_attempt" ] || continue
+                release_tag="crew-run-$SOURCE_RUN_ID-a$release_attempt"
+                [ "$SOURCE_KIND" = suite ] && release_tag="$release_tag-x$execution"
+                release_url="https://github.com/$RELEASE_REPOSITORY/releases/download/$release_tag/released-publication-bundle.json"
+                if curl --fail --location --silent --show-error "$release_url" -o "$released_bundle"; then
+                  break
+                fi
+                rm -f "$released_bundle"
+              done < <(jq -r --arg run "$SOURCE_RUN_ID" --arg execution "$execution" \
+                '[.runs[] | select((.runId | tostring) == $run and .executionKey == $execution and (.attempt | type) == "number") | .attempt] | unique | sort | reverse[]' \
+                "source-bundles/$artifact_id/publication-bundle.json")
+              if [ ! -f "$released_bundle" ]; then
+                echo "No public released bundle for $execution; retaining the source recording links." >> "$GITHUB_STEP_SUMMARY"
+              fi
+            fi
+          done < publication-ids.tsv
+          if [ ! -s publication-ids.tsv ]; then
+            echo "No current PreviewNet publication bundle; nothing to publish." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+      - name: Validate publication bundles before opening history
+        if: steps.bundles.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS=$'\t' read -r artifact_id execution; do
+            npx tsx scripts/e2e-live/crew/workflow-publication-cli.mts select \
+              "source-bundles/$artifact_id/publication-bundle.json" \
+              "released-bundles/$execution/released-publication-bundle.json" "validated/$artifact_id" \
+              "result-bundles/$artifact_id"
+          done < publication-ids.tsv
+      - name: Apply bundles to durable history
+        if: steps.bundles.outputs.ready == 'true'
+        id: publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          history="$RUNNER_TEMP/crew-history"
+          if git ls-remote --exit-code --heads origin previewnet-crew-pages > "$RUNNER_TEMP/crew-history-ref"; then
+            git fetch origin previewnet-crew-pages
+            git worktree add --detach "$history" FETCH_HEAD
+          else
+            status=$?
+            [ "$status" = 2 ] || exit "$status"
+            git worktree add --detach "$history" HEAD
+            git -C "$history" switch --orphan previewnet-crew-pages
+          fi
+          # publish-cli restores any interrupted replacement before reading state.
+          while IFS=$'\t' read -r artifact_id _; do
+            npx tsx scripts/e2e-live/crew/publish-cli.mts --state "$history" --bundle "validated/$artifact_id/publication-bundle.json"
+          done < publication-ids.tsv
+          git -C "$history" add --all
+          if ! git -C "$history" diff --cached --quiet; then
+            git -C "$history" -c user.name=github-actions\[bot\] -c user.email=41898282+github-actions\[bot\]@users.noreply.github.com -c commit.gpgsign=false commit -m "Update PreviewNet crew history"
+            git -C "$history" push origin HEAD:refs/heads/previewnet-crew-pages
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: [history, site-check]
+    # always() permits the push lane when live-run admission/history were skipped,
+    # and keeps completed-run publication independent of renderer-only PR checks.
+    if: >-
+      always() && !cancelled() &&
+      ((github.event_name == 'push' && needs.site-check.result == 'success') ||
+      ((github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch') &&
+      needs.history.outputs.ready == 'true'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: previewnet-crew-pages-deploy
+      cancel-in-progress: false
+      queue: max
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      # Read the latest history only after obtaining the deployment slot.
+      - uses: actions/checkout@v4
+        with:
+          ref: previewnet-crew-pages
+          path: crew-history
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: npm
+      - run: npm ci
+      - name: Build the latest history for Pages
+        run: npx tsx scripts/e2e-live/crew/site-cli.mts --state crew-history --out "$RUNNER_TEMP/crew-site"
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ runner.temp }}/crew-site
+          retention-days: 3
+      - uses: actions/deploy-pages@v4
+        id: deployment

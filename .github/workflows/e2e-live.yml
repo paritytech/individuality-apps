@@ -1,0 +1,1173 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: E2E (live)
+run-name: "Crew network=${{ inputs.network || 'previewnet' }} boot=${{ github.event_name == 'pull_request' || inputs.boot_only || false }} execution=${{ inputs.execution_key || (github.event_name == 'pull_request' && 'pr-boot' || 'manual') }} classification=${{ inputs.classification || (inputs.boot_only && 'harness-check' || 'manual') }} suite=${{ inputs.suite_id }} wave=${{ inputs.suite_wave }}"
+# Plays a real game on PREVIEWNET (default) or paseo-next-v2 with hosted players,
+# end to end (#185, #284). THE NETWORK is the `network` input (one knob, default
+# previewnet); the app, the People RPC, the dotNS endpoints, the identity pool
+# and the boot identity all follow it (scripts/lib/host-slot.mjs NETWORKS). Previewnet
+# currently schedules a game every 20 min on its own (chain XX:00, XX:20 and XX:40);
+# every wait still derives from chain state. On paseo a person
+# schedules them in the sudo app. The run: a probe decides, a MATRIX of physical runner groups boots
+# and plays, a gather job merges the verdicts. ON DEMAND: dispatch it once a
+# game is scheduled, or call one execution wave from another workflow.
+#
+# READ-ONLY ON CHAIN, apart from the bots' own sign-up and report
+# transactions, which the app sends. Previewnet schedules its own games and
+# humans (root) schedule paseo ones by hand; nothing here schedules, cancels or
+# retimes one.
+#
+# ONE GENERIC BOT, TWO INPUTS (#284). Each runner runs the same program with
+# its IDENTITY (E2E_PLAYER_MNEMONIC, selected from the per-network pool secret)
+# and its BEHAVIOUR (E2E_PROFILE, a profile name; "baseline" = register once,
+# approve every tile, let the auto-confirm file). E2E_SLOT is only an index
+# (ports, out dir, artifact name). The matrix is the list of (bot, profile)
+# pairs the probe builds from the dispatch's ONE `bots` input: a count ("3"),
+# the preset "core" / "all" / opt-in "rotate", or a JSON list; profile names
+# live in scripts/e2e-live/profiles.json, so a new behaviour is a data change. A PR or
+# boot_only run uses the SAME matrix with one entry, bot 1 / baseline, and
+# E2E_STAGE=boot (stage (a) alone).
+#
+#   check   typecheck + unit tests, once (not on every runner)
+#   probe   decides; outputs the game's times, `matrix`, `lead_s`,
+#           `job_minutes`; then sleeps `lead_s` so the play runners start just
+#           in time (CI_SETUP_S before registration opens) instead of each one
+#           idling for up to an hour
+#   play    one physical runner per matrix entry, with 1-3 compatible logical
+#           bots and fail-fast off. Uploads TWO artifacts per bot (names:
+#           scripts/e2e-live/result.ts): e2e-live-<run_id>-attempt-<a>-<execution>-bot<n>-result holds
+#           result-<n>.json plus compact screenshot provenance,
+#           e2e-live-<run_id>-attempt-<a>-<execution>-bot<n> the logs, screenshots and the full-session
+#           video-<n>.webm (and the same provenance independently)
+#   gather  downloads only the small *-result artifacts, merges them, writes
+#           ONE summary (linking each heavy artifact), checks usernames
+#           against each bot's profile identity (variable E2E_IDENTITIES)
+#           and is the ONLY place that marks the game played, and
+#           only when every evaluated bot played and settled (runner losses
+#           are inconclusive, #350)
+#
+# EVERY WAIT AND TIMEOUT DERIVES FROM THE GAME'S CHAIN TIMES (timing.ts): the
+# probe's sleep and the play job's `timeout-minutes` (runner start ->
+# report_ends + margin) come from it, each runner sleeps until
+# REGISTRATION_START (boot.mts), the play spec's timeout is sized from the same
+# reportEndsFor, and the probe FAILS EARLY if CI cannot reach a Register tap
+# before registration closes.
+#
+# PREPARE EARLY. a registration window is minutes (paseo 180 s) and booting a hosted
+# player takes minutes, so the probe says `play` as soon as a registration
+# opens within the hour (scripts/e2e-live/decide.ts). A play job boots
+# everything first, then sleeps until the registration opens, on the chain
+# clock (scripts/e2e-live/boot.mts).
+#
+# WHICH APP (#284). The bots test a DEPLOYED app named by the `app` input (its
+# dotNS name; default: the network's, dim2.testnet on previewnet, dim2next.paseo on paseo = what main deployed), not a `next dev` of
+# the checked-out commit: boot.mts resolves app.<name>'s contenthash, fetches the
+# bundle from IPFS and serves it behind each bot's truapi-host, so nothing is
+# compiled and the build under test is the one phones load. The product id the
+# host signs for is the one compiled into that bundle (dim2next.paseo is built
+# for dim2.paseo and dim2.testnet for itself, deploy.yml), and result-<n>.json plus the gather summary
+# header record the name, build stamp and CID each bot actually loaded. `local`
+# keeps the old `next dev` path. A PR run boots against previewnet's dim2.testnet. An app whose TLD is not the chosen
+# network's fails the probe and the runners at once.
+#
+# THREE WAYS IN:
+#   workflow_call       one typed execution wave with its own evidence key
+#   workflow_dispatch   the same, or `boot_only` for stage (a) alone
+#                       telemetry is OFF unless explicitly dispatched with
+#                       telemetry=true (the intentional telemetry check); a
+#                       telemetry-t1..t12 profile does not opt itself in
+#   pull_request        on e2e-live files: boot_only, so a PR proves the
+#                       install, the mnemonic boot and the lite proof before
+#                       merge (a dispatch runs from main only)
+#
+# SECRETS. ONE convention: a dedicated runner reads E2E_PLAYER_MNEMONIC; a
+# shared runner receives at most three numbered secrets and scrubs them before
+# launching children, each of which receives only its own mnemonic. They are picked by the
+# matrix entry from the ONE repo secret E2E_POOL_PREVIEWNET (E2E_POOL on paseo),
+# JSON {username: mnemonic}. A legacy E2E_ID_<USERNAME_UPPER_UNDERSCORED> secret
+# still wins while migration is in progress,
+# plus E2E_SLOT = the bot's slot index (ports, artifact names; never an
+# identity). A profile (profiles.json) names its identity; the pool is the repo
+# variable E2E_IDENTITIES, JSON {username: account}; botMatrix (timing.ts)
+# validates both and refuses one identity twice in a run. IDENTITIES ARE PER
+# CHAIN: paseo's pool is the variable E2E_IDENTITIES, previewnet's is
+# E2E_IDENTITIES_PREVIEWNET (same JSON shape, different usernames); each job
+# maps the chosen network's public and secret pools into the
+# E2E_IDENTITIES its scripts read. The boot identity likewise: secret
+# E2E_BOOT_MNEMONIC + variable E2E_BOOT_USER on paseo, E2E_BOOT_MNEMONIC_PREVIEWNET +
+# E2E_BOOT_USER_PREVIEWNET on previewnet. A new test = a new
+# profile + a new identity (scripts/e2e-live/new-identity.mts). boot.mts hands it to the runner's truapi-host as
+# HOST_CLI_SIGNER_MNEMONIC; the host's state lives under $RUNNER_TEMP, outside
+# the workspace; it redacts the mnemonic from its logs and deletes any file it
+# wrote that still holds one. The artifacts name their files explicitly, and
+# the once-per-game cache holds played.txt only.
+#
+# ONCE PER GAME: a cache entry keyed `e2e-live-played-<network>-<game play time>`,
+# known before the game has an index. Saved only after the game settled.
+#
+# PLAYWRIGHT: @playwright/test is not a dependency on main yet (it lands with
+# #203), so the play job installs the pinned version with --no-save, which
+# leaves package.json and the lockfile alone. Once #203 is merged that step
+# finds it already installed and does nothing.
+on:
+  workflow_call:
+    inputs:
+      bots:
+        type: string
+        default: "rotate"
+      proofs:
+        type: string
+        default: ""
+      roles:
+        type: boolean
+        default: false
+      flip_verdict:
+        type: boolean
+        default: false
+      aggregate_only:
+        type: boolean
+        default: false
+      network:
+        type: string
+        default: previewnet
+      app:
+        type: string
+        default: ""
+      app_cid:
+        type: string
+        default: ""
+      app_product:
+        type: string
+        default: ""
+      host_version:
+        type: string
+        default: ""
+      boot_only:
+        type: boolean
+        default: false
+      boot_profile:
+        type: string
+        default: baseline
+      diagnose:
+        type: boolean
+        default: false
+      memory:
+        type: boolean
+        default: false
+      clock_watch_fault:
+        type: boolean
+        default: false
+      telemetry:
+        type: boolean
+        default: false
+      game_log_to_sentry:
+        type: boolean
+        default: false
+      share:
+        type: string
+        default: "off"
+      force_game:
+        type: string
+        default: ""
+      runner:
+        type: string
+        default: ubuntu-latest
+      execution_key:
+        type: string
+        required: true
+      classification:
+        type: string
+        required: true
+      suite_id:
+        type: string
+        default: ""
+      suite_wave:
+        type: string
+        default: ""
+  workflow_dispatch:
+    inputs:
+      bots:
+        description: 'The bots: "rotate" (default: fixed regression personas plus alternating halves of the rest, advancing only after a run decides to play), "all" (every runnable profile), "core" (the six core profiles), a count ("3" = three baseline bots), or a JSON list of PROFILE NAMES. Each profile needs an identity in the chosen network''s public and secret pools. {bot, profile} objects also work.'
+        type: string
+        default: "rotate"
+      proofs:
+        description: 'Fail-closed acceptance intent: one named proof or a JSON list for compatible proofs sharing this game. Known: video-role-proof, flip-verdict, profile:<profile-name>. Empty keeps ordinary rotation/capacity runs unchanged.'
+        type: string
+        default: ""
+      roles:
+        description: "Play the profiles' ROLES (changed-verdict confirm, kill-relaunch, late join). Off by default: the roles are unproven against a live game, so without this every bot plays plain baseline with its profile's device and network."
+        type: boolean
+        default: false
+      flip_verdict:
+        description: "Have bot 1 flip and restore its late confirm tile, proving the filed report carries the changed verdict (requires roles)."
+        type: boolean
+        default: false
+      aggregate_only:
+        description: "Ignore legacy E2E_ID_<USERNAME> secrets for this run, proving every selected game bot boots from the aggregate regular/fresh pool before migration deletes the legacy copies."
+        type: boolean
+        default: false
+      network:
+        description: 'The chain the bots play on: previewnet (currently a game every 20 min at chain XX:00, XX:20 and XX:40, but all waits derive from chain state) or paseo-next-v2 (games scheduled by a person in the sudo app). It picks the People RPC, the dotNS endpoints, the identity pool and the boot identity.'
+        type: choice
+        options:
+          - previewnet
+          - paseo-next-v2
+        default: previewnet
+      app:
+        description: 'The app the bots test, by its dotNS name. Empty (default) = the network''s own: dim2.testnet on previewnet, dim2next.paseo (what main deployed) on paseo-next-v2. Also dim2.paseo (the paseo release), dim2-pr<N>-sandbox00.paseo (a paseo PR preview, once its Deploy run published it) or "local" (next dev of THIS checkout, on the chosen network, for desk work). Its TLD must match the network. The bots load it from the chain and IPFS the way a host does (scripts/e2e-live/deployed-app.ts); nothing is compiled.'
+        type: string
+        default: ""
+      app_cid:
+        description: "Pin this exact deployed app CID for the whole series. Empty keeps the just-in-time dotNS resolution."
+        type: string
+        default: ""
+      app_product:
+        description: "The product name compiled into the deployed app bundle. Empty (default) derives it from app; set this when a PR preview is published under a different dotNS name."
+        type: string
+        default: ""
+      host_version:
+        description: "Pin the truapi-host the runners install (e.g. 0.23.0) for a bisect. Empty (default) = the current stable release."
+        type: string
+        default: ""
+      boot_only:
+        description: "Stage (a) only: boot one hosted player, no game needed"
+        type: boolean
+        default: false
+      boot_profile:
+        description: "With boot_only: the profile bot 1 boots as (a name in scripts/e2e-live/profiles.json, or baseline); stage (a) then proves the device, clock and camera took, and the play job applies its network"
+        type: string
+        default: baseline
+      diagnose:
+        description: "Diagnosis run: record everything, but report a bot that did not file every co-player Person as a warning instead of failing"
+        type: boolean
+        default: false
+      memory:
+        description: "Capture 15-second browser memory/resource samples plus screen-transition samples for every live bot"
+        type: boolean
+        default: false
+      clock_watch_fault:
+        description: "Fail bot 1's chain-clock watch once after boot and require its in-page post-fault anchor evidence before playing (enables the bot test hook, not Sentry gather/guards)"
+        type: boolean
+        default: false
+      telemetry:
+        description: "Intentional telemetry check: send the bots' Sentry telemetry (tag test.tag=e2e-bot, environment local). Opt-in per run: nothing enables it automatically, and T1-T12 telemetry profiles need it set."
+        type: boolean
+        default: false
+      game_log_to_sentry:
+        description: "Send bot game logs to Sentry. Off by default; opt-in per run (T1-T12 telemetry profiles need it, with telemetry=true)."
+        type: boolean
+        default: false
+      share:
+        description: "Runner sharing: off; measure one XL cohort against a solo XL control; or on after measurement acceptance."
+        type: choice
+        options: ["off", measure, "on"]
+        default: "off"
+      force_game:
+        description: "Play the game even if it was already played (any non-empty value)"
+        required: false
+        default: ""
+      runner:
+        description: "The runner label for solo bots. Shared compatible groups use the E2E_SHARED_RUNNER variable (default ubuntu-latest)."
+        type: string
+        default: ubuntu-latest
+
+# One live gameplay run at a time per network, including complete-suite waves.
+# The non-replacing queue is the atomic boundary between a scheduled suite and
+# an ordinary dispatch; manual PreviewNet work rechecks for an active
+# complete suite after it acquires this lane, before probing or allocating.
+# A boot_only run (a PR's, or a dispatch's) only pairs hosts and mints proofs,
+# so it gets its OWN group and can never sit in a game's. The gameplay group
+# retains every pending run; boot-only work must never delay one of those runs.
+# Only a PR's boot_only cancels its own earlier push; dispatched boot_only
+# runs queue behind each other.
+# Keyed by NETWORK: previewnet and paseo identities are separate lite persons, so a
+# previewnet game loop and a paseo game can run at the same time (they compete for
+# the internal runner pool, which hands out about 16 VMs at once).
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('e2e-live-pr-inner-{0}', github.run_id) || (inputs.boot_only && format('e2e-live-boot-{0}', inputs.network || 'previewnet') || format('e2e-live-{0}', inputs.network || 'previewnet')) }}
+  cancel-in-progress: false
+  queue: max
+
+permissions:
+  contents: read
+
+# Inherited by every job, including a reusable wave.
+env:
+  E2E_EXECUTION_KEY: ${{ github.event_name == 'pull_request' && 'pr-boot' || inputs.execution_key || 'manual' }}
+  E2E_PUBLIC_CLASSIFICATION: ${{ inputs.classification || (inputs.boot_only && 'harness-check' || 'manual') }}
+  E2E_PUBLIC_SUITE_ID: ${{ inputs.suite_id }}
+  E2E_PUBLIC_WAVE: ${{ inputs.suite_wave }}
+  E2E_PUBLIC_WORKFLOW_PATH: ${{ inputs.suite_id != '' && '.github/workflows/e2e-live-nightly.yml' || '.github/workflows/e2e-live.yml' }}
+  E2E_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+
+jobs:
+  # typecheck + unit tests ONCE, in parallel with everything else (a PR run
+  # skips the probe, so this is its only gate besides the boot)
+  check:
+    if: inputs.suite_id == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright without saving it (until #203 lands)
+        run: |
+          if ! node -e "require.resolve('@playwright/test/package.json')" 2>/dev/null; then
+            npm i --no-save @playwright/test@1.63.0
+          fi
+          git diff --exit-code -- package.json package-lock.json
+
+      - run: npm run typecheck:e2e-live && npm run typecheck:e2e-live:pw
+
+      - run: npm run test:e2e-live
+
+  probe:
+    if: github.event_name != 'pull_request' && !inputs.boot_only
+    runs-on: ubuntu-latest
+    # sleeps up to MAX_LEAD_S (6600 s, timing.ts) before the runners are due
+    timeout-minutes: 120
+    outputs:
+      decision: ${{ steps.final.outputs.decision }}
+      game: ${{ steps.probe.outputs.game }}
+      game_at: ${{ steps.probe.outputs.game_at }}
+      dedupe_key: ${{ steps.probe.outputs.dedupe_key }}
+      registration_start: ${{ steps.probe.outputs.registration_start }}
+      registration_ends: ${{ steps.probe.outputs.registration_ends }}
+      report_ends: ${{ steps.probe.outputs.report_ends }}
+      job_minutes: ${{ steps.probe.outputs.job_minutes }}
+      matrix: ${{ steps.probe.outputs.matrix }}
+      telemetry_profile: ${{ steps.probe.outputs.telemetry_profile }}
+      devlog_harness: ${{ steps.probe.outputs.devlog_harness }}
+      proofs: ${{ steps.probe.outputs.proofs }}
+      proof_head: ${{ steps.probe.outputs.proof_head }}
+      fresh_drawn: ${{ steps.probe.outputs.fresh_drawn }}
+      groups: ${{ steps.probe.outputs.groups }}
+      run_bot_accounts: ${{ steps.probe.outputs.run_bot_accounts }}
+      video_role_viewer_account: ${{ steps.probe.outputs.video_role_viewer_account }}
+      video_role_viewer_reload_turn: ${{ steps.probe.outputs.video_role_viewer_reload_turn }}
+      rotation_run: ${{ steps.rotation.outputs.rotation_run }}
+      rotation_half: ${{ steps.rotation.outputs.rotation_half }}
+      app_cid: ${{ steps.pin.outputs.app_cid }}
+      app_pin_source: ${{ steps.pin.outputs.app_pin_source }}
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: npm
+
+      - run: npm ci
+
+      - name: Refuse ordinary PreviewNet work while a complete suite is active
+        if: inputs.suite_id == '' && (inputs.network || 'previewnet') == 'previewnet'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          active=$(gh run list --workflow e2e-live-nightly.yml --limit 100 --json databaseId,status,event,displayTitle,headBranch --jq '[.[] | select((.status == "queued" or .status == "in_progress") and (.event == "schedule" or .event == "workflow_dispatch") and .displayTitle == "PreviewNet complete crew suite" and .headBranch == "${{ github.event.repository.default_branch }}")]')
+          if ! ACTIVE_NIGHTLY_RUNS="$active" npx tsx scripts/e2e-live/crew/nightly-window-cli.mts manual; then
+            echo "A complete PreviewNet crew suite is queued or in progress; this ordinary run will not probe or play." | tee -a "$GITHUB_STEP_SUMMARY"
+            jq -r '.[] | "run \(.databaseId): \(.status) \(.displayTitle)"' <<< "$active" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      # Reuse probe setup; a separate validation runner delays registration.
+      - name: Validate execution inputs
+        env:
+          CREW_INPUTS: ${{ toJSON(inputs) }}
+        run: npx tsx scripts/e2e-live/crew/workflow-publication-cli.mts validate-inputs
+
+      - name: Choose the dispatched-run rotation half
+        id: rotation
+        if: inputs.bots == 'rotate'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          E2E_NETWORK: ${{ inputs.network || 'previewnet' }}
+        run: >-
+          gh api --paginate --slurp
+          "repos/${{ github.repository }}/actions/artifacts?per_page=100"
+          | npx tsx scripts/e2e-live/rotation-sequence.mts
+
+      - name: Probe ${{ inputs.network || 'previewnet' }}
+        id: probe
+        env:
+          E2E_PROOFS: ${{ inputs.proofs }}
+          BOTS: ${{ inputs.bots }}
+          E2E_NETWORK: ${{ inputs.network || 'previewnet' }}
+          E2E_ROLES: ${{ inputs.roles && '1' || '0' }}
+          E2E_FLIP_VERDICT: ${{ inputs.flip_verdict && '1' || '0' }}
+          E2E_TELEMETRY: ${{ inputs.telemetry && '1' || '0' }}
+          E2E_GAME_LOG_TO_SENTRY: ${{ inputs.game_log_to_sentry && '1' || '0' }}
+          E2E_CLOCK_WATCH_FAULT: ${{ inputs.clock_watch_fault && '1' || '0' }}
+          # the chosen network's pool (an index by a non-empty string, so an unset variable never falls through to the other chain's)
+          E2E_IDENTITIES: ${{ vars[inputs.network == 'paseo-next-v2' && 'E2E_IDENTITIES' || 'E2E_IDENTITIES_PREVIEWNET'] }}
+          # the fresh pool (unbound lite persons for check-seat-preparing, scripts/e2e-live/fresh-pool.ts); read only when the bots list names that profile
+          E2E_FRESH_IDENTITIES: ${{ vars[inputs.network == 'paseo-next-v2' && 'E2E_FRESH_IDENTITIES' || 'E2E_FRESH_IDENTITIES_PREVIEWNET'] }}
+          # Chosen once by the probe job and handed to gather unchanged.
+          E2E_ROTATION_RUN: ${{ steps.rotation.outputs.rotation_run }}
+          E2E_ROTATION_HALF: ${{ steps.rotation.outputs.rotation_half }}
+          E2E_APP: ${{ inputs.app }}
+          E2E_SHARE: ${{ inputs.share || 'off' }}
+          E2E_SOLO_RUNNER: ${{ inputs.runner || 'ubuntu-latest' }}
+          # a bigger runner label for shared groups (up to three bots on one machine); empty = ubuntu-latest
+          E2E_SHARED_RUNNER: ${{ vars.E2E_SHARED_RUNNER }}
+        run: npx tsx scripts/e2e-live/probe.mts
+
+      - name: Already played this game?
+        id: played
+        if: steps.probe.outputs.decision == 'play'
+        uses: actions/cache/restore@v4
+        with:
+          path: played.txt
+          key: ${{ steps.probe.outputs.dedupe_key }}
+          lookup-only: true
+
+      - name: Final decision
+        id: final
+        env:
+          DECISION: ${{ steps.probe.outputs.decision }}
+          GAME_AT: ${{ steps.probe.outputs.game_at }}
+          PLAYED: ${{ steps.played.outputs.cache-hit }}
+          FORCE: ${{ inputs.force_game }}
+        run: |
+          if [ "$DECISION" = "play" ] && [ "$PLAYED" = "true" ] && [ -z "$FORCE" ]; then
+            DECISION=skip
+            REASON="already played the game at $GAME_AT"
+          else
+            REASON="see the probe output above"
+          fi
+          echo "decision=$DECISION" >> "$GITHUB_OUTPUT"
+          echo "**E2E live probe:** $DECISION (game at ${GAME_AT:-none}) - $REASON" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record this rotation play decision
+        if: steps.final.outputs.decision == 'play' && inputs.bots == 'rotate'
+        run: echo "${{ inputs.network || 'previewnet' }} ${{ steps.rotation.outputs.rotation_half }}" > rotation-play.txt
+
+      - uses: actions/upload-artifact@v4
+        if: steps.final.outputs.decision == 'play' && inputs.bots == 'rotate'
+        with:
+          name: e2e-rotation-play-${{ inputs.network || 'previewnet' }}-${{ github.run_id }}-${{ steps.rotation.outputs.rotation_half }}
+          path: rotation-play.txt
+          retention-days: 3
+          overwrite: true
+
+      # the play runners start only when this job ends: just in time for the
+      # window (timing.ts planTiming), not an hour early
+      - name: Wait until the runners are due
+        if: steps.final.outputs.decision == 'play'
+        env:
+          LEAD_S: ${{ steps.probe.outputs.lead_s }}
+        run: |
+          echo "sleeping ${LEAD_S:-0} s"
+          sleep "${LEAD_S:-0}"
+
+      # pin the build AFTER the sleep: a deploy during the sleep (every push to
+      # main on previewnet) would otherwise hand the runners a bundle the app
+      # itself calls stale (scripts/e2e-live/pin-app.mts, game 32)
+      - name: Pin the app build
+        id: pin
+        if: steps.final.outputs.decision == 'play'
+        env:
+          E2E_NETWORK: ${{ inputs.network || 'previewnet' }}
+          E2E_APP: ${{ inputs.app }}
+          E2E_APP_CID_INPUT: ${{ inputs.app_cid }}
+        run: npx tsx scripts/e2e-live/pin-app.mts
+
+  play:
+    needs: probe
+    # `always()` so a PR or boot_only run, which skips the probe, still runs
+    if: >-
+      always() && !cancelled() && (
+        github.event_name == 'pull_request' ||
+        (github.event_name != 'pull_request' && inputs.boot_only) ||
+        (needs.probe.result == 'success' && needs.probe.outputs.decision == 'play')
+      )
+    name: play [${{ github.event_name == 'pull_request' && 'pr-boot' || inputs.execution_key || 'manual' }}] (group ${{ matrix.group }}, bots ${{ matrix.bots_label }})
+    # GitHub's hosted ubuntu-latest by default: in a public repository it is a
+    # 4-vCPU / 16 GB VM with passwordless sudo, tc netem and iptables, which is
+    # all netem.sh and the camera setup need. The `runner` input (solo bots) and
+    # the E2E_SHARED_RUNNER variable (shared groups) pick a bigger label when
+    # one is available; no step assumes a self-hosted machine.
+    runs-on: ${{ matrix.runner || inputs.runner || 'ubuntu-latest' }}
+    # runner start -> report_ends + settle margin, from the chain times
+    # (timing.ts planTiming, via the probe); a PR / boot_only run has no game
+    timeout-minutes: ${{ fromJSON(needs.probe.outputs.job_minutes || '30') }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.probe.outputs.matrix || '{"include":[{"group":"g01","size":1,"runner":"","shared":false,"measure":false,"effect":"unshaped","effect_profile":"","bots_label":"1","profiles_label":"baseline","entries":[{"bot":1,"profile":"baseline","identity":"","secret":""}],"bot1":1,"profile1":"baseline","identity1":"","secret1":"","bot2":null,"profile2":"","identity2":"","secret2":"","bot3":null,"profile3":"","identity3":"","secret3":""}]}') }}
+    env:
+      E2E_STAGE: ${{ (github.event_name == 'pull_request' || inputs.boot_only) && 'boot' || 'all' }}
+      # OUTSIDE the repo: the recorder writes a screenshot every 2 s, and
+      # `next dev --webpack` watches the repo, so output under scripts/out made
+      # it Fast-Refresh 167 times in 3 min and the page never left its splash
+      # (a live run, bots 5 and 6)
+      E2E_OUT: /tmp/e2e-live-out/bot-${{ matrix.bot1 }}
+      # the bot's behaviour; its index (never a behaviour switch). A boot_only
+      # dispatch may pick the profile to prove (boot_profile); a game run
+      # always takes the matrix's
+      E2E_PROFILE: ${{ (inputs.boot_only && inputs.boot_profile) || matrix.profile1 }}
+      E2E_SLOT: ${{ matrix.bot1 }}
+      E2E_ROLES: ${{ inputs.roles && '1' || '' }}
+      # Public proof coordination only: the delayed sender binds its media
+      # window to an actual finalized round shared with this reload viewer.
+      E2E_VIDEO_ROLE_VIEWER_ACCOUNT: ${{ needs.probe.outputs.video_role_viewer_account }}
+      E2E_VIDEO_ROLE_VIEWER_RELOAD_TURN: ${{ needs.probe.outputs.video_role_viewer_reload_turn }}
+      # the chain, and the app under test (dotNS name, or "local"); empty app = the network's default
+      E2E_NETWORK: ${{ inputs.network || 'previewnet' }}
+      E2E_APP: ${{ inputs.app }}
+      E2E_APP_PRODUCT: ${{ inputs.app_product }}
+      # The explicit series CID, or the CID the probe resolved ONCE for the
+      # run. Every runner loads the same build; an ordinary PR / boot_only run
+      # resolves its own only when app_cid is empty.
+      E2E_APP_CID: ${{ inputs.app_cid || needs.probe.outputs.app_cid }}
+      # Only a caller-supplied series pin suppresses the moving release file;
+      # the normal dotNS pin and check-stale-build keep the real update gate.
+      E2E_APP_PIN_SOURCE: ${{ inputs.app_cid != '' && 'input' || needs.probe.outputs.app_pin_source }}
+      # only `app: local` runs next dev. Under Turbopack it answers 500 on every
+      # route when the runner's Google Fonts fetch fails (a live run,
+      # game 174); webpack falls back to the fallback font with a warning
+      NEXT_DEV_ARGS: ${{ inputs.app == 'local' && '--webpack' || '' }}
+      E2E_DIAGNOSE: ${{ inputs.diagnose && '1' || '' }}
+      E2E_MEMORY: ${{ github.event_name != 'pull_request' && inputs.memory && '1' || '' }}
+      E2E_CLOCK_WATCH_FAULT: ${{ github.event_name != 'pull_request' && inputs.clock_watch_fault && matrix.bot1 == 1 && '1' || '' }}
+      E2E_FLIP_VERDICT: ${{ github.event_name != 'pull_request' && inputs.flip_verdict && matrix.bot1 == 1 && '1' || '' }}
+      TRUAPI_HOST_NO_UPDATE: "1"
+      # Bot telemetry is opt-in per run for every non-PR trigger: only an explicit
+      # input (telemetry, game_log_to_sentry, clock_watch_fault) receives the
+      # DSNs. A T1-T12 profile never turns it on itself; PR boot checks stay off. boot.mts
+      # also strips baked DSNs from a deployed static bundle while this is off.
+      E2E_TELEMETRY: ${{ github.event_name != 'pull_request' && (inputs.telemetry || inputs.clock_watch_fault) && '1' || '0' }}
+      GAME_LOG_TO_SENTRY: ${{ github.event_name != 'pull_request' && (inputs.game_log_to_sentry) && '1' || '0' }}
+      NEXT_PUBLIC_SENTRY_DSN: ${{ github.event_name != 'pull_request' && (inputs.telemetry || inputs.clock_watch_fault) && secrets.SENTRY_DSN || '' }}
+      # the test project: a localhost page writes there instead of production
+      # when it is set (apps/jollity-app/lib/telemetry/environment.ts pickDsn)
+      NEXT_PUBLIC_SENTRY_DSN_TEST: ${{ github.event_name != 'pull_request' && (inputs.telemetry || inputs.clock_watch_fault) && secrets.SENTRY_DSN_TEST || '' }}
+      NEXT_PUBLIC_SENTRY_TAG: e2e-bot
+      # the summary's Sentry link and the bundle's test-DSN check (telemetry-env.ts); empty = no link
+      DIM2_SENTRY_ORG: ${{ vars.DIM2_SENTRY_ORG }}
+      DIM2_SENTRY_PROJECT_IDS: ${{ vars.DIM2_SENTRY_PROJECT_IDS }}
+      # Devlog guards need the page's evidence bridge, not Sentry transport.
+      # boot.mts patches only the test tag and still strips baked DSNs.
+      E2E_DEVLOG_HARNESS: ${{ github.event_name != 'pull_request' && !inputs.boot_only && needs.probe.outputs.devlog_harness == 'true' && '1' || '0' }}
+      E2E_RUNNER_GROUP: ${{ toJSON(matrix) }}
+      # Complete probe-resolved run membership. Each play runner otherwise
+      # knows only its local 1-3 slots and can mislabel a bot on another runner.
+      E2E_RUN_BOT_ACCOUNTS: ${{ needs.probe.outputs.run_bot_accounts }}
+      # the bots' own names, which stay readable when other players are masked (player-privacy.ts)
+      E2E_IDENTITIES: ${{ vars[inputs.network == 'paseo-next-v2' && 'E2E_IDENTITIES' || 'E2E_IDENTITIES_PREVIEWNET'] }}
+      E2E_FRESH_IDENTITIES: ${{ vars[inputs.network == 'paseo-next-v2' && 'E2E_FRESH_IDENTITIES' || 'E2E_FRESH_IDENTITIES_PREVIEWNET'] }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: npm
+
+      - run: npm ci
+
+      # PR/boot-only bypass the probe; validate here before any player starts.
+      - name: Validate execution inputs
+        env:
+          CREW_INPUTS: ${{ toJSON(inputs) }}
+        run: npx tsx scripts/e2e-live/crew/workflow-publication-cli.mts validate-inputs
+
+      - name: Install Playwright without saving it (until #203 lands)
+        run: |
+          if ! node -e "require.resolve('@playwright/test/package.json')" 2>/dev/null; then
+            npm i --no-save @playwright/test@1.63.0
+          fi
+          git diff --exit-code -- package.json package-lock.json
+
+      # Playwright's browsers go under the runner's temp dir, not ~/.cache.
+      # actions/cache stores paths RELATIVE to the workspace, and the workspace
+      # is one directory deeper on a self-hosted runner (_work/ under
+      # actions-runner/), so a cache saved on ubuntu-latest restored
+      # ~/.cache/ms-playwright to the wrong place there (PR #348 run
+      # 37286456902: "Executable doesn't exist"). runner.temp is always
+      # <workspace>/../../_temp on both layouts. Set here, not in the job env,
+      # because the runner context is not allowed there.
+      - name: Read the Playwright version
+        id: pw
+        run: |
+          echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TEMP/ms-playwright" >> "$GITHUB_ENV"
+
+      - uses: actions/cache@v4
+        id: browsers
+        with:
+          path: ${{ runner.temp }}/ms-playwright
+          key: playwright-temp-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Chromium
+        if: steps.browsers.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Chromium system libraries
+        if: steps.browsers.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # A profile's camera resolution (360p / 720p) is a y4m clip for Chromium's
+      # fake capture device; never committed, generated by a small script (no
+      # ffmpeg: it is not on the runner image). Baseline keeps Chromium's own
+      # pattern and skips this.
+      - name: Fake camera clips for the profiles
+        run: |
+          clip_mode=()
+          if [[ "$E2E_STAGE" == "boot" ]]; then clip_mode+=(--boot); fi
+          npx tsx scripts/e2e-live/make-y4m.mts "$RUNNER_TEMP/cam" "${clip_mode[@]}" "$E2E_PROFILE" "${{ matrix.profile2 }}" "${{ matrix.profile3 }}" >> "$GITHUB_ENV"
+
+      - name: Prove generated camera and host gesture frames
+        # Boot disables gestures by design, so exercise the real game camera
+        # wrapper separately on one runner before a PR can be called green.
+        if: matrix.bot1 == 1 && (github.event_name == 'pull_request' || inputs.boot_only)
+        run: npx tsx scripts/e2e-live/gesture-camera-smoke.mts
+
+      - name: Prove the recording narration overlay
+        # The proof is profile-independent and produces the same two videos on
+        # every matrix runner. Bot 1 owns the single copy for this workflow.
+        if: matrix.bot1 == 1 && (github.event_name == 'pull_request' || inputs.boot_only)
+        env:
+          E2E_NARRATION_PROOF: "1"
+        run: npx playwright test --config scripts/e2e-live/playwright.config.ts
+
+      # Not cached: ~/.local/bin/truapi-host is the installer's symlink, so a
+      # cache of that path restored a dangling link (PR #297 a live run)
+      # The CURRENT stable host, so the bots test what a real player's host does. The installer takes the latest when
+      # TRUAPI_HOST_VERSION is empty; `host_version` pins one for a bisect. The app is pinned to the lockfile's @parity/truapi: a newer
+      # host speaking another codec fails pairing for every bot, and that is the signal, not a reason to pin. dim2's remote-permission
+      # trust (trinity-user-agents#990, 0.24.0) is also what the check-stale-build boot needs. The version lands in every bot's result.
+      - name: Install truapi-host (${{ inputs.host_version || 'latest stable' }})
+        run: |
+          # The installer is upstream's (trinity-user-agents) and downloads the binary from a GitHub release; a reset there
+          # ("curl: (56) Connection reset by peer", live runs) lost a whole bot. Retry the whole
+          # install 4 times (waits 5/15/30 s); the last failure stays loud (non-zero exit, installer output above).
+          # The script is fetched to a file first, so a failed fetch fails the attempt instead of running an empty
+          # script, and each attempt is time-boxed, so a stalled download is retried instead of hanging the job.
+          set -o pipefail
+          installer="$RUNNER_TEMP/truapi-host-installer.sh"
+          installed=0
+          for wait in 5 15 30 ""; do
+            if curl -fsSL --retry 3 --retry-all-errors --retry-delay 5 --connect-timeout 15 --max-time 30 -o "$installer" \
+                 https://raw.githubusercontent.com/paritytech/trinity-user-agents/main/scripts/truapi-host-installer.sh \
+               && TRUAPI_HOST_VERSION='${{ inputs.host_version }}' timeout 90 bash "$installer"; then
+              installed=1
+              break
+            fi
+            [ -z "$wait" ] || { echo "::warning::truapi-host install failed, retrying in ${wait}s"; sleep "$wait"; }
+          done
+          if [ "$installed" != 1 ]; then
+            echo "::error::truapi-host install failed after 4 attempts"
+            exit 1
+          fi
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/truapi-host" --version
+          echo "E2E_HOST_VERSION=$("$HOME/.local/bin/truapi-host" --version | head -1)" >> "$GITHUB_ENV"
+
+      # THE REGULAR AND FRESH POOLS each use ONE JSON secret per network ({username: mnemonic}, scripts/e2e-live/
+      # regular-pool.ts and fresh-pool.ts), so the repo's secret count never grows with either pool. GitHub masks only each
+      # whole JSON string, never the values fromJSON() picks out of it: register every mnemonic as a mask first, so no later
+      # step's log can show one. Nothing is printed; both secrets reach this step alone.
+      - name: Mask the identity pools' mnemonics
+        id: mask
+        shell: bash
+        env:
+          E2E_POOL_JSON: ${{ secrets[inputs.network == 'paseo-next-v2' && 'E2E_POOL' || 'E2E_POOL_PREVIEWNET'] }}
+          E2E_FRESH_POOL_JSON: ${{ secrets[inputs.network == 'paseo-next-v2' && 'E2E_FRESH_POOL' || 'E2E_FRESH_POOL_PREVIEWNET'] }}
+        run: |
+          set -euo pipefail
+          # FAIL CLOSED: a missing jq or malformed non-empty secret fails before any step that holds a mnemonic runs.
+          for pool in "$E2E_POOL_JSON" "$E2E_FRESH_POOL_JSON"; do
+            [ -n "$pool" ] || continue
+            printf '%s' "$pool" | jq -e 'type == "object" and all(.[]; type == "string" and length > 0)' > /dev/null
+            while IFS= read -r m; do
+              if [ -n "$m" ]; then echo "::add-mask::$m"; fi
+            done < <(printf '%s' "$pool" | jq -r 'to_entries[] | .value')
+          done
+
+      # boot.mts: oracle + the slot + pre-warm, then (unless boot only) sleep
+      # until REGISTRATION_START, then the Playwright journey. A runner holds
+      # ONE mnemonic (its bot's).
+      - name: Boot and run the journey (bot ${{ matrix.bot1 }}, stage ${{ env.E2E_STAGE }})
+        id: journey
+        if: steps.mask.outcome == 'success' && matrix.size == 1
+        # a boot-only run is minutes: a hang (the 2026-10-04 blackout self-test) is cut at 10 and its logs still upload
+        timeout-minutes: ${{ (github.event_name == 'pull_request' || inputs.boot_only) && 10 || 600 }}
+        env:
+          # a PR / boot_only run is NEVER a live bot: it holds the dedicated boot identity (jollityez... on paseo, variable
+          # E2E_BOOT_USER; the *_PREVIEWNET pair on previewnet) so it cannot share an account with a game in progress, and boot.mts refuses to open the app if
+          # even that identity is registered in a game
+          E2E_PLAYER_MNEMONIC: ${{ (github.event_name == 'pull_request' || inputs.boot_only) && secrets[inputs.network == 'paseo-next-v2' && 'E2E_BOOT_MNEMONIC' || 'E2E_BOOT_MNEMONIC_PREVIEWNET'] || (!inputs.aggregate_only && secrets[format('E2E_ID_{0}', matrix.secret1)]) || fromJSON(secrets[inputs.network == 'paseo-next-v2' && 'E2E_POOL' || 'E2E_POOL_PREVIEWNET'] || '{}')[matrix.identity1] || fromJSON(secrets[inputs.network == 'paseo-next-v2' && 'E2E_FRESH_POOL' || 'E2E_FRESH_POOL_PREVIEWNET'] || '{}')[matrix.identity1] }}
+          E2E_BOOT_IDENTITY: ${{ (github.event_name == 'pull_request' || inputs.boot_only) && '1' || '' }}
+          E2E_EXPECTED_USER: ${{ (github.event_name == 'pull_request' || inputs.boot_only) && vars[inputs.network == 'paseo-next-v2' && 'E2E_BOOT_USER' || 'E2E_BOOT_USER_PREVIEWNET'] || matrix.identity1 }}
+          E2E_STATE_DIR: ${{ runner.temp }}/e2e-live-hosts/bot-${{ matrix.bot1 }}
+          E2E_PROBED_GAME: ${{ needs.probe.outputs.game }}
+          # A future schedule has no game index until the pallet promotes it.
+          # The runner binds only the concrete game at this exact kickoff.
+          E2E_PROBED_GAME_AT: ${{ needs.probe.outputs.game_at }}
+          REGISTRATION_START: ${{ needs.probe.outputs.registration_start }}
+          REGISTRATION_ENDS: ${{ needs.probe.outputs.registration_ends }}
+        run: npx tsx scripts/e2e-live/boot.mts
+
+      - name: Boot and run the shared group (bots ${{ matrix.bots_label }}, stage ${{ env.E2E_STAGE }})
+        id: shared-journey
+        if: steps.mask.outcome == 'success' && matrix.size > 1
+        timeout-minutes: 600
+        env:
+          E2E_GROUP_MNEMONIC_1: ${{ (!inputs.aggregate_only && secrets[format('E2E_ID_{0}', matrix.secret1)]) || fromJSON(secrets[inputs.network == 'paseo-next-v2' && 'E2E_POOL' || 'E2E_POOL_PREVIEWNET'] || '{}')[matrix.identity1] || fromJSON(secrets[inputs.network == 'paseo-next-v2' && 'E2E_FRESH_POOL' || 'E2E_FRESH_POOL_PREVIEWNET'] || '{}')[matrix.identity1] }}
+          E2E_GROUP_MNEMONIC_2: ${{ (!inputs.aggregate_only && secrets[format('E2E_ID_{0}', matrix.secret2)]) || fromJSON(secrets[inputs.network == 'paseo-next-v2' && 'E2E_POOL' || 'E2E_POOL_PREVIEWNET'] || '{}')[matrix.identity2] || fromJSON(secrets[inputs.network == 'paseo-next-v2' && 'E2E_FRESH_POOL' || 'E2E_FRESH_POOL_PREVIEWNET'] || '{}')[matrix.identity2] }}
+          E2E_GROUP_MNEMONIC_3: ${{ matrix.bot3 && ((!inputs.aggregate_only && secrets[format('E2E_ID_{0}', matrix.secret3)]) || fromJSON(secrets[inputs.network == 'paseo-next-v2' && 'E2E_POOL' || 'E2E_POOL_PREVIEWNET'] || '{}')[matrix.identity3] || fromJSON(secrets[inputs.network == 'paseo-next-v2' && 'E2E_FRESH_POOL' || 'E2E_FRESH_POOL_PREVIEWNET'] || '{}')[matrix.identity3]) || '' }}
+          E2E_PROBED_GAME: ${{ needs.probe.outputs.game }}
+          E2E_PROBED_GAME_AT: ${{ needs.probe.outputs.game_at }}
+          REGISTRATION_START: ${{ needs.probe.outputs.registration_start }}
+          REGISTRATION_ENDS: ${{ needs.probe.outputs.registration_ends }}
+        run: npx tsx scripts/e2e-live/runner-group-cli.mts
+
+      # boot.mts applies the profile's network (scripts/e2e-live/netem.sh: tc
+      # netem on the egress interface, iptables for a relay-only bot) just
+      # before the journey and clears it when it ends. This is the backstop for
+      # a runner killed mid-step: shaping must never reach the artifact upload.
+      - name: Clear the bot's network shaping
+        if: always()
+        run: |
+          bash scripts/e2e-live/netem.sh clear || true
+          bash scripts/e2e-live/netem.sh show || true
+
+      # OTHER PLAYERS STAY OUT OF THE PUBLIC LOG AND ARTIFACTS (player-privacy.ts): each
+      # non-bot account or username the bots' outputs name is masked, then replaced
+      # in every text file by a stable invented label before the summary and uploads.
+      - name: Replace other players in the bot outputs
+        if: always()
+        run: npx tsx scripts/e2e-live/redact-players.mts /tmp/e2e-live-out
+
+      - name: Summarise
+        if: always()
+        run: |
+          if find /tmp/e2e-live-out -name summary.md -print -quit | grep -q .; then
+            find /tmp/e2e-live-out -name summary.md -exec cat {} \; >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**E2E live:** no summary (the group failed before any bot could write one; see the artifacts)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # Named files only: nothing here can reach a host state dir, which is
+      # under $RUNNER_TEMP anyway. TWO artifacts per runner (names are defined
+      # in scripts/e2e-live/result.ts): the small one is all gather downloads.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-live-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ env.E2E_EXECUTION_KEY }}-bot${{ matrix.bot1 }}-result
+          if-no-files-found: ignore
+          retention-days: 3
+          path: |
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/result-${{ matrix.bot1 }}.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/screenshots-${{ matrix.bot1 }}.jsonl
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-live-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ env.E2E_EXECUTION_KEY }}-bot${{ matrix.bot1 }}
+          if-no-files-found: ignore
+          retention-days: 3
+          path: |
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/boot.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/oracle-*.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/slot-*.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/browser-*.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/journey.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/watch.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/slots.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/profile.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/netem.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/runner-health.jsonl
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/journey.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/summary.md
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/memory-*.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/video-*.webm
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/tiles-*.jsonl
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/screenshots-*.jsonl
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/devlog-*.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/taps-*.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/screenshots/**
+            /tmp/e2e-live-out/bot-${{ matrix.bot1 }}/narration-proof/**
+
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.bot2
+        with:
+          name: e2e-live-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ env.E2E_EXECUTION_KEY }}-bot${{ matrix.bot2 }}-result
+          if-no-files-found: ignore
+          retention-days: 3
+          path: |
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/result-${{ matrix.bot2 }}.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/screenshots-${{ matrix.bot2 }}.jsonl
+
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.bot2
+        with:
+          name: e2e-live-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ env.E2E_EXECUTION_KEY }}-bot${{ matrix.bot2 }}
+          if-no-files-found: ignore
+          retention-days: 3
+          path: |
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/boot.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/oracle-*.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/slot-*.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/browser-*.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/journey.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/watch.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/slots.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/profile.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/netem.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/runner-health.jsonl
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/journey.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/summary.md
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/memory-*.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/video-*.webm
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/tiles-*.jsonl
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/screenshots-*.jsonl
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/devlog-*.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/taps-*.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot2 }}/screenshots/**
+
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.bot3
+        with:
+          name: e2e-live-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ env.E2E_EXECUTION_KEY }}-bot${{ matrix.bot3 }}-result
+          if-no-files-found: ignore
+          retention-days: 3
+          path: |
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/result-${{ matrix.bot3 }}.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/screenshots-${{ matrix.bot3 }}.jsonl
+
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.bot3
+        with:
+          name: e2e-live-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ env.E2E_EXECUTION_KEY }}-bot${{ matrix.bot3 }}
+          if-no-files-found: ignore
+          retention-days: 3
+          path: |
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/boot.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/oracle-*.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/slot-*.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/browser-*.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/journey.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/watch.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/slots.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/profile.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/netem.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/runner-health.jsonl
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/journey.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/summary.md
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/memory-*.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/video-*.webm
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/tiles-*.jsonl
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/screenshots-*.jsonl
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/devlog-*.json
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/taps-*.log
+            /tmp/e2e-live-out/bot-${{ matrix.bot3 }}/screenshots/**
+
+  # Capture the chain independently of the play runners. Preview retains old
+  # People state for only about 15 minutes, so waiting for gather loses the
+  # kickoff/last-live points even though the bots' raw artifacts are intact.
+  chain-capture:
+    needs: probe
+    if: >-
+      github.event_name != 'pull_request' && !inputs.boot_only && !inputs.aggregate_only &&
+      needs.probe.result == 'success' && needs.probe.outputs.decision == 'play'
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ fromJSON(needs.probe.outputs.job_minutes || '30') }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: npm
+
+      - run: npm ci
+
+      - name: Capture kickoff, last-live, and settlement chain stages
+        env:
+          E2E_NETWORK: ${{ inputs.network || 'previewnet' }}
+          E2E_RUN_BOT_ACCOUNTS: ${{ needs.probe.outputs.run_bot_accounts }}
+          GAME: ${{ needs.probe.outputs.game }}
+          GAME_AT: ${{ needs.probe.outputs.game_at }}
+          REPORT_ENDS: ${{ needs.probe.outputs.report_ends }}
+          REGISTRATION_OPENS: ${{ needs.probe.outputs.registration_start }}
+        run: |
+          mkdir -p chain-reports
+          staged="chain-reports/game-at-${GAME_AT}.stages.json"
+          report="chain-reports/game-at-${GAME_AT}.json"
+          diagnostic="chain-reports/diagnostic.txt"
+          registration_opens_iso=$(date -u -d "@${REGISTRATION_OPENS}" '+%Y-%m-%dT%H:%M:%SZ')
+          kickoff=$((GAME_AT + 2))
+          now=$(date +%s)
+          if [ "$now" -lt "$kickoff" ]; then sleep $((kickoff - now)); fi
+          until npx tsx scripts/game-chain-report.mts ${GAME:+"$GAME"} --game-at "$GAME_AT" --staged "$staged" --capture-stage kickoff --registration-opens "$registration_opens_iso"; do
+            if [ "$(date +%s)" -gt "$REPORT_ENDS" ]; then
+              echo "kickoff stage was never observable" | tee -a "$diagnostic"
+              exit 1
+            fi
+            sleep 6
+          done
+          GAME=$(jq -r '.game' "$staged")
+          deadline=$((REPORT_ENDS + 300))
+          while [ "$(date +%s)" -le "$deadline" ]; do
+            npx tsx scripts/game-chain-report.mts "$GAME" --staged "$staged" --capture-stage last-live --registration-opens "$registration_opens_iso" || true
+            if npx tsx scripts/game-chain-report.mts "$GAME" --staged "$staged" --capture-stage settlement --registration-opens "$registration_opens_iso"; then
+              npx tsx scripts/game-chain-report.mts "$GAME" --staged "$staged" --registration-opens "$registration_opens_iso" --out "$report.tmp"
+              mv "$report.tmp" "$report"
+              mv "$report" "chain-reports/game-${GAME}.json"
+              mv "$staged" "chain-reports/game-${GAME}.stages.json"
+              exit 0
+            fi
+            rm -f "$report.tmp"
+            sleep 12
+          done
+          echo "settled report was not captured by ${deadline}" | tee -a "$diagnostic"
+          exit 1
+
+      - name: Replace other players in the chain stages
+        if: always()
+        env:
+          E2E_RUN_BOT_ACCOUNTS: ${{ needs.probe.outputs.run_bot_accounts }}
+        run: npx tsx scripts/e2e-live/redact-players.mts chain-reports
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-live-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ env.E2E_EXECUTION_KEY }}-chain-stages
+          path: chain-reports/
+          if-no-files-found: error
+          retention-days: 3
+
+  # The ONLY place a game is marked played: it sees every bot's verdict.
+  gather:
+    needs: [probe, play, chain-capture]
+    # Failed/lost players still gather. No-play paths and workflow cancellation
+    # must not start a checkout/install or manufacture a missing test record.
+    if: >-
+      !cancelled() && github.event_name != 'pull_request' && !inputs.boot_only &&
+      needs.probe.result == 'success' && needs.probe.outputs.decision == 'play'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+    env:
+      BOTS: ${{ inputs.bots }}
+      RUN_ID: ${{ github.run_id }}
+      E2E_TELEMETRY: ${{ github.event_name != 'pull_request' && (inputs.telemetry) && '1' || '0' }}
+      GAME_LOG_TO_SENTRY: ${{ github.event_name != 'pull_request' && (inputs.game_log_to_sentry) && '1' || '0' }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      # the pool {username: account}: botMatrix resolves each bot's profile to
+      # its identity, the only check that each secret is the person it should be
+      E2E_NETWORK: ${{ inputs.network || 'previewnet' }}
+      E2E_IDENTITIES: ${{ vars[inputs.network == 'paseo-next-v2' && 'E2E_IDENTITIES' || 'E2E_IDENTITIES_PREVIEWNET'] }}
+      E2E_ROTATION_RUN: ${{ needs.probe.outputs.rotation_run }}
+      E2E_ROTATION_HALF: ${{ needs.probe.outputs.rotation_half }}
+      E2E_RUNNER_GROUPS: ${{ needs.probe.outputs.groups }}
+      # the fresh persons this run drew from the fresh pool (consumed by playing: the chain no longer lists them as unbound)
+      E2E_FRESH_DRAWN: ${{ needs.probe.outputs.fresh_drawn }}
+      # the probe's game: gather ignores results of an attempt that played another game
+      E2E_PROBED_GAME_AT: ${{ needs.probe.outputs.game_at }}
+      E2E_PROOFS: ${{ needs.probe.outputs.proofs }}
+      E2E_PROOF_HEAD: ${{ needs.probe.outputs.proof_head }}
+      CREW_INPUTS: ${{ toJSON(inputs) }}
+      CREW_PLAY_CONCLUSION: ${{ needs.play.result }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: e2e-live-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ env.E2E_EXECUTION_KEY }}-chain-stages
+          path: chain-reports
+
+      - name: List the run's artifacts and play-job evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # pipefail: a --paginate failure after page 1 must not leave a
+          # partial-but-valid listing (jq would still see well-formed pages).
+          set -o pipefail
+          if gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}" > source-run.json; then
+            echo "E2E_PUBLIC_STARTED_AT=$(jq -r .created_at source-run.json)" >> "$GITHUB_ENV"
+            echo "E2E_PUBLIC_WORKFLOW_PATH=$(jq -r '.path | split("@") | first' source-run.json)" >> "$GITHUB_ENV"
+          else
+            echo "E2E_PUBLIC_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" >> "$GITHUB_ENV"
+          fi
+          if gh api --paginate "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?per_page=100" | jq -s '{artifacts: map(.artifacts) | add}' > artifacts.next.json; then
+            mv artifacts.next.json artifacts.json
+          else
+            rm -f artifacts.next.json
+            echo "Artifact listing failed; gather will report acquisition as incomplete."
+          fi
+          if gh api --paginate --jq '.jobs[]' "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs?filter=all&per_page=100" | jq -s '{jobs: .}' > jobs.next.json; then
+            mv jobs.next.json jobs.json
+          else
+            rm -f jobs.next.json
+            echo "Job listing failed; missing results will remain ordinary failures."
+          fi
+          jq -n '{}' > job-annotations.json
+          if [ -f jobs.json ]; then
+            jq -r --arg key "$E2E_EXECUTION_KEY" '.jobs[] | select(.name | split(" / ") | last | startswith("play [" + $key + "] (group ")) | select(.conclusion == "failure") | .id' jobs.json | while read -r job_id; do
+              if gh api "repos/${{ github.repository }}/check-runs/${job_id}/annotations" > one-job-annotations.json; then
+                jq --arg id "$job_id" --slurpfile found one-job-annotations.json '. + {($id): {available: true, messages: [$found[0][].message]}}' job-annotations.json > job-annotations.next.json
+              else
+                jq --arg id "$job_id" '. + {($id): {available: false, messages: []}}' job-annotations.json > job-annotations.next.json
+              fi
+              mv job-annotations.next.json job-annotations.json
+            done
+          fi
+
+      # A job rerun may leave several immutable artifacts with the same name.
+      # Download each ID into its own directory so gather can retain the
+      # attempt that reached the furthest journey stage (#498).
+      - name: Download every result attempt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o pipefail
+          mkdir -p gather-in
+          jq -n '{artifactListingComplete: false, results: []}' > result-acquisition.json
+          if ! jq -e '.artifacts | type == "array"' artifacts.json >/dev/null 2>&1; then
+            echo "Artifact listing is unavailable; gather will fail closed."
+            exit 0
+          fi
+          jq '.artifactListingComplete = true' result-acquisition.json > result-acquisition.next.json
+          mv result-acquisition.next.json result-acquisition.json
+          while IFS=$'\t' read -r artifact_id artifact_name; do
+            destination="gather-in/artifact-${artifact_id}"
+            archive="$RUNNER_TEMP/result-${artifact_id}.zip"
+            downloaded=false
+            # three tries with backoff: one transient 5xx must not fail a game
+            for delay in 0 5 15; do
+              sleep "$delay"
+              rm -rf "$destination"
+              mkdir -p "$destination"
+              if gh api "repos/${{ github.repository }}/actions/artifacts/${artifact_id}/zip" > "$archive" && unzip -q "$archive" -d "$destination"; then
+                downloaded=true
+                break
+              fi
+              echo "Download of ${artifact_name} (${artifact_id}) failed; retrying."
+            done
+            jq --argjson id "$artifact_id" --arg name "$artifact_name" --argjson downloaded "$downloaded" \
+              '.results += [{id: $id, name: $name, downloaded: $downloaded}]' \
+              result-acquisition.json > result-acquisition.next.json
+            mv result-acquisition.next.json result-acquisition.json
+          done < <(jq -r --arg run "${{ github.run_id }}" --arg key "$E2E_EXECUTION_KEY" '.artifacts[] | select(.name | test("^e2e-live-" + $run + "-attempt-[1-9][0-9]*-" + $key + "-bot[1-9][0-9]*-result$")) | [.id, .name] | @tsv' artifacts.json)
+
+      - name: Merge the bots' results
+        id: gather
+        if: ${{ !cancelled() }}
+        env:
+          ARTIFACTS_JSON: artifacts.json
+          JOBS_JSON: jobs.json
+          JOB_ANNOTATIONS_JSON: job-annotations.json
+          RESULT_ACQUISITION_JSON: result-acquisition.json
+        run: npx tsx scripts/e2e-live/gather-cli.mts gather-in gather-selected
+
+      # The Sentry readers (the bots' telemetry, game logs and the profiles'
+      # Sentry-backed metric and event guards) need the telemetry report
+      # toolchain, which is not in this repository yet. Without them those
+      # guards stay "not evaluated"; the page and chain guards the journey
+      # evaluates are unaffected.
+
+      - name: Refresh publication after guards
+        if: ${{ !cancelled() && (inputs.network || 'previewnet') == 'previewnet' }}
+        env:
+          ARTIFACTS_JSON: artifacts.json
+          JOBS_JSON: jobs.json
+          JOB_ANNOTATIONS_JSON: job-annotations.json
+          RESULT_ACQUISITION_JSON: result-acquisition.json
+          SELECTED_GUARDS_DIR: gather-selected
+          PUBLICATION_OUT: gather-selected/publication-out
+        run: |
+          E2E_PUBLIC_FINISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+          export E2E_PUBLIC_FINISHED_AT
+          npx tsx scripts/e2e-live/gather-cli.mts gather-in
+
+      - name: Package the PreviewNet publication bundle
+        if: ${{ !cancelled() && (inputs.network || 'previewnet') == 'previewnet' }}
+        run: |
+          E2E_PUBLIC_FINISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+          export E2E_PUBLIC_FINISHED_AT
+          npx tsx scripts/e2e-live/crew/workflow-publication-cli.mts prepare gather-selected/publication-out publication-out
+
+      - name: Replace other players in what this job uploads
+        if: ${{ !cancelled() }}
+        env:
+          E2E_RUN_BOT_ACCOUNTS: ${{ needs.probe.outputs.run_bot_accounts }}
+          E2E_FRESH_IDENTITIES: ${{ vars[inputs.network == 'paseo-next-v2' && 'E2E_FRESH_IDENTITIES' || 'E2E_FRESH_IDENTITIES_PREVIEWNET'] }}
+        run: npx tsx scripts/e2e-live/redact-players.mts gather-selected publication-out chain-reports
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && (inputs.network || 'previewnet') == 'previewnet' }}
+        with:
+          name: crew-publication-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ env.E2E_EXECUTION_KEY }}
+          path: publication-out/
+          if-no-files-found: error
+          retention-days: 3
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: e2e-live-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ env.E2E_EXECUTION_KEY }}-gather-evidence
+          if-no-files-found: ignore
+          retention-days: 3
+          path: |
+            gather-selected/adaptive-upload-proof.json
+            chain-reports/
+
+      # The annotation matrix consumes exactly the attempt set gather selected.
+      # This is separate from the original heavy artifacts: derived videos can
+      # never replace or mutate the WebRTC evidence they explain.
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        with:
+          name: e2e-live-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ env.E2E_EXECUTION_KEY }}-selected-results
+          # One root preserves result-*.json at the artifact root for annotation.
+          path: gather-selected/
+          if-no-files-found: warn
+          retention-days: 3
+
+      # Only when every evaluated bot played and settled (all_played; a proven
+      # self-hosted runner loss is inconclusive, #350; gather-cli also
+      # exits 1 on a failed guard, hence the !cancelled() instead of success()): a failed run retries
+      # the game on the next dispatch. played.txt is all the cache holds.
+      - name: Remember this game as played
+        id: remember
+        if: ${{ !cancelled() && steps.gather.outputs.all_played == 'true' }}
+        run: echo "game at ${{ needs.probe.outputs.game_at }} ${{ env.RUN_URL }}" > played.txt
+
+      - uses: actions/cache/save@v4
+        if: ${{ !cancelled() && steps.remember.outcome == 'success' }}
+        with:
+          path: played.txt
+          key: ${{ needs.probe.outputs.dedupe_key }}

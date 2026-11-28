@@ -1,0 +1,74 @@
+# Copyright 2026 Parity Technologies (UK) Ltd.
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Attest previewnet bots
+
+on: workflow_dispatch
+
+permissions: {}
+
+jobs:
+  attest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Install truapi-host
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/installer.sh" https://raw.githubusercontent.com/paritytech/trinity-user-agents/main/scripts/truapi-host-installer.sh
+          bash "$RUNNER_TEMP/installer.sh"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Attest every previewnet bot mnemonic and seal the pools under the new usernames
+        shell: bash
+        env:
+          POOL: ${{ secrets.E2E_POOL_PREVIEWNET }}
+          FRESH_POOL: ${{ secrets.E2E_FRESH_POOL_PREVIEWNET }}
+          BOOT_MNEMONIC: ${{ secrets.E2E_BOOT_MNEMONIC_PREVIEWNET }}
+          BOOT_USER: ${{ vars.E2E_BOOT_USER_PREVIEWNET }}
+          # this repository's Actions secrets public key (GET /repos/{owner}/{repo}/actions/secrets/public-key, .key)
+          REPO_PUBLIC_KEY: ${{ vars.E2E_SECRETS_PUBLIC_KEY }}
+        run: |
+          set +e -uo pipefail
+          [ -n "$REPO_PUBLIC_KEY" ] || { echo "::error::set the E2E_SECRETS_PUBLIC_KEY variable to this repository's Actions secrets public key"; exit 1; }
+          truapi-host --version
+          pool=${POOL:-}; [ -n "$pool" ] || pool='{}'
+          fresh=${FRESH_POOL:-}; [ -n "$fresh" ] || fresh='{}'
+          entries=$(jq -cn --argjson pool "$pool" --argjson fresh "$fresh" --arg bu "$BOOT_USER" --arg bm "$BOOT_MNEMONIC" \
+            '($pool + $fresh + (if $bu != "" and $bm != "" then {($bu): $bm} else {} end)) | to_entries[]')
+          while IFS= read -r m; do echo "::add-mask::$m"; done < <(jq -r '.value' <<< "$entries")
+          out="$RUNNER_TEMP/attest"
+          mkdir -p "$out"
+          attest_one() {
+            local user="$1" mnemonic="$2"
+            HOST_CLI_SIGNER_MNEMONIC="$mnemonic" timeout 900 truapi-host attest --network previewnet --username "${user%%.*}" \
+              > "$out/$user.json" 2> "$out/$user.log"
+            echo $? > "$out/$user.exit"
+          }
+          running=0
+          while IFS= read -r entry; do
+            attest_one "$(jq -r .key <<< "$entry")" "$(jq -r .value <<< "$entry")" &
+            running=$((running + 1))
+            if [ "$running" -ge 6 ]; then wait -n; running=$((running - 1)); fi
+          done <<< "$entries"
+          wait
+          renames='{}'
+          failed=0
+          for exit_file in "$out"/*.exit; do
+            user=$(basename "$exit_file" .exit)
+            code=$(cat "$exit_file")
+            now=$(tail -1 "$out/$user.json" | jq -r '.liteUsername // ""' 2>/dev/null)
+            echo "$user -> ${now:-?} exit $code"
+            if [ "$code" != 0 ] || [ -z "$now" ]; then
+              failed=$((failed + 1))
+              echo "$user: attest failed; its log stays on the runner (it can hold derived key material)"
+            else
+              renames=$(jq -c --arg o "$user" --arg n "$now" '. + {($o): $n}' <<< "$renames")
+            fi
+          done
+          echo "RENAMES $renames"
+          [ "$failed" = 0 ] || exit 1
+          rename() { jq -c --argjson r "$renames" 'with_entries(.key = ($r[.key] // error("no new name for " + .key)))' <<< "$1"; }
+          pip install --quiet pynacl
+          seal() { python3 -c 'import base64,os,sys; from nacl.public import PublicKey,SealedBox; print(base64.b64encode(SealedBox(PublicKey(base64.b64decode(os.environ["REPO_PUBLIC_KEY"]))).encrypt(sys.stdin.buffer.read())).decode())'; }
+          echo "E2E_POOL_PREVIEWNET sealed $(rename "$pool" | tr -d '\n' | seal)"
+          echo "E2E_FRESH_POOL_PREVIEWNET sealed $(rename "$fresh" | tr -d '\n' | seal)"
