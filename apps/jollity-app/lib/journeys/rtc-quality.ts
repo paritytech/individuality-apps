@@ -88,7 +88,15 @@
  * of the round the summary covers — the stats timestamps of the first and
  * last counted reading and how many readings that was — so a report can
  * compare the same stretch on both ends of a link instead of two medians
- * over different stretches. The timestamps are the stats reports' timestamps:
+ * over different stretches. The span runs from the reading the first window
+ * opens from to the last counted reading: that opening reading is the
+ * previous one on the same link when rtcRates counts the window (at most 6 s
+ * earlier), else the first counted reading. The opening interval applies to
+ * the windowed rates (loss, decoded fps, bitrates, freeze); point-in-time
+ * stats such as RTT start at the first counted reading.
+ * span_readings counts only timestamped counted readings, the opening one not
+ * included; a link whose readings carry no timestamps has no span, only its
+ * row. The timestamps are the stats reports' timestamps:
  * epoch ms read from the device's wall clock, so the two ends compare only as
  * well as their clocks agree, and a backward clock step can leave span_last
  * below span_first. A link the round never measured carries no span, only its
@@ -99,7 +107,7 @@
 import { pageHidden, watchPageActivity } from "../page-lifecycle"
 import { recordCount, recordDistribution, type MetricUnit } from "../telemetry"
 import { percentile } from "../telemetry/util"
-import { decodeLoad, resolvedRelay, rtcRates, statsCoverage, type DecodeLoad, type RtcRates, type RtcSample } from "../webrtc/rtc-stats"
+import { decodeLoad, isStatsWindow, resolvedRelay, rtcRates, statsCoverage, type DecodeLoad, type RtcRates, type RtcSample } from "../webrtc/rtc-stats"
 import { UNSUPPORTED } from "../webrtc/gather"
 import { rtcPath, type RtcPath } from "./peer-path"
 import type { ResumeEvent } from "../webrtc/rtc-events"
@@ -399,7 +407,10 @@ export function observeRtc(readings: readonly RtcReading[]): void {
       if (!peer) continue
       if (sample.at !== undefined) {
         peer.spanReadings += 1
-        peer.spanFirstAt ??= sample.at
+        // the first window opens from the previous reading when rtcRates counts
+        // that window (same link, at most 6 s earlier), so the span starts there
+        const opensAt = isStatsWindow(before, sample) ? before!.at! : sample.at
+        peer.spanFirstAt ??= opensAt
         peer.spanLastAt = sample.at
       }
       noteDevice(peer, sample)
