@@ -1,6 +1,7 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import { isNoDrawCollectables } from "./end-of-play"
 import { readFileSync } from "node:fs"
 import vm from "node:vm"
 import ts from "typescript"
@@ -70,6 +71,8 @@ async function runActualPlay(fixture: PlayFixture, maxLoops = 50) {
     exports: {} as { play?: (...args: unknown[]) => Promise<unknown> },
     console,
     slots: [{ n: 1 }],
+    game: null,
+    isNoDrawCollectables,
     OUT: "/unused",
     join: (...parts: string[]) => parts.join("/"),
     appendFileSync: () => {},
