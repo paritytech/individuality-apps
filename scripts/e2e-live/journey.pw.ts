@@ -98,6 +98,7 @@ import {
   timeGetUserMedia,
 } from "./browser-profile"
 import { handoverAt } from "../../apps/jollity-app/lib/joined"
+import { REGISTER_LABEL } from "../../apps/jollity-app/lib/registration/register-button"
 import { downTurns, downWindows, missedTurns, type DownInfo } from "./down-turns"
 import { earlyCloseCheck, type TrailLine } from "./early-close"
 import {
@@ -976,7 +977,7 @@ async function staleBuildChecks(page: Page, n: number): Promise<Check[]> {
   const update = page.getByTestId("home-update").or(page.getByText("Update available"))
   const shown = await update.first().waitFor({ state: "visible", timeout: 60_000 }).then(() => true, () => false)
   const home = await readHome(page)
-  const register = await page.locator("[data-testid=home-register]").or(page.getByRole("button", { name: /^Register$/ })).count()
+  const register = await page.locator("[data-testid=home-register]").or(page.getByRole("button", { name: REGISTER_LABEL, exact: true })).count()
   const read = (file: string): string | null => {
     try {
       return readFileSync(join(OUT, file), "utf8")
@@ -1161,7 +1162,7 @@ async function register(page: Page, i: number, deadlineMs: number, previewHandov
   const cut = cutWatches["sign-up"]
   const watched = i === 0 && cut?.armed ? cut : null
   const stopAt = deadlineMs + (watched ? SIGN_UP_WATCH_GRACE_MS : 0)
-  const button = page.locator("[data-testid=home-register]").or(page.getByRole("button", { name: /^Register$/ })).first()
+  const button = page.locator("[data-testid=home-register]").or(page.getByRole("button", { name: REGISTER_LABEL, exact: true })).first()
   while (Date.now() < stopAt && signUpScreen.missedAtMs === null) {
     if (await recoverStaleBuild(page, i, notes, previewHandoverMs)) continue
     // past the deadline the watch only reads the page: it never taps, so the grace cannot land a sign-up the journey gave up on
@@ -1172,7 +1173,8 @@ async function register(page: Page, i: number, deadlineMs: number, previewHandov
       // missing button is a tick to skip, never a 30 s wait that fails the
       // stage (game 185, bot 3: registered on chain, browser closed).
       const label = (await button.innerText({ timeout: 1000 }).catch(() => "")).trim()
-      if (label === "Register") {
+      // the app's own label (#70 renamed it from Register): a tap only while the button offers the sign-up
+      if (label === REGISTER_LABEL) {
         const tapped = await button.click({ timeout: 1000 }).then(() => true).catch(() => false)
         if (tapped) {
           notes.push(`tapped Register at ${new Date().toISOString().slice(11, 19)}`)
