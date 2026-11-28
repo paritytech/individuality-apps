@@ -1227,13 +1227,20 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
     expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "unknown", "signup.stage": "reread-failed" })
   })
 
+  // the chain refuses with a closed-window code after the tap's transaction went out
+  const closedAfterBroadcast = (code: string) => async (options: RegisterOptions): Promise<RegisterResult> => {
+    options.onBroadcast!()
+    return { ok: false, error: code, code }
+  }
+  const expectWindowClosedFiled = (code: string) =>
+    expect(sent.filter((record) => record.tags["failure.kind"] === "signup-failed")).toEqual([
+      expect.objectContaining({ name: "signup-failed: window-closed", contexts: { failure: expect.objectContaining({ error: expect.stringContaining(code) }) } }),
+    ])
+
   it.each(["NoRegistration", "GameOngoing", "NoGame"])(
     "leaves %s after the broadcast whose re-read fails to the poll, never closed: no window-closed event, the record stays sent (closed-unverified, #95)",
     async (code) => {
-      const { signup, engine, host } = await run(async (options) => {
-        options.onBroadcast!()
-        return { ok: false, error: code, code }
-      }, null)
+      const { signup, engine, host } = await run(closedAfterBroadcast(code), null)
       await flush()
       // the chain's own refusal is no longer final on its own: this tap
       // broadcast, so only an answered Players read may end it
@@ -1271,20 +1278,11 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
   it.each(["NoRegistration", "GameOngoing", "NoGame"])(
     "files %s after the broadcast as window-closed when the re-read answers not-in (#95)",
     async (code) => {
-      const { signup, engine } = await run(
-        async (options) => {
-          options.onBroadcast!()
-          return { ok: false, error: code, code }
-        },
-        facts(["AlreadyPlaying"]),
-        "not-in",
-      )
+      const { signup, engine } = await run(closedAfterBroadcast(code), facts(["AlreadyPlaying"]), "not-in")
       await flush()
       expect(engine.seat.mock.calls.length).toBeGreaterThan(1) // the re-read was made, and answered not-in
       expect(signup.state()).toEqual({ kind: "failed", gameIndex: 7, notice: cardCopy.REGISTRATION_CLOSED_NOTICE })
-      expect(sent.filter((record) => record.tags["failure.kind"] === "signup-failed")).toEqual([
-        expect.objectContaining({ name: "signup-failed: window-closed", contexts: { failure: expect.objectContaining({ error: expect.stringContaining(code) }) } }),
-      ])
+      expectWindowClosedFiled(code)
       expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "closed", "signup.broadcast": "true" })
     },
   )
@@ -1292,13 +1290,7 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
   it.each(["NoRegistration", "GameOngoing", "NoGame"])(
     "ends %s after the broadcast as sent without linking the name when the re-read finds the player registered (#95 review: closed refused this tap's own transaction)",
     async (code) => {
-      const { signup, linkName } = await run(
-        async (options) => {
-          options.onBroadcast!()
-          return { ok: false, error: code, code }
-        },
-        facts(["AlreadyPlaying", "AlreadyRegistered"]),
-      )
+      const { signup, linkName } = await run(closedAfterBroadcast(code), facts(["AlreadyPlaying", "AlreadyRegistered"]))
       await flush()
       expect(signup.state()).toEqual({ kind: "sent", gameIndex: 7 })
       // the registration is another surface's or an earlier attempt's: no
@@ -1315,9 +1307,7 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
       const { signup, engine } = await run(async () => ({ ok: false, error: code, code }), null)
       await flush()
       expect(signup.state()).toEqual({ kind: "failed", gameIndex: 7, notice: cardCopy.REGISTRATION_CLOSED_NOTICE })
-      expect(sent.filter((record) => record.tags["failure.kind"] === "signup-failed")).toEqual([
-        expect.objectContaining({ name: "signup-failed: window-closed", contexts: { failure: expect.objectContaining({ error: expect.stringContaining(code) }) } }),
-      ])
+      expectWindowClosedFiled(code)
       expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "closed" })
       // never broadcast: the chain's own refusal is final, no re-read
       expect(engine.seat).toHaveBeenCalledTimes(1)
