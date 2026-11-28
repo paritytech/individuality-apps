@@ -1246,6 +1246,28 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
     },
   )
 
+  it("keeps no stale registering record when a Future resend meets a closed error before its own broadcast and the re-read fails (closed-unverified, #95 review)", async () => {
+    // Given: the first send broadcasts and is refused Future; the nonce re-read
+    // fails, so it resends; the resend rewrites the record as registering and
+    // returns a closed code without broadcasting; the closed re-read fails too
+    const refused = poolRefusal("Future")
+    const answers: Array<(options: RegisterOptions) => RegisterResult> = [
+      (options) => (options.onBroadcast!(), refused),
+      () => ({ ok: false, error: "NoRegistration", code: "NoRegistration" }),
+    ]
+    const { signup, engine, host } = await run(
+      async (options) => answers.shift()!(options),
+      null,
+      "fail", // every read after the first seat read fails
+    )
+    await flush()
+    expect(engine.register).toHaveBeenCalledTimes(2)
+    expect(signup.state()).toEqual({ kind: "idle", unsettled: 7 })
+    expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "unknown", "signup.stage": "closed-unverified", "signup.broadcast": "true" })
+    // the first send went out, so the record is sent — not the resend's registering
+    expect(host.store.get(GAME_REGISTRATION_KEY)).toMatchObject({ phase: "sent", gameIndex: 7 })
+  })
+
   it.each(["NoRegistration", "GameOngoing", "NoGame"])(
     "files %s after the broadcast as window-closed when the re-read answers not-in (#95)",
     async (code) => {
@@ -1268,7 +1290,7 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
   )
 
   it.each(["NoRegistration", "GameOngoing", "NoGame"])(
-    "ends %s after the broadcast as sent when the re-read finds the player registered (#95)",
+    "ends %s after the broadcast as sent without linking the name when the re-read finds the player registered (#95 review: closed refused this tap's own transaction)",
     async (code) => {
       const { signup, linkName } = await run(
         async (options) => {
@@ -1279,9 +1301,11 @@ describe("a sign-up that fails after the broadcast reads the chain before it is 
       )
       await flush()
       expect(signup.state()).toEqual({ kind: "sent", gameIndex: 7 })
-      expect(linkName).toHaveBeenCalledTimes(1)
+      // the registration is another surface's or an earlier attempt's: no
+      // name link for tickets this attempt may not own
+      expect(linkName).not.toHaveBeenCalled()
       expect(sent.filter((record) => record.tags["failure.kind"] === "signup-failed")).toEqual([])
-      expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "sent", "signup.landed_by": "reread", "signup.broadcast": "true" })
+      expect(journeys()[0]!.tags).toMatchObject({ "journey.outcome": "sent", "signup.landed_by": "already-registered", "signup.broadcast": "true" })
     },
   )
 

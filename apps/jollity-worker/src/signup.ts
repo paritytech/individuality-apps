@@ -371,8 +371,13 @@ export function createSignup(dependencies: SignupDependencies): Signup {
       else if (next.kind === "failed") mark(next.gameIndex, "failed", attrs?.["signup.stage"] ?? outcome)
       // handed to the app, which writes its own, or left to the poll — unless
       // the sign-up went out and no chain read has answered: its sent record
-      // then stands and lapses through SENT_TTL_MS (closed-unverified, #95)
-      else if (!keepSentRecord) unmark()
+      // then stands and lapses through SENT_TTL_MS (closed-unverified, #95).
+      // A resend rewrites the record as registering on its way out, so keep
+      // the record only when it really is this game's sent; otherwise write
+      // sent again, since the first send of this attempt did broadcast.
+      else if (keepSentRecord && next.kind === "idle") {
+        if (marked?.phase !== "sent" || marked.gameIndex !== next.unsettled) mark(next.unsettled ?? 0, "sent")
+      } else if (!keepSentRecord) unmark()
       show(next)
     }
     const ending = endSignupJourney(host, trace.journey, trace.attempt, outcome, attrs, ended)
@@ -429,9 +434,11 @@ export function createSignup(dependencies: SignupDependencies): Signup {
     const closed = !thrown && classifyPermanent(errorText) === "closed"
     const landed = await landedAfterFailure(trace, errorText, thrown)
     if (landed === true) {
-      // this attempt's own sign-up landed after all: its tickets want the name too
-      dependencies.linkName?.()
-      return endJourney(trace, "sent", { kind: "sent", gameIndex }, { "signup.landed_by": "reread" })
+      // A closed dispatch error refused this tap's own transaction, so the
+      // registration the re-read found is another surface's or an earlier
+      // attempt's: no name link for tickets this attempt may not own.
+      if (!closed) dependencies.linkName?.()
+      return endJourney(trace, "sent", { kind: "sent", gameIndex }, { "signup.landed_by": closed ? "already-registered" : "reread" })
     }
     if (landed === "unknown") {
       // The broadcast went out and no chain read has answered: the sign-up
