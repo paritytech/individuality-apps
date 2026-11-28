@@ -54,7 +54,6 @@ export type ContentAlignment = "center" | "centerStart" | "centerEnd"
 export type Arrangement = "start" | "end" | "center" | "spaceBetween" | "spaceAround" | "spaceEvenly"
 export type ButtonVariant = "primary" | "secondary" | "text"
 /** A thumb that travels along a track, or a face the slide peels away. */
-export type SlideVariant = "thumb" | "reveal"
 export type ImageFit = "none" | "fill" | "cover" | "contain" | "scaleDown"
 
 /**
@@ -122,31 +121,24 @@ export type RenderNode =
       value: { modifiers: Modifier[]; props: { source: ImageSource; fit: ImageFit | undefined }; children: RenderNode[] }
     }
   /**
-   * A control the player slides to confirm, which the host draws and drags
-   * itself and reports as one action when the slide completes, like a press
-   * of a Button. A host that predates it cannot decode a tree that holds one,
-   * so the worker sends one only to a host it knows draws it (`toWire`).
+   * The Register slider, which this worker draws itself on the host's Gesture
+   * node (src/gesture-slider.ts). `toWire` draws it with the drawing it is
+   * given, so a card holds one only for a host that draws the Gesture node.
    */
-  | {
-      tag: "SlideToConfirm"
-      value: {
-        modifiers: Modifier[]
-        props: {
-          text: string
-          secondaryText: string | undefined
-          /** What the control reads once slid. Absent keeps `text`. */
-          confirmedText: string | undefined
-          variant: SlideVariant | undefined
-          accent: ColorToken | undefined
-          enabled: boolean
-          loading: boolean
-          /** Drawn as already slid, taking no slide. */
-          confirmed: boolean
-          confirmAction: string | undefined
-        }
-        children: RenderNode[]
-      }
-    }
+  | { tag: "Slider"; value: { modifiers: Modifier[]; props: SliderProps; children: RenderNode[] } }
+
+/** What the Register slider says and how it stands. */
+export interface SliderProps {
+  text: string
+  secondaryText: string | undefined
+  enabled: boolean
+  /** The product works on the slide: the thumb waits at the end with a spinner. */
+  loading: boolean
+  /** Drawn as already slid, taking no slide. */
+  confirmed: boolean
+  /** What a completed slide sends; absent while the slider takes no slide. */
+  action: string | undefined
+}
 
 export const pad = (value: number): Modifier => ({ tag: "padding", value: [value, value, value, value] })
 export const width = (value: number): Modifier => ({ tag: "width", value })
@@ -260,36 +252,24 @@ export function button(
   }
 }
 
-/** A slide to confirm across its space, which takes no slide while it loads or once confirmed. */
-export function slideToConfirm(
+/** The Register slider across its space, which takes no slide while it loads or once confirmed. */
+export function slider(
   label: string,
-  confirmAction: string,
-  options: {
-    secondaryText?: string
-    confirmedText?: string
-    variant?: SlideVariant
-    accent?: ColorToken
-    enabled?: boolean
-    loading?: boolean
-    confirmed?: boolean
-  } = {},
+  action: string,
+  options: { secondaryText?: string; enabled?: boolean; loading?: boolean; confirmed?: boolean; modifiers?: Modifier[] } = {},
 ): RenderNode {
   const { enabled = true, loading = false, confirmed = false } = options
   return {
-    tag: "SlideToConfirm",
+    tag: "Slider",
     value: {
-      modifiers: [fill],
+      modifiers: options.modifiers ?? [fill],
       props: {
         text: label,
         secondaryText: options.secondaryText,
-        confirmedText: options.confirmedText,
-        variant: options.variant,
-        accent: options.accent,
         enabled,
         loading,
         confirmed,
-        // A control that takes no slide names no action, as the host expects.
-        confirmAction: enabled && !loading && !confirmed ? confirmAction : undefined,
+        action: enabled && !loading && !confirmed ? action : undefined,
       },
       children: [],
     },
