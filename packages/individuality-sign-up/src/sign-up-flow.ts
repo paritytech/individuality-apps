@@ -253,6 +253,12 @@ interface RunState {
   /** the attempt whose broadcast put the optimistic flag up, once one of this
    *  tap's attempts went out: the loop's end takes the flag down through it */
   wireOwner?: object
+  /** the attempt whose sign-up is on the wire and still pending (sent, not yet
+   *  included or dropped): while set, no attempt of this tap signs again —
+   *  a second sign-up would only collide with it (#82). Cleared only when the
+   *  dispatch itself says the tx left the pool without a block (`Dropped`),
+   *  or a chain read answers the player is registered */
+  wirePending?: object
 }
 
 function deferred<T>() {
@@ -816,6 +822,21 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
           // the best block that already contains Game.Players.
           const beforeRoute = await registeredOnChain(player)
           if (beforeRoute === true) return reconciled()
+          // WHILE THIS TAP'S SIGN-UP IS STILL PENDING IN THE POOL, no attempt
+          // signs again (#82): the Players row is read at the best block and
+          // cannot see the pool, so an answered "not registered" says nothing
+          // of the pending tx — it may land all the same. Only the dispatch's
+          // own "Dropped" (the watch ended before any block held the tx) frees
+          // the wire; until then the loop waits on the reads. A failed read is
+          // unknown, and waits the same way.
+          if (run.wirePending) {
+            // an answered "not registered" takes the optimistic flag down, but
+            // the pending tx may still land: keep waiting on it, never sign a
+            // second one (#82)
+            if (beforeRoute === false) clearOptimistic(run.wirePending)
+            log("signup", `a sign-up of this tap is still on the wire, waiting for it to land or be dropped`, { detail: typeof beforeRoute === "string" ? beforeRoute : undefined })
+            return retryAfter("wire-pending")
+          }
           // a read that answers "not registered" takes the optimistic flag of a
           // sign-up an earlier attempt of this tap put on the wire down. (The
           // read is at the best block and cannot see the pool, so it is not
@@ -1027,6 +1048,10 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
             const markWire = () => {
               if (wired) return
               wired = true
+              // the tap's sign-up is on the wire and pending: from here on no
+              // attempt of this tap signs a second one until it lands or is
+              // known dropped (#82)
+              if (!run.wirePending) run.wirePending = owner
               // THE EVENT FOLLOWS THE SIGN-UP: only an attempt that went out
               // without its tickets counts, once per tap (a refused or retried
               // attempt that skipped is no sign-up without a ticket)
@@ -1107,6 +1132,10 @@ export function createSignUpFlow(options: SignUpFlowOptions): SignUpFlow {
             const settle = async (failure: { error: string; landingUnknown?: true; thrown?: unknown }) => {
               const permanent = failure.thrown ? null : classifyPermanent(failure.error)
               if (permanent === "registered") return landed({ "signup.landed_by": "reread" })
+              // the watch ended before any block held the tx: it left the pool
+              // for good, so this tap's pending wire is free and the next
+              // attempt may sign again (#82)
+              if (wired && /\bDropped\b/.test(failure.error) && run.wirePending === owner) run.wirePending = undefined
               // past the broadcast the outcome is unknown until a chain read
               // answers: a failed read is "still confirming", never a failure
               // that takes the optimistic "you're in" down (#1355)
