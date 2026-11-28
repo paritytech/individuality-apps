@@ -539,6 +539,14 @@ describe("per-channel order: one submit in flight per channel", () => {
     await vi.advanceTimersByTimeAsync(ms)
     await settle()
   }
+  // Wait for the store's own answer, not a fixed turn count: a frame's channel
+  // digest is real threadpool work (crypto.subtle) and can land past run()'s
+  // turns on a loaded runner (the race #78 fixed for "fresh"). Any failed
+  // submit ends the wait early; settle() then pins exact orders and counts.
+  const landed = async (submits: SubmitEvent[], cond: () => boolean, what: string) => {
+    await until(() => cond() || submits.some((e) => e.kind === "failed"), `${what}, or a failure`)
+    await settle()
+  }
 
   it("game 199's glare race: the offer and the answer in the same ms on one :d channel, and the answer wins", async () => {
     let release!: () => void
@@ -553,14 +561,7 @@ describe("per-channel order: one submit in flight per channel", () => {
     expect(fake.log).not.toContain("start the-answer")
     expect(fake.signed).not.toContain("the-answer")
     release()
-    // Wait for the store's own answer, not a fixed turn count: the answer's
-    // channel digest is real threadpool work (crypto.subtle) and can land past
-    // run()'s turns on a loaded runner — the same race #78 fixed for "fresh"
-    await until(
-      () => fake.accepted.includes("the-answer") || submits.some((e) => e.kind === "failed"),
-      'the answer frame "the-answer" to be accepted or to fail',
-    )
-    await settle() // quiescence: pin the exact log order and counts below
+    await landed(submits, () => fake.accepted.includes("the-answer"), '"the-answer" to be accepted')
     const descs = fake.log.filter((l) => /the-(offer|answer)/.test(l))
     expect(descs).toEqual(["start the-offer", "end the-offer", "start the-answer", "end the-answer"])
     expect(fake.accepted.filter((t) => t.startsWith("the-")).at(-1)).toBe("the-answer")
@@ -573,12 +574,7 @@ describe("per-channel order: one submit in flight per channel", () => {
     const { transport, submits } = await open(fake)
     transport.send("p1", { rtc: { desc: { type: "offer", sdp: "the-offer" } } })
     transport.send("p1", { rtc: { desc: { type: "answer", sdp: "the-answer" } } })
-    // wait for the store's own answer: the answer's digest is real threadpool work (same race as #78)
-    await until(
-      () => fake.accepted.some((t) => t.startsWith("the-")) || submits.some((e) => e.kind === "failed"),
-      'a "the-" frame to be accepted or to fail',
-    )
-    await settle() // quiescence: pin the exact final log and counts below
+    await landed(submits, () => fake.accepted.includes("the-answer"), '"the-answer" to be accepted')
     const sent = fake.log.filter((l) => l.startsWith("start the-"))
     // either never sent, or sent and finished before the answer
     expect(sent.at(-1)).toBe("start the-answer")
@@ -609,13 +605,12 @@ describe("per-channel order: one submit in flight per channel", () => {
     await until(() => fake.signed.includes("frame-A"), "frame-A to be in flight")
     transport.send("p1", { rtc: { desc: { type: "offer", sdp: "frame-B" } } })
     await run() // advances the fake clock past frame-A's 500 ms hold fallback, so its refusal can come back
-    await run()
-    // wait for the store's own answer on both frames: their digests are real threadpool work (same race as #78)
-    await until(
-      () => (fake.lowPriority.includes("frame-A") && fake.accepted.includes("frame-B")) || submits.some((e) => e.kind === "failed"),
-      'frame-A to be refused and frame-B to be accepted (or a failure)',
+    await run() // a second clock move, kept from the original pacing, for frame-B's own submit
+    await landed(
+      submits,
+      () => fake.lowPriority.includes("frame-A") && fake.accepted.includes("frame-B"),
+      "frame-A to be refused and frame-B to be accepted",
     )
-    await settle() // quiescence: pin the exact counts below
     expect(fake.lowPriority).toContain("frame-A") // the old holder was really in the way
     expect(fake.accepted.filter((t) => t.startsWith("frame-")).at(-1)).toBe("frame-B")
     expect(submits.filter((e) => e.kind === "failed")).toEqual([])
@@ -632,12 +627,10 @@ describe("per-channel order: one submit in flight per channel", () => {
     transport.send("p2", { rtc: { desc: { type: "offer", sdp: "to-p2" } } })
     // wait for the store's own answer on p2's channel: its digest is real threadpool work (same race as #78)
     await until(() => fake.accepted.includes("to-p2"), '"to-p2" to be accepted')
-    expect(fake.accepted).toContain("to-p2")
     expect(fake.accepted).not.toContain("to-p1")
     release()
     // the held p1 submit finishing is the trigger for its own retry path; wait for its store answer
     await until(() => fake.accepted.includes("to-p1"), '"to-p1" to be accepted')
-    expect(fake.accepted).toContain("to-p1")
     transport.close()
   })
 
@@ -697,7 +690,10 @@ describe("per-channel order: one submit in flight per channel", () => {
     // frame's channel digest is real threadpool work (crypto.subtle), and on a
     // loaded runner it can land past settle()'s turns, which is what made this
     // flake (archive #1459: accepted ['hello'] had no 'fresh' yet)
-    await until(() => fake.accepted.includes("fresh") || fake.log.filter((l) => l === "start stale").length > 1, 'the "fresh" frame to be accepted, or a second "start stale" (a regression)')
+    await until(
+      () => fake.accepted.includes("fresh") || fake.log.filter((l) => l === "start stale").length > 1,
+      'the "fresh" frame to be accepted, or a second "start stale" (a regression)',
+    )
     await settle() // quiescence: pin the exact final counts below
     expect(fake.log.filter((l) => l === "start stale")).toHaveLength(1)
     expect(fake.accepted).toContain("fresh")
@@ -719,9 +715,7 @@ describe("per-channel order: one submit in flight per channel", () => {
     await settle() // absence: no second "replaced" may follow, so there is nothing to wait for
     expect(submits.filter((e) => e.kind === "replaced")).toEqual([{ kind: "replaced", frame: "desc", to: "p1" }])
     release()
-    // wait for the store's own answer on "third": its digest is real threadpool work (same race as #78)
-    await until(() => fake.accepted.includes("third") || submits.some((e) => e.kind === "failed"), '"third" to be accepted or to fail')
-    await settle() // quiescence: pin the exact counts below
+    await landed(submits, () => fake.accepted.includes("third"), '"third" to be accepted')
     expect(fake.signed).not.toContain("second")
     expect(fake.accepted.at(-1)).toBe("third")
     transport.close()
