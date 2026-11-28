@@ -207,6 +207,7 @@ import { appClockSecondAt, appClockWallMsFor, appGameMoment, observationMidpoint
 import { CLOCK_CONVERGENCE_BOUND_MS, CLOCK_GROUP_SPREAD_BOUND_MS } from "./clock-proof"
 import { waitForAppClock, waitForReadyValue, waitingNetworkWarningTimeoutMs } from "./persona-readiness"
 import { guardConsole, runPrivacy } from "./player-privacy"
+import { endOfPlayAccepted, isNoDrawCollectables, reachedEndOfPlay } from "./end-of-play"
 
 const REPO = resolve(__dirname, "../..")
 // other players are masked in this log the moment they are printed or read from the chain (player-privacy.ts)
@@ -1490,11 +1491,13 @@ async function play(
     // room. Keep checking until /game takes over at handover.
     if (!url.includes("/game") && (await recoverStaleBuild(page, slotIndex, roleNotes, o.previewHandoverMs))) continue
     // the background act's "visible" is still due: stay in the loop until the page is shown again
-    if (url.includes("/prize-draw") && driver?.pending()) {
+    // a game with no draw ends on its own collectables page (end-of-play.ts), only once /game was seen
+    const atEnd = url.includes("/prize-draw") || (sawGame && isNoDrawCollectables(url, (o.game ?? game)?.index))
+    if (atEnd && driver?.pending()) {
       await page.waitForTimeout(250)
       continue
     }
-    if (url.includes("/prize-draw")) {
+    if (atEnd) {
       await o.onReportLanded?.()
       return done(url)
     }
@@ -1715,7 +1718,7 @@ async function play(
     }
     await page.waitForTimeout(250)
   }
-  throw new Error(`player ${n}: never reached ${stopAtConfirm ? "an enabled Confirm" : "/prize-draw"} (at ${page.url()}, ${taps} taps, ${clickErrors.length} click errors, confirmed=${confirmed})`)
+  throw new Error(`player ${n}: never reached ${stopAtConfirm ? "an enabled Confirm" : "/prize-draw (or this game's /collectables when it has no draw)"} (at ${page.url()}, ${taps} taps, ${clickErrors.length} click errors, confirmed=${confirmed})`)
 }
 
 /** Confirm stage: flip one approved verdict and flip it back, reading the tile after each tap.
@@ -3081,7 +3084,7 @@ test("(c) play: the app's handover, a tap per turn, Confirm, /prize-draw", async
   save()
   slotResults.forEach((sr, i) => {
     const r = results[i]
-    Object.assign(sr, { taps: r.taps, clickErrors: r.clickErrors.length, confirmed: r.confirmed, reachedPrizeDraw: r.url.includes("/prize-draw") })
+    Object.assign(sr, { taps: r.taps, clickErrors: r.clickErrors.length, confirmed: r.confirmed, reachedPrizeDraw: reachedEndOfPlay(r.url, game?.index) })
     sr.stages.c.notes.push(`${r.taps} taps, ${r.clickErrors.length} click errors, confirmed=${r.confirmed}`)
   })
   saveResults()
@@ -3318,7 +3321,10 @@ test("(c) play: the app's handover, a tap per turn, Confirm, /prize-draw", async
     if (chestEnded[i]) sr.stages.c.notes.push(`ended on ${results[i].url}: the app handed over with no report counted; (d) judges it against the chain`)
   })
   saveResults()
-  for (const r of results) expect(r.url).toMatch(BOT?.telemetryTorture?.id === "T9" ? /\/connection-help/ : /\/prize-draw|\/chest/)
+  for (const r of results) {
+    if (BOT?.telemetryTorture?.id === "T9") expect(r.url).toMatch(/\/connection-help/)
+    else expect(endOfPlayAccepted(r.url, game?.index), `ended at ${r.url}: not /prize-draw, /chest or this game's /collectables`).toBe(true)
+  }
   played = true
   } finally {
     cancelRoundChannelGates = true
