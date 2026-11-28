@@ -57,6 +57,8 @@ const LATE = 5
 const FINISH_STAGGER = 0.06
 /** let go short of the point: the pieces the cover took fly home this far apart, the last taken first, s */
 const BACK_STAGGER = 0.05
+/** let go short of the point: a cell's landing glow goes out over this, ms, as its piece leaves */
+const LANDING_FADE_MS = 160
 /** the falling cover lands this long before the last piece is in, s */
 const LAND_EARLY = 0.04
 /** the cover lies still this long after the thud before the book grows, s */
@@ -494,6 +496,15 @@ export function createPocketScene(els: PocketElements, opts: PocketSceneOptions)
     opts.onTake(index)
   }
 
+  /** a cell's landing glow and ring, faded out quickly from wherever they are */
+  const fadeLanding = (slot: HTMLElement | null | undefined) => {
+    for (const el of slot?.querySelectorAll<HTMLElement>(".pocket-cell-glow, .pocket-cell-ring") ?? []) {
+      const from = getComputedStyle(el).opacity
+      for (const running of el.getAnimations()) running.cancel()
+      if (Number(from) > 0.01) el.animate([{ opacity: from }, { opacity: 0 }], { duration: LANDING_FADE_MS })
+    }
+  }
+
   /** it is in its cell: a squash, and a breath of its colour */
   const land = (piece: Take) => {
     piece.landed = true
@@ -531,6 +542,8 @@ export function createPocketScene(els: PocketElements, opts: PocketSceneOptions)
       }
       piece.back = sim.t + (sim.still ? 0 : BACK_STAGGER * k++)
       piece.openIn = piece.landed
+      // its landing's breath of colour is over: a glow left on a cell it is leaving reads as a stray square
+      if (piece.landed) fadeLanding(els.cells[order[piece.order] ?? -1])
     }
   }
 
