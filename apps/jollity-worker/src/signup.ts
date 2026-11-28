@@ -364,13 +364,15 @@ export function createSignup(dependencies: SignupDependencies): Signup {
     for (const listener of listeners) listener()
   }
 
-  const endJourney = <T extends SignupState>(trace: Trace, outcome: string, next: T, attrs?: Record<string, string>, waitMs?: number): Promise<T> => {
+  const endJourney = <T extends SignupState>(trace: Trace, outcome: string, next: T, attrs?: Record<string, string>, waitMs?: number, keepSentRecord = false): Promise<T> => {
     const ended = () => {
       // `sent` on the card is a sign-up the chain holds; on the wire it was `show`n at the broadcast.
       if (next.kind === "sent") mark(next.gameIndex, "registered")
       else if (next.kind === "failed") mark(next.gameIndex, "failed", attrs?.["signup.stage"] ?? outcome)
-      // handed to the app, which writes its own, or left to the poll
-      else unmark()
+      // handed to the app, which writes its own, or left to the poll — unless
+      // the sign-up went out and no chain read has answered: its sent record
+      // then stands and lapses through SENT_TTL_MS (closed-unverified, #95)
+      else if (!keepSentRecord) unmark()
       show(next)
     }
     const ending = endSignupJourney(host, trace.journey, trace.attempt, outcome, attrs, ended)
@@ -379,9 +381,12 @@ export function createSignup(dependencies: SignupDependencies): Signup {
   }
 
   /** The card goes back to what the chain says, and the poll's two-read rule
-   * keeps or drops the reminder: the outcome is unknown, not failed. */
-  const leaveToPoll = (trace: Trace, gameIndex: number, stage: string) =>
-    endJourney(trace, "unknown", { kind: "idle", unsettled: gameIndex }, { "signup.stage": stage })
+   * keeps or drops the reminder: the outcome is unknown, not failed. A sign-up
+   * that was on the wire and whose landing no chain read has answered keeps
+   * its sent record (`keepSent`), so the card shows the pending state and the
+   * record lapses through SENT_TTL_MS (closed-unverified, #95). */
+  const leaveToPoll = (trace: Trace, gameIndex: number, stage: string, keepSent = false) =>
+    endJourney(trace, "unknown", { kind: "idle", unsettled: gameIndex }, { "signup.stage": stage }, undefined, keepSent)
 
   /** After a failure that follows the broadcast: does the chain hold the player
    * after all? "unknown" when the re-read itself failed — the broadcast may
@@ -392,12 +397,17 @@ export function createSignup(dependencies: SignupDependencies): Signup {
    * shared package re-reads only the non-permanent ones, and a closed game
    * must not come back as idle with the Register button for it. The one
    * permanent word that means the opposite — AlreadyRegistered in any message
-   * form — is a landing, not a failure: the chat sign-up ends sent. */
+   * form — is a landing, not a failure: the chat sign-up ends sent.
+   *
+   * The exception is registration closed itself (#95, Ionut 27 Nov): a tap
+   * that broadcast and then met a closed-window error is verified like any
+   * other wired failure — the window may have closed after its transaction
+   * went out, and only a chain read that answers may end it. */
   const landedAfterFailure = async (trace: Trace, errorText: string, thrown?: unknown): Promise<boolean | "unknown"> => {
     if (!trace.wired || !trace.reread || signupFailureReason(errorText, trace.stage) === "signing-refused") return false
     const permanent = thrown ? null : classifyPermanent(errorText)
     if (permanent === "registered") return true
-    if (permanent !== null) return false
+    if (permanent !== null && permanent !== "closed") return false
     await new Promise((resolve) => setTimeout(resolve, LANDING_WAIT_MS))
     const now = await within(trace.reread(), SIGNUP_STEP_DEADLINE_MS).catch(() => null)
     if (now === null) return "unknown"
@@ -406,7 +416,9 @@ export function createSignup(dependencies: SignupDependencies): Signup {
 
   /** Ends the journey for a post-broadcast failure whose landing a chain read
    * settled (the player is on the chain) or could not (unknown, left to the
-   * poll); null when the sign-up failed for good. A throw is `thrown`. */
+   * poll); null when the sign-up failed for good. A throw is `thrown`.
+   * `closed` marks a closed-window failure: with a failed read it is left to
+   * the poll as closed-unverified — the sent record stands (#95). */
   const settledAfterFailure = async (
     trace: Trace,
     gameIndex: number,
@@ -414,6 +426,7 @@ export function createSignup(dependencies: SignupDependencies): Signup {
     route?: string,
     thrown?: unknown,
   ): Promise<SignupState | null> => {
+    const closed = !thrown && classifyPermanent(errorText) === "closed"
     const landed = await landedAfterFailure(trace, errorText, thrown)
     if (landed === true) {
       // this attempt's own sign-up landed after all: its tickets want the name too
@@ -423,9 +436,12 @@ export function createSignup(dependencies: SignupDependencies): Signup {
     if (landed === "unknown") {
       // The broadcast went out and no chain read has answered: the sign-up
       // may have landed all the same. Leave it to the poll, as a watch that
-      // never settles does, rather than tell the player it failed (#37).
+      // never settles does, rather than tell the player it failed (#37). A
+      // closed window is the same while unverified: the card shows the
+      // unknown state, not "registration closed", no window-closed failure
+      // is filed, and the sent record lapses through SENT_TTL_MS (#95).
       dependencies.log?.("info", `${route ? `The ${route} sign-up` : "The sign-up"} from the chat is on the wire, but the chain read that would confirm it failed: ${errorText}`)
-      return leaveToPoll(trace, gameIndex, "reread-failed")
+      return leaveToPoll(trace, gameIndex, closed ? "closed-unverified" : "reread-failed", closed)
     }
     return null
   }
