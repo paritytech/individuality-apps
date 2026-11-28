@@ -45,6 +45,10 @@ next-env.d.ts
 
 # local agent state: sessions, settings, editor rules
 .claude/*
+# the live bots' skill (scripts/e2e-live/AGENTS.md) is shared
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/bot-e2e/
 .claude/sessions/
 .claude/settings.local.json
 .cursor/
