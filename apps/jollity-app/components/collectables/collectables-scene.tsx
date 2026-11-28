@@ -633,6 +633,10 @@ export function CollectablesScene({
               }}
               onPointerUp={() => sceneRef.current?.release()}
               onPointerCancel={() => sceneRef.current?.release()}
+              // a tap on an opened piece opens the picker as the finger lifts;
+              // a phone then follows the touch with a click, which would land
+              // on the picker's backdrop as it appears and close it at once
+              onTouchEnd={(event) => event.preventDefault()}
               aria-label="Your collectables opening"
               role="img"
             />
