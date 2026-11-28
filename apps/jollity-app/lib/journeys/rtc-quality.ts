@@ -34,7 +34,7 @@
  *   rtc.frames_dropped, rtc.nack, rtc.pli          counts when > 0 (nack and pli by rtc.direction in|out)
  *   rtc.coverage_s, rtc.coverage_pct               always (0 included), see COVERAGE
  *   rtc.video_ms, rtc.present_ms                    first stats poll after 10 s + round/page tail (#421)
- *   rtc.in_app_s                                   once per peer per round at its close (#39): this client's own visible seconds with the peer known, none for a reload or late join
+ *   rtc.in_app_s                                   once per peer per round at its close (#39): this client's own visible seconds with the peer known; none for a reload (unknown), 0 for a round hidden throughout. A late joiner, or a relaunched WebView with empty storage, counts from its first reading (known limitation)
  *   rtc.path_changes (count)                       when > 0: times the selected path changed
  *   rtc.link (count 1), rtc.link.ttff_ms,
  *   rtc.link.freeze_ms                             THE LINK ROW, one per peer per round (rtc-link.ts): the round's
@@ -107,6 +107,7 @@ import type { FunnelStage } from "../webrtc/funnel"
 import type { SdpVideo } from "../webrtc/sdp-video"
 import { implKind } from "./rtc-impl"
 import { linkRow } from "./rtc-link"
+import { pairIdPrefix } from "./rtc-pair"
 
 /** what observeRtc reads of a mesh report row */
 export interface RtcReading {
@@ -123,6 +124,8 @@ interface PeerRound {
   id: string
   /** a stats report of this round carried the peer (a peer seeded from the last room may never be) */
   reported: boolean
+  /** gone from the stats report: no more in-app time accrues until it is back (#39) */
+  dropped: boolean
   index: number
   path: RtcPath
   rates: RtcRates[]
@@ -225,8 +228,8 @@ const noPair: PairOf = () => ({})
 let round: number | null = null
 /** wall ms the open round began, the denominator of coverage */
 let roundOpenedAt = 0
-/** this page session saw the open round open for the first time: a reload or
- *  late join has no whole-round in-app time, so rtc.in_app_s stays unknown (#39) */
+/** this page session saw the open round open for the first time: a reload has
+ *  no whole-round in-app time, so rtc.in_app_s stays unknown (#39) */
 let roundSeenOpening = false
 let peers = new Map<string, PeerRound>()
 /** each peer's last reading, kept across rounds: the first window of a round
@@ -268,6 +271,7 @@ function makePeer(id: string): PeerRound {
   return {
     id,
     reported: false,
+    dropped: false,
     index: rtcPeerIndex(id),
     path: "unknown",
     rates: [],
@@ -295,7 +299,7 @@ function accruePresence(now = monotonicNow()): void {
   if (round === null || !coverageVisible) return
   for (const peer of peers.values()) {
     peer.slice.presentMs += elapsed
-    peer.inAppMs += elapsed
+    if (!peer.dropped) peer.inAppMs += elapsed
   }
 }
 
@@ -322,9 +326,8 @@ export function flushRtcCoverageSlice(): void {
       const { presentMs, videoMs } = peer.slice
       peer.slice = { videoMs: 0, presentMs: 0 }
       if (!(presentMs > 0)) continue
-      const pair = pairOf(peer.id, round + 1)
-      if (!pair["rtc.pair"]) continue
-      const attrs = { round: String(round + 1), "rtc.peer": String(peer.index), ...pair }
+      const attrs = peerPointAttrs(peer, round + 1)
+      if (!attrs) continue
       recordDistribution("rtc.video_ms", videoMs, "millisecond", attrs)
       recordDistribution("rtc.present_ms", presentMs, "millisecond", attrs)
     }
@@ -367,7 +370,10 @@ export function observeRtc(readings: readonly RtcReading[]): void {
           last.delete(id)
           videoObservedAt.delete(id)
           const peer = peers.get(id)
-          if (peer) peer.videoActive = false
+          if (peer) {
+            peer.videoActive = false
+            peer.dropped = true
+          }
         }
       }
     }
@@ -378,7 +384,10 @@ export function observeRtc(readings: readonly RtcReading[]): void {
         peer = makePeer(reading.id)
         peers.set(reading.id, peer)
       }
-      if (peer) peer.reported = true
+      if (peer) {
+        peer.reported = true
+        peer.dropped = false
+      }
       const sample = reading.quality
       if (!sample) continue
       const before = last.get(reading.id)
@@ -539,8 +548,8 @@ export function rtcPeerIndex(id: string): number {
  *  say whether it was the first. The key is the pair id's game and round
  *  (`g5:r1`). Without a pair id or storage it is unknown, so false. */
 function markRoundOpened(pairId: string | undefined): boolean {
-  if (!pairId) return false
-  const key = `rtc.in_app.opened:${pairId.split(":").slice(0, 2).join(":")}`
+  if (!pairId || pairId.startsWith("g?")) return false
+  const key = `rtc.in_app.opened:${pairIdPrefix(pairId)}`
   try {
     if (sessionStorage.getItem(key) !== null) return false
     sessionStorage.setItem(key, "1")
@@ -719,17 +728,24 @@ export function closeRtcRound(): { summary: string; unsupported?: string } | nul
 
 /** rtc.in_app_s (#39): each peer's seconds in this page session's own
  *  visible time, on its monotonic clock; nothing for a round this page session
- *  did not see open, and nothing before a peer's first reading */
+ *  did not see open; 0 for a present peer on a round hidden throughout */
 function emitInApp(closing: number): void {
   if (!roundSeenOpening) return
   for (const peer of peers.values()) {
-    if (!(peer.inAppMs > 0)) continue
+    // seeded or stale peers are not this round's co-players; standby ones are a later round's
+    if (!peer.reported || peer.dropped || standbyIds.has(peer.id)) continue
     attempt(() => {
-      const pair = pairOf(peer.id, closing + 1)
-      if (!pair["rtc.pair"]) return
-      recordDistribution("rtc.in_app_s", peer.inAppMs / 1000, "second", { round: String(closing + 1), "rtc.peer": String(peer.index), ...pair })
+      const attrs = peerPointAttrs(peer, closing + 1)
+      if (attrs) recordDistribution("rtc.in_app_s", peer.inAppMs / 1000, "second", attrs)
     })
   }
+}
+
+/** `round`, `rtc.peer` and `rtc.pair` of one peer's point in a 1-based round,
+ *  or nothing while the pair id is unknown */
+function peerPointAttrs(peer: PeerRound, roundNo: number): Record<string, string> | undefined {
+  const pair = pairOf(peer.id, roundNo)
+  return pair["rtc.pair"] ? { round: String(roundNo), "rtc.peer": String(peer.index), ...pair } : undefined
 }
 
 /** the links of the closing round that no stats reading measured: peers the

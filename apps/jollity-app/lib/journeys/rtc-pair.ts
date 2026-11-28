@@ -36,6 +36,11 @@ export function formatPairId(gameIndex: number | null, round: number, a: string,
   return `g${gameIndex ?? "?"}:r${round}:${linkHash(gameIndex, a, b)}`
 }
 
+/** the game-and-round part of a pair id (`g5:r1`), shared by every link of that round */
+export function pairIdPrefix(pairId: string): string {
+  return pairId.split(":", 2).join(":")
+}
+
 /** `{ "rtc.pair": … }` for the link between `self` and `peer`, or nothing while
  *  this device's own account is not known (null) */
 export function pairAttrs(gameIndex: number | null, self: string | null, peer: string, round: number): Record<string, string> {

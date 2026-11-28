@@ -178,7 +178,7 @@ const LANE_WORDS = [
   // the pair id (#255)
   "rtc.pair", "rtc.peer", "g12:r2:5fd9d742609d",
   // coverage (#256)
-  "rtc.coverage_pct", "rtc.coverage_s", "rtc.unsupported", "coverage", "unsupported",
+  "rtc.coverage_pct", "rtc.coverage_s", "rtc.in_app_s", "rtc.unsupported", "coverage", "unsupported",
   // the measured span of a round's readings (archive#829)
   "rtc.span_first_ms", "rtc.span_last_ms", "rtc.span_readings",
   // the connection funnel (#257)

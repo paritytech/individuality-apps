@@ -1,7 +1,7 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("../telemetry", async () => (await import("../telemetry/testing")).fakeTelemetryModule())
 
@@ -17,7 +17,6 @@ const sessionStorageStub = () => {
   return {
     getItem: (key: string) => store.get(key) ?? null,
     setItem: (key: string, value: string) => void store.set(key, value),
-    removeItem: (key: string) => void store.delete(key),
   }
 }
 
@@ -899,6 +898,10 @@ describe("in-app video coverage per peer (#39, phase 1)", () => {
     vi.setSystemTime(new Date("2026-11-28T12:00:00Z"))
     vi.stubGlobal("sessionStorage", sessionStorageStub())
   })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+  })
 
   const reading = (n: number): RtcSample => ({ link: 1, at: n * 3000, inbound: { id: "IV", framesDecoded: n * 72, packetsReceived: n * 300 } })
   const pair = (peer: string, round: number) => pairAttrs(5, "zed", peer, round)
@@ -959,5 +962,35 @@ describe("in-app video coverage per peer (#39, phase 1)", () => {
     closeRtcRound()
     const byPeer = Object.fromEntries(inApp().map((point) => [point.attrs["rtc.peer"], point.value]))
     expect(byPeer).toEqual({ "0": 12, "1": 3 })
+  })
+
+  it("sends nothing for a co-player absent from this round's report (seeded from the last round)", () => {
+    openRtcRound(0, pair)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    resetRecorded()
+    openRtcRound(1, pair)
+    observeRtc([{ id: "bob", conn: "connected", quality: reading(1) }])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    expect(inApp().map((point) => point.attrs["rtc.peer"])).toEqual(["1"])
+  })
+
+  it("sends a known zero for a present peer when the page was hidden all round", () => {
+    openRtcRound(0, pair)
+    rtcCoverageVisibilityChanged(true)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    expect(inApp()).toEqual([expect.objectContaining({ value: 0, unit: "second" })])
+  })
+
+  it("treats a round with an unknown game as unknown", () => {
+    openRtcRound(0, (peer, round) => pairAttrs(null, "zed", peer, round))
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    expect(inApp()).toEqual([])
   })
 })
