@@ -1,7 +1,7 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("../telemetry", async () => (await import("../telemetry/testing")).fakeTelemetryModule())
 
@@ -9,6 +9,16 @@ import { recorded, resetRecorded } from "../telemetry/testing"
 import type { RtcSample } from "../webrtc/rtc-stats"
 import { pairAttrs } from "./rtc-pair"
 import { closeRtcRound, flushRtcCoverageSlice, noteLinkSeen, noteLinkStage, observeRtc, openRtcRound, recordResume, rtcCoverageVisibilityChanged, setRtcStandby, startRtcGame } from "./rtc-quality"
+
+/** a sessionStorage stand-in, so a "reload" (startRtcGame + openRtcRound again)
+ *  keeps what the page session before it left in storage */
+const sessionStorageStub = () => {
+  const store = new Map<string, string>()
+  return {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => void store.set(key, value),
+  }
+}
 
 /** one 3 s reading of a link: cumulative counters advance by `step` */
 function sample(n: number, over: { rtt?: number; lostPerStep?: number; cpu?: number; link?: number; freezeStep?: number } = {}): RtcSample {
@@ -879,5 +889,108 @@ describe("link time on each path (#944)", () => {
     }
     closeRtcRound()
     expect(metric("rtc.link").map((row) => row.attrs["rtc.relay_protocol"])).toEqual(["tcp"])
+  })
+})
+
+describe("in-app video coverage per peer (#39, phase 1)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-11-28T12:00:00Z"))
+    vi.stubGlobal("sessionStorage", sessionStorageStub())
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+  })
+
+  const reading = (n: number): RtcSample => ({ link: 1, at: n * 3000, inbound: { id: "IV", framesDecoded: n * 72, packetsReceived: n * 300 } })
+  const pair = (peer: string, round: number) => pairAttrs(5, "zed", peer, round)
+  const inApp = () => metric("rtc.in_app_s")
+
+  it("sends this client's own in-app seconds per peer for a fully visible round", () => {
+    openRtcRound(0, pair)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(9000)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(3) }])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    expect(inApp()).toEqual([
+      expect.objectContaining({ value: 12, unit: "second", attrs: expect.objectContaining({ round: "1", "rtc.peer": "0", "rtc.pair": "g5:r1:99e59b2b1d8e" }) }),
+    ])
+  })
+
+  it("excludes hidden time from the in-app seconds", () => {
+    openRtcRound(0, pair)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(3000)
+    rtcCoverageVisibilityChanged(true)
+    vi.advanceTimersByTime(30_000)
+    rtcCoverageVisibilityChanged(false)
+    vi.advanceTimersByTime(3000)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(11) }])
+    closeRtcRound()
+    expect(inApp()[0]?.value).toBe(6) // 3 s visible before the hide + 3 s after, never the 30 s hidden
+  })
+
+  it("sends nothing for a round this page session did not see open (a reload counts as unknown)", () => {
+    // a first page session opened and closed round 0: the marker survives
+    openRtcRound(0, pair)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    expect(inApp()).toHaveLength(1)
+    // the reloaded page session opens the same round again: unknown, not guessed
+    resetRecorded()
+    startRtcGame()
+    openRtcRound(0, pair)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    expect(inApp()).toEqual([])
+  })
+
+  it("credits a peer first seen mid-round only from its first reading on", () => {
+    openRtcRound(0, pair)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(9000)
+    // bob joins the round 9 s in: before his first reading his in-app time is unknown
+    observeRtc([
+      { id: "alice", conn: "connected", quality: reading(3) },
+      { id: "bob", conn: "connected", quality: reading(3) },
+    ])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    const byPeer = Object.fromEntries(inApp().map((point) => [point.attrs["rtc.peer"], point.value]))
+    expect(byPeer).toEqual({ "0": 12, "1": 3 })
+  })
+
+  it("sends nothing for a co-player absent from this round's report (seeded from the last round)", () => {
+    openRtcRound(0, pair)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    resetRecorded()
+    openRtcRound(1, pair)
+    observeRtc([{ id: "bob", conn: "connected", quality: reading(1) }])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    expect(inApp().map((point) => point.attrs["rtc.peer"])).toEqual(["1"])
+  })
+
+  it("sends a known zero for a present peer when the page was hidden all round", () => {
+    openRtcRound(0, pair)
+    rtcCoverageVisibilityChanged(true)
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    expect(inApp()).toEqual([expect.objectContaining({ value: 0, unit: "second" })])
+  })
+
+  it("treats a round with an unknown game as unknown", () => {
+    openRtcRound(0, (peer, round) => pairAttrs(null, "zed", peer, round))
+    observeRtc([{ id: "alice", conn: "connected", quality: reading(0) }])
+    vi.advanceTimersByTime(3000)
+    closeRtcRound()
+    expect(inApp()).toEqual([])
   })
 })

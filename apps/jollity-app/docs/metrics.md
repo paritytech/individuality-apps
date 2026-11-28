@@ -92,6 +92,7 @@ Sent when a round closes, one set per co-player, from
 | `rtc.link.path_ms` | distribution | millisecond | round summary, with the `rtc.path` and `rtc.relay_protocol` of that path | Connected time on one path, one point per path the link used in the round. |
 | `rtc.video_ms` | distribution | millisecond | `round`, `rtc.peer`, `rtc.pair` | Reload-safe slice: time with live inbound video since the last slice. Sent from the first stats poll after 10 s, at the round's end and when the page hides. |
 | `rtc.present_ms` | distribution | millisecond | `round`, `rtc.peer`, `rtc.pair` | Reload-safe slice: time the peer was in the room since the last slice. |
+| `rtc.in_app_s` | distribution | second | `round`, `rtc.peer`, `rtc.pair` | This client's own seconds in the app (page visible) with the peer known, from the peer's first stats reading to the round's end, on the device's monotonic clock. One point per peer at the round's end. Not sent for a round this page session did not see open (a reload) or when the pair id is unknown: absent means unknown, not zero. |
 | `rtc.decoding_streams` | distribution | none | `round`, `stat` p50, p95, `rtc.decode_load` ok, unsupported | Device-wide, once per round: video streams decoding at the same time. |
 | `rtc.decoded_pixels_per_s` | distribution | none | `round`, `stat` p50, p95, `rtc.decode_load` ok, partial | Device-wide, once per round: width × height × fps summed over decoding streams. Not sent when no stream size or rate is known. |
 
