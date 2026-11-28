@@ -292,6 +292,26 @@ describe("the measured span of a round's readings (archive#829)", () => {
     })
   })
 
+  it("opens the span at the first counted reading when no window opens from the previous one (gap over 6 s, or another link)", () => {
+    startRtcGame()
+    // the previous reading is 9 s before the first counted one: rtcRates counts no window
+    feed({ alice: sample(0) })
+    openRtcRound(0)
+    feed({ alice: sample(4) })
+    feed({ alice: sample(5) })
+    closeRtcRound()
+    expect(metric("rtc.in_fps", { stat: "p50" })[0].attrs).toMatchObject({ "rtc.span_first_ms": "12000", "rtc.span_last_ms": "15000", "rtc.span_readings": "2" })
+    // a rebuilt link (other link number) opens no window either
+    resetRecorded()
+    startRtcGame()
+    feed({ alice: sample(0, { link: 1 }) })
+    openRtcRound(0)
+    feed({ alice: sample(1, { link: 2 }) })
+    feed({ alice: sample(2, { link: 2 }) })
+    closeRtcRound()
+    expect(metric("rtc.in_fps", { stat: "p50" })[0].attrs).toMatchObject({ "rtc.span_first_ms": "3000", "rtc.span_readings": "2" })
+  })
+
   it("sends no span for a link the round never measured, and records nothing outside a round", () => {
     startRtcGame()
     openRtcRound(0)

@@ -492,6 +492,15 @@ function perFrame(secondsBefore: number | undefined, secondsAfter: number | unde
  *  is not sending: a locked phone pauses its camera. */
 const PAUSED_MAX_PACKETS_PER_S = 1
 
+/** The longest gap between two readings of one link that still makes a window
+ *  (rtcRates), and so what a span may open from (rtc-quality). */
+export const STATS_WINDOW_MAX_MS = 6_000
+
+/** Whether `prev` to `cur` is a window rtcRates counts: same link, 0 < gap <= the cap. */
+export function isStatsWindow(prev: RtcSample | undefined, cur: RtcSample): boolean {
+  return !!prev && prev.link === cur.link && prev.at !== undefined && cur.at !== undefined && cur.at - prev.at > 0 && cur.at - prev.at <= STATS_WINDOW_MAX_MS
+}
+
 /** Rates between two consecutive samples of one peer. Pure.
  *
  *  A PAUSED peer (its phone locked or the app backgrounded) sends no frames:
@@ -508,9 +517,9 @@ export function rtcRates(prev: RtcSample | undefined, cur: RtcSample): RtcRates 
   const inbound = cur.inbound
   const outbound = cur.outbound
   if (outbound?.targetBitrate !== undefined) rates.targetKbps = outbound.targetBitrate / 1_000
-  const windowMs = prev && prev.link === cur.link && prev.at !== undefined && cur.at !== undefined ? cur.at - prev.at : 0
-  const windowed = windowMs > 0 && windowMs <= 6_000
-  const seconds = windowed ? windowMs / 1000 : 0
+  const windowed = isStatsWindow(prev, cur)
+  const windowMs = windowed ? cur.at! - prev!.at! : 0
+  const seconds = windowMs / 1000
   const sameIn = windowed && inbound && prev!.inbound?.id === inbound.id ? prev!.inbound : undefined
   const sameOut = windowed && outbound && prev!.outbound?.id === outbound.id ? prev!.outbound : undefined
   const decoded = sameIn ? grew(sameIn.framesDecoded, inbound!.framesDecoded) : undefined
