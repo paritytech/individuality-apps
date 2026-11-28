@@ -20,22 +20,30 @@ const pool = Object.fromEntries(profiles.flatMap((profile) => {
 const plan = () => buildNightlyPlan({ suiteId: "manual-suite-run-42", profiles, identities: pool })
 
 describe("PreviewNet complete-suite plan", () => {
-  it("plans the 47 non-telemetry catalogue profiles exactly once in run order", () => {
+  it("plans the 46 non-telemetry catalogue profiles that can run on PreviewNet exactly once in run order", () => {
     const value = plan()
     const planned = value.waves.flatMap((wave) => wave.coverageProfiles)
     expect(value).toMatchObject({ schemaVersion: 1, suiteId: "manual-suite-run-42", classification: "manual" })
-    expect(planned).toHaveLength(47)
-    expect(new Set(planned).size).toBe(47)
+    expect(planned).toHaveLength(46)
+    expect(new Set(planned).size).toBe(46)
     // manual dispatch only on previewnet: the issuer shares its host with the chains, app-level fault pending (#2004)
     expect(planned).not.toContain("turn-warm-returning")
-    expect(planned.slice().sort()).toEqual(profiles.filter(({ manualOnly, telemetryTorture }) => !manualOnly && !telemetryTorture).map(({ name }) => name).sort())
+    expect(planned.slice().sort()).toEqual(profiles.filter(({ name, manualOnly, telemetryTorture }) => !manualOnly && !telemetryTorture && name !== "turn-issuer-outage").map(({ name }) => name).sort())
     expect(planned).not.toContain("issue874-fast-late-join")
     expect(value.waves[0]).toMatchObject({ key: "game-ready", profiles: allRoles(profiles, "previewnet").map(({ profile }) => profile) })
-    expect(value.waves[0].profiles).toHaveLength(31)
+    expect(value.waves[0].profiles).toHaveLength(30)
     expect(value.waves.filter(({ bootOnly }) => !bootOnly)).toHaveLength(4)
     expect(value.waves.at(-2)).toMatchObject({ key: "check-seat-preparing", bootOnly: false })
     expect(value.waves.at(-2)).not.toHaveProperty("freshPoolCheck")
     expect(value.waves.at(-1)).toMatchObject({ key: "check-stale-build", bootOnly: true, bootProfile: "check-stale-build", app: "local", identities: [] })
+  })
+
+  it("leaves out the profiles whose outage PreviewNet can not isolate (turn-issuer-outage), and never dispatches them", () => {
+    const planned = plan().waves.flatMap((wave) => [...wave.coverageProfiles, ...wave.profiles])
+    expect(planned).not.toContain("turn-issuer-outage")
+    expect(allRoles(profiles, "previewnet").map(({ profile }) => profile)).not.toContain("turn-issuer-outage")
+    expect(allRoles(profiles, "paseo-next-v2").map(({ profile }) => profile)).not.toContain("turn-issuer-outage")
+    expect(() => botMatrix('["turn-issuer-outage"]', undefined, profiles, pool, "previewnet")).toThrow(/can not be scheduled on previewnet.*outage "turn-issuer" can not run on previewnet.*chains too/)
   })
 
   it("sends no bot telemetry: no telemetry wave, no T1-T12 profile, no wave with telemetry on", () => {
@@ -148,7 +156,7 @@ describe("manual and scheduled plan CLI", () => {
   it("writes secret-free serial matrices and leaves stale-build last", () => {
     const value = run(["jollityfresh.01", "jollityfresh.02"])
     try {
-      expect(value.result).toEqual({ suiteId: "manual-suite-run-42", profiles: 47 })
+      expect(value.result).toEqual({ suiteId: "manual-suite-run-42", profiles: 46 })
       expect(value.document).not.toContain("must-not-leak")
       const checks = JSON.parse(/^check_matrix=(.*)$/m.exec(value.output)![1]).include as Array<{ key: string }>
       const stale = JSON.parse(/^stale_check_matrix=(.*)$/m.exec(value.output)![1]).include as Array<{ key: string }>
@@ -176,7 +184,7 @@ describe("manual and scheduled plan CLI", () => {
   it("classifies a scheduled suite by stable run ID and writes nightly metadata", () => {
     const value = run(["jollityfresh.01", "jollityfresh.02"], "schedule", new Date("2026-10-19T01:17:00.000Z"))
     try {
-      expect(value.result).toEqual({ suiteId: "nightly-suite-run-42", profiles: 47 })
+      expect(value.result).toEqual({ suiteId: "nightly-suite-run-42", profiles: 46 })
       expect(value.output).toContain("classification=nightly")
       expect(JSON.parse(value.document)).toMatchObject({ suiteId: "nightly-suite-run-42", classification: "nightly" })
     } finally { rmSync(value.directory, { recursive: true, force: true }) }

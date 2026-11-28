@@ -40,7 +40,7 @@ describe("generated crew-site fixture tree", () => {
     expect(written).toContain("assets/status.js")
     expect(readFileSync(join(outputDir, "assets/status.js"))).toEqual(readFileSync(new URL("./status.js", here)))
     expect(written).toContain(".nojekyll")
-    expect(written.filter((path) => path.startsWith("identities/") && path.endsWith("/index.html"))).toHaveLength(31)
+    expect(written.filter((path) => path.startsWith("identities/") && path.endsWith("/index.html"))).toHaveLength(30)
     expect(written.every((path) => /(?:\.html|\.css|\.js|\.json|\.webp|\.nojekyll)$/.test(path))).toBe(true)
     expect(written.some((path) => /\.(?:mp4|webm|mov|avi|mkv|mp3|wav)$/i.test(path))).toBe(false)
   })

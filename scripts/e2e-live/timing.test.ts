@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from "vitest"
 import { identityFor, loadProfiles } from "./profile"
+import { profileIsolationGap } from "./network"
 import { USERNAME_RE } from "./players"
 import { botMatrix, CI_SETUP_S, coldSuiteCandidateMinLeftS, MIN_WINDOW_S, planTiming, reportEndsFor, SETTLE_MARGIN_S, SIGNUP_SLACK_S } from "./timing"
 
@@ -326,9 +327,10 @@ describe("profiles.json on previewnet", () => {
         return identity ? [[identity, `account-${identity}`]] : []
       }),
     )
-    for (const acceptance of profiles.filter((profile) => profile.acceptanceOnly)) {
+    // a profile PreviewNet can not isolate is refused outright (network.test.ts, nightly-plan.test.ts), so it has no pair to test
+    for (const acceptance of profiles.filter((profile) => profile.acceptanceOnly && !profileIsolationGap(profile, "previewnet"))) {
       const identity = identityFor(acceptance, "previewnet")
-      const owners = profiles.filter((profile) => profile.name !== acceptance.name && identityFor(profile, "previewnet") === identity)
+      const owners = profiles.filter((profile) => profile.name !== acceptance.name && !profileIsolationGap(profile, "previewnet") && identityFor(profile, "previewnet") === identity)
       expect(owners.length, `${acceptance.name} must share a previewnet identity`).toBeGreaterThan(0)
       for (const owner of owners) {
         const pair = JSON.stringify([acceptance.name, owner.name])

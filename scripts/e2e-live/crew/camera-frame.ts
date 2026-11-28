@@ -47,7 +47,6 @@ const CREW_GESTURES: Readonly<Record<string, CrewGesture>> = {
   "narrowband-ned": { label: "two-hand heart" },
   "packet-jack": { label: "two-hand clap" },
   "chainless-charlie": { label: "two-hand celebration" },
-  "token-tina": { label: "open-palms presentation" },
   "relay-rita": { label: "palms-up shrug" },
   "tap-tony": { label: "prayer hands" },
   "timewarp-tess": { label: "bicep flex" },

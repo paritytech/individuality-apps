@@ -203,20 +203,6 @@
       }
     },
     {
-      "key": "token-tina",
-      "username": "jollitypv.33",
-      "displayName": "Token Tina",
-      "portrait": "token-tina.webp",
-      "tagline": "Checks the ticket booth when credentials stop flowing.",
-      "backstory": "Tina monitors the TURN credential issuer during an outage. She distinguishes a missing ticket from a broken journey.",
-      "speciality": "TURN credential issuer outages",
-      "palette": {
-        "primary": "#135319",
-        "secondary": "#55E7E0",
-        "ink": "#FFFFFF"
-      }
-    },
-    {
       "key": "relay-rita",
       "username": "jollitypv.34",
       "displayName": "Relay Rita",

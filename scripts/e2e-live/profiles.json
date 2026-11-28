@@ -1412,14 +1412,16 @@
           "kind": "devlog",
           "tag": "rtc",
           "match": "media-stall:",
-          "note": "video stops on links that stay connected: the stall is seen and healed"
+          "matchAny": ["media frozen:"],
+          "note": "video stops on links that stay connected: the stall is seen and healed, by the no-inbound-video detector (media-stall:) or, while small packets still arrive, the frozen-frames one (media frozen: keyframe ask, then rebuild; game 126 of suite run 46143137392)"
         },
         {
           "kind": "devlog",
           "tag": "rtc",
           "match": "media-stall:",
+          "matchAny": ["media frozen:"],
           "max": 15,
-          "note": "one side heals, at most 2 restarts and a rebuild a link (3 x 5 co-players): both ends restarting each other was rank 9's ping-pong"
+          "note": "either detector counts: one side heals, at most 2 restarts and a rebuild a link (3 x 5 co-players): both ends restarting each other was rank 9's ping-pong"
         },
         {
           "kind": "devlog",

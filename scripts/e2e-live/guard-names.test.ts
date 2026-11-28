@@ -42,7 +42,7 @@ describe("store-rejection reasons are the store's own", () => {
 
 // A devlog guard counts the app's own log lines: its match must be text the app logs (the mesh's [jollity-rtc] lines and the like).
 describe("devlog matches are the app's own lines", () => {
-  const guards = loadProfiles().flatMap((p) => p.expect.flatMap((g) => (!g.pending && g.kind === "devlog" ? [[`${p.name}: ${g.match}`, g.match] as const] : [])))
+  const guards = loadProfiles().flatMap((p) => p.expect.flatMap((g) => (!g.pending && g.kind === "devlog" ? [g.match, ...(g.matchAny ?? [])].map((m) => [`${p.name}: ${m}`, m] as const) : [])))
   it.each(guards)("%s", (_label, match) => {
     expect(app, `no "${match}" in lib/ or the bot's injected fault source: the app never logs it`).toContain(match)
   })

@@ -14,6 +14,7 @@ import {
   NETEM_TIMEOUT_MARGIN_MS,
   NetemError,
   ISOLATION_GAPS,
+  profileIsolationGap,
   OUTAGE_TARGETS,
   outageHost,
   SURVIVAL_TRANSITION_TIMEOUT_MS,
@@ -34,7 +35,7 @@ import {
 } from "./network"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { profileByName, profileFor } from "./profile"
+import { loadProfiles, profileByName, profileFor } from "./profile"
 import { verifyRoleActs } from "./role-proof"
 
 describe("networkPlan", () => {
@@ -1243,5 +1244,25 @@ describe("uplink-lift Survival evidence wait", () => {
       }),
     ).rejects.toThrow("play deadline elapsed before Survival transition wait")
     expect(transitionStarted).toBe(false)
+  })
+})
+
+describe("profileIsolationGap: a profile that cuts an outage its network can not isolate is not runnable there", () => {
+  const gapped = (network: string) => loadProfiles().filter((p) => profileIsolationGap(p, network) !== undefined).map((p) => p.name)
+  it("excludes exactly the profiles whose timeline cuts a target in ISOLATION_GAPS, with the gap's text", () => {
+    expect(gapped("previewnet")).toEqual(["turn-issuer-outage", "turn-warm-returning"])
+    expect(gapped("paseo-next-v2")).toEqual([])
+    expect(profileIsolationGap(profileByName("turn-issuer-outage"), "previewnet")).toBe(`outage "turn-issuer" can not run on previewnet: ${ISOLATION_GAPS.previewnet["turn-issuer"]}`)
+    expect(profileIsolationGap(profileByName("relay-outage"), "previewnet")).toBeUndefined()
+  })
+  it("derives from the profiles: every outage step of every profile is either isolatable or in the exclusion list", () => {
+    for (const p of loadProfiles())
+      for (const step of p.network.timeline ?? []) {
+        if (step.outage === undefined) continue
+        const excluded = gapped("previewnet").includes(p.name)
+        expect(excluded, `${p.name} cuts ${step.outage}`).toBe(ISOLATION_GAPS.previewnet[step.outage] !== undefined || excluded)
+        if (ISOLATION_GAPS.previewnet[step.outage] !== undefined) expect(excluded).toBe(true)
+        else expect(() => outageHost(step.outage as string, "previewnet")).not.toThrow()
+      }
   })
 })

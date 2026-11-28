@@ -23,7 +23,6 @@ const ROSTER = [
   ["jollyuplink.08", "narrowband-ned", "Narrowband Ned", "narrowband-ned.webp"],
   ["jollystorm.90", "packet-jack", "Packet Jack", "packet-jack.webp"],
   ["jollitypv.32", "chainless-charlie", "Chainless Charlie", "chainless-charlie.webp"],
-  ["jollitypv.33", "token-tina", "Token Tina", "token-tina.webp"],
   ["jollitypv.34", "relay-rita", "Relay Rita", "relay-rita.webp"],
   ["jollitypv.38", "tap-tony", "Tap Tony", "tap-tony.webp"],
   ["jollitypv.39", "timewarp-tess", "Timewarp Tess", "timewarp-tess.webp"],
@@ -61,7 +60,7 @@ const webpDimensions = (bytes: Buffer): { width: number; height: number } => {
 }
 
 describe("PreviewNet crew catalogue", () => {
-  it("pins the version, harness, and fixed 31-character roster", () => {
+  it("pins the version, harness, and fixed 30-character roster", () => {
     const catalogue = source()
     expect(catalogue.version).toBe(1)
     expect(catalogue.harness).toEqual({
@@ -69,7 +68,7 @@ describe("PreviewNet crew catalogue", () => {
       displayName: "PreviewNet Boot Harness",
       description: "Boot-only infrastructure checks without a playing identity.",
     })
-    expect(catalogue.identities).toHaveLength(31)
+    expect(catalogue.identities).toHaveLength(30)
     expect(catalogue.identities.map(({ username, key, displayName, portrait }) => [username, key, displayName, portrait])).toEqual(ROSTER)
     expect(loadCrewCatalogue()).toBe(loadCrewCatalogue())
   })
@@ -85,7 +84,7 @@ describe("PreviewNet crew catalogue", () => {
 
   it("uses readable, distinct palettes", () => {
     const identities = source().identities
-    expect(new Set(identities.map((identity) => `${identity.palette.primary}/${identity.palette.secondary}`)).size).toBe(31)
+    expect(new Set(identities.map((identity) => `${identity.palette.primary}/${identity.palette.secondary}`)).size).toBe(30)
     for (const identity of identities) {
       for (const colour of Object.values(identity.palette)) expect(colour, identity.key).toMatch(/^#[0-9A-Fa-f]{6}$/)
       expect(contrast(identity.palette.ink, identity.palette.primary), identity.key).toBeGreaterThanOrEqual(4.5)
@@ -109,7 +108,7 @@ describe("PreviewNet crew catalogue", () => {
       hashes.add(hash)
     }
 
-    expect(hashes).toHaveLength(31)
+    expect(hashes).toHaveLength(30)
     expect(totalBytes).toBeLessThan(2_500_000)
   })
 

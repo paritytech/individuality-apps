@@ -15,6 +15,7 @@
 import { freshPoolVariable } from "./fresh-pool"
 import { identityFor, loadProfiles, type Profile } from "./profile"
 import { parseIdentities, poolVariable, secretSuffix } from "./players"
+import { profileIsolationGap } from "./network"
 import { DEFAULT_PROFILE, allRoles, knownProfiles, personaSchedule, resolveProfile, sixRoles, videoRoleProofPlan } from "./profiles"
 
 /** From dispatch to the first Register tap on a fresh runner, ONE estimate
@@ -191,6 +192,10 @@ export function botMatrix(
     // a profile that can not run yet is refused here, with its reason, never scheduled to fail later
     const pending = profiles.find((p) => p.name === profile)?.pending
     if (pending) throw new Error(`profile ${profile} is pending and can not be scheduled: ${pending}`)
+    // a profile whose outage the network can not isolate would die in "Boot and run the journey": refused here with the gap's text
+    const gapProfile = profiles.find((p) => p.name === profile)
+    const gap = gapProfile && profileIsolationGap(gapProfile, network)
+    if (gap) throw new Error(`profile ${profile} can not be scheduled on ${network}: ${gap}`)
     // a profile with a fixture points the app at a local version server, which only a `next dev` app can be told: the matrix plays a
     // deployed app, so it is run alone, as a boot_only dispatch with app=local and boot_profile=<name> (the boot identity, unregistered)
     const fixtured = profiles.find((p) => p.name === profile)?.fixture

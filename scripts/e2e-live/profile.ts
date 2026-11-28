@@ -35,7 +35,7 @@
 //                                                      min..max times, read off the host's own replies on
 //                                                      the page's websocket (store-wire.ts); default min 1,
 //                                                      max 0 = never
-//              devlog      { match, tag?, min?, max? } lines of the app's own devLog (the page's export,
+//              devlog      { match, matchAny?, tag?, min?, max? } lines of the app's own devLog (the page's export,
 //                                                      snapshots before a kill or reload included) whose
 //                                                      message contains `match` (and whose tag is `tag`),
 //                                                      min..max times; default min 1, max 0 = never. Needs
@@ -119,7 +119,7 @@ export type Guard = GuardBase &
     | { kind: "text-cleared-any"; texts: string[] }
     | { kind: "chain-report"; matchesVoteTrail: true }
     | { kind: "store-rejection"; reason: string; min?: number; max?: number }
-    | { kind: "devlog"; match: string; tag?: string; fields?: Record<string, string>; has?: string[]; min?: number; max?: number }
+    | { kind: "devlog"; match: string; matchAny?: string[]; tag?: string; fields?: Record<string, string>; has?: string[]; min?: number; max?: number }
     | { kind: "late-join-proof"; round: number; maxFirstVideoMs: number }
     | { kind: "synchronized-pc-failure"; withinMs: number; minPeers?: number }
     | { kind: "reload-video-back"; maxVideoBackMs: number }
@@ -394,7 +394,7 @@ const GUARD_KEYS: Record<GuardKind, string[]> = {
   "text-cleared-any": ["texts"],
   "chain-report": ["matchesVoteTrail"],
   "store-rejection": ["reason", "min", "max"],
-  devlog: ["match", "tag", "fields", "has", "min", "max"],
+  devlog: ["match", "matchAny", "tag", "fields", "has", "min", "max"],
   "late-join-proof": ["round", "maxFirstVideoMs"],
   "synchronized-pc-failure": ["withinMs", "minPeers"],
   "reload-video-back": ["maxVideoBackMs"],
@@ -465,6 +465,10 @@ export function validateGuard(where: string, raw: unknown): Guard {
     }
     case "devlog": {
       const g: Guard = { ...base, kind, match: str(`${where}.match`, raw.match), ...(raw.tag !== undefined && { tag: str(`${where}.tag`, raw.tag) }), ...bounds(true) }
+      if (raw.matchAny !== undefined) {
+        if (!Array.isArray(raw.matchAny) || raw.matchAny.length === 0) fail(`${where}.matchAny`, "expected a non-empty array of strings")
+        g.matchAny = (raw.matchAny as unknown[]).map((m, i) => str(`${where}.matchAny[${i}]`, m))
+      }
       if (raw.fields !== undefined) {
         const fields = raw.fields
         if (!isObj(fields)) fail(`${where}.fields`, "expected an object")
@@ -822,7 +826,7 @@ export function describeGuard(g: Guard): string {
       const fields = g.fields ? ` with fields ${JSON.stringify(g.fields)}` : ""
       const has = g.has?.length ? ` with ${g.has.map((key) => `${key} present`).join(" and ")}` : ""
       const seen = g.max === 0 ? "never" : bound(g) ? `${bound(g)} times` : "at least once"
-      return `${pending}devLog${g.tag ? ` [${g.tag}]` : ""} line containing ${JSON.stringify(g.match)}${fields}${has} ${seen}`
+      return `${pending}devLog${g.tag ? ` [${g.tag}]` : ""} line containing ${[g.match, ...(g.matchAny ?? [])].map((m) => JSON.stringify(m)).join(" or ")}${fields}${has} ${seen}`
     }
     case "late-join-proof":
       return `${pending}cold late join opens only round ${g.round}, receives co-player video within ${g.maxFirstVideoMs} ms, and never taps or seals before clock ready`

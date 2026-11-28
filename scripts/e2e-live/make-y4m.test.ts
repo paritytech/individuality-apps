@@ -36,9 +36,9 @@ describe("identity fake-camera clips", () => {
   it("plans one unique camera source for every game-ready identity", () => {
     const profiles = allRoles(loadProfiles(), "previewnet").map(({ profile }) => profile)
     const plans = clipPlansForProfiles("/clips", profiles, "game")
-    expect(profiles).toHaveLength(31)
-    expect(plans).toHaveLength(31)
-    expect(new Set(plans.map((plan) => plan.kind === "identity" ? plan.identity.key : null)).size).toBe(31)
+    expect(profiles).toHaveLength(30)
+    expect(plans).toHaveLength(30)
+    expect(new Set(plans.map((plan) => plan.kind === "identity" ? plan.identity.key : null)).size).toBe(30)
   })
 
   it("writes deterministic moving clips whose identities have different pixels", async () => {

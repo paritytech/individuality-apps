@@ -210,7 +210,7 @@ export function evaluateGuard(
       // no lines read is no evidence of nothing logged
       if (!d || d.lines.length === 0) return { ...b, status: "not-evaluated", evidence: `no devLog lines: ${d?.note ?? "not exported"}` }
       const hits = d.lines.filter((line) => {
-        if ((g.tag !== undefined && line.tag !== g.tag) || !line.message.includes(g.match)) return false
+        if ((g.tag !== undefined && line.tag !== g.tag) || ![g.match, ...(g.matchAny ?? [])].some((m) => line.message.includes(m))) return false
         const fields = logFields(line.message)
         return Object.entries(g.fields ?? {}).every(([key, value]) => fields[key] === value) && (g.has ?? []).every((key) => fields[key] !== undefined)
       })

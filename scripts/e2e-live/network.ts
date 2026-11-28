@@ -69,6 +69,15 @@ export const outageHost = (target: string, network: RunNetwork): string => {
   return OUTAGE_TARGETS[network][target] ?? target
 }
 
+/** Why `profile` can not run on `network`: its timeline cuts an outage target the network can not isolate (ISOLATION_GAPS), as
+ *  that gap's own text, or undefined when it can run. The one place "runnable on a network" asks this: allRoles (so the nightly
+ *  planner and the all/rotate presets) and botMatrix (an explicit dispatch) both use it. */
+export const profileIsolationGap = (profile: Pick<Profile, "network">, network: RunNetwork | string): string | undefined => {
+  const gaps = ISOLATION_GAPS[network as RunNetwork] ?? {}
+  for (const step of profile.network.timeline ?? []) if (step.outage !== undefined && gaps[step.outage] !== undefined) return `outage "${step.outage}" can not run on ${network}: ${gaps[step.outage]}`
+  return undefined
+}
+
 export type NetemCall = [verb: "apply" | "swap" | "custom" | "spike" | "outage" | "host-chain-cut" | "host-chain-hang" | "udp-cut" | "video-stall" | "blackout" | "block-udp" | "allow-udp" | "clear" | "show" | "stats", ...args: string[]]
 
 /** A game moment a step can wait for instead of a turn: the journey's Register tap, or the confirm stage (the last turn's end

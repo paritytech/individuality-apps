@@ -24,7 +24,7 @@ const capacityPlan = () => {
 }
 
 describe("PreviewNet Crew capacity plan", () => {
-  it("pins the reviewed 31-profile plan to 20 physical runner groups", () => {
+  it("pins the reviewed 30-profile plan to 19 physical runner groups", () => {
     const { entries, plan } = capacityPlan()
     const sizes = plan.include.map(({ size }) => size)
 
@@ -36,9 +36,9 @@ describe("PreviewNet Crew capacity plan", () => {
       twoBotGroups: sizes.filter((size) => size === 2).length,
       threeBotGroups: sizes.filter((size) => size === 3).length,
     }, "Crew shape changed: review the new runner plan and capacity evidence, then re-pin this contract and its investigation document together").toEqual({
-      logicalBots: 31,
-      physicalGroups: 20,
-      singletonGroups: 14,
+      logicalBots: 30,
+      physicalGroups: 19,
+      singletonGroups: 13,
       sharedGroups: 6,
       twoBotGroups: 1,
       threeBotGroups: 5,

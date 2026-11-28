@@ -205,7 +205,7 @@ describe("PreviewNet Crew site", () => {
     expect(() => readCrewSiteState(stateDir)).toThrow(/unknown field unexpectedField/)
   })
 
-  it("renders escaped, accessible pages and all 31 identities", () => {
+  it("renders escaped, accessible pages and all 30 identities", () => {
     const { run, suite } = records()
     run.failures = ["<script>alert('no')</script>"]
     const stateDir = stateWith(validatePublicRunRecord(run), suite)
@@ -216,7 +216,7 @@ describe("PreviewNet Crew site", () => {
     const identity = readFileSync(join(outputDir, "identities", run.identity!.key, "index.html"), "utf8")
     const runPage = readFileSync(join(outputDir, "runs", run.key, "index.html"), "utf8")
     const suitePage = readFileSync(join(outputDir, "suites", suite.key, "index.html"), "utf8")
-    expect((home.match(/class="identity-card /g) ?? [])).toHaveLength(31)
+    expect((home.match(/class="identity-card /g) ?? [])).toHaveLength(30)
     expect(home).toContain("PreviewNet Crew")
     expect(home).toMatch(/Game<\/span> passed/)
     expect(home).toMatch(/Recording<\/span> Recorded/)

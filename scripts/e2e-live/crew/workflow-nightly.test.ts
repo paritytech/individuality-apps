@@ -62,15 +62,15 @@ describe("complete-suite run, log, stop workflow", () => {
     }
   })
 
-  it("plans the 47 non-telemetry profiles, with stale-build final and boot-only", () => {
+  it("plans the 46 non-telemetry profiles, with stale-build final and boot-only", () => {
     const profiles = loadProfiles()
     const identities = Object.fromEntries(profiles.flatMap((profile) => {
       const identity = identityFor(profile, "previewnet")
       return identity ? [[identity, "available"]] : []
     }))
     const plan = buildNightlyPlan({ suiteId: "manual-suite-run-42", identities })
-    expect(plan.waves.flatMap(({ coverageProfiles }) => coverageProfiles)).toHaveLength(47)
-    expect(plan.waves.flatMap(({ profiles }) => profiles)).toHaveLength(50)
+    expect(plan.waves.flatMap(({ coverageProfiles }) => coverageProfiles)).toHaveLength(46)
+    expect(plan.waves.flatMap(({ profiles }) => profiles)).toHaveLength(49)
     expect(plan.waves.at(-1)).toMatchObject({ key: "check-stale-build", bootOnly: true, bootProfile: "check-stale-build" })
     expect(suite.jobs.checks.with.classification).toBe("harness-check")
     expect(suite.jobs["stale-build"].with.classification).toBe("harness-check")
