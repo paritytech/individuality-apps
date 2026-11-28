@@ -12,6 +12,10 @@ const host = vi.hoisted(() => ({
   deriveEntropy: vi.fn(),
   /** the next read of this product's storage never answers */
   hangNextRead: false,
+  /** Humanity's storage rejects every read with this */
+  humanityError: null as unknown,
+  /** this product's storage rejects every read with this */
+  ownError: null as unknown,
   logs: [] as string[],
 }))
 
@@ -20,6 +24,7 @@ vi.mock("@parity/product-sdk-host", () => ({ deriveEntropy: host.deriveEntropy }
 vi.mock("./storage", () => ({
   hostStorage: async () => ({
     readJSON: (key: string) => {
+      if (host.ownError) return Promise.reject(host.ownError)
       if (host.hangNextRead) {
         host.hangNextRead = false
         return new Promise(() => {})
@@ -31,11 +36,17 @@ vi.mock("./storage", () => ({
 }))
 
 vi.mock("./game-registration", () => ({
-  humanityStorage: async () => ({ readJSON: async (key: string) => host.humanity.get(key) ?? null }),
+  humanityStorage: async () => ({
+    readJSON: async (key: string) => {
+      if (host.humanityError) throw host.humanityError
+      return host.humanity.get(key) ?? null
+    },
+  }),
 }))
 
 import { communicationKeyRecord, freshCommunicationKey } from "@individuality/sign-up"
-import { communicationIdentifier, signallingSecret } from "./communication-key"
+import { communicationIdentifier, lookUpSignallingSecret, signallingSecret } from "./communication-key"
+import { HostReadRefused } from "./error-detail"
 
 const ENTROPY = new Uint8Array(32).fill(5)
 
@@ -44,6 +55,8 @@ beforeEach(() => {
   host.humanity.clear()
   host.deriveEntropy.mockReset()
   host.hangNextRead = false
+  host.humanityError = null
+  host.ownError = null
   host.logs.length = 0
 })
 
@@ -172,5 +185,116 @@ describe("the secret the game's signalling is sealed with", () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe("why this player's own key was or was not found", () => {
+  const engine = (identifier: Uint8Array | null, gameIndex = 9) => ({
+    communicationIdentifier: vi.fn(async () => identifier),
+    game: vi.fn(async () => ({ index: gameIndex }) as never),
+  })
+
+  beforeEach(() => {
+    host.deriveEntropy.mockResolvedValue({ ok: false, error: new Error("denied") })
+  })
+
+  it("says read-refused when Humanity's storage refuses the read and no key matches, and keeps the host's words", async () => {
+    host.humanityError = new HostReadRefused("peopl.paseo", "AccessNotGranted")
+
+    const lookup = await lookUpSignallingSecret("ivan", engine(freshCommunicationKey().publicKey))
+
+    expect(lookup).toEqual({
+      secret: null,
+      cause: "read-refused",
+      reads: { own: "answered", humanity: "refused" },
+      refusal: "AccessNotGranted",
+    })
+  })
+
+  it("says no-identifier when the chain holds none for the player", async () => {
+    expect(await lookUpSignallingSecret("judy", engine(null))).toEqual({ secret: null, cause: "no-identifier" })
+  })
+
+  it("says no-match when every read answered and no key matches", async () => {
+    host.humanity.set(COMMUNICATION_KEY_KEY, communicationKeyRecord(9, freshCommunicationKey()))
+
+    const lookup = await lookUpSignallingSecret("kim", engine(freshCommunicationKey().publicKey))
+
+    expect(lookup).toEqual({ secret: null, cause: "no-match", reads: { own: "answered", humanity: "answered" } })
+  })
+
+  it("says failed for a read that broke without a refusal, and no-answer for the lookup: nothing definite", async () => {
+    host.humanityError = new Error("bridge closed")
+
+    const lookup = await lookUpSignallingSecret("leo", engine(freshCommunicationKey().publicKey))
+
+    expect(lookup).toMatchObject({ secret: null, cause: "no-answer", reads: { own: "answered", humanity: "failed" } })
+  })
+
+  it("keeps read-refused first, over another read that failed", async () => {
+    host.humanityError = new HostReadRefused("peopl.paseo", "AccessNotGranted")
+    host.ownError = new Error("bridge closed")
+
+    const lookup = await lookUpSignallingSecret("lena", engine(freshCommunicationKey().publicKey))
+
+    expect(lookup).toMatchObject({ cause: "read-refused", reads: { own: "failed", humanity: "refused" } })
+  })
+
+  it("says no-answer when the game read or the host's entropy call fails", async () => {
+    const failingGame = {
+      communicationIdentifier: vi.fn(async () => freshCommunicationKey().publicKey),
+      game: vi.fn(async () => {
+        throw new Error("chain read failed")
+      }),
+    }
+    expect((await lookUpSignallingSecret("lars", failingGame)).cause).toBe("no-answer")
+
+    host.deriveEntropy.mockRejectedValue(new Error("bridge closed"))
+    expect((await lookUpSignallingSecret("lars", engine(freshCommunicationKey().publicKey))).cause).toBe("no-answer")
+  })
+
+  it("says no-answer when a read hangs, for the kept keys and for the identifier", async () => {
+    vi.useFakeTimers()
+    try {
+      host.hangNextRead = true
+      const kept = lookUpSignallingSecret("mia", engine(freshCommunicationKey().publicKey))
+      await vi.advanceTimersByTimeAsync(5_000)
+      expect(await kept).toEqual({ secret: null, cause: "no-answer", reads: { own: "no-answer", humanity: "answered" } })
+
+      const hung = { communicationIdentifier: vi.fn(() => new Promise<Uint8Array | null>(() => {})), game: vi.fn(async () => ({ index: 9 }) as never) }
+      const identifier = lookUpSignallingSecret("mia", hung)
+      await vi.advanceTimersByTimeAsync(5_000)
+      expect(await identifier).toEqual({ secret: null, cause: "no-answer" })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("says read-refused over no-answer: the refusal is why nothing could match", async () => {
+    vi.useFakeTimers()
+    try {
+      host.hangNextRead = true
+      host.humanityError = new HostReadRefused("peopl.paseo", "AccessNotGranted")
+      const lookup = lookUpSignallingSecret("nora", engine(freshCommunicationKey().publicKey))
+      await vi.advanceTimersByTimeAsync(5_000)
+      expect((await lookup).cause).toBe("read-refused")
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("names the key that matched: this product's, Humanity's or the derived one, also once it is kept", async () => {
+    const jollity = freshCommunicationKey()
+    const humanity = freshCommunicationKey()
+    host.stored.set(COMMUNICATION_KEY_KEY, communicationKeyRecord(9, jollity))
+    host.humanity.set(COMMUNICATION_KEY_KEY, communicationKeyRecord(9, humanity))
+
+    expect(await lookUpSignallingSecret("olga", engine(jollity.publicKey))).toMatchObject({ secret: jollity.secret, cause: "found", source: "jollity" })
+    expect(await lookUpSignallingSecret("olga", engine(humanity.publicKey))).toMatchObject({ secret: humanity.secret, cause: "found", source: "humanity" })
+    expect(await lookUpSignallingSecret("olga", engine(humanity.publicKey))).toEqual({ secret: humanity.secret, cause: "found", source: "humanity" })
+
+    host.deriveEntropy.mockResolvedValue({ ok: true, value: ENTROPY })
+    const derived = communicationKeyFrom(ENTROPY, 13)
+    expect(await lookUpSignallingSecret("olga", engine(derived.publicKey, 13))).toMatchObject({ secret: derived.secret, cause: "found", source: "derived" })
   })
 })

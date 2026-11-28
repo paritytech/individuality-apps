@@ -43,12 +43,33 @@ describe("masking-safe literals", () => {
   )
 })
 
+describe("masking-safe sign-up surface vocabulary", () => {
+  // the join and game span attributes of lib/journeys/game-trace.ts noteSignUpSurface
+  const words = [
+    "signup.surface", "signup.humanity_read",
+    "humanity", "app", "chat", "none", "unreadable",
+    "ok", "refused", "failed", "no-answer", "no-host",
+  ]
+  it.each(words.map((word) => [word]))("%s", (word) => {
+    expect(isMaskSafe(word)).toBe(true)
+  })
+})
+
 describe("masking-safe sealed signalling vocabulary", () => {
   // the per-player flag on the game trace, and the sealed wire's counters in
   // the connection_stalled detail (packages/jollity-statement-core health.ts)
   const words = [
     "rtc.no_signalling_key",
     "ownKeyMissing",
+    "ownKeyFound",
+    "ownKeyHung",
+    // the own-key-missing failure (lib/journeys/game-trace.ts ownKeyMissed) and the join's own-key attributes
+    "own-key-missing", "rtc.own_key.cause", "rtc.own_key.source", "rtc.own_key.recovered",
+    "found", "no-identifier", "read-refused", "no-match", "no-answer",
+    "jollity", "humanity", "derived",
+    "own_read", "humanity_read", "refusal", "humanity_product",
+    "answered", "refused", "failed",
+    "peopl.paseo", "AccessNotGranted",
     "peerIdMissing",
     "openFailed",
     "plaintextDropped",
@@ -290,7 +311,7 @@ describe("masking-safe vocabulary of the lanes", () => {
 
 describe("masking-safe layer names", () => {
   // the health ladder's layers, packages/jollity-statement-core/src/health.ts `Layer`
-  const LAYERS = ["internet", "turn-credentials", "store-write", "store-read", "signalling", "ice", "media", "camera", "device"]
+  const LAYERS = ["internet", "own-key", "turn-credentials", "store-write", "store-read", "signalling", "ice", "media", "camera", "device"]
   it.each(LAYERS.map((layer) => [layer]))("%s is sent under a masking-safe name", (layer) => {
     expect(isMaskSafe(layerName(layer))).toBe(true)
   })

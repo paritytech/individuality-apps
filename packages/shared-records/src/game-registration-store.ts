@@ -8,7 +8,7 @@
  * and one over truapi's cross-product read of the other product's storage
  * (read only), and reads both.
  */
-import { GAME_REGISTRATION_KEY, liveGameRegistration, type GameRegistration } from "./game-registration"
+import { GAME_REGISTRATION_KEY, liveGameRegistration, parseGameRegistration, type GameRegistration } from "./game-registration"
 
 /** What a store needs of a storage handle: JSON under a key. `writeJSON` is absent for a reader. */
 export interface JSONStorage {
@@ -22,6 +22,13 @@ export interface GameRegistrationStore {
    * `now`, or no storage to read. Rejects when the storage does.
    */
   read(now?: number): Promise<GameRegistration | null>
+  /**
+   * The record whatever its age, or null: none, cleared, malformed, or no
+   * storage to read. Only for asking which surface made a game's sign-up;
+   * never for whether a sign-up is still on its way. Rejects when the storage
+   * does.
+   */
+  readAny(): Promise<GameRegistration | null>
   /**
    * Writes the record, or clears it with null. Writes go one after the other,
    * so a slow write of the tap never lands after the end, and a write that
@@ -38,6 +45,10 @@ export function gameRegistrationStore(open: () => Promise<JSONStorage | null>): 
     async read(now = Date.now()) {
       const storage = await open()
       return storage ? liveGameRegistration(await storage.readJSON(GAME_REGISTRATION_KEY), now) : null
+    },
+    async readAny() {
+      const storage = await open()
+      return storage ? parseGameRegistration(await storage.readJSON(GAME_REGISTRATION_KEY)) : null
     },
     write(record) {
       const next = writing.then(async () => {

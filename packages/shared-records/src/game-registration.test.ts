@@ -2,10 +2,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { describe, expect, it } from "vitest"
-import { ENDED_TTL_MS, liveGameRegistration, REGISTERING_TTL_MS, registrationInFlight, SENT_TTL_MS } from "./game-registration"
+import { ENDED_TTL_MS, liveGameRegistration, parseGameRegistration, REGISTERING_TTL_MS, registrationInFlight, SENT_TTL_MS } from "./game-registration"
 
 const NOW = 1_700_000_000_000
 const base = { gameIndex: 7, surface: "chat", attempt: NOW - 5_000 } as const
+
+describe("parseGameRegistration", () => {
+  it("keeps a well-formed record of any age, and drops a malformed one", () => {
+    const old = { ...base, phase: "registered", at: NOW - ENDED_TTL_MS * 1_000 } as const
+    expect(parseGameRegistration(old)).toEqual(old)
+    expect(parseGameRegistration({ ...old, surface: "humanity" })).toEqual({ ...old, surface: "humanity" })
+    expect(parseGameRegistration({ ...old, gameIndex: 7.5 })).toBeNull()
+    expect(parseGameRegistration({ ...old, phase: "done" })).toBeNull()
+    expect(parseGameRegistration(null)).toBeNull()
+  })
+})
 
 describe("liveGameRegistration", () => {
   it("keeps a fresh record of every phase, from either surface", () => {

@@ -9,6 +9,7 @@ const host = vi.hoisted(() => ({
   own: { readJSON: vi.fn(), readString: vi.fn(), writeJSON: vi.fn() },
   store: new Map<string, unknown>(),
   notifications: null as { push: () => unknown; cancel: (id: number) => Promise<void> } | null,
+  outside: false,
 }))
 const recordCount = vi.hoisted(() => vi.fn())
 const stored = vi.hoisted(() => ({
@@ -18,7 +19,7 @@ const stored = vi.hoisted(() => ({
 
 vi.mock("@parity/product-sdk-host", () => ({
   asProductId: (value: string) => value,
-  getTruApi: async () => ({ localStorage: { read: host.read } }),
+  getTruApi: async () => (host.outside ? null : { localStorage: { read: host.read } }),
   getHostLocalStorage: async () => host.own,
   getNotificationManager: async () => host.notifications,
   formatHostError: (error: unknown) => String(error),
@@ -33,7 +34,8 @@ vi.mock("./storage", () => ({
 }))
 
 import { WORKER_NOTIFICATIONS_KEY } from "../debug/worker-evidence"
-import { humanityProduct, readGameRegistration, recordSignUp, writeGameRegistration } from "./game-registration"
+import { HostReadRefused } from "./error-detail"
+import { humanityProduct, readGameRegistration, readSignUpSurface, recordSignUp, writeGameRegistration } from "./game-registration"
 
 const record = (at: number, surface: GameRegistration["surface"]): GameRegistration => ({
   gameIndex: 7,
@@ -102,6 +104,114 @@ describe("the game registration, from both products' storage", () => {
 
     expect(host.own.writeJSON).toHaveBeenCalledWith(GAME_REGISTRATION_KEY, record(1, "app"))
     expect(host.read).not.toHaveBeenCalled()
+  })
+})
+
+describe("the sign-up surface of the game the player joins", () => {
+  // a sign-up hours before its game: long past the lifetime readGameRegistration keeps
+  const HOURS_AGO = Date.now() - 5 * 3_600_000
+  const landed = (surface: GameRegistration["surface"], gameIndex = 7, at = HOURS_AGO): GameRegistration => ({
+    gameIndex,
+    phase: "registered",
+    surface,
+    at,
+    attempt: at,
+  })
+
+  beforeEach(() => {
+    host.outside = false
+    host.own.readJSON.mockResolvedValue(null)
+    host.read.mockResolvedValue(ok({ value: null }))
+  })
+
+  it("reads Humanity's sign-up for this game, whatever its age, when the grant is there", async () => {
+    host.read.mockResolvedValue(ok({ value: toHex(landed("humanity")) }))
+
+    expect(await readSignUpSurface(7)).toEqual({ surface: "humanity", humanityRead: "ok" })
+    expect(await readGameRegistration()).toBeNull()
+  })
+
+  it("says unreadable, and refused, when Humanity's storage refuses the read and Jollity holds nothing", async () => {
+    host.read.mockResolvedValue(refused("AccessNotGranted"))
+
+    expect(await readSignUpSurface(7)).toEqual({ surface: "unreadable", humanityRead: "refused" })
+  })
+
+  it.each(["app", "chat"] as const)("names a sign-up from Jollity's %s, and still says Humanity's read was refused", async (surface) => {
+    host.own.readJSON.mockResolvedValue(landed(surface))
+    host.read.mockResolvedValue(refused("AccessNotGranted"))
+
+    expect(await readSignUpSurface(7)).toEqual({ surface, humanityRead: "refused" })
+  })
+
+  it("says none when both stores answered with no record for this game, and counts a record for another game as none", async () => {
+    expect(await readSignUpSurface(7)).toEqual({ surface: "none", humanityRead: "ok" })
+    host.read.mockResolvedValue(ok({ value: toHex(landed("humanity", 6)) }))
+    host.own.readJSON.mockResolvedValue(landed("app", 6))
+
+    expect(await readSignUpSurface(7)).toEqual({ surface: "none", humanityRead: "ok" })
+  })
+
+  it("says unreadable, and no-answer, when Humanity's read hangs and Jollity holds nothing", async () => {
+    vi.useFakeTimers()
+    try {
+      host.read.mockReturnValue(new Promise(() => {}))
+      const read = readSignUpSurface(7)
+      await vi.advanceTimersByTimeAsync(8_000)
+
+      expect(await read).toEqual({ surface: "unreadable", humanityRead: "no-answer" })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("says failed for a read that broke without a refusal", async () => {
+    host.read.mockRejectedValue(new Error("bridge closed"))
+
+    expect(await readSignUpSurface(7)).toEqual({ surface: "unreadable", humanityRead: "failed" })
+  })
+
+  it("says no-host outside a host", async () => {
+    host.outside = true
+
+    expect(await readSignUpSurface(7)).toEqual({ surface: "unreadable", humanityRead: "no-host" })
+  })
+
+  it("says unreadable when the game is not known, since no record can be matched to it", async () => {
+    host.read.mockResolvedValue(ok({ value: toHex(landed("humanity")) }))
+
+    expect(await readSignUpSurface(null)).toEqual({ surface: "unreadable", humanityRead: "ok" })
+  })
+
+  it("keeps the sign-up that landed over a later one that failed, else the latest", async () => {
+    host.own.readJSON.mockResolvedValue({ ...landed("app", 7, HOURS_AGO + 60_000), phase: "failed" })
+    host.read.mockResolvedValue(ok({ value: toHex(landed("humanity")) }))
+    expect((await readSignUpSurface(7)).surface).toBe("humanity")
+
+    host.own.readJSON.mockResolvedValue({ ...landed("chat", 7, HOURS_AGO + 60_000), phase: "sent" })
+    host.read.mockResolvedValue(ok({ value: toHex({ ...landed("humanity"), phase: "failed" }) }))
+    expect((await readSignUpSurface(7)).surface).toBe("chat")
+  })
+
+  it("counts only a missing grant as refused, in the host's nesting too; any other host error is a read that failed", async () => {
+    host.read.mockResolvedValue(refused({ tag: "Domain", value: { tag: "V1", value: { tag: "AccessNotGranted" } } }))
+    expect((await readSignUpSurface(7)).humanityRead).toBe("refused")
+
+    host.read.mockResolvedValue(refused({ tag: "Domain", value: { tag: "V1", value: { tag: "Full" } } }))
+    expect(await readSignUpSurface(7)).toEqual({ surface: "unreadable", humanityRead: "failed" })
+
+    host.read.mockResolvedValue(refused("Unknown: storage backend gone"))
+    expect((await readSignUpSurface(7)).humanityRead).toBe("failed")
+  })
+
+  it("throws a refusal that keeps the host's reason apart from the line it logs", async () => {
+    host.read.mockResolvedValue(refused("AccessNotGranted"))
+    const { humanityStorage } = await import("./game-registration")
+    const storage = await humanityStorage()
+
+    const error = await storage!.readJSON(GAME_REGISTRATION_KEY).catch((thrown: unknown) => thrown)
+    expect(error).toBeInstanceOf(HostReadRefused)
+    expect(error).toMatchObject({ product: "peopl.paseo", reason: "AccessNotGranted", message: "peopl.paseo refused the read: AccessNotGranted" })
   })
 })
 

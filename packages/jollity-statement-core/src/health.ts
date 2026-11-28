@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * Connection health as a LADDER: eight layers, evaluated in order, where the
+ * Connection health as a LADDER: ten layers, evaluated in order, where the
  * first failing rung is the blame and everything under it is unevaluated
  * rather than innocent.
  *
@@ -110,6 +110,7 @@ function isWriteFailure(reason: SignalReason): boolean {
 
 export type Layer =
   | "internet"
+  | "own-key"
   | "turn-credentials"
   | "store-write"
   | "store-read"
@@ -253,6 +254,24 @@ export function classifyLadder(input: LadderInput): LadderVerdict {
 
   // ── RUNG 1 — internet ───────────────────────────────────────────────────
   rungs.push(online ? ok("internet", "navigator.onLine") : fail("internet", "navigator.onLine is false"))
+
+  // ── RUNG 1b — this player's own key ─────────────────────────────────────
+  // Every offer and candidate is sealed with this player's registered key
+  // (statementTransport `keys`). Without it no co-player gets a frame, the
+  // relay and every rung under it fail as consequences, and the blame must
+  // not go to the network. Above rung 2 and not a known blocker, so it takes
+  // the blame ahead of a missing relay.
+  const sealed = stats?.sealed
+  if (!stats) rungs.push(unknown("own-key", "signalling transport not constructed yet"))
+  else if (!sealed) rungs.push(ok("own-key", "no own key needed", "this wire seals nothing"))
+  else if (sealed.ownKeyFound) rungs.push(ok("own-key", "this player's registered key was found"))
+  else if (sealed.ownKeyMissing > 0)
+    rungs.push(fail("own-key", `no registered key found for this player after ${sealed.ownKeyMissing} lookup(s): no co-player gets a frame`))
+  // a lookup that gave no answer says nothing yet: a slow host read must not
+  // tell a player whose key is fine that their video can't start
+  else if (sealed.ownKeyHung > 0)
+    rungs.push(unknown("own-key", `${sealed.ownKeyHung} lookup(s) of this player's registered key gave no answer`))
+  else rungs.push(unknown("own-key", "this player's registered key not looked up yet"))
 
   // ── RUNG 2 — TURN credentials ───────────────────────────────────────────
   if (!ice) {

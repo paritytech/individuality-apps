@@ -151,6 +151,143 @@ describe("journey.join", () => {
     expect(journeysNamed("join")[0].attrs["rtc.no_signalling_key"]).toBe("false")
   })
 
+  it("says why the own key was missing, which key matched once found, and that it recovered", () => {
+    trace.beginJoin({ cameraWarm: false })
+    trace.signallingKeyLookedUp(false, { cause: "read-refused" })
+    expect(journeysNamed("join")[0].attrs).toMatchObject({ "rtc.no_signalling_key": "true", "rtc.own_key.cause": "read-refused" })
+    expect(journeysNamed("join")[0].attrs["rtc.own_key.recovered"]).toBeUndefined()
+    trace.signallingKeyLookedUp(true, { cause: "found", source: "humanity" })
+    expect(journeysNamed("join")[0].attrs).toMatchObject({
+      "rtc.no_signalling_key": "false",
+      "rtc.own_key.cause": "found",
+      "rtc.own_key.source": "humanity",
+      "rtc.own_key.recovered": "true",
+    })
+  })
+
+  it("does not call a key found at the first try recovered", () => {
+    trace.beginJoin({ cameraWarm: false })
+    trace.signallingKeyLookedUp(true, { cause: "found", source: "jollity" })
+    expect(journeysNamed("join")[0].attrs["rtc.own_key.recovered"]).toBeUndefined()
+  })
+
+  const refusedMiss = {
+    cause: "read-refused",
+    reads: { own: "answered", humanity: "refused" },
+    refusal: "AccessNotGranted",
+    humanityProduct: "peopl.paseo",
+  } as const
+
+  const refused = Promise.resolve({ surface: "unreadable", humanityRead: "refused" })
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+  it("sends own-key-missing once per join, with the cause as its reason and the values in its context", async () => {
+    trace.beginJoin({ cameraWarm: false })
+    trace.ownKeyMissed(refusedMiss, refused)
+    trace.ownKeyMissed(refusedMiss, refused)
+    trace.ownKeyMissed({ cause: "no-match", reads: { own: "answered", humanity: "answered" }, humanityProduct: "peopl.paseo" }, Promise.resolve(null))
+    await flush()
+    expect(recorded.failures).toEqual([
+      {
+        kind: "own-key-missing",
+        details: {
+          reason: "read-refused",
+          context: {
+            humanity_product: "peopl.paseo",
+            own_read: "answered",
+            humanity_read: "refused",
+            refusal: "AccessNotGranted",
+            "signup.surface": "unreadable",
+            "signup.humanity_read": "refused",
+          },
+        },
+        journey: "join",
+        expected: false,
+      },
+    ])
+  })
+
+  it("claims the join at the miss: a slow sign-up read lands on that join, and the next join may send again", async () => {
+    vi.useFakeTimers()
+    trace.beginJoin({ cameraWarm: false })
+    const first = journeysNamed("join")[0].handle
+    let answer: (facts: { surface: string; humanityRead: string }) => void = () => {}
+    trace.ownKeyMissed(refusedMiss, new Promise((resolve) => (answer = resolve)))
+    // the join ends and the next one opens before the sign-up read is back
+    trace.leftGame()
+    await vi.advanceTimersByTimeAsync(10)
+    trace.beginJoin({ cameraWarm: false })
+    answer({ surface: "unreadable", humanityRead: "refused" })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(recorded.failures).toHaveLength(1)
+    expect(recorded.failures[0].details.context?.["signup.surface"]).toBe("unreadable")
+    expect(first.ended).toBe(true)
+    // it went to the join that missed, not the one open now
+    expect(journeysNamed("join")[1].attrs["journey.expected"]).toBeUndefined()
+    // the second join has its own claim
+    trace.ownKeyMissed({ cause: "no-identifier", humanityProduct: "peopl.paseo" }, Promise.resolve(null))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(recorded.failures.map((failure) => failure.details.reason)).toEqual(["read-refused", "no-identifier"])
+  })
+
+  it("holds a miss that came with no join open for the next join, and sends it once", async () => {
+    trace.ownKeyMissed(refusedMiss, refused)
+    trace.ownKeyMissed({ cause: "no-match", humanityProduct: "peopl.paseo" }, refused)
+    await flush()
+    expect(recorded.failures).toHaveLength(0)
+    trace.beginJoin({ cameraWarm: false })
+    trace.ownKeyMissed(refusedMiss, refused)
+    await flush()
+    expect(recorded.failures).toEqual([expect.objectContaining({ kind: "own-key-missing", journey: "join", details: expect.objectContaining({ reason: "read-refused" }) })])
+  })
+
+  it("drops a held miss once a later lookup finds the key: a recovered player sends nothing on the next join", async () => {
+    trace.ownKeyMissed(refusedMiss, refused)
+    trace.signallingKeyLookedUp(true, { cause: "found", source: "humanity" })
+    trace.beginJoin({ cameraWarm: false })
+    await flush()
+    expect(recorded.failures).toHaveLength(0)
+  })
+
+  it("sends nothing for a lookup whose reads gave no answer, and the next real miss still goes", async () => {
+    trace.beginJoin({ cameraWarm: false })
+    trace.ownKeyMissed({ cause: "no-answer", reads: { own: "no-answer", humanity: "answered" }, humanityProduct: "peopl.paseo" }, Promise.resolve(null))
+    await flush()
+    expect(recorded.failures).toHaveLength(0)
+    trace.ownKeyMissed({ cause: "no-match", reads: { own: "answered", humanity: "answered" }, humanityProduct: "peopl.paseo" }, Promise.resolve(null))
+    await flush()
+    expect(recorded.failures).toEqual([expect.objectContaining({ kind: "own-key-missing", details: expect.objectContaining({ reason: "no-match" }) })])
+  })
+
+  it("masks a refusal the host words with a scrubbed word, and caps it", async () => {
+    trace.beginJoin({ cameraWarm: false })
+    trace.ownKeyMissed({ ...refusedMiss, refusal: `Unauthorized ${"x".repeat(300)}` }, Promise.resolve(null))
+    await flush()
+    const refusal = recorded.failures[0].details.context?.refusal ?? ""
+    expect(refusal.startsWith("Unau*horized")).toBe(true)
+    expect(refusal.length).toBeLessThanOrEqual(120)
+  })
+
+  it("puts the sign-up surface on the join and the game, even when it was read before the join opened", () => {
+    trace.noteSignUpSurface(5, { surface: "unreadable", humanityRead: "refused" })
+    trace.beginJoin({ cameraWarm: false })
+    expect(journeysNamed("join")[0].attrs["signup.surface"]).toBeUndefined()
+    trace.noteGame(5, 0)
+    expect(journeysNamed("join")[0].attrs).toMatchObject({ "signup.surface": "unreadable", "signup.humanity_read": "refused" })
+    trace.roundChanged(0)
+    expect(journeysNamed("game")[0].attrs).toMatchObject({ "signup.surface": "unreadable", "signup.humanity_read": "refused" })
+    trace.noteSignUpSurface(5, { surface: "humanity", humanityRead: "ok" })
+    expect(journeysNamed("join")[0].attrs).toMatchObject({ "signup.surface": "humanity", "signup.humanity_read": "ok" })
+    expect(journeysNamed("game")[0].attrs).toMatchObject({ "signup.surface": "humanity", "signup.humanity_read": "ok" })
+  })
+
+  it("leaves off a sign-up surface read for another game", () => {
+    trace.noteSignUpSurface(4, { surface: "app", humanityRead: "ok" })
+    trace.beginJoin({ cameraWarm: false })
+    trace.noteGame(5, 0)
+    expect(journeysNamed("join")[0].attrs["signup.surface"]).toBeUndefined()
+  })
+
   it("ends full once every present peer is connected, with each peer's path", () => {
     trace.beginJoin({ cameraWarm: true })
     trace.cameraSettled({ kind: "live" })

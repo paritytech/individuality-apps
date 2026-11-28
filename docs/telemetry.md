@@ -32,7 +32,19 @@ When a DSN is set:
   events of one kind per page session. There is no switch to leave the player's identity out while
   telemetry is on; Humanity has one (`VITE_SENTRY_SEND_IDENTITY`).
 - **Journeys** (sign-up, joining a game, the game itself, the payoff) as transactions with their
-  timings.
+  timings. The join and the game say which surface signed the player up for that game
+  (`signup.surface`: `humanity`, `app`, `chat`, `none`, or `unreadable` when no record was found
+  and a store could not be read) and how the read of Humanity's store went
+  (`signup.humanity_read`: `ok`, `refused`, `failed`, `no-answer` or `no-host`).
+- **A missing video key.** The video signalling of a game is sealed with the player's own key.
+  When it cannot be found, the join and the game say why (`rtc.own_key.cause`: `read-refused`,
+  `no-match`, `no-identifier`, or `no-answer` for a read that hung or failed), which kept key matched once it is found
+  (`rtc.own_key.source`: `jollity`, `humanity` or `derived`), and `rtc.own_key.recovered` when a
+  later try found it. The failure `own-key-missing` goes out once per join, its reason the cause:
+  `read-refused` and `no-match` as error events, `no-identifier` as a `failure` count and a log,
+  and nothing for `no-answer`. Its context holds how each read went (`own_read`,
+  `humanity_read`), the host's words for a refusal (`refusal`), the Humanity product read
+  (`humanity_product`) and the sign-up surface above.
 - **Metrics**: video link quality per round, frame smoothness and connection funnel steps. A link
   is named by `rtc.pair`, a short hash of the game, the round and the two players' accounts, and a
   peer by `rtc.peer`, its index in the game; neither carries another player's account. Anyone who

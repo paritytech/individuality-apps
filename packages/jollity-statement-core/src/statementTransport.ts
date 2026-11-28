@@ -1,7 +1,7 @@
 // Copyright 2026 Parity Technologies (UK) Ltd.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { CreateTransport, RtcPayload, SignalStats } from "./transport"
+import type { CreateTransport, RtcPayload, SealedSignalStats, SignalStats } from "./transport"
 import type { ResolveStore, StatementStoreLike } from "./store"
 import { fromHex, toHex } from "./store"
 import {
@@ -187,8 +187,10 @@ export type SubmitEvent =
 /** The keys a player registered for the game, as the transport needs them. */
 export interface SignallingKeys {
   /** this player's 32-byte P-256 scalar, the secret of the identifier it
-   *  registered on chain; null when none can be found */
-  secret(): Promise<Uint8Array | null>
+   *  registered on chain; null when none can be found, and "no-answer" when
+   *  a read it needed gave no answer, so nothing can be said yet (a rejection
+   *  and the transport's own timeout count the same) */
+  secret(): Promise<Uint8Array | null | "no-answer">
   /** a co-player's (the transport's peer id) 65-byte on-chain
    *  CommunicationIdentifier; null when it has none */
   peerIdentifier(peer: string): Promise<Uint8Array | null>
@@ -494,9 +496,11 @@ export function statementTransport(
     const roster = rosterOf(members ?? [], id)
     const presenceTopic = ROSTER ? label(`from:${id}`) : label("")
     const stats: SignalStats = zeroStats("statement")
-    const sealedStats = KEYS
+    const sealedStats: SealedSignalStats | undefined = KEYS
       ? (stats.sealed = {
           ownKeyMissing: 0,
+          ownKeyHung: 0,
+          ownKeyFound: false,
           peerIdMissing: 0,
           openFailed: 0,
           plaintextDropped: 0,
@@ -596,15 +600,24 @@ export function statementTransport(
       if (mySecret) return mySecret
       const slow = secretMisses >= OWN_KEY_MISSES_BEFORE_BACKOFF && now() - subscribedAt >= OWN_KEY_EAGER_MS
       if (now() - secretMissedAt < (slow ? OWN_KEY_RETRY_SLOW_MS : KEY_RETRY_MS)) return Promise.resolve(null)
-      const lookup = withTimeout(KEYS!.secret(), KEY_LOOKUP_TIMEOUT_MS).catch((e: unknown) => {
+      const asked = withTimeout(KEYS!.secret(), KEY_LOOKUP_TIMEOUT_MS).catch((e: unknown) => {
         log(`[statement-core] the registered secret could not be read: ${errMessage(e)}`)
-        return null
+        return "no-answer" as const
       })
+      const lookup = asked.then((answer) => (answer instanceof Uint8Array ? answer : null))
       mySecret = lookup
-      void lookup.then((found) => {
-        if (found || mySecret !== lookup) return
-        sealedStats!.ownKeyMissing++
-        noteCryptoFailure("secret", "no registered secret for this player → no peer gets a frame")
+      void asked.then((answer) => {
+        if (answer instanceof Uint8Array) sealedStats!.ownKeyFound = true
+        if (answer instanceof Uint8Array || mySecret !== lookup) return
+        // a definite miss is counted apart from a lookup that gave no answer:
+        // only the first says the key is missing
+        if (answer === null) {
+          sealedStats!.ownKeyMissing++
+          noteCryptoFailure("secret", "no registered secret for this player → no peer gets a frame")
+        } else {
+          sealedStats!.ownKeyHung++
+          noteCryptoFailure("secret-hung", "the lookup of this player's registered secret gave no answer → asked again")
+        }
         mySecret = undefined
         secretMissedAt = now()
         secretMisses++

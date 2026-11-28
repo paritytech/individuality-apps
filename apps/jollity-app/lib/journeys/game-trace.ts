@@ -28,7 +28,7 @@ import type { RtcEvent } from "../webrtc/rtc-events"
 import { drawFacts, drawUnplayable, type DrawState } from "./payoff-facts"
 import type { WheelCheck } from "../draw/wheel/rule"
 import { rtcPath } from "./peer-path"
-import { recordTurnOutcome } from "./turn-outcome"
+import { cleanReason, recordTurnOutcome } from "./turn-outcome"
 import { recordFunnelStage, roleAttrs } from "./rtc-funnel"
 import { resetDecoders, trackDecoders } from "./rtc-decoder"
 import { resetImplChanges, trackImplChanges } from "./rtc-impl"
@@ -145,6 +145,10 @@ interface Trace {
   signupSkip: string | null
   /** draw-unplayable goes out once per trace */
   unplayableSent: boolean
+  /** a lookup of this player's own key came back empty this join */
+  ownKeyMissed: boolean
+  /** own-key-missing went out: once per join */
+  ownKeyReported: boolean
 }
 
 interface AwaitingPath {
@@ -200,6 +204,8 @@ function fresh(): Trace {
     stalledStage: null,
     signupSkip: null,
     unplayableSent: false,
+    ownKeyMissed: false,
+    ownKeyReported: false,
   }
 }
 
@@ -256,6 +262,10 @@ export function beginJoin(start: { cameraWarm: boolean }): void {
   const warm = start.cameraWarm ? "true" : "false"
   trace.join = startJourney("join", { "camera.warm": warm, ...connectionAttrs() }, { ownsLifecycle: true })
   trace.camera = trace.join.step("camera.acquire", { "camera.warm": warm })
+  // a miss of the player's own key that came before this join opened
+  const held = heldOwnKeyMiss
+  heldOwnKeyMiss = null
+  if (held) claimOwnKeyMiss(trace.join, held.miss, held.signup)
   trace.stopIce = observeIce(iceStep)
   installPagehide()
   noteSessionChange()
@@ -268,7 +278,7 @@ export function noteGame(gameIndex: number, clockOffset: number, reportEnds?: nu
   // the first game/seat read at the handover: from /game mounting to the chain's answer
   if (firstRead) live(trace.join)?.step("chain.read", {}, { startedAt: trace.joinedAt }).end()
   trace.clockOffset = String(clockOffset)
-  trace.join?.set({ "game.index": String(gameIndex), "clock.offset": trace.clockOffset })
+  trace.join?.set({ "game.index": String(gameIndex), "clock.offset": trace.clockOffset, ...signUpAttrs() })
   setGameIndex(gameIndex)
   beginGameLogOutbox(gameIndex)
   // the marker the late log upload looks for (lib/telemetry/game-log.ts)
@@ -316,15 +326,126 @@ export function statementsFirstPage(): void {
   join.step("statements.first_page", {}, { startedAt: openedAt }).end()
 }
 
+/** What `readSignUpSurface` (lib/host/game-registration.ts) found for a game. */
+export interface SignUpFacts {
+  surface: string
+  humanityRead: string
+}
+
+/** the sign-up surface of the game it was read for (null: the game was not
+ *  known). Outside Trace, like `statementsOpenedAt`: the first key lookup,
+ *  which reads it, can run before /game's join opens, and a join then gets it
+ *  once its game is known */
+let signUpSurface: { gameIndex: number | null; facts: SignUpFacts } | null = null
+
+/** the sign-up surface, when it was read for the game this trace is in (or
+ *  either game is still unknown) */
+function currentSignUp(): SignUpFacts | null {
+  const known = signUpSurface
+  if (!known) return null
+  return known.gameIndex === null || trace.gameIndex === null || known.gameIndex === trace.gameIndex ? known.facts : null
+}
+
+function signUpAttrs(): Record<string, string> {
+  const facts = currentSignUp()
+  return facts ? { "signup.surface": facts.surface, "signup.humanity_read": facts.humanityRead } : {}
+}
+
+/** Which surface signed this player up for `gameIndex`, and how the read of
+ *  Humanity's store went: `signup.surface` and `signup.humanity_read` on the
+ *  join and the game. A refused read shows on every join, even when the
+ *  surface is known from Jollity's own store. */
+export function noteSignUpSurface(gameIndex: number | null, facts: SignUpFacts): void {
+  signUpSurface = { gameIndex, facts }
+  const attrs = signUpAttrs()
+  live(trace.join)?.set(attrs)
+  live(trace.game)?.set(attrs)
+}
+
+/** Why this player's own key was or was not found, and which kept key matched
+ *  (lib/host/communication-key.ts `OwnKeyLookup`). */
+export interface OwnKeyOutcome {
+  cause: string
+  source?: string
+}
+
+/** A lookup of this player's own key that found none: its cause, how the reads
+ *  of the kept keys went, the host's words for a refusal, and the Humanity
+ *  product whose storage was read. */
+export interface OwnKeyMiss {
+  cause: "no-identifier" | "read-refused" | "no-match" | "no-answer"
+  reads?: { own: string; humanity: string }
+  refusal?: string
+  humanityProduct: string
+}
+
 /** a lookup of this player's own signalling key came back: "true" when it was
  *  not found (none kept matches the identifier on chain, none on chain, or the
  *  reads gave up), and its sealed signalling links with nobody; "false" once a
  *  later try finds it. Marked on the join and the game, so a report puts dark
- *  video down to the key, and not to ICE, only while the key was missing. */
-export function signallingKeyLookedUp(found: boolean): void {
-  const attrs = { "rtc.no_signalling_key": found ? "false" : "true" }
+ *  video down to the key, and not to ICE, only while the key was missing.
+ *  With the `outcome`, `rtc.own_key.cause` says why, `rtc.own_key.source`
+ *  which kept key matched, and `rtc.own_key.recovered` that a later try found
+ *  a key a lookup of this join had missed. */
+export function signallingKeyLookedUp(found: boolean, outcome?: OwnKeyOutcome): void {
+  const attrs: Record<string, string> = { "rtc.no_signalling_key": found ? "false" : "true" }
+  if (outcome) attrs["rtc.own_key.cause"] = outcome.cause
+  if (found && outcome?.source) attrs["rtc.own_key.source"] = outcome.source
+  if (found && trace.ownKeyMissed) attrs["rtc.own_key.recovered"] = "true"
+  if (!found) trace.ownKeyMissed = true
+  // a player whose key turned up sends nothing for a miss held for a join
+  else heldOwnKeyMiss = null
   live(trace.join)?.set(attrs)
   live(trace.game)?.set(attrs)
+}
+
+/** a miss that came while no join or game was open: held for the next join,
+ *  which claims it, so a later `beginJoin` cannot make it a second event */
+let heldOwnKeyMiss: { miss: OwnKeyMiss; signup: Promise<SignUpFacts | null> } | null = null
+
+/** The `own-key-missing` failure, at most once per join, on the first miss
+ *  whose cause is not a read that gave no answer (a hung host read is not this
+ *  bug, and the next try may well find the key). The join is claimed, and its
+ *  span captured, at the miss; the event goes to that span once `signup`, the
+ *  sign-up surface read for the game, is back. A miss with no join or game
+ *  open waits for the next join. The values ride the event's context, never
+ *  its message, so each cause is one issue. Never throws. */
+export function ownKeyMissed(miss: OwnKeyMiss, signup: Promise<SignUpFacts | null>): void {
+  if (miss.cause === "no-answer") return
+  const journey = live(trace.join) ?? live(trace.game)
+  if (!journey) {
+    heldOwnKeyMiss ??= { miss, signup }
+    return
+  }
+  claimOwnKeyMiss(journey, miss, signup)
+}
+
+function claimOwnKeyMiss(journey: Journey, miss: OwnKeyMiss, signup: Promise<SignUpFacts | null>): void {
+  if (trace.ownKeyReported) return
+  trace.ownKeyReported = true
+  void signup
+    .catch(() => null)
+    .then((facts) => sendOwnKeyMissing(journey, miss, facts))
+}
+
+function sendOwnKeyMissing(journey: Journey, miss: OwnKeyMiss, signup: SignUpFacts | null): void {
+  const context: Record<string, string> = { humanity_product: miss.humanityProduct }
+  if (miss.reads) {
+    context.own_read = miss.reads.own
+    context.humanity_read = miss.reads.humanity
+  }
+  if (miss.refusal !== undefined) context.refusal = cleanReason(miss.refusal)
+  if (signup) {
+    context["signup.surface"] = signup.surface
+    context["signup.humanity_read"] = signup.humanityRead
+  }
+  reportFailure("own-key-missing", { reason: miss.cause, context }, journey)
+}
+
+/** The game this trace is in, once the session has said (`noteGame`): what
+ *  the sign-up surface is read for, without a chain read of its own. */
+export function currentGameIndex(): number | null {
+  return trace.gameIndex
 }
 
 function iceStep(event: IceEvent): void {
@@ -952,6 +1073,7 @@ export function roundChanged(round: number | null, between = false, turn?: numbe
         "clock.offset": trace.clockOffset,
         "game.late": round > 0 ? "true" : "false",
         ...(trace.gameIndex !== null ? { "game.index": String(trace.gameIndex) } : {}),
+        ...signUpAttrs(),
       },
       { sameTraceAs: trace.join, ownsLifecycle: true },
     )
@@ -1350,6 +1472,8 @@ export function resetGameTraceForTests(): void {
   trace = fresh()
   statementsOpenedAt = null
   statementsDone = false
+  signUpSurface = null
+  heldOwnKeyMiss = null
   startRtcGame()
   resetPaths()
   resetDecoders()

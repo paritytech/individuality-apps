@@ -73,12 +73,13 @@ import {
 } from "@individuality/game-outcome"
 import { playerStatementStore, signerOfPlayer } from "./host/statement-store"
 import { isHostChannelInterruption, retrySafeHostRead, safeHostReadWhenConnected, type HostConnectionSource } from "./host/safe-call"
-import { signalSubmit, signallingKeyLookedUp, statementsFirstPage, statementsInterrupted, statementsResubscribed, statementsSubscribed } from "./journeys/game-trace"
+import { signalSubmit, statementsFirstPage, statementsInterrupted, statementsResubscribed, statementsSubscribed } from "./journeys/game-trace"
 import { signUpCapabilities } from "./host/sign-up"
 import { describeError } from "./host/error-detail"
 import { knownDisplayName } from "./host/identity"
 import { holdGameReminder, reminderForSignup } from "./host/game-reminder"
-import { communicationIdentifier, signallingSecret } from "./host/communication-key"
+import { communicationIdentifier } from "./host/communication-key"
+import { ownKeySecret } from "./own-key"
 import { readGameRegistration, recordSignUp } from "./host/game-registration"
 import { sweepClaimedPrizes } from "./prize-sweep"
 import { devLog } from "./debug/log-store"
@@ -2736,16 +2737,8 @@ async function resolveSource(): Promise<GameSource | null> {
           // registered secret, and nothing directed goes in the clear (since
           // v4: a v3 build sent them in the clear)
           keys: {
-            secret: async () => {
-              let found: Uint8Array | null = null
-              try {
-                found = player ? await signallingSecret(player, engine) : null
-                return found
-              } finally {
-                // to the trace, a read that failed included: a miss means this player links with nobody
-                signallingKeyLookedUp(!!found)
-              }
-            },
+            // this player's own key, and what each lookup tells the trace (lib/own-key.ts)
+            secret: ownKeySecret(player, engine),
             peerIdentifier: (peer) => engine.communicationIdentifier(peer),
           },
           // a submit that backed off, waited for a slot or failed, to the trace per pair

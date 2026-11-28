@@ -19,7 +19,7 @@ const facts = (over: Partial<SeatFacts> = {}): SeatFacts => ({
   cameraOff: false,
   ...over,
 })
-const ctx = (now: number, over: { selfSuspect?: boolean; weak?: boolean } = {}) => ({ now: T0 + now, heardFrom: T0, selfSuspect: false, weak: false, ...over })
+const ctx = (now: number, over: { selfSuspect?: boolean; ownKeyMissing?: boolean; weak?: boolean } = {}) => ({ now: T0 + now, heardFrom: T0, selfSuspect: false, weak: false, ...over })
 
 describe("seat transition logging", () => {
   it("puts signalingState on cant-connect lines only", () => {
@@ -83,6 +83,15 @@ describe("what a seat shows", () => {
   it("blames nobody while the trouble may be ours", () => {
     expect(seatState(facts({ lastSignalAt: T0 + 25_000 }), ctx(31_000, { selfSuspect: true }))).toBe("connecting")
     expect(seatState(undefined, ctx(25_000, { selfSuspect: true }))).toBe("connecting")
+  })
+
+  it("blames nobody while this player's own key is missing: Connecting…, not Can't connect", () => {
+    // heard from them, never linked, past the connect budget: Can't connect, unless the key is ours to blame
+    const stuck = facts({ lastSignalAt: T0 + 29_000 })
+    expect(seatState(stuck, ctx(31_000))).toBe("cant-connect")
+    expect(seatState(stuck, ctx(31_000, { ownKeyMissing: true }))).toBe("connecting")
+    expect(seatState(facts({ lastSignalAt: T0 + 25_000 }), ctx(31_000 + 45_000, { ownKeyMissing: true }))).toBe("connecting")
+    expect(seatState(undefined, ctx(25_000, { ownKeyMissing: true }))).toBe("connecting")
   })
 })
 

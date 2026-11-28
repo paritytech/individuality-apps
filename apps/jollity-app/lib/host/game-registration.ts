@@ -25,11 +25,12 @@ import {
   latestGameRegistration,
   type GameRegistration,
   type JSONStorage,
+  type RegistrationSurface,
 } from "@individuality/shared-records"
 import { devLog } from "../debug/log-store"
 import { WORKER_NOTIFICATIONS_KEY } from "../debug/worker-evidence"
 import { withTimeout } from "../with-timeout"
-import { describeError } from "./error-detail"
+import { describeError, HostReadRefused, isAccessRefusal } from "./error-detail"
 import { hostStorage } from "./storage"
 
 const READ_TIMEOUT_MS = 8_000
@@ -58,7 +59,10 @@ export async function humanityStorage(): Promise<JSONStorage | null> {
       const value = (await api.localStorage.read({ product, key })).match(
         (response) => response.value ?? null,
         (error) => {
-          throw new Error(`${product} refused the read: ${sdk.formatHostError(error)}`)
+          const words = sdk.formatHostError(error)
+          // only a missing grant is a refusal; any other host error is a read that failed
+          if (isAccessRefusal(error, words)) throw new HostReadRefused(product, words)
+          throw new Error(`${product} read failed: ${words}`)
         },
       )
       return value ? decodeStoredJSON(value) : null
@@ -84,6 +88,67 @@ async function readOne(
 
 export async function readGameRegistration(): Promise<GameRegistration | null> {
   return latestGameRegistration(await Promise.all([readOne(own, "jollity"), readOne(humanity, "humanity")]))
+}
+
+/** Which surface made the sign-up of the game the player is in, as the join
+ *  span records it (`signup.surface`): one of the surfaces, `none` when both
+ *  stores answered with no record for the game, `unreadable` when neither
+ *  holds one and a store could not be read. */
+export type SignUpSurface = RegistrationSurface | "none" | "unreadable"
+
+/** How the read of Humanity's store went (`signup.humanity_read`). */
+export type HumanityRead = "ok" | "refused" | "failed" | "no-answer" | "no-host"
+
+export interface SignUpSurfaceFacts {
+  surface: SignUpSurface
+  humanityRead: HumanityRead
+}
+
+type AnyRead = { read: HumanityRead; record: GameRegistration | null }
+
+/** One store's record whatever its age, and how its read went. Never throws. */
+async function readAnyOne(open: () => Promise<JSONStorage | null>, from: "jollity" | "humanity"): Promise<AnyRead> {
+  let opened = false
+  const store = gameRegistrationStore(async () => {
+    const storage = await open()
+    opened = storage !== null
+    return storage
+  })
+  try {
+    const answer = await withTimeout(store.readAny().then((record) => ({ record })), READ_TIMEOUT_MS)
+    if (!answer) {
+      devLog("status", "the sign-up surface read gave no answer", { from, ms: READ_TIMEOUT_MS }, "warn")
+      return { read: "no-answer", record: null }
+    }
+    return { read: opened ? "ok" : "no-host", record: answer.record }
+  } catch (error) {
+    devLog("status", "the sign-up surface read failed", { from, detail: describeError(error) }, "warn")
+    return { read: error instanceof HostReadRefused ? "refused" : "failed", record: null }
+  }
+}
+
+/**
+ * Which surface signed the player up for game `gameIndex` (null when the game
+ * is not known), read from both stores whatever the record's age: the game is
+ * played hours after the sign-up, long past the lifetime `readGameRegistration`
+ * keeps a record for. Only a record for this game counts. If both stores hold
+ * one, the one that reached `registered`, else the latest. It records no
+ * guess: with no record found and a store unread, it says `unreadable`, never
+ * which store it would have been. Never throws.
+ */
+export async function readSignUpSurface(gameIndex: number | null): Promise<SignUpSurfaceFacts> {
+  const [own, humanity] = await Promise.all([readAnyOne(() => hostStorage(), "jollity"), readAnyOne(humanityStorage, "humanity")])
+  const forGame = [own.record, humanity.record].filter(
+    (record): record is GameRegistration => record !== null && gameIndex !== null && record.gameIndex === gameIndex,
+  )
+  const registered = forGame.filter((record) => record.phase === "registered")
+  const picked = (registered.length > 0 ? registered : forGame).reduce<GameRegistration | null>(
+    (latest, record) => (!latest || record.at > latest.at ? record : latest),
+    null,
+  )
+  const bothAnswered = own.read === "ok" && humanity.read === "ok"
+  const surface: SignUpSurface = picked ? picked.surface : bothAnswered && gameIndex !== null ? "none" : "unreadable"
+  return { surface, humanityRead: humanity.read }
 }
 
 /** Writes this product's record, or clears it with null. Resolves once the write is done or has failed. */

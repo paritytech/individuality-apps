@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { describe, expect, it, vi } from "vitest"
-import { GAME_REGISTRATION_KEY, REGISTERING_TTL_MS, type GameRegistration } from "./game-registration"
+import { ENDED_TTL_MS, GAME_REGISTRATION_KEY, REGISTERING_TTL_MS, type GameRegistration } from "./game-registration"
 import { decodeStoredJSON, gameRegistrationStore, type JSONStorage } from "./game-registration-store"
 
 const NOW = 1_700_000_000_000
@@ -27,6 +27,27 @@ describe("gameRegistrationStore", () => {
     storage.values.set(GAME_REGISTRATION_KEY, record("registering", NOW - REGISTERING_TTL_MS - 1))
     await expect(store.read(NOW)).resolves.toBeNull()
     await expect(gameRegistrationStore(async () => null).read(NOW)).resolves.toBeNull()
+  })
+
+  it("reads a record whatever its age with readAny, which read drops once it is stale", async () => {
+    const storage = fakeStorage()
+    const store = gameRegistrationStore(async () => storage)
+    // a sign-up that landed hours before the game it is for
+    const old = record("registered", NOW - ENDED_TTL_MS - 3 * 3_600_000)
+    storage.values.set(GAME_REGISTRATION_KEY, old)
+    await expect(store.read(NOW)).resolves.toBeNull()
+    await expect(store.readAny()).resolves.toEqual(old)
+  })
+
+  it("reads null with readAny for none, a malformed record or no storage, and rejects when the storage does", async () => {
+    const storage = fakeStorage()
+    const store = gameRegistrationStore(async () => storage)
+    await expect(store.readAny()).resolves.toBeNull()
+    storage.values.set(GAME_REGISTRATION_KEY, { gameIndex: 7, phase: "registered", surface: "elsewhere", at: NOW, attempt: 1 })
+    await expect(store.readAny()).resolves.toBeNull()
+    await expect(gameRegistrationStore(async () => null).readAny()).resolves.toBeNull()
+    vi.mocked(storage.readJSON).mockRejectedValueOnce(new Error("refused"))
+    await expect(store.readAny()).rejects.toThrow("refused")
   })
 
   it("rejects a read the storage rejects, so the product decides what to log", async () => {

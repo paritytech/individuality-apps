@@ -211,7 +211,7 @@ function relayTransports(key: string): string[] {
 }
 
 /** the ladder's blame that is OUR side: while it holds, no tile blames a peer */
-const OUR_SIDE = new Set(["internet", "turn-credentials", "store-write", "store-read", "ice", "media"])
+const OUR_SIDE = new Set(["internet", "own-key", "turn-credentials", "store-write", "store-read", "ice", "media"])
 
 export function useMesh({ roomKey, selfId, peers, standby, createTransport, selfAccountId, round, gameIndex, gameTurn, clock, icePolicy, relayProtocols }: UseMeshOptions): MeshView {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null)
@@ -922,6 +922,9 @@ export function useMesh({ roomKey, selfId, peers, standby, createTransport, self
       // our own trouble blames nobody: offline, hidden, or the ladder's blame
       // (last tick's) on our side of the room
       const selfSuspect = pageHidden() || (typeof navigator !== "undefined" && !navigator.onLine) || OUR_SIDE.has(blameRef.current)
+      // no own key: no co-player gets a frame of ours, so none of them is to blame
+      const sealed = transportRef.current?.stats?.()?.sealed
+      const ownKeyMissing = !!sealed && sealed.ownKeyMissing > 0 && !sealed.ownKeyFound
       // a phone that cannot keep up says so once, in the notice, not on every tile
       const struggling = struggleRef.current?.on === true
       const heardFrom = signalStartedAtRef.current ?? now
@@ -929,7 +932,7 @@ export function useMesh({ roomKey, selfId, peers, standby, createTransport, self
       for (const peer of peersRef.current) {
         const prev = shownRef.current.get(peer)
         const weak = weakRef.current.has(peer) && !struggling
-        const next = settleSeat(prev, seatState(facts.get(peer), { now, heardFrom, selfSuspect, weak }), now)
+        const next = settleSeat(prev, seatState(facts.get(peer), { now, heardFrom, selfSuspect, ownKeyMissing, weak }), now)
         shownRef.current.set(peer, next)
         if (prev?.state === next.state) continue
         changed = true

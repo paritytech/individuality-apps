@@ -114,17 +114,29 @@ export function registrationInFlight(record: Pick<GameRegistration, "phase"> | n
   return record?.phase === "registering" || record?.phase === "sent"
 }
 
-/** The record if it is well formed and within the lifetime of its phase at `now`, else null. */
-export function liveGameRegistration(stored: unknown, now: number): GameRegistration | null {
+/**
+ * The record if it is well formed, whatever its age, else null. A reader that
+ * goes by the record wants `liveGameRegistration`; this is for one that only
+ * asks which surface made a game's sign-up, long after it ended.
+ */
+export function parseGameRegistration(stored: unknown): GameRegistration | null {
   if (typeof stored !== "object" || stored === null) return null
   const { gameIndex, phase, surface, at, attempt, reason } = stored as Record<string, unknown>
   if (typeof gameIndex !== "number" || !Number.isInteger(gameIndex)) return null
   if (phase !== "registering" && phase !== "sent" && phase !== "registered" && phase !== "failed") return null
   if (surface !== "chat" && surface !== "app" && surface !== "humanity") return null
   if (typeof at !== "number" || typeof attempt !== "number") return null
+  return { gameIndex, phase, surface, at, attempt, ...(typeof reason === "string" ? { reason } : {}) }
+}
+
+/** The record if it is well formed and within the lifetime of its phase at `now`, else null. */
+export function liveGameRegistration(stored: unknown, now: number): GameRegistration | null {
+  const record = parseGameRegistration(stored)
+  if (!record) return null
+  const { phase, at } = record
   const lifetime = phase === "registering" ? REGISTERING_TTL_MS : phase === "sent" ? SENT_TTL_MS : ENDED_TTL_MS
   if (now - at > lifetime || at - now > MAX_CLOCK_SKEW_MS) return null
-  return { gameIndex, phase, surface, at, attempt, ...(typeof reason === "string" ? { reason } : {}) }
+  return record
 }
 
 

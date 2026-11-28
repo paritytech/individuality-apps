@@ -16,6 +16,11 @@ describe("noticeBlame", () => {
     expect(noticeBlame(turn, true, true)).toEqual(turn.blame)
   })
 
+  it("raises the missing own key whatever the host and path evidence say", () => {
+    const ownKey = verdict(failed("own-key"))
+    expect(noticeBlame(ownKey, false, false)).toEqual(ownKey.blame)
+  })
+
   it("does not suppress another actionable layer", () => {
     const camera = verdict(failed("camera"))
     expect(noticeBlame(camera, false, false)).toEqual(camera.blame)
